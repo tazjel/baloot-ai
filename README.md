@@ -29,7 +29,7 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/yourusername/baloot-ai.git
+    git clone https://github.com/tazjel/baloot-ai.git
     cd baloot-ai
     ```
 

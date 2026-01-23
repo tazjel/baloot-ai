@@ -51,4 +51,15 @@ The project is a Multiplayer Baloot Game with an advanced "AI Studio" for traini
 - **Gemini vs YOLO**: We currently use Gemini (slow, accurate) to gather data. The long-term goal is to train a YOLOv8 model using the `uploads/dataset/` images we are collecting now.
 - **Redis**: Redis is currently optional for Studio but required for the "Bot Worker". If Redis fails, Studio still works.
 
+## 🛡️ Agent Survival Guide (Tips & Tricks)
+1.  **Project Location**: ALWAYS ensure you are working in `C:\Users\MiEXCITE\Projects\baloot-ai`. The old `Downloads` path is deprecated.
+2.  **Git Hygiene**:
+    *   **Large Files**: NEVER commit `.mp4` or heavy datasets. Checks are in place, but be vigilant.
+    *   **Pushing**: If `git push` fails, check if the repo exists or if you are authenticated as `tazjel`.
+3.  **Tool Quirks**:
+    *   **Grep**: `grep` command hangs or fails on this Windows environment. Use `findstr` or the provided MCP tools.
+    *   **File Locks**: Windows locks files easily (especially logs/DBs). If a delete fails, the server might still be running.
+4.  **Verification**:
+    *   Always run `npm run dev` and `python run_game_server.py` to verify the "full stack" after major changes.
+
 ***End of Handover***

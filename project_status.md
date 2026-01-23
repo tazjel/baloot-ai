@@ -22,6 +22,7 @@
 - [x] **Unit Tests**: Coverage for `BiddingEngine` and `Scoring`.
 
 ## ✅ Completed Milestones
+- **GitHub Migration**: Successfully migrated to dedicated repo, cleaned up history/assets, and pushed to `baloot-ai`.
 - **Game Flow Control**: Disabled auto-restart; implemented manual "Next Round" flow.
 - **Unified Bot Identity**: Bots now have persistent names and avatars.
 - **Performance Optimization**: Profiled and fixed 4-bot game lag.
