@@ -1,0 +1,756 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+}
+
+/* Animations */
+@keyframes throw-pop {
+  0% {
+    scale: 1.5;
+    opacity: 0;
+    filter: blur(4px);
+  }
+
+  60% {
+    scale: 0.95;
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  100% {
+    scale: 1;
+  }
+}
+
+@keyframes thump {
+  0% {
+    scale: 1.1;
+  }
+
+  100% {
+    scale: 1.0;
+  }
+}
+
+.animate-thump {
+  animation: thump 0.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-throw-pop {
+  animation: throw-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.card-hover-lift {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-8px);
+}
+
+
+:root {
+  /* === PREMIUM PALETTE === */
+  /* Primary Brand Colors */
+  --color-premium-gold: #D4AF37;
+  --color-premium-gold-light: #F4D03F;
+  --color-premium-gold-dim: rgba(212, 175, 55, 0.3);
+
+  /* Table & Backgrounds */
+  --color-table-green: #0a5233;
+  /* Rich felt green */
+  --color-table-green-dark: #053b23;
+  /* Darker gradient edge */
+  --color-background-wood: #1e110b;
+  /* Dark wood for desktop bg */
+
+  /* UI Elements */
+  --color-panel-bg: rgba(255, 255, 255, 0.95);
+  --color-text-main: #2D3436;
+  --color-text-secondary: #636E72;
+
+  /* Shadows & Glows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-elevation: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --glow-gold: 0 0 20px rgba(212, 175, 55, 0.5);
+
+  /* Majlis Palette (Legacy Support) */
+  --color-majlis-crimson: #DC143C;
+  --color-majlis-charcoal: #202020;
+
+  /* Safe Areas */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Container Dimensions */
+  --app-max-width: 480px;
+  /* Mobile form factor on desktop */
+}
+
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Prevent scrolling */
+}
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  /* Premium Wood Texture Background */
+  background-image: url('./assets/premium_wood_texture.png');
+  background-size: cover;
+  background-position: center;
+  touch-action: none;
+}
+
+/* Glassmorphism Panels */
+.glass-panel {
+  background: var(--color-glass-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-glass-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+/* Capsule Button Styles */
+.capsule-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.capsule-btn-primary {
+  background: var(--color-text-dark);
+  color: white;
+}
+
+.capsule-btn-secondary {
+  background: var(--color-glass-panel);
+  color: var(--color-text-dark);
+  border: 1px solid var(--color-glass-border);
+}
+
+/* Rich Green Felt Table */
+.sadu-carpet {
+  background-color: var(--color-table-felt);
+  background-image:
+    /* Subtle vertical texture */
+    repeating-linear-gradient(90deg,
+      rgba(0, 0, 0, 0.03) 0px,
+      rgba(0, 0, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 4px),
+    /* Subtle horizontal weave */
+    repeating-linear-gradient(0deg,
+      rgba(255, 255, 255, 0.02) 0px,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 4px);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.25),
+    0 15px 50px rgba(0, 0, 0, 0.2);
+  border: 10px solid var(--color-table-wood);
+  border-radius: 20px;
+  position: relative;
+}
+
+/* Subtle felt texture overlay */
+.sadu-carpet::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  border-radius: 10px;
+}
+
+/* Inner golden stitching accent */
+.sadu-carpet::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 1.5px solid rgba(212, 175, 55, 0.25);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.perspective-container {
+  perspective: 1200px;
+  overflow: hidden;
+}
+
+.game-table-3d {
+  transform: rotateX(30deg) scale(0.9);
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 40px 70px rgba(0, 0, 0, 0.25);
+}
+
+.card-float {
+  box-shadow: 2px 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Sakka (Deck Cut) Animation */
+@keyframes sakka-cut-top {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  30% {
+    transform: translate(40px, -40px);
+  }
+
+  60% {
+    transform: translate(40px, -40px);
+    z-index: 0;
+  }
+
+  100% {
+    transform: translate(0, 0);
+    z-index: 0;
+  }
+}
+
+@keyframes sakka-cut-bottom {
+  0% {
+    transform: translate(0, 0);
+    z-index: 10;
+  }
+
+  30% {
+    transform: translate(0, 0);
+    z-index: 10;
+  }
+
+  60% {
+    transform: translate(0, 0);
+    z-index: 20;
+  }
+
+  100% {
+    transform: translate(0, 0);
+    z-index: 20;
+  }
+}
+
+.sakka-deck-top {
+  animation: sakka-cut-top 1.5s ease-in-out forwards;
+}
+
+.sakka-deck-bottom {
+  animation: sakka-cut-bottom 1.5s ease-in-out forwards;
+}
+
+@keyframes fly-throwable {
+  0% {
+    left: 50%;
+    top: 90%;
+    opacity: 0;
+    transform: scale(0.5) rotate(0deg);
+  }
+
+  10% {
+    opacity: 1;
+    transform: scale(1.5) rotate(45deg);
+  }
+
+  90% {
+    left: var(--end-x);
+    top: var(--end-y);
+    opacity: 1;
+    transform: scale(1) rotate(720deg);
+  }
+
+  100% {
+    left: var(--end-x);
+    top: var(--end-y);
+    opacity: 0;
+    transform: scale(2) rotate(720deg);
+  }
+}
+
+.animate-fly-throwable {
+  animation: fly-throwable 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Common Utilities */
+.animate-bounce-slow {
+  animation: bounce 3s infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+/* === CARD ANIMATIONS === */
+
+/* Card Deal Animation - Cards fly in from deck with bounce */
+@keyframes cardDealIn {
+  0% {
+    opacity: 0;
+    transform: translateY(150px) scale(0.6) rotateY(180deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.05) rotateY(0deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotateY(0deg);
+  }
+}
+
+.card-deal-in {
+  animation: cardDealIn 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* Card Hover Lift - Subtle lift with enhanced shadow */
+@keyframes cardHoverLift {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 12px var(--color-card-shadow);
+  }
+
+  100% {
+    transform: translateY(-12px) scale(1.03);
+    box-shadow: 0 20px 40px var(--color-card-shadow), 0 0 20px var(--color-gold-dim);
+  }
+}
+
+.card-hover-lift {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s ease-out;
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-12px) scale(1.03);
+  box-shadow: 0 20px 40px var(--color-card-shadow), 0 0 20px var(--color-gold-dim);
+}
+
+/* Card Play Animation - Card flies to table center */
+@keyframes cardPlayOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.15) translateY(-30px);
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: scale(0.75) translateY(-200px);
+  }
+}
+
+.card-play-out {
+  animation: cardPlayOut 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  pointer-events: none;
+}
+
+/* Card Selection Glow - Pulsing gold border for selected cards */
+@keyframes selectionPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px var(--color-gold-dim),
+      0 0 30px var(--color-gold-dim),
+      inset 0 0 5px var(--color-gold-dim);
+  }
+
+  50% {
+    box-shadow: 0 0 25px var(--color-gold-glow),
+      0 0 50px var(--color-gold-dim),
+      inset 0 0 10px var(--color-gold-dim);
+  }
+}
+
+.card-selected {
+  animation: selectionPulse 1.5s ease-in-out infinite;
+  border: 3px solid var(--color-gold) !important;
+  z-index: 100;
+}
+
+/* Turn Indicator Ring - Glowing ring around current player */
+@keyframes turnIndicatorPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--color-gold),
+      0 0 15px var(--color-gold-dim),
+      0 0 30px var(--color-gold-dim);
+  }
+
+  50% {
+    box-shadow: 0 0 0 5px var(--color-gold),
+      0 0 25px var(--color-gold-glow),
+      0 0 50px var(--color-gold-dim);
+  }
+}
+
+.turn-indicator-active {
+  animation: turnIndicatorPulse 1.2s ease-in-out infinite;
+}
+
+/* Played Card Enter - Smooth slide into cross position */
+@keyframes playedCardEnter {
+  0% {
+    opacity: 0;
+    transform: var(--from-transform, translate(-50%, 100px) scale(1.2));
+  }
+
+  100% {
+    opacity: 1;
+    transform: var(--to-transform, translate(-50%, 0) scale(1));
+  }
+}
+
+.played-card-enter {
+  animation: playedCardEnter 0.35s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* === ADVANCED PHYSICS ANIMATIONS (PHASE IV) === */
+
+/* 6.2 Trajectory: Cubic Bézier Curve Throw */
+/* The "Throw" moves the card from Hand to Center. We use a 2-stage animation or a complex bezier to simulate arc.
+   For simplicity in CSS-only without JS path calculation:
+   We use a standard 'flyIn' but with a "wobble" curve on the perpendicular axis.
+*/
+@keyframes throwCurve {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1.1);
+    opacity: 1;
+  }
+
+  50% {
+    /* The "Arc" peak - slight lift and over-rotation */
+    transform: translate(var(--mid-x, 0px), var(--mid-y, -50px)) rotate(var(--mid-rot, 10deg)) scale(1.2);
+  }
+
+  100% {
+    /* Landing - Jittered position handled by JS offset in final state, this animates TO 0,0 relative to target */
+    transform: translate(0, 0) rotate(var(--end-rot, 5deg)) scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-throw {
+  /* Using cubic-bezier for "Shoot out fast, slow down at end" -> Ease-Out */
+  animation: throwCurve 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+/* 6.2 Rotational Velocity */
+@keyframes spinDrift {
+  to {
+    transform: rotate(var(--drift-angle, 15deg));
+  }
+}
+
+/* 6.4 Directions: Sweep Animations */
+@keyframes sweepToTop {
+  to {
+    transform: translateY(-40vh) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes sweepToBottom {
+  to {
+    transform: translateY(40vh) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes sweepToRight {
+  to {
+    transform: translateX(45vw) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes sweepToLeft {
+  to {
+    transform: translateX(-45vw) scale(0);
+    opacity: 0;
+  }
+}
+
+.sweep-top {
+  animation: sweepToTop 0.5s ease-in forwards;
+}
+
+.sweep-bottom {
+  animation: sweepToBottom 0.5s ease-in forwards;
+}
+
+.sweep-right {
+  animation: sweepToRight 0.5s ease-in forwards;
+}
+
+.sweep-left {
+  animation: sweepToLeft 0.5s ease-in forwards;
+}
+
+/* 7.1 Active Player Halo */
+@keyframes haloPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0px rgba(212, 175, 55, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(212, 175, 55, 0.4);
+  }
+}
+
+.halo-active {
+  animation: haloPulse 2s infinite;
+  z-index: 50;
+}
+
+/* Stack Jitter Utility */
+.stack-jitter {
+  /* Offsets will be applied via inline styles in JS */
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Legacy Directional Animations (Kept for fallback if needed, but superseded by throwCurve) */
+/* ... */
+
+
+/* === MOBILE RESPONSIVE UTILITIES === */
+
+/* Touch-friendly sizing */
+.touch-target {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Mobile card sizing - DISABLED TO ALLOW DYNAMIC VH SIZING
+@media (max-width: 640px) {
+  .card-mobile {
+    width: 70px !important;
+    height: 98px !important;
+  }
+
+  .card-hand-mobile {
+    width: 80px !important;
+    height: 112px !important;
+  }
+
+  .played-card-mobile {
+    width: 60px !important;
+    height: 84px !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .card-tablet {
+    width: 90px !important;
+    height: 126px !important;
+  }
+}
+*/
+
+/* Safe area padding for notched devices */
+.safe-area-top {
+  padding-top: var(--safe-area-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-bottom);
+}
+
+/* Premium button styles */
+.btn-premium {
+  background: linear-gradient(135deg, var(--color-gold) 0%, #c9a227 100%);
+  color: var(--color-text-dark);
+  font-weight: 700;
+  padding: 0.875rem 2rem;
+  border-radius: 9999px;
+  border: none;
+  box-shadow: 0 4px 15px var(--color-gold-dim),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--color-gold-dim),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px var(--color-gold-dim);
+}
+
+/* Premium glass card for UI panels */
+.glass-premium {
+  background: var(--color-glass-panel);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 1.5rem;
+
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* === ANIMATIONS MIGRATED FROM TABLE.TSX === */
+
+@keyframes dealFlyIn {
+  0% {
+    transform: translateY(calc(-45vh)) translateX(0px) rotate(180deg) scale(0.2);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    transform: translate(-50%, -20px) scale(0.5);
+    opacity: 0;
+  }
+
+  60% {
+    transform: translate(-50%, 5px) scale(1.1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-deal-card {
+  animation: dealFlyIn 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes floorReveal {
+  0% {
+    transform: scale(0.5) rotateY(180deg) translateY(-20px);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.2) rotateY(0deg) translateY(0px);
+    opacity: 1;
+    box-shadow: 0 0 30px #FFD700;
+  }
+
+  100% {
+    transform: scale(1) rotateY(0deg) translateY(0);
+    opacity: 1;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+}
+
+.animate-floor-reveal {
+  animation: floorReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  perspective: 1000px;
+}
+
+@keyframes speakFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.8);
+  }
+
+  10% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -10px) scale(0.9);
+  }
+}
+
+.animate-speak-fade {
+  animation: speakFade 3s ease-out forwards;
+}
+
+.animate-bounce-subtle {
+  animation: bounce 2s infinite;
+}
+
+/* === PREMIUM UI COMPONENTS === */
+
+.btn-premium-action {
+  @apply px-6 py-3 rounded-2xl font-black text-sm sm:text-base shadow-lg border-b-4 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center min-w-[100px];
+  /* Default Gray Style handled by bg-zinc-800 in component */
+}
+
+/* Ensure font supports Arabic nicely */
+.font-sans {
+  font-family: 'Cairo', 'Roboto Slab', sans-serif;
+}
+
+
+/*
+New
+Animations
+from
+Table.tsx
+*/
+
+/* DARK MODE OVERRIDES */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-panel-bg: rgba(30, 41, 59, 0.95);
+    /* slate-800 */
+    --color-text-main: #F1F5F9;
+    /* slate-100 */
+    --color-text-secondary: #94A3B8;
+    /* slate-400 */
+    --color-background-wood: #0d0907;
+  }
+}

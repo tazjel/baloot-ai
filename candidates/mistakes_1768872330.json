@@ -1,0 +1,13 @@
+[
+  {
+    "match_id": "sim_1768871496_1",
+    "winner": "them",
+    "scores": {
+      "us": 141,
+      "them": 173
+    },
+    "analysis": {
+      "error": "404 models/gemini-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods."
+    }
+  }
+]

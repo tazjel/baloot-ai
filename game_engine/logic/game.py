@@ -1,0 +1,1164 @@
+import random
+import time
+import logging
+import traceback
+import copy
+from typing import Dict, List, Optional, Any
+
+from game_engine.models.constants import SUITS, RANKS, POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM, ORDER_PROJECTS, GamePhase, BiddingPhase, BidType
+from game_engine.models.card import Card
+from game_engine.models.deck import Deck
+from game_engine.models.player import Player
+from game_engine.logic.utils import sort_hand, scan_hand_for_projects, add_sequence_project, compare_projects, get_project_rank_order
+from game_engine.logic.timer_manager import TimerManager
+from game_engine.logic.trick_manager import TrickManager
+from game_engine.logic.project_manager import ProjectManager
+
+from server.bidding_engine import BiddingEngine
+from bot_agent import bot_agent
+
+# Configure Logging
+from server.logging_utils import log_event, log_error, logger
+
+class Game:
+    def __init__(self, room_id):
+        self.room_id = room_id
+        self.players = [] # List[Player]
+        self.deck = Deck()
+        self.table_cards = []  # List of {"playerId": id, "card": Card, "playedBy": position}
+        self.current_turn = 0
+        self.phase = GamePhase.WAITING.value
+        self.dealer_index = 0
+        self.bid = {"type": None, "bidder": None, "doubled": False}
+        self.game_mode = None  # SUN or HOKUM
+        self.trump_suit = None
+        self.team_scores = {"us": 0, "them": 0}
+        self.match_scores = {"us": 0, "them": 0}
+        self.round_history = []  # List of tricks (Current Round)
+        self.past_round_results = [] # HISTORY of RoundResult (Scores)
+        self.trick_history = []  # Complete game tricks history for debug
+        self.floor_card = None
+        self.bidding_round = 1
+        self.declarations = {} # Map[PlayerPosition] -> List[ProjectDict]
+        self.trick_1_declarations = {} # Temp buffer for current round declarations
+        self.is_project_revealing = False # State for animation
+
+        self.doubling_level = 1
+        self.is_locked = False
+        self.dealing_phase = 0  # 0=not started, 1=3 cards dealt, 2=5 cards dealt, 3=floor revealed
+        self.last_trick = None  # Track last completed trick for animations 
+        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        self.sawa_failed_khasara = False # Flag if Sawa claim fails (Khasara triggered)
+        self.akka_state = None # {claimer: pos, suits: [], timestamp: float}
+        self.full_match_history = [] # Archives full round data: [{roundNum, tricks[], scores, bid...}]
+        
+        
+        # Temporal Logic
+        self.timer = TimerManager(5)
+        self.timer_start_time = time.time() # Legacy / Read-only
+        self.turn_duration = 30 # Legacy / Read-only
+        self.timer_active = True # Legacy
+        self.last_timer_reset = 0
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        
+        # Managers
+        self.trick_manager = TrickManager(self)
+        self.project_manager = ProjectManager(self)
+
+    def get_game_state(self):
+        return {
+            "roomId": self.room_id,
+            "phase": self.phase,
+            "biddingPhase": self.bidding_engine.phase.name if hasattr(self, 'bidding_engine') and self.bidding_engine else None,
+            "players": [p.to_dict() for p in self.players],
+            "tableCards": [{"playerId": tc['playerId'], "card": tc['card'].to_dict(), "playedBy": tc['playedBy'], "metadata": tc.get('metadata')} for tc in self.table_cards],
+            "currentTurnIndex": self.current_turn, # Frontend expects currentTurnIndex
+            "gameMode": self.game_mode,
+            "trumpSuit": self.trump_suit,
+            "bid": self.bid,
+            "teamScores": self.team_scores,
+            "matchScores": self.match_scores,
+            "floorCard": self.floor_card.to_dict() if self.floor_card else None,
+            "dealerIndex": self.dealer_index,
+            "biddingRound": self.bidding_round,
+            "declarations": { 
+                pos: [ 
+                    {**proj, 'cards': [c.to_dict() if hasattr(c, 'to_dict') else c for c in proj.get('cards', [])]} 
+                    for proj in projs 
+                ] 
+                for pos, projs in self.declarations.items() 
+            },
+            "timer": {
+                "remaining": self.timer.get_time_remaining(),
+                "duration": self.timer.duration,
+                "elapsed": self.timer.get_time_elapsed(),
+                "active": self.timer.active
+            },
+            "isProjectRevealing": self.is_project_revealing,
+
+            'doublingLevel': self.doubling_level,
+            'isLocked': self.is_locked,
+            'dealingPhase': self.dealing_phase,
+            'lastTrick': self.last_trick,
+            'roundHistory': self.past_round_results,  # SCORING history (Required by Frontend)
+        
+            # Serialize currentRoundTricks fully
+            # OPTIMIZED: Only send essential data for current round animation/state
+            'currentRoundTricks': [
+                {
+                    'winner': t.get('winner'),
+                    'points': t.get('points'),
+                    # We might need cards for "Last Trick" view, but usually not entire history every tick
+                    'cards': [c.to_dict() if hasattr(c, 'to_dict') else c for c in t['cards']],
+                    'playedBy': t.get('playedBy') # Expose who played the cards (needed for Bot Void detection)
+                }
+                for t in self.round_history
+            ], 
+            # 'trickHistory': self.trick_history,       # Full game debug - REMOVED for Optimization
+            'sawaState': self.sawa_state,
+            
+            # Timer Sync
+            'timerStartTime': self.timer_start_time,
+            'turnDuration': self.turn_duration,
+            'serverTime': time.time(),
+            
+            'qaydState': self.qayd_state,
+            'qaydState': self.qayd_state,
+            'akkaState': self.akka_state,
+            'gameId': self.room_id,
+            # OPTIMIZATION: Do not send full history on every tick. 
+            # It should be fetched via a separate API call if needed.
+            # 'fullMatchHistory': self.full_match_history 
+        }
+
+    # --- AKKA LOGIC ---
+    def check_akka_eligibility(self, player_index):
+        """
+        Check if player holds the highest remaining card for any suit they have.
+        STRICT RULES:
+        1. Game Mode must be HOKUM.
+        2. Suit must NOT be Trump.
+        3. Card itself must NOT be Ace (Ace is self-evident).
+        4. Card must be the highest remaining card of that suit.
+        """
+        # 1. Game Mode Restriction: ONLY HOKUM
+        if self.game_mode != 'HOKUM':
+            return []
+
+        p = self.players[player_index]
+        if not p.hand: return []
+        
+        # Gather all played cards in this round
+        played_cards = set()
+        
+        # 1. Completed tricks
+        for t in self.round_history:
+             for c_dict in t['cards']:
+                 played_cards.add(f"{c_dict['rank']}{c_dict['suit']}")
+                 
+        # 2. Current table
+        for tc in self.table_cards:
+             c = tc['card']
+             played_cards.add(f"{c.rank}{c.suit}")
+             
+        eligible_suits = []
+        
+        # Group hand by suit
+        hand_by_suit = {}
+        for c in p.hand:
+             if c.suit not in hand_by_suit: hand_by_suit[c.suit] = []
+             hand_by_suit[c.suit].append(c)
+             
+        for suit, cards in hand_by_suit.items():
+             # 2. Suit Restriction: NO TRUMP
+             if suit == self.trump_suit:
+                 continue
+                 
+             # Rank Order for Non-Trump in Hokum follows SUN order (A > 10 > K...)
+             rank_order = ORDER_SUN
+             
+             # Find my best card in this suit
+             my_best = max(cards, key=lambda c: rank_order.index(c.rank))
+             
+             # 3. Card Restriction: NO ACES
+             if my_best.rank == 'A':
+                 continue
+                 
+             my_strength = rank_order.index(my_best.rank)
+             
+             # Check if any card in UNPLAYED (Deck + Others) is stronger
+             can_declare = True
+             
+             for r in rank_order:
+                  strength = rank_order.index(r)
+                  if strength > my_strength:
+                       # This rank is stronger. Is it available?
+                       # It is available if NOT played.
+                       card_sig = f"{r}{suit}"
+                       if card_sig not in played_cards:
+                            # It is out there!
+                            can_declare = False
+                            break
+                            
+             if can_declare:
+                  eligible_suits.append(suit)
+                  
+        return eligible_suits
+
+    def handle_akka(self, player_index):
+        try:
+             eligible = self.check_akka_eligibility(player_index)
+             if not eligible:
+                  return {"error": "Not eligible for Akka"}
+             
+             # Valid!
+             p = self.players[player_index]
+             
+             # Update State
+             self.akka_state = {
+                 'claimer': p.position,
+                 'suits': eligible, # Sending list of suits where he is Boss
+                 'timestamp': time.time()
+             }
+             
+             return {"success": True, "akka_state": self.akka_state}
+             
+        except Exception as e:
+             logger.error(f"Error in handle_akka: {e}")
+             return {"error": str(e)}
+
+    def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+        # Auto-dismiss project reveal if valid play is attempted
+        if self.is_project_revealing:
+             self.is_project_revealing = False
+             
+        try:
+            if self.phase != GamePhase.PLAYING.value:
+                return {"error": "Not playing phase"}
+            if player_index != self.current_turn:
+                return {"error": "Not your turn"}
+
+            player = self.players[player_index]
+            if card_idx < 0 or card_idx >= len(player.hand):
+                return {"error": "Invalid card index"}
+            
+            card = player.hand[card_idx]
+            
+            if not self.is_valid_move(card, player.hand):
+                return {"error": "Invalid move"}
+            
+            # Metadata Validation (Akka) BEFORE pop
+            # If we pop first, check_akka_eligibility won't see the card.
+            if metadata and metadata.get('akka'):
+                  eligible_suits = self.check_akka_eligibility(player_index)
+                  if card.suit not in eligible_suits:
+                       return {"error": "Invalid Akka Claim"}
+                  
+                  # Valid Akka
+                  self.akka_state = {
+                      'claimer': player.position,
+                      'suit': card.suit,
+                      'timestamp': time.time()
+                  }
+            
+            # DECLARATION STORAGE (Bot or Human)
+            if float(self.bidding_round) >= 1: # Always true in Playing
+                 if metadata and metadata.get('declarations'):
+                      # Only allowed during Trick 1
+                      if len(self.round_history) == 0:
+                           self.trick_1_declarations[player.position] = metadata['declarations']
+
+            player.hand.pop(card_idx)
+            
+            # Add to table with metadata
+            play_data = {"playerId": player.id, "card": card, "playedBy": player.position}
+            if metadata:
+                 play_data['metadata'] = metadata
+                 if 'reasoning' in metadata:
+                      player.last_reasoning = metadata['reasoning']
+            else:
+                 player.last_reasoning = '' # Clear if no reasoning provided manually
+            
+            self.table_cards.append(play_data)
+            
+            log_event("CARD_PLAYED", self.room_id, player_index, details={
+                "card": str(card), 
+                "playedBy": player.position,
+                "metadata": metadata
+            })
+            
+            if len(self.table_cards) == 4:
+                self.resolve_trick()
+                return {"success": True}
+            else:
+                self.current_turn = (self.current_turn + 1) % 4
+                
+                self.reset_timer()
+                return {"success": True}
+        
+        except Exception as e:
+            logger.error(f"Error in play_card: {e}")
+            return {"error": f"Internal Error: {str(e)}"}
+
+
+    def add_player(self, id, name, avatar=None):
+        # Check if player already exists
+        for p in self.players:
+            if p.id == id:
+                p.name = name # Update name if changed
+                if avatar: p.avatar = avatar # Update avatar if provided
+                return p
+
+        if len(self.players) >= 4:
+            return None
+        
+        index = len(self.players)
+        new_player = Player(id, name, index, self, avatar=avatar)
+        self.players.append(new_player)
+        return new_player
+
+    def start_game(self):
+        if len(self.players) < 4:
+            return False
+        
+        self.reset_round_state()
+        
+        # Set Random Dealer for the first game (Force Seed)
+        self.dealer_index = random.randint(0, 3)
+        logger.info(f"Game Started. Random Dealer Index: {self.dealer_index}")
+        
+        self.deal_initial_cards()
+        self.phase = GamePhase.BIDDING.value
+        
+        # Initialize Bidding Engine
+        self.bidding_engine = BiddingEngine(
+             dealer_index=self.dealer_index, 
+             floor_card=self.floor_card, 
+             players=self.players,
+             match_scores=self.match_scores
+        )
+        self.current_turn = self.bidding_engine.current_turn
+        
+        self.reset_timer() # Start timer for first bidder
+        return True
+
+    def reset_round_state(self):
+        """Reset state for a new round while preserving match-level data"""
+        self.deck = Deck()
+        for p in self.players:
+            p.hand = []
+            p.captured_cards = []
+            p.action_text = ''  # Clear action text
+        
+        self.table_cards = []
+        self.bid = {"type": None, "bidder": None, "doubled": False}
+        self.game_mode = None
+        self.trump_suit = None
+        self.floor_card = None
+        self.bidding_round = 1
+        self.declarations = {}
+        self.trick_1_declarations = {}
+        self.is_project_revealing = False
+
+        self.round_history = []  # Trick history for this round
+        self.is_locked = False
+        self.doubling_level = 1
+        self.dealing_phase = 0
+
+        self.last_trick = None
+        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        self.sawa_failed_khasara = False
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.akka_state = None
+        self.reset_timer()
+
+        
+    def deal_initial_cards(self):
+        # Deal 5 to each
+        for p in self.players:
+            p.hand.extend(self.deck.deal(5))
+        
+        # Reveal Floor Card
+        val = self.deck.deal(1)
+        if val:
+            self.floor_card = val[0]
+            
+    # --- PROJECT LOGIC ---
+    def resolve_declarations(self):
+        return self.project_manager.resolve_declarations() 
+
+    def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        try:
+            if not self.bidding_engine:
+                 return {"error": "Bidding Engine not initialized"}
+                 
+            # Proxy to Bidding Engine
+            variant = None
+            if action in ["DOUBLE", "TRIPLE", "FOUR", "GAHWA"] or (action=="HOKUM" and suit in ['OPEN', 'CLOSED']): 
+                 if suit in ['OPEN', 'CLOSED']:
+                      variant = suit
+                      suit = None
+            
+            res = self.bidding_engine.process_bid(player_index, action, suit, variant)
+            
+            if res.get('error'):
+                 return res
+
+            # Handle REDEAL (Kawesh)
+            if res.get("action") == "REDEAL":
+                 msg = "Pre-Bid Kawesh: Same Dealer"
+                 if res.get("rotate_dealer"):
+                      self.dealer_index = (self.dealer_index + 1) % 4
+                      msg = "Post-Bid Kawesh: Dealer Rotation (Dealer Changed)"
+                 
+                 logger.info(f"Kawesh Accepted. {msg}")
+                 
+                 # RESET
+                 self.reset_round_state()
+                 self.deal_initial_cards()
+                 self.phase = GamePhase.BIDDING.value
+                 
+                 # Re-Initialize Engine with potentially NEW Dealer
+                 self.bidding_engine = BiddingEngine(
+                      dealer_index=self.dealer_index, 
+                      floor_card=self.floor_card, 
+                      players=self.players,
+                      match_scores=self.match_scores
+                 )
+                 self.current_turn = self.bidding_engine.current_turn
+                 self.reset_timer()
+                 
+                 return {"success": True, "message": msg, "action": "REDEAL"}
+                 
+            # Update Game State from Engine
+            player = self.players[player_index]
+            player.action_text = action
+            if reasoning: player.last_reasoning = reasoning
+            
+            log_event("BID_PLACED", self.room_id, player_index, details={
+                "action": action, 
+                "suit": suit, 
+                "variant": variant,
+                "contract": self.bidding_engine.contract.type.value if self.bidding_engine.contract.type else None
+            })
+            
+            # Sync Current Turn
+            self.current_turn = self.bidding_engine.current_turn
+            
+            # Sync Round (for Frontend/Bot)
+            if self.bidding_engine.phase == BiddingPhase.ROUND_2:
+                 self.bidding_round = 2
+            else:
+                 self.bidding_round = 1 
+
+            # Check for Phase Changes
+            if self.bidding_engine.phase == BiddingPhase.DOUBLING:
+                 self.phase = GamePhase.DOUBLING.value
+                 log_event("PHASE_CHANGE", self.room_id, details={"from": "BIDDING", "to": "DOUBLING"})
+                 # Sync Bid info for UI/Logic
+                 c = self.bidding_engine.contract
+                 self.bid = {
+                     "type": c.type.value if c.type else None, 
+                     "bidder": self.players[c.bidder_idx].position, 
+                     "doubled": (c.level >= 2),
+                     "suit": c.suit,
+                     "level": c.level,
+                     "variant": c.variant
+                 }
+                 # Sync Game Mode immediately for complete_deal sorting and logic
+                 if c.type:
+                     self.game_mode = c.type.value
+                     self.trump_suit = c.suit
+
+                 # Distribute remaining cards once contract is secured
+                 self.complete_deal(c.bidder_idx)
+            elif self.bidding_engine.phase == BiddingPhase.VARIANT_SELECTION:
+                 self.phase = GamePhase.VARIANT_SELECTION.value
+                 pass
+            elif self.bidding_engine.phase == BiddingPhase.FINISHED:
+                 # Logic for Finished
+                 
+                 c = self.bidding_engine.contract
+                 
+                 # Handle Pass Out (No Contract)
+                 if not c.type:
+                      logger.info("Pass Out (No Contract). Redealing and Rotating Dealer.")
+                      self.dealer_index = (self.dealer_index + 1) % 4
+                      self.reset_round_state()
+                      self.deal_initial_cards()
+                      self.phase = GamePhase.BIDDING.value
+                      self.bidding_engine = BiddingEngine(
+                           dealer_index=self.dealer_index, 
+                           floor_card=self.floor_card, 
+                           players=self.players,
+                           match_scores=self.match_scores
+                      )
+                      self.current_turn = self.bidding_engine.current_turn
+                      self.reset_timer()
+                      return {"success": True, "action": "REDEAL", "reason": "PASS_OUT"}
+
+                 # Ensure cards are dealt (if Doubling was skipped)
+                 if len(self.players[c.bidder_idx].hand) == 5:
+                     self.complete_deal(c.bidder_idx)
+
+                 # Game Start!
+                 contract = self.bidding_engine.contract
+                 self.game_mode = contract.type.value
+                 self.trump_suit = contract.suit
+                 self.bid = {
+                     "type": contract.type.value, 
+                     "bidder": self.players[contract.bidder_idx].position, 
+                     "doubled": (contract.level >= 2),
+                     "suit": contract.suit,
+                     "level": contract.level,
+                     "variant": contract.variant
+                 }
+                 self.doubling_level = contract.level # Sync for usage in end_round and get_game_state
+
+                 # Complete Deal
+                 self.complete_deal(contract.bidder_idx)
+                 # Phase is now Play (set in complete_deal)
+            
+            elif self.bidding_engine.phase == BiddingPhase.GABLAK_WINDOW:
+                 pass
+            
+            # Always sync current contract state to self.bid for interim updates
+            if self.bidding_engine.contract.type:
+                 c = self.bidding_engine.contract
+                 self.bid = {
+                      "type": c.type.value,
+                      "bidder": self.players[c.bidder_idx].position if c.bidder_idx is not None else None,
+                      "doubled": (c.level >= 2),
+                      "suit": c.suit,
+                      "level": c.level,
+                      "variant": c.variant
+                 }
+
+            if self.bidding_engine.phase == BiddingPhase.GABLAK_WINDOW:
+                 self.reset_timer(self.bidding_engine.GABLAK_DURATION)
+            else:
+                 self.reset_timer()
+            return res
+
+        except Exception as e:
+            logger.error(f"Error handling bid: {e}")
+            traceback.print_exc()
+            return {"error": str(e)}
+
+    def handle_double(self, player_index):
+        try:
+            if self.phase != GamePhase.BIDDING.value and self.phase != GamePhase.PLAYING.value:
+                 pass
+            
+            # Check if bid exists
+            if not self.bid['type']:
+                 return {"error": "No bid to double"}
+                 
+            # Check eligibility (Opponent of bidder)
+            bidder_pos = self.bid['bidder']
+            doubler_pos = self.players[player_index].position
+            
+            is_same_team = (bidder_pos in ['Bottom', 'Top'] and doubler_pos in ['Bottom', 'Top']) or \
+                           (bidder_pos in ['Right', 'Left'] and doubler_pos in ['Right', 'Left'])
+                           
+            if is_same_team:
+                 return {"error": "Cannot double your partner"}
+                 
+            if self.doubling_level >= 2: # Limit to x2 for now, or x4 if Gahwa
+                 return {"error": "Already doubled"}
+                 
+            self.doubling_level = 2
+            self.bid['doubled'] = True
+            self.is_locked = True # Locking prevents leading trump usually
+            return {"success": True}
+        except Exception as e:
+             logger.error(f"Error in handle_double: {e}")
+             return {"error": f"Internal Error: {str(e)}"}
+
+    def complete_deal(self, bidder_index):
+        # Give floor card to bidder
+        bidder = self.players[bidder_index]
+        if self.floor_card:
+            bidder.hand.append(self.floor_card)
+            self.floor_card = None
+            
+        # Deal remaining (2 to bidder, 3 to others)
+        bidder.hand.extend(self.deck.deal(2))
+        
+        # Give 3 to everyone else
+        for p in self.players:
+            if p.index != bidder_index:
+                p.hand.extend(self.deck.deal(3))
+        
+        # Sort Hands for all players
+        for p in self.players:
+             p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
+             p.action_text = "" # Clear "PASS" or other bidding texts
+
+        self.phase = GamePhase.PLAYING.value
+        # Play starts from person RIGHT of dealer? Or Bidder?
+        # Standard: Person to right of Dealer leads first.
+        self.current_turn = (self.dealer_index + 1) % 4
+        self.reset_timer()
+
+    def handle_declare_project(self, player_index, type):
+        return self.project_manager.handle_declare_project(player_index, type)
+
+
+    def handle_sawa(self, player_index):
+        """Player claims they can win all remaining tricks (Sawa/Sawa)"""
+        if player_index != self.current_turn:
+             return {"error": "Not your turn"}
+        
+        if not self.players[player_index].hand:
+             return {"error": "Hand empty"}
+
+        if len(self.table_cards) > 0:
+             return {"error": "Cannot called Sawa after playing a card"}
+             
+        self.sawa_state = {
+            "active": True,
+            "claimer": self.players[player_index].position, 
+            "responses": {}, 
+            "status": "PENDING",
+            "challenge_active": False 
+        }
+        return {"success": True, "sawa_state": self.sawa_state}
+
+    def _resolve_sawa_win(self):
+        """End round immediately, giving all remaining potential points to claimer's team"""
+        claimer_pos = self.sawa_state["claimer"]
+        
+        claimer_idx = next(i for i, p in enumerate(self.players) if p.position == claimer_pos)
+        
+        # Collect all cards from hands
+        all_cards = []
+        for p in self.players:
+            all_cards.extend(p.hand)
+            p.hand = [] # Empty hands
+            
+        # Create a dummy trick with all cards won by claimer
+        dummy_trick = {
+            'cards': [{'card': c.to_dict(), 'playedBy': claimer_pos} for c in all_cards], 
+            'winner': claimer_pos,
+            'points': 0 
+        }
+        
+        self.trick_history.append(dummy_trick)
+        self.end_round()
+
+    def handle_sawa_response(self, player_index, response):
+        if not self.sawa_state['active'] or self.sawa_state['status'] != 'PENDING':
+             return {"error": "No active Sawa claim"}
+             
+        responder_pos = self.players[player_index].position
+        claimer_pos = self.sawa_state['claimer']
+        
+        claimer_team = 'us' if claimer_pos in ['Bottom', 'Top'] else 'them'
+        responder_team = 'us' if responder_pos in ['Bottom', 'Top'] else 'them'
+        
+        if claimer_team == responder_team:
+             return {"error": "Teammate cannot respond"}
+             
+        self.sawa_state['responses'][responder_pos] = response
+        
+        opponents = [p for p in self.players if p.team != claimer_team]
+        op_responses = [self.sawa_state['responses'].get(p.position) for p in opponents]
+        
+        if 'REFUSE' in op_responses:
+             self.sawa_state['status'] = 'REFUSED'
+             self.sawa_state['active'] = False
+             self.sawa_state['challenge_active'] = True  # Enable challenge mode
+             return {"success": True, "sawa_status": "REFUSED", "challenge": True}
+             
+        if all(r == 'ACCEPT' for r in op_responses):
+             self.sawa_state['status'] = 'ACCEPTED'
+             self._resolve_sawa_win() 
+             return {"success": True, "sawa_status": "ACCEPTED"}
+             
+        return {"success": True, "message": "Waiting for partner"}
+
+    def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
+        return self.trick_manager.is_valid_move(card, hand)
+
+    def can_beat_trump(self, winning_card, hand):
+        return self.trick_manager.can_beat_trump(winning_card, hand)
+
+    def resolve_trick(self):
+        return self.trick_manager.resolve_trick()
+
+
+
+    def get_card_points(self, card):
+        return self.trick_manager.get_card_points(card)
+
+    def get_trick_winner(self):
+        return self.trick_manager.get_trick_winner()
+
+    def determine_counting_team(self, bidder_team):
+        if self.doubling_level > 1:
+            return bidder_team
+        else:
+            return 'them' if bidder_team == 'us' else 'us'
+    
+    def round_score(self, value):
+        remainder = value % 10
+        if self.game_mode == 'SUN':
+             if remainder >= 5: 
+                  rounded = (value // 10 + 1) * 10
+             else:
+                  rounded = (value // 10) * 10
+        else: # HOKUM
+             if remainder > 5: 
+                  rounded = (value // 10 + 1) * 10
+             else:
+                  rounded = (value // 10) * 10
+        
+        lost = value - rounded
+        return rounded, lost
+    
+    def calculate_game_points_with_tiebreak(self, card_points_us, card_points_them, ardh_points_us, ardh_points_them, bidder_team):
+        raw_us = card_points_us + ardh_points_us
+        raw_them = card_points_them + ardh_points_them
+        
+        gp_us = self._calculate_score_for_team(raw_us, self.game_mode)
+        gp_them = self._calculate_score_for_team(raw_them, self.game_mode)
+        
+        total_gp = gp_us + gp_them
+        target_total = 26 if self.game_mode == 'SUN' else 16
+        
+        # If mismatch fix it.
+        if total_gp < target_total:
+             diff = target_total - total_gp
+             if bidder_team == 'us':
+                  gp_them += diff
+             else:
+                  gp_us += diff
+        elif total_gp > target_total:
+             pass
+
+        if gp_us > gp_them:
+             winner = 'us'
+        elif gp_them > gp_us:
+             winner = 'them'
+        else:
+             winner = bidder_team 
+        
+        return {
+            'game_points': {'us': gp_us, 'them': gp_them},
+            'lost_in_rounding': {'us': 0, 'them': 0}, 
+            'counting_team': 'us', 
+            'winner': winner
+        }
+
+    def _calculate_card_abnat(self) -> tuple[int, int, Dict[str, int]]:
+        """Calculates raw card points (Abnat) for both teams including Last Trick bonus."""
+        card_abnat_us = 0
+        card_abnat_them = 0
+        
+        for trick in self.round_history:
+             winner_pos = trick['winner']
+             winner_p = next(p for p in self.players if p.position == winner_pos)
+             if winner_p.team == 'us': card_abnat_us += trick['points']
+             else: card_abnat_them += trick['points']
+             
+        # Last Trick Bonus (10 Raw Points / Abnat)
+        last_trick_bonus = {'us': 0, 'them': 0}
+        if self.round_history:
+            last_winner_pos = self.round_history[-1]['winner']
+            last_p = next((p for p in self.players if p.position == last_winner_pos), None)
+            if last_p: 
+                 if last_p.team == 'us': last_trick_bonus['us'] = 10
+                 else: last_trick_bonus['them'] = 10
+        
+        card_abnat_us += last_trick_bonus['us']
+        card_abnat_them += last_trick_bonus['them']
+        
+        return card_abnat_us, card_abnat_them, last_trick_bonus
+
+    def _calculate_score_for_team(self, raw_val: int, mode: str) -> int:
+        if mode == 'SUN':
+             val = (raw_val * 2) / 10.0
+             decimal_part = val % 1
+             if decimal_part >= 0.5:
+                  return int(val) + 1
+             else:
+                  return int(val)
+        else:
+             val = raw_val / 10.0
+             decimal_part = val % 1
+             if decimal_part > 0.5: 
+                  return int(val) + 1
+             else:
+                  return int(val)
+
+    def _resolve_project_scores(self) -> tuple[int, int, List[Dict], List[Dict]]:
+        """Resolves Mashaari (Projects) and calculates points."""
+        project_abnat_us = 0
+        project_abnat_them = 0
+        winning_projects_us = []
+        winning_projects_them = []
+
+        # The ProjectManager.resolve_declarations() method (called at end of Trick 1)
+        # has already filtered self.declarations to only include valid (winning) projects.
+        # So we simply sum them up here.
+
+        for pos, projects in self.declarations.items():
+            player = next((p for p in self.players if p.position == pos), None)
+            if not player: continue
+            
+            for proj in projects:
+                score = proj['score']
+                item = {'type': proj['type'], 'rank': proj['rank'], 'suit': proj.get('suit'), 'owner': pos, 'score': score}
+                
+                if player.team == 'us':
+                    project_abnat_us += score
+                    winning_projects_us.append(item)
+                else:
+                    project_abnat_them += score
+                    winning_projects_them.append(item)
+                    
+        return project_abnat_us, project_abnat_them, winning_projects_us, winning_projects_them
+
+    def _calculate_final_round_score(self, card_abnat_us, card_abnat_them, project_abnat_us, project_abnat_them, last_trick_bonus, winning_projects_us, winning_projects_them):
+            total_abnat_us = card_abnat_us + project_abnat_us
+            total_abnat_them = card_abnat_them + project_abnat_them
+
+            bidder_pos = self.bid.get('bidder')
+            bidder_team = 'them' 
+            if bidder_pos:
+                bidder_p = next((p for p in self.players if p.position == bidder_pos), None)
+                if bidder_p: bidder_team = bidder_p.team
+
+            game_points_us = 0
+            game_points_them = 0
+            
+            # --- KABOOT CHECK ---
+            tricks_us = sum(1 for t in self.round_history if next(p for p in self.players if p.position == t['winner']).team == 'us')
+            tricks_them = sum(1 for t in self.round_history if next(p for p in self.players if p.position == t['winner']).team == 'them')
+            
+            kaboot_winner = None
+            if tricks_them == 0 and tricks_us > 0: kaboot_winner = 'us'
+            elif tricks_us == 0 and tricks_them > 0: kaboot_winner = 'them'
+            
+            winner_team = None
+            
+            ardh_us = last_trick_bonus['us']
+            ardh_them = last_trick_bonus['them']
+            
+            pure_card_us = card_abnat_us - ardh_us
+            pure_card_them = card_abnat_them - ardh_them
+
+            if kaboot_winner:
+                 winner_team = kaboot_winner
+                 if self.game_mode == 'SUN':
+                      if kaboot_winner == 'us': game_points_us = 44
+                      else: game_points_them = 44
+                 else: # HOKUM
+                      if kaboot_winner == 'us': game_points_us = 25
+                      else: game_points_them = 25
+            
+            else:
+                  gp_result = self.calculate_game_points_with_tiebreak(
+                      pure_card_us, pure_card_them,
+                      ardh_us, ardh_them,
+                      bidder_team
+                  )
+                  
+                  game_points_us = gp_result['game_points']['us']
+                  game_points_them = gp_result['game_points']['them']
+                  winner_team = gp_result['winner']
+                  
+                  game_points_us = gp_result['game_points']['us']
+                  game_points_them = gp_result['game_points']['them']
+                  winner_team = gp_result['winner']
+            
+            # Add Project Game Points (Applied to both Kaboot and Normal results)
+            if self.game_mode == 'SUN':
+                   proj_gp_us = (project_abnat_us * 2) // 10
+                   proj_gp_them = (project_abnat_them * 2) // 10
+            else:
+                   proj_gp_us = project_abnat_us // 10
+                   proj_gp_them = project_abnat_them // 10
+            
+            game_points_us += proj_gp_us
+            game_points_them += proj_gp_them
+                  
+            score_us = game_points_us
+            score_them = game_points_them
+             
+            # Khasara Check
+            khasara = False
+            
+            if self.sawa_failed_khasara:
+                 khasara = True
+                 claimer_pos = self.sawa_state['claimer']
+                 if claimer_pos in ['Bottom', 'Top']: bidder_team = 'us'
+                 else: bidder_team = 'them'
+            elif not kaboot_winner: 
+                 if bidder_team == 'us':
+                      if score_us <= score_them: khasara = True
+                 else: # them
+                      if score_them <= score_us: khasara = True
+                 
+            # Apply Khasara Penalty
+            if khasara: 
+                 total_pot = score_us + score_them
+                 if bidder_team == 'us':
+                      score_us = 0
+                      score_them = total_pot
+                 else:
+                      score_them = 0
+                      score_us = total_pot
+            
+            # Doubling (Gahwa Chain)
+            multiplier = 1
+            if self.doubling_level >= 2:
+                 if self.doubling_level >= 100: # GAHWA 
+                      multiplier = 1 
+                      if score_us > 0 and score_them == 0: 
+                           score_us = 152
+                      elif score_them > 0 and score_us == 0:
+                           score_them = 152
+                 else:
+                      multiplier = self.doubling_level # 2, 3, 4
+                      score_us *= multiplier
+                      score_them *= multiplier
+            
+            is_kaboot_us = (kaboot_winner == 'us')
+            is_kaboot_them = (kaboot_winner == 'them')
+    
+            round_result = {
+                'roundNumber': len(self.past_round_results) + 1,
+                'bid': self.bid, 
+                'us': {
+                     'aklat': pure_card_us, 
+                     'ardh': ardh_us,
+                     'projectPoints': project_abnat_us,
+                     'abnat': card_abnat_us + project_abnat_us, 
+                     'result': score_us,
+                     'isKaboot': is_kaboot_us,
+                     'multiplierApplied': multiplier,
+                     'projects': winning_projects_us
+                },
+                'them': {
+                     'aklat': pure_card_them,
+                     'ardh': ardh_them,
+                     'projectPoints': project_abnat_them,
+                     'abnat': card_abnat_them + project_abnat_them, 
+                     'result': score_them,
+                     'isKaboot': is_kaboot_them,
+                     'multiplierApplied': multiplier,
+                     'projects': winning_projects_them
+                },
+                'winner': 'us' if score_us > score_them else 'them',
+                'baida': (score_us == score_them),
+                'project': self.game_mode 
+            }
+            return round_result, score_us, score_them
+
+    def end_round(self, skip_scoring=False):
+        log_event("ROUND_END", self.room_id, details={
+            "scores": self.match_scores.copy(), 
+            "round_history_length": len(self.round_history)
+        })
+        if not skip_scoring:
+            # STEP 1: HELPER CALLS
+            card_abnat_us, card_abnat_them, last_trick_bonus = self._calculate_card_abnat()
+            
+            project_abnat_us, project_abnat_them, winning_projects_us, winning_projects_them = self._resolve_project_scores()
+            
+            round_result, score_us, score_them = self._calculate_final_round_score(
+                 card_abnat_us, card_abnat_them,
+                 project_abnat_us, project_abnat_them,
+                 last_trick_bonus,
+                 winning_projects_us, winning_projects_them
+            )
+            
+            self.past_round_results.append(round_result)
+            self.match_scores['us'] += score_us
+            self.match_scores['them'] += score_them
+            
+            import copy
+            serialized_declarations = {}
+            for pos, projects in self.declarations.items():
+                 serialized_declarations[pos] = []
+                 for proj in projects:
+                      new_proj = proj.copy()
+                      if 'cards' in new_proj:
+                           new_proj['cards'] = [c.to_dict() if hasattr(c, 'to_dict') else c for c in new_proj['cards']]
+                      serialized_declarations[pos].append(new_proj)
+                      
+            round_snapshot = {
+                'roundNumber': len(self.past_round_results),
+                'bid': copy.deepcopy(self.bid),
+                'scores': copy.deepcopy(round_result),
+                'tricks': copy.deepcopy(self.round_history),
+                'dealerIndex': self.dealer_index, 
+                'floorCard': self.floor_card.to_dict() if self.floor_card else None,
+                'declarations': serialized_declarations
+            }
+            self.full_match_history.append(round_snapshot)
+            try:
+                 bot_agent.capture_round_data(round_snapshot)
+            except Exception:
+                 pass
+        
+        self.dealer_index = (self.dealer_index + 1) % 4
+        # Check Win Condition
+        if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
+             log_event("GAME_END", self.room_id, details={"final_scores": self.match_scores.copy(), "winner": "us" if self.match_scores['us'] > self.match_scores['them'] else "them"})
+             self.phase = GamePhase.GAMEOVER.value
+        else:
+             self.phase = GamePhase.FINISHED.value
+             
+        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        self.sawa_failed_khasara = False
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.reset_timer()
+
+    def reset_timer(self, duration=None):
+        self.timer.reset(duration)
+        
+        # Reset specific states
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        
+    def check_timeout(self):
+        """Called by background loop to check if current turn expired"""
+        if not self.timer.active:
+            return None
+            
+        # Don't check timeout in terminal phases
+        if self.phase == GamePhase.FINISHED.value or self.phase == GamePhase.GAMEOVER.value:
+            self.timer.stop()
+            return None
+
+        if self.timer.is_expired():
+            lag = self.timer.get_lag()
+            msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action..."
+            logger.info(msg)
+            with open("logs/timer_monitor.log", "a") as f:
+                f.write(f"{time.time()} {msg}\n")
+            
+            t_start = time.time()
+            res = None
+            
+            if self.phase == GamePhase.BIDDING.value:
+                logger.info(f"Timeout Bidding for Player {self.current_turn}. Auto-PASS.")
+                res = self.handle_bid(self.current_turn, "PASS")
+            
+            elif self.phase == GamePhase.DOUBLING.value:
+                logger.info(f"Timeout Doubling for Player {self.current_turn}. Auto-PASS.")
+                res = self.handle_bid(self.current_turn, "PASS")
+
+            elif self.phase == GamePhase.VARIANT_SELECTION.value:
+                 logger.info(f"Timeout Variant Selection for Player {self.current_turn}. Auto-OPEN.")
+                 res = self.handle_bid(self.current_turn, "OPEN", "OPEN")
+            
+            elif self.phase == GamePhase.PLAYING.value:
+                logger.info(f"Timeout Playing for Player {self.current_turn}. Auto-Play.")
+                res = self.auto_play_card(self.current_turn)
+            
+            dur = time.time() - t_start
+            logger.info(f"Timeout Action Completed in {dur:.4f}s")
+             
+            # Reset timer is handled by the action methods usually, 
+            # but if action failed or returned None, we might need to stop loop?
+            return res
+                
+        return None
+
+    def handle_qayd(self, player_index, reason):
+        try:
+            reporter = self.players[player_index]
+            self.timer_active = False 
+            
+            logger.info(f"QAYD raised by {reporter.name} ({reporter.position}) for {reason}")
+            
+            self.qayd_state = {
+                'active': True, 
+                'reporter': reporter.position, 
+                'reason': reason,
+                'target_play': self.last_trick 
+            }
+            
+            is_valid_claim = False
+            
+            if reason == "FALSE_SAWA":
+                 if self.sawa_failed_khasara: is_valid_claim = True
+            
+            if is_valid_claim:
+                 offender_team = 'them' if reporter.team == 'us' else 'us'
+                 self.apply_qayd_penalty(offender_team, reporter.team)
+                 return {"success": True, "result": "VALID", "message": "Qayd Upheld - Penalty Applied"}
+            else:
+                 self.apply_qayd_penalty(reporter.team, 'them' if reporter.team == 'us' else 'us')
+                 return {"success": True, "result": "INVALID", "message": "False Alarm - Reporter Penalized"}
+                 
+        except Exception as e:
+            logger.error(f"Error in handle_qayd: {e}")
+            return {"error": str(e)}
+
+    def apply_qayd_penalty(self, loser_team, winner_team):
+        max_points = 26 if self.game_mode == 'SUN' else 16
+        
+        score_loser = 0
+        score_winner = max_points 
+        
+        self.match_scores[winner_team] += score_winner
+        self.match_scores[loser_team] += score_loser 
+        
+        round_result = {
+            'roundNumber': len(self.past_round_results) + 1,
+            'us': {'gamePoints': score_winner if winner_team == 'us' else 0, 'isKaboot': True},
+            'them': {'gamePoints': score_winner if winner_team == 'them' else 0, 'isKaboot': True},
+            'winner': winner_team,
+            'qayd': True
+        }
+        self.past_round_results.append(round_result)
+        
+        self.dealer_index = (self.dealer_index + 1) % 4
+        
+        if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
+             log_event("GAME_END", self.room_id, details={"final_scores": self.match_scores.copy(), "winner": "us" if self.match_scores['us'] > self.match_scores['them'] else "them"})
+             self.phase = GamePhase.GAMEOVER.value
+        else:
+             self.phase = GamePhase.FINISHED.value
+             
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+
+    def auto_play_card(self, player_index):
+        try:
+            player = self.players[player_index]
+            if not player.hand:
+                return {"error": "Hand empty"}
+                
+            t0 = time.time()
+            decision = bot_agent.get_decision(self.get_game_state(), player_index)
+            dt = time.time() - t0
+            logger.info(f"Auto-Play Decision Latency for {player.name}: {dt:.4f}s")
+            
+            card_idx = decision.get('cardIndex', 0)
+            
+            if card_idx < 0 or card_idx >= len(player.hand):
+                card_idx = 0 
+                
+            if not self.is_valid_move(player.hand[card_idx], player.hand):
+                 for i, c in enumerate(player.hand):
+                      if self.is_valid_move(c, player.hand):
+                           card_idx = i
+                           break
+
+            logger.info(f"Auto-Play for {player.name}: Bot chose index {card_idx}")
+            return self.play_card(player_index, card_idx)
+            
+        except Exception as e:
+            logger.error(f"Error in auto_play_card: {e}")
+            # Fallback: Play ANY valid card
+            player = self.players[player_index]
+            for i, c in enumerate(player.hand):
+                 if self.is_valid_move(c, player.hand):
+                      logger.info(f"Auto-Play Fallback for {player.name}: Playing index {i} ({c.rank}{c.suit})")
+                      return self.play_card(player_index, i)
+            
+            return {"error": f"Auto-Play Failed completely: {e}"}

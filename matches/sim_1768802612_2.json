@@ -1,0 +1,11 @@
+{
+  "match_id": "sim_1768802612_2",
+  "winner": null,
+  "steps": 5000,
+  "final_scores": {
+    "us": 0,
+    "them": 0
+  },
+  "history_length": 0,
+  "match_history": []
+}

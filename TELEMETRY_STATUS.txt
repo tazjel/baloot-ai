@@ -1,0 +1,3 @@
+Please play one hand (approx 1 minute).
+I have added *manual* server file logging because the standard logger was silent.
+This will tell me if the bot code is even running.

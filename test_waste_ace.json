@@ -1,0 +1,65 @@
+{
+    "phase": "PLAYING",
+    "gameMode": "SUN",
+    "trumpSuit": null,
+    "players": [
+        {
+            "index": 0,
+            "hand": [
+                {
+                    "rank": "A",
+                    "suit": "♠"
+                },
+                {
+                    "rank": "10",
+                    "suit": "♠"
+                }
+            ],
+            "position": "Bottom",
+            "team": "Team A"
+        },
+        {
+            "index": 1,
+            "hand": [],
+            "position": "Right",
+            "team": "Team B"
+        },
+        {
+            "index": 2,
+            "hand": [],
+            "position": "Top",
+            "team": "Team A"
+        },
+        {
+            "index": 3,
+            "hand": [],
+            "position": "Left",
+            "team": "Team B"
+        }
+    ],
+    "tableCards": [
+        {
+            "playedBy": "Right",
+            "card": {
+                "rank": "7",
+                "suit": "♠"
+            }
+        },
+        {
+            "playedBy": "Top",
+            "card": {
+                "rank": "K",
+                "suit": "♠"
+            }
+        },
+        {
+            "playedBy": "Left",
+            "card": {
+                "rank": "8",
+                "suit": "♠"
+            }
+        }
+    ],
+    "currentRoundTricks": [],
+    "dealerIndex": 1
+}

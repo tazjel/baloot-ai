@@ -1,0 +1,46 @@
+2026-01-19 00:06:07,330 - bot_agent - ERROR - Bot Agent Error: 'name'
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\bot_agent.py", line 57, in get_decision
+    ctx = BotContext(game_state, player_index)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\ai_worker\bot_context.py", line 14, in __init__
+    self.name = p_data['name']
+                ~~~~~~^^^^^^^^
+KeyError: 'name'
+2026-01-19 00:06:07,330 - bot_agent - ERROR - Bot Agent Error: 'name'
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\bot_agent.py", line 57, in get_decision
+    ctx = BotContext(game_state, player_index)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\ai_worker\bot_context.py", line 14, in __init__
+    self.name = p_data['name']
+                ~~~~~~^^^^^^^^
+KeyError: 'name'
+2026-01-19 00:06:07,331 - bot_agent - ERROR - Bot Agent Error: 'name'
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\bot_agent.py", line 57, in get_decision
+    ctx = BotContext(game_state, player_index)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\ai_worker\bot_context.py", line 14, in __init__
+    self.name = p_data['name']
+                ~~~~~~^^^^^^^^
+KeyError: 'name'
+2026-01-19 00:06:07,331 - bot_agent - ERROR - Bot Agent Error: 'name'
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\bot_agent.py", line 57, in get_decision
+    ctx = BotContext(game_state, player_index)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\ai_worker\bot_context.py", line 14, in __init__
+    self.name = p_data['name']
+                ~~~~~~^^^^^^^^
+KeyError: 'name'
+Running tests...
+PASS: test_bidding_strong_sun
+PASS: test_play_partner_winning
+PASS: test_play_cut_opponent
+PASS: test_lead_strongest
+FAIL: test_bid_with_sira - Should bid SUN with Sira help. Decision: {'action': 'PASS', 'cardIndex': 0}
+FAIL: test_master_card_recognition - 
+FAIL: test_void_avoidance - 
+FAIL: test_endgame_all_masters - 
+Results: 4 passed, 4 failed

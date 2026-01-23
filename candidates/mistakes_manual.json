@@ -1,0 +1,29 @@
+[
+    {
+        "match_id": "manual_training_001",
+        "winner": "them",
+        "scores": {
+            "us": 140,
+            "them": 152
+        },
+        "analysis": {
+            "summary": "Manual Test Case for Brain Integration",
+            "moments": [
+                {
+                    "round": 1,
+                    "trick": 1,
+                    "player": "Bottom",
+                    "action": "Played 7-S",
+                    "critique": "Mistake. Should have played Ace of Spades to win trick.",
+                    "improvement": "Play Ace of Spades.",
+                    "correct_move": {
+                        "rank": "A",
+                        "suit": "♠",
+                        "reason": "Win the trick immediately."
+                    },
+                    "context_hash": "FORCE_OVERRIDE_TEST"
+                }
+            ]
+        }
+    }
+]

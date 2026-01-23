@@ -1,0 +1,22 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-7.4.3, pluggy-1.6.0 -- C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web
+configfile: pytest.ini
+plugins: anyio-3.7.1
+collecting ... collected 6 items
+
+tests/test_bidding_rules.py::test_ashkal_ace_constraint PASSED           [ 16%]
+tests/test_bidding_rules.py::test_ashkal_success_non_ace PASSED          [ 33%]
+tests/test_bidding_rules.py::test_kawesh_success PASSED                  [ 50%]
+tests/test_bidding_rules.py::test_kawesh_fail_with_points PASSED         [ 66%]
+tests/test_bidding_rules.py::test_kawesh_post_bid_rotation PASSED        [ 83%]
+tests/test_bidding_rules.py::test_round_2_hukum_restriction PASSED       [100%]
+
+============================== warnings summary ===============================
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 6 passed, 1 warning in 0.26s =========================

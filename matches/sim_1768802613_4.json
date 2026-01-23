@@ -1,0 +1,350 @@
+{
+  "match_id": "sim_1768802613_4",
+  "winner": null,
+  "steps": 35,
+  "final_scores": {
+    "us": 44,
+    "them": 0
+  },
+  "history_length": 1,
+  "match_history": [
+    {
+      "roundNumber": 2,
+      "bid": {
+        "type": "SUN",
+        "bidder": "Right",
+        "doubled": false,
+        "suit": null,
+        "level": 1,
+        "variant": null
+      },
+      "scores": {
+        "roundNumber": 2,
+        "bid": {
+          "type": "SUN",
+          "bidder": "Right",
+          "doubled": false,
+          "suit": null,
+          "level": 1,
+          "variant": null
+        },
+        "us": {
+          "aklat": 120,
+          "ardh": 10,
+          "projectPoints": 0,
+          "abnat": 130,
+          "result": 44,
+          "isKaboot": true,
+          "multiplierApplied": 1,
+          "projects": []
+        },
+        "them": {
+          "aklat": 0,
+          "ardh": 0,
+          "projectPoints": 0,
+          "abnat": 0,
+          "result": 0,
+          "isKaboot": false,
+          "multiplierApplied": 1,
+          "projects": []
+        },
+        "winner": "us",
+        "baida": false,
+        "project": "SUN"
+      },
+      "tricks": [
+        {
+          "winner": "Bottom",
+          "points": 14,
+          "cards": [
+            {
+              "suit": "\u2665",
+              "rank": "A",
+              "id": "A\u2665-1768802613255544",
+              "value": 0
+            },
+            {
+              "suit": "\u2665",
+              "rank": "Q",
+              "id": "Q\u2665-1768802613255604",
+              "value": 0
+            },
+            {
+              "suit": "\u2665",
+              "rank": "8",
+              "id": "8\u2665-1768802613255706",
+              "value": 0
+            },
+            {
+              "suit": "\u2665",
+              "rank": "7",
+              "id": "7\u2665-1768802613255346",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Bottom",
+            "Right",
+            "Top",
+            "Left"
+          ]
+        },
+        {
+          "winner": "Bottom",
+          "points": 24,
+          "cards": [
+            {
+              "suit": "\u2663",
+              "rank": "10",
+              "id": "10\u2663-1768802613255960",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "7",
+              "id": "7\u2663-1768802613255977",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "K",
+              "id": "K\u2663-1768802613255893",
+              "value": 0
+            },
+            {
+              "suit": "\u2665",
+              "rank": "10",
+              "id": "10\u2665-1768802613255816",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Bottom",
+            "Right",
+            "Top",
+            "Left"
+          ]
+        },
+        {
+          "winner": "Bottom",
+          "points": 6,
+          "cards": [
+            {
+              "suit": "\u2665",
+              "rank": "K",
+              "id": "K\u2665-1768802613255901",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "9",
+              "id": "9\u2660-1768802613255655",
+              "value": 0
+            },
+            {
+              "suit": "\u2665",
+              "rank": "J",
+              "id": "J\u2665-1768802613255541",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "8",
+              "id": "8\u2660-1768802613255177",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Bottom",
+            "Right",
+            "Top",
+            "Left"
+          ]
+        },
+        {
+          "winner": "Bottom",
+          "points": 13,
+          "cards": [
+            {
+              "suit": "\u2665",
+              "rank": "9",
+              "id": "9\u2665-1768802613255224",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "10",
+              "id": "10\u2660-1768802613255623",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "7",
+              "id": "7\u2660-1768802613255434",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "Q",
+              "id": "Q\u2660-1768802613255411",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Bottom",
+            "Right",
+            "Top",
+            "Left"
+          ]
+        },
+        {
+          "winner": "Top",
+          "points": 13,
+          "cards": [
+            {
+              "suit": "\u2666",
+              "rank": "7",
+              "id": "7\u2666-1768802613255840",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "Q",
+              "id": "Q\u2666-1768802613255341",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "10",
+              "id": "10\u2666-1768802613255947",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "8",
+              "id": "8\u2666-176880261325533",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Bottom",
+            "Right",
+            "Top",
+            "Left"
+          ]
+        },
+        {
+          "winner": "Top",
+          "points": 15,
+          "cards": [
+            {
+              "suit": "\u2666",
+              "rank": "A",
+              "id": "A\u2666-1768802613255138",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "J",
+              "id": "J\u2666-1768802613255213",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "9",
+              "id": "9\u2666-1768802613255989",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "J",
+              "id": "J\u2660-1768802613255117",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Top",
+            "Left",
+            "Bottom",
+            "Right"
+          ]
+        },
+        {
+          "winner": "Top",
+          "points": 24,
+          "cards": [
+            {
+              "suit": "\u2663",
+              "rank": "A",
+              "id": "A\u2663-1768802613255204",
+              "value": 0
+            },
+            {
+              "suit": "\u2660",
+              "rank": "A",
+              "id": "A\u2660-1768802613255524",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "J",
+              "id": "J\u2663-1768802613255286",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "8",
+              "id": "8\u2663-1768802613255897",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Top",
+            "Left",
+            "Bottom",
+            "Right"
+          ]
+        },
+        {
+          "winner": "Top",
+          "points": 11,
+          "cards": [
+            {
+              "suit": "\u2660",
+              "rank": "K",
+              "id": "K\u2660-1768802613255444",
+              "value": 0
+            },
+            {
+              "suit": "\u2666",
+              "rank": "K",
+              "id": "K\u2666-1768802613255233",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "Q",
+              "id": "Q\u2663-1768802613255531",
+              "value": 0
+            },
+            {
+              "suit": "\u2663",
+              "rank": "9",
+              "id": "9\u2663-1768802613255823",
+              "value": 0
+            }
+          ],
+          "playedBy": [
+            "Top",
+            "Left",
+            "Bottom",
+            "Right"
+          ]
+        }
+      ],
+      "dealerIndex": 3,
+      "floorCard": null,
+      "declarations": {}
+    }
+  ]
+}

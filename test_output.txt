@@ -1,0 +1,21 @@
+Match Scores: {'us': 11, 'them': 5}
+Past Round Results: {'roundNumber': 1, 'us': {'rawCardPoints': 112, 'projectPoints': 0, 'totalRaw': 112, 'gamePoints': 11, 'isKaboot': False, 'multiplierApplied': 1, 'projects': []}, 'them': {'rawCardPoints': 50, 'projectPoints': 0, 'totalRaw': 50, 'gamePoints': 5, 'isKaboot': False, 'multiplierApplied': 1, 'projects': []}, 'winner': 'us', 'baida': False, 'project': 'HOKUM'}
+Raw US: 112 (Expected 122)
+Raw THEM: 50 (Expected 40)
+DEBUG RESULTS: US=11 THEM=5
+Raw US: 112 Raw THEM: 50
+Bid: {'type': 'HOKUM', 'bidder': 'Bottom', 'doubled': False}
+F
+======================================================================
+FAIL: test_hokum_split_scoring (__main__.TestScoringDebug.test_hokum_split_scoring)
+Simulate a game where US (Bidder) gets 122 points and THEM gets 40 points.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Downloads\py4web\examples\react-py4web\tests\test_scoring_debug.py", line 66, in test_hokum_split_scoring
+    self.assertEqual(score_us, 12, f"US should have 12 points. Got {score_us}")
+AssertionError: 11 != 12 : US should have 12 points. Got 11
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
