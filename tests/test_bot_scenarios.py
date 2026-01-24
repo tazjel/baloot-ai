@@ -5,7 +5,7 @@ import traceback
 # Add parent directory to path to import modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from bot_agent import bot_agent
+from ai_worker.agent import ai_worker.agent
 from game_logic import Game, Player, Card
 
 class MockGame:

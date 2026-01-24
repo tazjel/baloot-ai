@@ -7,7 +7,7 @@ import time
 # Add parent dir to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from bot_agent import bot_agent
+from ai_worker.agent import ai_worker.agent
 from dotenv import load_dotenv
 
 # Load env

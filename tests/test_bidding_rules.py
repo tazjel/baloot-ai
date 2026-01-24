@@ -1,5 +1,7 @@
 import pytest
-from game_logic import Game, Player, Card
+from game_engine.logic.game import Game
+from game_engine.models.player import Player
+from game_engine.models.card import Card
 from game_engine.models.constants import BiddingPhase
 
 @pytest.fixture

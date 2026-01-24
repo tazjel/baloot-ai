@@ -1,6 +1,6 @@
 
 import unittest
-from server.bidding_engine import BiddingEngine
+from game_engine.logic.bidding_engine import BiddingEngine
 from game_engine.models.constants import BiddingPhase, BidType
 
 class MockPlayer:

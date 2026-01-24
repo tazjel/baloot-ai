@@ -8,7 +8,7 @@ from rlcard.envs import Env
 # Add parent directory to path to import game_logic
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from game_logic import Game, GamePhase, Card
+from server.game_logic import Game, GamePhase, Card
 
 class RLCardGameWrapper(Game):
     """Wrapper to make Game compatible with RLCard requirements"""

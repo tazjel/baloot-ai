@@ -1,5 +1,8 @@
-from game_logic import Game, Card, Player, validate_project
-from room_manager import RoomManager
+from game_engine.logic.game import Game
+from game_engine.models.card import Card
+from game_engine.models.player import Player
+from game_engine.logic.utils import validate_project
+from server.room_manager import RoomManager
 import unittest
 
 class TestGameLogic(unittest.TestCase):

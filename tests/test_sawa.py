@@ -1,7 +1,7 @@
 
 import unittest
 from ai_worker.bot_context import BotContext
-from bot_agent import bot_agent
+from ai_worker.agent import ai_worker.agent
 from game_engine.models.card import Card
 
 class TestSawaLogic(unittest.TestCase):

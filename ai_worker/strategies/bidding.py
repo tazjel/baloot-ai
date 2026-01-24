@@ -24,6 +24,14 @@ class BiddingStrategy:
         best_suit = None
         best_hokum_score = 0
         for suit in SUITS:
+            # Round 1 Constraint: Only allow floor suit for Hokum
+            if ctx.bidding_round == 1 and ctx.floor_card and suit != ctx.floor_card.suit:
+                continue
+                
+            # Round 2 Constraint: Cannot bid floor suit
+            if ctx.bidding_round == 2 and ctx.floor_card and suit == ctx.floor_card.suit:
+                continue
+                
             score = self.calculate_hokum_strength(ctx.hand, suit)
             if score > best_hokum_score:
                 best_hokum_score = score
@@ -36,12 +44,15 @@ class BiddingStrategy:
         # 5. Decision Thresholds
         
         # Partner Awareness: If partner currently holds the bid, raise thresholds significantly
-        current_bid = ctx.raw_state.get('bid')
+        current_bid = ctx.raw_state.get('bid', {})
         partner_has_proposal = False
+        has_hokum_bid = False
         if current_bid:
              bidder_pos = current_bid.get('bidder')
              if bidder_pos == self._get_partner_pos_name(ctx.position):
                   partner_has_proposal = True
+             if current_bid.get('type') == 'HOKUM':
+                  has_hokum_bid = True
         
         # Position Awareness: If Dealer (Last to speak), lower thresholds slightly to avoid pass-out
         is_last_to_speak = ctx.is_dealer
@@ -61,8 +72,9 @@ class BiddingStrategy:
              # Only take over partner if very strong
              sun_threshold += 6 
              hokum_threshold += 5
-        elif is_last_to_speak:
-             # Force Bid to prevent infinite Pass Out loops in Arena
+        elif is_last_to_speak and ctx.bidding_round == 2 and not current_bid:
+             # Force Bid in very last speaker of R2 to prevent infinite Pass Out loops
+             # If we get here, it means we must bid something.
              sun_threshold = -999 
              hokum_threshold = -999
 
@@ -89,20 +101,13 @@ class BiddingStrategy:
         
         # logger.info(f"Bid Logic: P{ctx.player_index} (Dealer? {is_last_to_speak}). SunScore: {sun_score} vs {sun_threshold}. Hokum: {best_hokum_score} vs {hokum_threshold}")
 
+        
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
             
-        if best_hokum_score >= hokum_threshold and best_suit:
-            # Round 1 Constraint
-            if ctx.bidding_round == 1 and ctx.floor_card and best_suit != ctx.floor_card.suit:
-                 if best_hokum_score >= hokum_threshold:
-                      return {"action": "PASS", "reasoning": f"Waiting for Round 2 to bid {best_suit}"}
-                 else:
-                      pass 
-            # Round 2 Constraint
-            elif ctx.bidding_round == 2 and ctx.floor_card and ctx.floor_card.suit == best_suit:
-                 pass 
-            else:
+        # Only consider Hokum if nobody else has bid it yet
+        if not has_hokum_bid:
+            if best_hokum_score >= hokum_threshold and best_suit:
                  return {"action": "HOKUM", "suit": best_suit, "reasoning": f"Good {best_suit} Suit (Score {best_hokum_score})"}
         
         return {"action": "PASS", "reasoning": "Hand too weak"}

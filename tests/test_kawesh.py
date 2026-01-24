@@ -1,7 +1,7 @@
 import pytest
 from game_engine.logic.utils import is_kawesh_hand
 from game_engine.models.card import Card
-from server.bidding_engine import BiddingEngine, BiddingPhase, BidType
+from game_engine.logic.bidding_engine import BiddingEngine, BiddingPhase, BidType
 
 # Mocks
 class MockPlayer:

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { CardModel, Suit, Rank } from '../types';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
+import { motion } from 'framer-motion';
 
 interface CardProps {
   card: CardModel;
@@ -17,6 +18,7 @@ interface CardProps {
   animationDelay?: number;
   cardLanguage?: 'EN' | 'AR';
   isAkka?: boolean;
+  isAccessibilityMode?: boolean;
 }
 
 // Typography: Slab Serif for standard English indices
@@ -31,7 +33,16 @@ const getRankSymbolEN = (rank: Rank): string => {
 };
 
 // Colors: Darker Red (#D32F2F) for Hearts/Diamonds to reduce eye strain
-const getSuitColor = (suit: Suit, isFourColorMode: boolean = false, isHighContrast: boolean = false): string => {
+const getSuitColor = (suit: Suit, isFourColorMode: boolean = false, isHighContrast: boolean = false, isAccessibilityMode: boolean = false): string => {
+  if (isAccessibilityMode) {
+    switch (suit) {
+      case Suit.Diamonds: return '#3ABEF9'; // Light Blue
+      case Suit.Spades: return '#55AD9B'; // Green
+      case Suit.Hearts: return '#dc2626'; // Standard Red
+      case Suit.Clubs: return '#111111'; // Standard Black
+    }
+  }
+
   if (isHighContrast) return (suit === Suit.Hearts || suit === Suit.Diamonds) ? '#ff0000' : '#000000';
   if (isFourColorMode) {
     switch (suit) {
@@ -74,16 +85,14 @@ const Card: React.FC<CardProps> = ({
   animationDelay = 0,
 
   cardLanguage = 'EN', // Default
-  isAkka = false
+  isAkka = false,
+  isAccessibilityMode = false
 }) => {
   if (!card) return null;
 
   const isCourtCard = [Rank.King, Rank.Queen, Rank.Jack].includes(card.rank);
-  const suitColor = getSuitColor(card.suit, isFourColorMode, isHighContrast);
-
+  const suitColor = getSuitColor(card.suit, isFourColorMode, isHighContrast, isAccessibilityMode);
   const rankSymbol = cardLanguage === 'AR' ? getRankSymbolAR(card.rank) : getRankSymbolEN(card.rank);
-  // Font override for Arabic might be needed if Roboto Slab doesn't support it well, but standard fonts usually do.
-  // Using native font stack for Arabic fallback.
   const fontFamily = cardLanguage === 'AR' ? '"Tajawal", "Segoe UI", sans-serif' : '"Roboto Slab", serif';
 
   const SuitIcon = ({ size, className }: { size: number, className?: string }) => {
@@ -95,7 +104,6 @@ const Card: React.FC<CardProps> = ({
     }
   };
 
-  // Premium Style: 5:7 Aspect Ratio, Rounded Corners, Crisp White
   const containerClasses = `
     relative 
     w-full h-full
@@ -103,50 +111,75 @@ const Card: React.FC<CardProps> = ({
     flex flex-col items-center justify-center 
     rounded-[10%] 
     select-none 
-    transition-transform duration-300
     bg-white
-    ${selected ? 'z-50 card-selected' : ''}
     ${disabled ? 'grayscale opacity-60 pointer-events-none' : ''}
-    ${!disabled && isPlayable ? 'cursor-pointer hover:brightness-105' : ''}
+    ${!disabled && isPlayable ? 'cursor-pointer' : ''}
     ${!isPlayable && !disabled ? 'opacity-90 brightness-95' : ''}
     ${className}
   `;
 
+  // Motion Variants
+  const variants = {
+    hidden: { opacity: 0, y: 50, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      y: selected ? -30 : 0,
+      scale: 1,
+      transition: { delay: animationDelay / 1000, type: "spring", stiffness: 300, damping: 20 }
+    },
+    hover: (!disabled && isPlayable) ? {
+      y: -15,
+      scale: 1.05,
+      boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)"
+    } : {},
+    tap: (!disabled && isPlayable) ? { scale: 0.95 } : {}
+  };
+
   if (isHidden) {
     return (
-      <div
+      <motion.div
         className={`${containerClasses} overflow-hidden`}
         onClick={onClick}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: animationDelay / 1000 }}
         style={{
           boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
           border: '1px solid #ddd',
           backgroundImage: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)', // Simple Back
-          animationDelay: `${animationDelay}ms`,
         }}
       >
         <div className="w-full h-full border-4 border-white/20 rounded-[8%] m-1"></div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div
+    <motion.div
       className={containerClasses}
       onClick={onClick}
+      variants={variants}
+      initial="hidden"
+      animate="visible"
+      whileHover="hover"
+      whileTap="tap"
       style={{
         boxShadow: selected
-          ? '0 0 0 2px #d4af37, 0 10px 20px rgba(0,0,0,0.3)'
+          ? '0 0 0 3px #d4af37, 0 10px 20px rgba(0,0,0,0.3)'
           : '0 2px 6px rgba(0,0,0,0.15)',
         border: '1px solid #e5e5e5',
-        animationDelay: `${animationDelay}ms`,
-        transform: selected ? 'translateY(-30px)' : undefined
+        zIndex: selected ? 50 : 'auto'
       }}
     >
       {/* Akka Badge */}
       {isAkka && (
-        <div className="absolute -top-3 -right-3 z-50 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md animate-bounce border-2 border-white">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="absolute -top-3 -right-3 z-50 bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md border-2 border-white"
+        >
           أكة
-        </div>
+        </motion.div>
       )}
 
       {/* --- Top-Left Index (Primary) --- */}
@@ -185,7 +218,7 @@ const Card: React.FC<CardProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

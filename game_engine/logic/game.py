@@ -10,12 +10,13 @@ from game_engine.models.card import Card
 from game_engine.models.deck import Deck
 from game_engine.models.player import Player
 from game_engine.logic.utils import sort_hand, scan_hand_for_projects, add_sequence_project, compare_projects, get_project_rank_order
-from game_engine.logic.timer_manager import TimerManager
-from game_engine.logic.trick_manager import TrickManager
-from game_engine.logic.project_manager import ProjectManager
+from .timer_manager import TimerManager
+from .trick_manager import TrickManager
+from .project_manager import ProjectManager
+from .scoring_engine import ScoringEngine
 
-from server.bidding_engine import BiddingEngine
-from bot_agent import bot_agent
+from .bidding_engine import BiddingEngine
+from ai_worker.agent import bot_agent
 
 # Configure Logging
 from server.logging_utils import log_event, log_error, logger
@@ -64,6 +65,16 @@ class Game:
         # Managers
         self.trick_manager = TrickManager(self)
         self.project_manager = ProjectManager(self)
+        self.scoring_engine = ScoringEngine(self)
+
+    @property
+    def current_turn(self):
+        """Returns the player whose turn it is, accounting for Gablak windows."""
+        return self.bidding_engine.get_current_actor() if self.phase == GamePhase.BIDDING.value else self._current_turn
+    
+    @current_turn.setter
+    def current_turn(self, value):
+        self._current_turn = value
 
     def get_game_state(self):
         return {
@@ -123,13 +134,47 @@ class Game:
             'serverTime': time.time(),
             
             'qaydState': self.qayd_state,
-            'qaydState': self.qayd_state,
             'akkaState': self.akka_state,
             'gameId': self.room_id,
             # OPTIMIZATION: Do not send full history on every tick. 
             # It should be fetched via a separate API call if needed.
             # 'fullMatchHistory': self.full_match_history 
         }
+
+    def _sync_bid_state(self):
+        """Syncs the Game.bid structure with current BiddingEngine state."""
+        if not self.bidding_engine:
+            return
+            
+        c = self.bidding_engine.contract
+        tb = self.bidding_engine.tentative_bid
+        
+        # Priority 1: Current Finalized Contract
+        if c.type:
+            self.bid = {
+                "type": c.type.value,
+                "bidder": self.players[c.bidder_idx].position,
+                "doubled": (c.level >= 2),
+                "suit": c.suit,
+                "level": c.level,
+                "variant": c.variant,
+                "isAshkal": c.is_ashkal,
+                "isTentative": False
+            }
+        # Priority 2: Tentative Bid (during Gablak)
+        elif tb:
+            self.bid = {
+                "type": tb['type'],
+                "bidder": self.players[tb['bidder']].position,
+                "doubled": False,
+                "suit": tb['suit'],
+                "level": 1,
+                "variant": None,
+                "isAshkal": (tb['type'] == 'ASHKAL'),
+                "isTentative": True
+            }
+        else:
+            self.bid = {"type": None, "bidder": None, "doubled": False}
 
     # --- AKKA LOGIC ---
     def check_akka_eligibility(self, player_index):
@@ -441,103 +486,74 @@ class Game:
                 "variant": variant,
                 "contract": self.bidding_engine.contract.type.value if self.bidding_engine.contract.type else None
             })
+            # Sync Bid State (for Bot/UI awareness)
+            self._sync_bid_state()
             
             # Sync Current Turn
-            self.current_turn = self.bidding_engine.current_turn
+            self.current_turn = self.bidding_engine.get_current_actor() if self.phase == GamePhase.BIDDING.value else self._current_turn
             
             # Sync Round (for Frontend/Bot)
             if self.bidding_engine.phase == BiddingPhase.ROUND_2:
-                 self.bidding_round = 2
+                  self.bidding_round = 2
             else:
                  self.bidding_round = 1 
 
             # Check for Phase Changes
             if self.bidding_engine.phase == BiddingPhase.DOUBLING:
-                 self.phase = GamePhase.DOUBLING.value
-                 log_event("PHASE_CHANGE", self.room_id, details={"from": "BIDDING", "to": "DOUBLING"})
-                 # Sync Bid info for UI/Logic
-                 c = self.bidding_engine.contract
-                 self.bid = {
-                     "type": c.type.value if c.type else None, 
-                     "bidder": self.players[c.bidder_idx].position, 
-                     "doubled": (c.level >= 2),
-                     "suit": c.suit,
-                     "level": c.level,
-                     "variant": c.variant
-                 }
-                 # Sync Game Mode immediately for complete_deal sorting and logic
-                 if c.type:
-                     self.game_mode = c.type.value
-                     self.trump_suit = c.suit
+                self.phase = GamePhase.DOUBLING.value
+                log_event("PHASE_CHANGE", self.room_id, details={"from": "BIDDING", "to": "DOUBLING"})
+                
+                # Sync Game Mode immediately for complete_deal sorting and logic
+                c = self.bidding_engine.contract
+                if c.type:
+                    self.game_mode = c.type.value
+                    self.trump_suit = c.suit
 
-                 # Distribute remaining cards once contract is secured
-                 self.complete_deal(c.bidder_idx)
+                # Distribute remaining cards once contract is secured
+                self.complete_deal(c.bidder_idx)
+                
             elif self.bidding_engine.phase == BiddingPhase.VARIANT_SELECTION:
-                 self.phase = GamePhase.VARIANT_SELECTION.value
-                 pass
+                self.phase = GamePhase.VARIANT_SELECTION.value
+                
             elif self.bidding_engine.phase == BiddingPhase.FINISHED:
-                 # Logic for Finished
-                 
-                 c = self.bidding_engine.contract
-                 
-                 # Handle Pass Out (No Contract)
-                 if not c.type:
-                      logger.info("Pass Out (No Contract). Redealing and Rotating Dealer.")
-                      self.dealer_index = (self.dealer_index + 1) % 4
-                      self.reset_round_state()
-                      self.deal_initial_cards()
-                      self.phase = GamePhase.BIDDING.value
-                      self.bidding_engine = BiddingEngine(
-                           dealer_index=self.dealer_index, 
-                           floor_card=self.floor_card, 
-                           players=self.players,
-                           match_scores=self.match_scores
-                      )
-                      self.current_turn = self.bidding_engine.current_turn
-                      self.reset_timer()
-                      return {"success": True, "action": "REDEAL", "reason": "PASS_OUT"}
+                c = self.bidding_engine.contract
+                
+                # Handle Pass Out (No Contract)
+                if not c.type:
+                    logger.info("Pass Out (No Contract). Redealing and Rotating Dealer.")
+                    self.dealer_index = (self.dealer_index + 1) % 4
+                    self.reset_round_state()
+                    self.deal_initial_cards()
+                    self.phase = GamePhase.BIDDING.value
+                    self.bidding_engine = BiddingEngine(
+                        dealer_index=self.dealer_index, 
+                        floor_card=self.floor_card, 
+                        players=self.players,
+                        match_scores=self.match_scores
+                    )
+                    self.current_turn = self.bidding_engine.current_turn
+                    self.reset_timer()
+                    return {"success": True, "action": "REDEAL", "reason": "PASS_OUT"}
 
-                 # Ensure cards are dealt (if Doubling was skipped)
-                 if len(self.players[c.bidder_idx].hand) == 5:
-                     self.complete_deal(c.bidder_idx)
+                # Ensure cards are dealt (if Doubling was skipped)
+                if len(self.players[c.bidder_idx].hand) == 5:
+                    self.complete_deal(c.bidder_idx)
 
-                 # Game Start!
-                 contract = self.bidding_engine.contract
-                 self.game_mode = contract.type.value
-                 self.trump_suit = contract.suit
-                 self.bid = {
-                     "type": contract.type.value, 
-                     "bidder": self.players[contract.bidder_idx].position, 
-                     "doubled": (contract.level >= 2),
-                     "suit": contract.suit,
-                     "level": contract.level,
-                     "variant": contract.variant
-                 }
-                 self.doubling_level = contract.level # Sync for usage in end_round and get_game_state
+                # Game Start!
+                self.game_mode = c.type.value
+                self.trump_suit = c.suit
+                self.doubling_level = c.level 
+                self.complete_deal(c.bidder_idx)
 
-                 # Complete Deal
-                 self.complete_deal(contract.bidder_idx)
-                 # Phase is now Play (set in complete_deal)
-            
-            elif self.bidding_engine.phase == BiddingPhase.GABLAK_WINDOW:
-                 pass
-            
-            # Always sync current contract state to self.bid for interim updates
-            if self.bidding_engine.contract.type:
-                 c = self.bidding_engine.contract
-                 self.bid = {
-                      "type": c.type.value,
-                      "bidder": self.players[c.bidder_idx].position if c.bidder_idx is not None else None,
-                      "doubled": (c.level >= 2),
-                      "suit": c.suit,
-                      "level": c.level,
-                      "variant": c.variant
-                 }
+            # Sync Bid State again at the end of every successful bid action
+            self._sync_bid_state()
 
             if self.bidding_engine.phase == BiddingPhase.GABLAK_WINDOW:
-                 self.reset_timer(self.bidding_engine.GABLAK_DURATION)
+                if res.get("status") == "GABLAK_TRIGGERED":
+                    self.reset_timer(self.bidding_engine.GABLAK_DURATION)
             else:
-                 self.reset_timer()
+                self.reset_timer()
+                
             return res
 
         except Exception as e:
@@ -695,267 +711,8 @@ class Game:
     def get_trick_winner(self):
         return self.trick_manager.get_trick_winner()
 
-    def determine_counting_team(self, bidder_team):
-        if self.doubling_level > 1:
-            return bidder_team
-        else:
-            return 'them' if bidder_team == 'us' else 'us'
-    
-    def round_score(self, value):
-        remainder = value % 10
-        if self.game_mode == 'SUN':
-             if remainder >= 5: 
-                  rounded = (value // 10 + 1) * 10
-             else:
-                  rounded = (value // 10) * 10
-        else: # HOKUM
-             if remainder > 5: 
-                  rounded = (value // 10 + 1) * 10
-             else:
-                  rounded = (value // 10) * 10
-        
-        lost = value - rounded
-        return rounded, lost
-    
-    def calculate_game_points_with_tiebreak(self, card_points_us, card_points_them, ardh_points_us, ardh_points_them, bidder_team):
-        raw_us = card_points_us + ardh_points_us
-        raw_them = card_points_them + ardh_points_them
-        
-        gp_us = self._calculate_score_for_team(raw_us, self.game_mode)
-        gp_them = self._calculate_score_for_team(raw_them, self.game_mode)
-        
-        total_gp = gp_us + gp_them
-        target_total = 26 if self.game_mode == 'SUN' else 16
-        
-        # If mismatch fix it.
-        if total_gp < target_total:
-             diff = target_total - total_gp
-             if bidder_team == 'us':
-                  gp_them += diff
-             else:
-                  gp_us += diff
-        elif total_gp > target_total:
-             pass
 
-        if gp_us > gp_them:
-             winner = 'us'
-        elif gp_them > gp_us:
-             winner = 'them'
-        else:
-             winner = bidder_team 
-        
-        return {
-            'game_points': {'us': gp_us, 'them': gp_them},
-            'lost_in_rounding': {'us': 0, 'them': 0}, 
-            'counting_team': 'us', 
-            'winner': winner
-        }
 
-    def _calculate_card_abnat(self) -> tuple[int, int, Dict[str, int]]:
-        """Calculates raw card points (Abnat) for both teams including Last Trick bonus."""
-        card_abnat_us = 0
-        card_abnat_them = 0
-        
-        for trick in self.round_history:
-             winner_pos = trick['winner']
-             winner_p = next(p for p in self.players if p.position == winner_pos)
-             if winner_p.team == 'us': card_abnat_us += trick['points']
-             else: card_abnat_them += trick['points']
-             
-        # Last Trick Bonus (10 Raw Points / Abnat)
-        last_trick_bonus = {'us': 0, 'them': 0}
-        if self.round_history:
-            last_winner_pos = self.round_history[-1]['winner']
-            last_p = next((p for p in self.players if p.position == last_winner_pos), None)
-            if last_p: 
-                 if last_p.team == 'us': last_trick_bonus['us'] = 10
-                 else: last_trick_bonus['them'] = 10
-        
-        card_abnat_us += last_trick_bonus['us']
-        card_abnat_them += last_trick_bonus['them']
-        
-        return card_abnat_us, card_abnat_them, last_trick_bonus
-
-    def _calculate_score_for_team(self, raw_val: int, mode: str) -> int:
-        if mode == 'SUN':
-             val = (raw_val * 2) / 10.0
-             decimal_part = val % 1
-             if decimal_part >= 0.5:
-                  return int(val) + 1
-             else:
-                  return int(val)
-        else:
-             val = raw_val / 10.0
-             decimal_part = val % 1
-             if decimal_part > 0.5: 
-                  return int(val) + 1
-             else:
-                  return int(val)
-
-    def _resolve_project_scores(self) -> tuple[int, int, List[Dict], List[Dict]]:
-        """Resolves Mashaari (Projects) and calculates points."""
-        project_abnat_us = 0
-        project_abnat_them = 0
-        winning_projects_us = []
-        winning_projects_them = []
-
-        # The ProjectManager.resolve_declarations() method (called at end of Trick 1)
-        # has already filtered self.declarations to only include valid (winning) projects.
-        # So we simply sum them up here.
-
-        for pos, projects in self.declarations.items():
-            player = next((p for p in self.players if p.position == pos), None)
-            if not player: continue
-            
-            for proj in projects:
-                score = proj['score']
-                item = {'type': proj['type'], 'rank': proj['rank'], 'suit': proj.get('suit'), 'owner': pos, 'score': score}
-                
-                if player.team == 'us':
-                    project_abnat_us += score
-                    winning_projects_us.append(item)
-                else:
-                    project_abnat_them += score
-                    winning_projects_them.append(item)
-                    
-        return project_abnat_us, project_abnat_them, winning_projects_us, winning_projects_them
-
-    def _calculate_final_round_score(self, card_abnat_us, card_abnat_them, project_abnat_us, project_abnat_them, last_trick_bonus, winning_projects_us, winning_projects_them):
-            total_abnat_us = card_abnat_us + project_abnat_us
-            total_abnat_them = card_abnat_them + project_abnat_them
-
-            bidder_pos = self.bid.get('bidder')
-            bidder_team = 'them' 
-            if bidder_pos:
-                bidder_p = next((p for p in self.players if p.position == bidder_pos), None)
-                if bidder_p: bidder_team = bidder_p.team
-
-            game_points_us = 0
-            game_points_them = 0
-            
-            # --- KABOOT CHECK ---
-            tricks_us = sum(1 for t in self.round_history if next(p for p in self.players if p.position == t['winner']).team == 'us')
-            tricks_them = sum(1 for t in self.round_history if next(p for p in self.players if p.position == t['winner']).team == 'them')
-            
-            kaboot_winner = None
-            if tricks_them == 0 and tricks_us > 0: kaboot_winner = 'us'
-            elif tricks_us == 0 and tricks_them > 0: kaboot_winner = 'them'
-            
-            winner_team = None
-            
-            ardh_us = last_trick_bonus['us']
-            ardh_them = last_trick_bonus['them']
-            
-            pure_card_us = card_abnat_us - ardh_us
-            pure_card_them = card_abnat_them - ardh_them
-
-            if kaboot_winner:
-                 winner_team = kaboot_winner
-                 if self.game_mode == 'SUN':
-                      if kaboot_winner == 'us': game_points_us = 44
-                      else: game_points_them = 44
-                 else: # HOKUM
-                      if kaboot_winner == 'us': game_points_us = 25
-                      else: game_points_them = 25
-            
-            else:
-                  gp_result = self.calculate_game_points_with_tiebreak(
-                      pure_card_us, pure_card_them,
-                      ardh_us, ardh_them,
-                      bidder_team
-                  )
-                  
-                  game_points_us = gp_result['game_points']['us']
-                  game_points_them = gp_result['game_points']['them']
-                  winner_team = gp_result['winner']
-                  
-                  game_points_us = gp_result['game_points']['us']
-                  game_points_them = gp_result['game_points']['them']
-                  winner_team = gp_result['winner']
-            
-            # Add Project Game Points (Applied to both Kaboot and Normal results)
-            if self.game_mode == 'SUN':
-                   proj_gp_us = (project_abnat_us * 2) // 10
-                   proj_gp_them = (project_abnat_them * 2) // 10
-            else:
-                   proj_gp_us = project_abnat_us // 10
-                   proj_gp_them = project_abnat_them // 10
-            
-            game_points_us += proj_gp_us
-            game_points_them += proj_gp_them
-                  
-            score_us = game_points_us
-            score_them = game_points_them
-             
-            # Khasara Check
-            khasara = False
-            
-            if self.sawa_failed_khasara:
-                 khasara = True
-                 claimer_pos = self.sawa_state['claimer']
-                 if claimer_pos in ['Bottom', 'Top']: bidder_team = 'us'
-                 else: bidder_team = 'them'
-            elif not kaboot_winner: 
-                 if bidder_team == 'us':
-                      if score_us <= score_them: khasara = True
-                 else: # them
-                      if score_them <= score_us: khasara = True
-                 
-            # Apply Khasara Penalty
-            if khasara: 
-                 total_pot = score_us + score_them
-                 if bidder_team == 'us':
-                      score_us = 0
-                      score_them = total_pot
-                 else:
-                      score_them = 0
-                      score_us = total_pot
-            
-            # Doubling (Gahwa Chain)
-            multiplier = 1
-            if self.doubling_level >= 2:
-                 if self.doubling_level >= 100: # GAHWA 
-                      multiplier = 1 
-                      if score_us > 0 and score_them == 0: 
-                           score_us = 152
-                      elif score_them > 0 and score_us == 0:
-                           score_them = 152
-                 else:
-                      multiplier = self.doubling_level # 2, 3, 4
-                      score_us *= multiplier
-                      score_them *= multiplier
-            
-            is_kaboot_us = (kaboot_winner == 'us')
-            is_kaboot_them = (kaboot_winner == 'them')
-    
-            round_result = {
-                'roundNumber': len(self.past_round_results) + 1,
-                'bid': self.bid, 
-                'us': {
-                     'aklat': pure_card_us, 
-                     'ardh': ardh_us,
-                     'projectPoints': project_abnat_us,
-                     'abnat': card_abnat_us + project_abnat_us, 
-                     'result': score_us,
-                     'isKaboot': is_kaboot_us,
-                     'multiplierApplied': multiplier,
-                     'projects': winning_projects_us
-                },
-                'them': {
-                     'aklat': pure_card_them,
-                     'ardh': ardh_them,
-                     'projectPoints': project_abnat_them,
-                     'abnat': card_abnat_them + project_abnat_them, 
-                     'result': score_them,
-                     'isKaboot': is_kaboot_them,
-                     'multiplierApplied': multiplier,
-                     'projects': winning_projects_them
-                },
-                'winner': 'us' if score_us > score_them else 'them',
-                'baida': (score_us == score_them),
-                'project': self.game_mode 
-            }
-            return round_result, score_us, score_them
 
     def end_round(self, skip_scoring=False):
         log_event("ROUND_END", self.room_id, details={
@@ -963,17 +720,8 @@ class Game:
             "round_history_length": len(self.round_history)
         })
         if not skip_scoring:
-            # STEP 1: HELPER CALLS
-            card_abnat_us, card_abnat_them, last_trick_bonus = self._calculate_card_abnat()
-            
-            project_abnat_us, project_abnat_them, winning_projects_us, winning_projects_them = self._resolve_project_scores()
-            
-            round_result, score_us, score_them = self._calculate_final_round_score(
-                 card_abnat_us, card_abnat_them,
-                 project_abnat_us, project_abnat_them,
-                 last_trick_bonus,
-                 winning_projects_us, winning_projects_them
-            )
+            # Delegate to Scoring Engine
+            round_result, score_us, score_them = self.scoring_engine.calculate_final_scores()
             
             self.past_round_results.append(round_result)
             self.match_scores['us'] += score_us

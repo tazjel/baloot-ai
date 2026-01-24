@@ -1,5 +1,5 @@
 import pytest
-from bot_agent import BotAgent
+from ai_worker.agent import BotAgent
 
 @pytest.fixture
 def bot():

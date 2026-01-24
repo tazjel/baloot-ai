@@ -17,9 +17,8 @@ if ($dockerCheck -match "baloot-redis") {
     docker run --name baloot-redis -p 6379:6379 -d redis
 }
 
-# 3. Start AI Worker (The Brain)
-# Write-Host "`n[2/4] Starting AI Worker..." -ForegroundColor Yellow
-# Start-Process powershell -ArgumentList "-NoExit", "-Command", "python ai_worker/worker.py"
+# 3. AI Worker (Integrated into Game Server)
+# (Skip independent launch)
 
 # 4. Start Game Server (SocketIO)
 Write-Host "`n[3/4] Starting Game Server..." -ForegroundColor Yellow

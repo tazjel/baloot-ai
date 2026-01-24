@@ -1,15 +1,20 @@
-
 import os
 from gevent import monkey; monkey.patch_all()
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
-from socket_handler import sio, timer_background_task
-from room_manager import room_manager
+from server.socket_handler import sio, timer_background_task
+from server.room_manager import room_manager
 import socketio
 
 
 
 def run():
+    # PATH FIX: Add current directory to sys.path explicitly to ensure 'server' package is found
+    # This is redundand usually but good for safety
+    import sys
+    if os.getcwd() not in sys.path:
+        sys.path.append(os.getcwd())
+
     # PATCH: py4web crashes on top-level modules because it expects apps.app_name.controllers
     # We monkeypatch it to handle this case, BEFORE importing controllers which triggers route registration.
     from py4web import core
@@ -32,8 +37,8 @@ def run():
 
     # Now we can safely import controllers
     try:
-        import models # Ensure tables are defined
-        import controllers
+        import server.models # Ensure tables are defined
+        import server.controllers # Register routes
         from py4web.core import bottle
     except Exception as e:
         print(f"CRITICAL: Failed to import controllers or py4web: {e}")

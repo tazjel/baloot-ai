@@ -1,18 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
-import Card from './Card';
-import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCards, PanelRightOpen, ArrowRight, Plus, Megaphone } from 'lucide-react'; // Added Megaphone
+import CardVector from './CardVector';
+import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCards, PanelRightOpen, ArrowRight, Plus, Megaphone, Eye, EyeOff } from 'lucide-react';
 import ProjectSelectionModal from './ProjectSelectionModal';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
-import { canDeclareAkka, sortHand } from '../utils/gameLogic'; // Added import
+import { canDeclareAkka, sortHand } from '../utils/gameLogic';
 import premiumWood from '../assets/premium_wood_texture.png';
 import premiumFelt from '../assets/premium_felt_texture.png';
 import royalBack from '../assets/royal_card_back.png';
 import { soundManager } from '../services/SoundManager';
 import SawaModal from './SawaModal';
 import ActionBar from './ActionBar';
-import GablakTimer from './GablakTimer'; // Added
-import { DevLogSidebar } from './DevLogSidebar'; // Added
+import GablakTimer from './GablakTimer';
+import { DevLogSidebar } from './DevLogSidebar';
+import { SpeechBubble } from './SpeechBubble';
+import { useVoice, VoicePersonality } from '../hooks/useVoice';
+import socketService from '../services/SocketService';
 
 interface TableProps {
     gameState: GameState;
@@ -36,7 +40,14 @@ const AVATAR_MAP: Record<string, string> = {
     'bot_1': 'https://api.dicebear.com/7.x/bottts/svg?seed=Bot1'
 };
 
-// --- Extracted Components (Moved to Module Scope to fix Shadowing) ---
+// Helper to map name/avatar to personality
+const getPersonality = (player: Player): VoicePersonality => {
+    if (!player.avatar) return 'BALANCED';
+    if (player.avatar.includes('khalid')) return 'AGRESSIVE';
+    if (player.avatar.includes('abu_fahad')) return 'CONSERVATIVE';
+    if (player.avatar.includes('saad')) return 'BALANCED';
+    return 'BALANCED';
+};
 
 const ScoreBadge = ({ matchScores }: { matchScores: any }) => {
     if (!matchScores) return null;
@@ -105,7 +116,7 @@ const ContractIndicator = ({ bid, players, doublingLevel }: { bid: any, players:
     const teamBg = isOurTeam ? 'bg-blue-600' : 'bg-red-600';
 
     return (
-        <div className={`${teamBg} rounded-full shadow-xl px-2 py-0.5 border-2 border-white/20 backdrop-blur-sm flex items-center gap-1`}>
+        <div className={`${teamBg} rounded - full shadow - xl px - 2 py - 0.5 border - 2 border - white / 20 backdrop - blur - sm flex items - center gap - 1`}>
             <span className="text-[9px] sm:text-[10px] font-bold text-white">{bidder.name}</span>
             <div className="flex items-center gap-1 bg-white/20 rounded-full px-1 py-0.5">
                 {bid.type === 'SUN' ? <Sun size={10} className="text-amber-300" /> : <Gavel size={10} className="text-white" />}
@@ -128,7 +139,7 @@ const ContractIndicator = ({ bid, players, doublingLevel }: { bid: any, players:
     );
 };
 
-const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, bid, doublingLevel }: {
+const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, bid, doublingLevel, speechText }: {
     player: Player,
     isCurrentTurn: boolean,
     position: 'top' | 'left' | 'right' | 'bottom',
@@ -137,7 +148,8 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
     declarations: any,
     isProjectRevealing: boolean,
     bid?: any,
-    doublingLevel?: number
+    doublingLevel?: number,
+    speechText?: string | null
 }) => {
     const isPartner = position === 'top';
     let posClass = 'absolute z-30';
@@ -149,7 +161,15 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
 
 
     return (
-        <div className={`flex flex-col items-center ${posClass}`}>
+        <div className={`flex flex - col items - center ${posClass} `}>
+
+            {/* Speech Bubble integration */}
+            <SpeechBubble
+                text={speechText || null}
+                isVisible={!!speechText}
+                position={position === 'top' ? 'bottom' : position === 'bottom' ? 'top' : position === 'left' ? 'right' : 'left'}
+            />
+
             <div className="relative">
                 {/* Timer rendered for all positions now */}
                 <TurnTimer isActive={isCurrentTurn} timeLeft={timeLeft} totalTime={totalTime} />
@@ -160,13 +180,12 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
                 )}
 
 
-
                 <div className={`
-                    w-[1.7rem] h-[1.7rem] sm:w-[2.0rem] sm:h-[2.0rem] md:w-[2.35rem] md:h-[2.35rem] 
-                    rounded-full bg-white shadow-xl overflow-hidden relative z-10
+w - [1.7rem] h - [1.7rem] sm: w - [2.0rem] sm: h - [2.0rem] md: w - [2.35rem] md: h - [2.35rem]
+rounded - full bg - white shadow - xl overflow - hidden relative z - 10
                     ${isCurrentTurn ? 'halo-active' : ''}
                     ${isPartner ? 'border-2 border-[var(--color-premium-gold)]' : 'border-2 border-white/80'}
-                `}>
+`}>
                     <img
                         src={player.avatar && player.avatar.startsWith('http') ? player.avatar : (AVATAR_MAP[player.avatar] || player.avatar)}
                         className="w-full h-full object-cover"
@@ -176,90 +195,141 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
                             (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${player.name}`;
                         }}
                     />
-                </div>
-            </div>
-            {player.isDealer && (
-                <div className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[var(--color-premium-gold)] border border-white/50 rounded-md px-1.5 py-0.5 flex items-center justify-center z-40 shadow-sm">
-                    <span className="text-[8px] font-black text-black leading-none">Dealer</span>
-                </div>
-            )}
-            {!isPartner && (
-                <div className={`
+                </div >
+            </div >
+            {
+                player.isDealer && (
+                    <div className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[var(--color-premium-gold)] border border-white/50 rounded-md px-1.5 py-0.5 flex items-center justify-center z-40 shadow-sm">
+                        <span className="text-[8px] font-black text-black leading-none">Dealer</span>
+                    </div>
+                )
+            }
+            {
+                !isPartner && (
+                    <div className={`
                     bg-black/80 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold 
                     -mt-2 sm:-mt-3 z-20 mb-1
                     ${position === 'bottom' ? '-order-1 mb-0 -mt-0 -mb-2' : ''}
                     ${isPartner ? 'border border-amber-500/50' : 'border border-white/20'}
                     ${isCurrentTurn ? 'bg-amber-600/90' : ''}
                 `}>
-                    {player.name}
-                </div>
-            )}
-            {player.actionText && (
-                <div key={player.actionText} className="absolute -top-4 -right-10 bg-white/90 text-black px-2 py-1 rounded-lg rounded-bl-none shadow-md border border-gray-200 z-50 whitespace-nowrap animate-in fade-in zoom-in duration-200">
-                    <span className="text-[10px] sm:text-xs font-bold">{player.actionText === 'PASS' ? 'بس' : player.actionText}</span>
-                </div>
-            )}
+                        {player.name}
+                    </div>
+                )
+            }
+            {
+                player.actionText && (
+                    <div key={player.actionText} className="absolute -top-4 -right-10 bg-white/90 text-black px-2 py-1 rounded-lg rounded-bl-none shadow-md border border-gray-200 z-50 whitespace-nowrap animate-in fade-in zoom-in duration-200">
+                        <span className="text-[10px] sm:text-xs font-bold">{player.actionText === 'PASS' ? 'بس' : player.actionText}</span>
+                    </div>
+                )
+            }
 
             {/* Winning Bid Tag - Rendered BELOW the avatar */}
-            {bid && bid.bidder === player.position && (
-                <div className={`
+            {
+                bid && bid.bidder === player.position && (
+                    <div className={`
                     absolute -bottom-5 left-1/2 -translate-x-1/2 
                     flex items-center gap-1 px-3 py-0.5 rounded-full shadow-lg z-50
                     animate-in fade-in slide-in-from-top-2 duration-500
                     ${(player.position === PlayerPosition.Bottom || player.position === PlayerPosition.Top) ? 'bg-blue-600' : 'bg-red-600'}
                     border border-white/30
                  `}>
-                    {/* Simplified: No Name, just Icon + Text */}
-                    {bid.type === 'SUN' ? <Sun size={12} className="text-amber-300" /> : <Gavel size={12} className="text-white" />}
+                        {/* Simplified: No Name, just Icon + Text */}
+                        {bid.type === 'SUN' ? <Sun size={12} className="text-amber-300" /> : <Gavel size={12} className="text-white" />}
 
-                    <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider">
-                        {bid.type}
-                    </span>
+                        <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider">
+                            {bid.type}
+                        </span>
 
-                    {/* Suit Icon if applicable */}
-                    {bid.suit && (
-                        <div className="bg-white/20 rounded-full p-0.5 ml-1">
-                            {bid.suit === Suit.Spades && <Spade size={10} className="text-white" />}
-                            {bid.suit === Suit.Hearts && <Heart size={10} className="text-red-300" />}
-                            {bid.suit === Suit.Clubs && <Club size={10} className="text-green-300" />}
-                            {bid.suit === Suit.Diamonds && <Diamond size={10} className="text-blue-300" />}
-                        </div>
-                    )}
-                    {/* Multiplier Badge */}
-                    {(doublingLevel && doublingLevel >= 2) && (
-                        <div className="bg-red-500 text-white text-[9px] font-black px-1.5 rounded-full ml-1 animate-pulse border border-white/20">
-                            x{doublingLevel}
-                        </div>
-                    )}
-                </div>
-            )}
-            {isProjectRevealing && declarations?.[player.position] && declarations[player.position].length > 0 && (
-                <div className="absolute top-10 left-1/2 -translate-x-1/2 w-max flex flex-col items-center gap-1 z-50 animate-bounce-in">
-                    {declarations[player.position].map((proj: any, idx: number) => {
-                        let label = '';
-                        switch (proj.type) {
-                            case 'SIRA': label = 'سرا'; break;
-                            case 'FIFTY': label = '50'; break;
-                            case 'HUNDRED': label = '100'; break;
-                            case 'FOUR_HUNDRED': label = '400'; break;
-                            case 'BALOOT': label = 'بلوت'; break;
-                        }
-                        return (
-                            <div key={idx} className="bg-gradient-to-r from-amber-300 to-yellow-500 text-black font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1">
-                                <Trophy size={14} className="text-amber-800" />
-                                <span>{label}</span>
+                        {/* Suit Icon if applicable */}
+                        {bid.suit && (
+                            <div className="bg-white/20 rounded-full p-0.5 ml-1">
+                                {bid.suit === Suit.Spades && <Spade size={10} className="text-white" />}
+                                {bid.suit === Suit.Hearts && <Heart size={10} className="text-red-300" />}
+                                {bid.suit === Suit.Clubs && <Club size={10} className="text-green-300" />}
+                                {bid.suit === Suit.Diamonds && <Diamond size={10} className="text-blue-300" />}
                             </div>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                        )}
+                        {/* Multiplier Badge */}
+                        {(doublingLevel && doublingLevel >= 2) && (
+                            <div className="bg-red-500 text-white text-[9px] font-black px-1.5 rounded-full ml-1 animate-pulse border border-white/20">
+                                x{doublingLevel}
+                            </div>
+                        )}
+                    </div>
+                )
+            }
+            {
+                isProjectRevealing && declarations?.[player.position] && declarations[player.position].length > 0 && (
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-max flex flex-col items-center gap-1 z-50 animate-bounce-in">
+                        {declarations[player.position].map((proj: any, idx: number) => {
+                            let label = '';
+                            switch (proj.type) {
+                                case 'SIRA': label = 'سرا'; break;
+                                case 'FIFTY': label = '50'; break;
+                                case 'HUNDRED': label = '100'; break;
+                                case 'FOUR_HUNDRED': label = '400'; break;
+                                case 'BALOOT': label = 'بلوت'; break;
+                            }
+                            return (
+                                <div key={idx} className="bg-gradient-to-r from-amber-300 to-yellow-500 text-black font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1">
+                                    <Trophy size={14} className="text-amber-800" />
+                                    <span>{label}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )
+            }
+        </div >
     );
 };
 
 const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction, onChallenge, onAddBot, isCuttingDeck = false, tableSkin = 'table_default', cardSkin = 'card_default', onSawa, onEmoteClick, isSendingAction = false }) => {
-    // --- HOOKS (Must be unconditional) ---
+    // --- HOOKS ---
     const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState } = gameState || {};
+
+    // Voice Hook
+    const { speak } = useVoice();
+    const [playerSpeech, setPlayerSpeech] = useState<Record<number, string | null>>({});
+
+    // Accessibility Mode
+    const [isAccessibilityMode, setIsAccessibilityMode] = useState(false);
+
+    // Listen for Bot Speak Events
+    useEffect(() => {
+        // Subscribe
+        const cleanup = socketService.onBotSpeak((data) => {
+            const { playerIndex, text, emotion } = data;
+
+            // 1. Update Visuals
+            setPlayerSpeech(prev => ({ ...prev, [playerIndex]: text }));
+
+            // 2. Play Audio
+            // Find player to get personality
+            const player = players.find(p => p.index === playerIndex);
+            const personality = player ? getPersonality(player) : 'BALANCED';
+
+            // Speak!
+            speak(text, personality);
+
+            // 3. Auto-clear after delay (SpeechBubble handles internal timer, but we sync state)
+            setTimeout(() => {
+                setPlayerSpeech(prev => {
+                    const newState = { ...prev };
+                    if (newState[playerIndex] === text) {
+                        newState[playerIndex] = null;
+                    }
+                    return newState;
+                });
+            }, 5000);
+        });
+
+        return () => {
+            if (cleanup) cleanup();
+        };
+    }, [speak, players]);
 
     // Sync timer with Game Settings
     const turnDuration = settings?.turnDuration || 10;
@@ -329,6 +399,56 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
 
     // --- Hand Scanning for Projects (Trick 1) ---
     const [availableProjects, setAvailableProjects] = useState<string[]>([]);
+
+    const scanHandJS = (hand: any[], mode: string) => {
+        if (!hand) return [];
+        const types = new Set<string>();
+        const validCards = hand.filter(c => c && (c.rank || (c.card && c.card.rank))); // Filter valid
+        const ranks = validCards.map((c: any) => c.card ? c.card.rank : c.rank);
+        const rankCounts: Record<string, number> = {};
+        ranks.forEach((r: string) => { if (r) rankCounts[r] = (rankCounts[r] || 0) + 1 });
+
+        // 4 of a Kind
+        for (const [r, count] of Object.entries(rankCounts)) {
+            if (count === 4) {
+                if (r === 'A' && mode === 'SUN') types.add('FOUR_HUNDRED');
+                else if (['K', 'Q', 'J', '10', 'A'].includes(r)) types.add('HUNDRED');
+            }
+        }
+
+        // Sequences
+        const suits = ['♠', '♥', '♦', '♣'];
+        const order = ['A', 'K', 'Q', 'J', '10', '9', '8', '7'];
+
+        suits.forEach(s => {
+            const suitCards = validCards.filter((c: any) => c.card ? c.card.suit === s : c.suit === s); // Frontend Card object structure check
+            // Helper to safe get rank
+            const getRank = (c: any) => c.card ? c.card.rank : c.rank;
+
+            // Sort
+            suitCards.sort((a: any, b: any) => order.indexOf(getRank(a)) - order.indexOf(getRank(b)));
+
+            let currentSeq = 1;
+            for (let i = 0; i < suitCards.length - 1; i++) {
+                const idx1 = order.indexOf(getRank(suitCards[i]));
+                const idx2 = order.indexOf(getRank(suitCards[i + 1]));
+
+                if (idx2 === idx1 + 1) {
+                    currentSeq++;
+                } else {
+                    if (currentSeq >= 5) types.add('HUNDRED');
+                    else if (currentSeq === 4) types.add('FIFTY');
+                    else if (currentSeq === 3) types.add('SIRA');
+                    currentSeq = 1;
+                }
+            }
+            if (currentSeq >= 5) types.add('HUNDRED');
+            else if (currentSeq === 4) types.add('FIFTY');
+            else if (currentSeq === 3) types.add('SIRA');
+        });
+
+        return Array.from(types);
+    };
 
     useEffect(() => {
         if (phase === GamePhase.Playing && currentTurnIndex === 0 && me && me.hand && me.hand.length === 8) {
@@ -420,68 +540,6 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
         onPlayerAction('SAWA_RESPONSE', { response });
     };
 
-    useEffect(() => {
-        setTimeLeft(turnDuration);
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [currentTurnIndex, turnDuration]);
-
-    // --- Hand Scanning for Projects (Trick 1) ---
-    // (Moved to top level)
-
-    const scanHandJS = (hand: any[], mode: string) => {
-        if (!hand) return [];
-        const types = new Set<string>();
-        const validCards = hand.filter(c => c && (c.rank || (c.card && c.card.rank))); // Filter valid
-        const ranks = validCards.map((c: any) => c.card ? c.card.rank : c.rank);
-        const rankCounts: Record<string, number> = {};
-        ranks.forEach((r: string) => { if (r) rankCounts[r] = (rankCounts[r] || 0) + 1 });
-
-        // 4 of a Kind
-        for (const [r, count] of Object.entries(rankCounts)) {
-            if (count === 4) {
-                if (r === 'A' && mode === 'SUN') types.add('FOUR_HUNDRED');
-                else if (['K', 'Q', 'J', '10', 'A'].includes(r)) types.add('HUNDRED');
-            }
-        }
-
-        // Sequences
-        const suits = ['♠', '♥', '♦', '♣'];
-        const order = ['A', 'K', 'Q', 'J', '10', '9', '8', '7'];
-
-        suits.forEach(s => {
-            const suitCards = validCards.filter((c: any) => c.card ? c.card.suit === s : c.suit === s); // Frontend Card object structure check
-            // Helper to safe get rank
-            const getRank = (c: any) => c.card ? c.card.rank : c.rank;
-
-            // Sort
-            suitCards.sort((a: any, b: any) => order.indexOf(getRank(a)) - order.indexOf(getRank(b)));
-
-            let currentSeq = 1;
-            for (let i = 0; i < suitCards.length - 1; i++) {
-                const idx1 = order.indexOf(getRank(suitCards[i]));
-                const idx2 = order.indexOf(getRank(suitCards[i + 1]));
-
-                if (idx2 === idx1 + 1) {
-                    currentSeq++;
-                } else {
-                    if (currentSeq >= 5) types.add('HUNDRED');
-                    else if (currentSeq === 4) types.add('FIFTY');
-                    else if (currentSeq === 3) types.add('SIRA');
-                    currentSeq = 1;
-                }
-            }
-            if (currentSeq >= 5) types.add('HUNDRED');
-            else if (currentSeq === 4) types.add('FIFTY');
-            else if (currentSeq === 3) types.add('SIRA');
-        });
-
-        return Array.from(types);
-    };
-
-    // --- Helper: Get Relative Position for Played Cards ---
     // --- Helper: Get Relative Position for Played Cards ---
     // Style: Tight cluster in center with slight overlap
     const getPlayedCardAnimation = (playerIndex: number, isLatest: boolean) => {
@@ -562,19 +620,6 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
         };
     };
 
-    // --- Components ---
-
-
-
-
-    // --- Dealing Animation (Moved) ---
-
-    // --- Sound Effects (Moved) ---
-
-    // --- Juice Animations & Styles ---
-
-    // --- Juice Animations & Styles ---
-
     return (
         <div className="relative w-full h-full flex flex-col overflow-hidden select-none safe-area-top safe-area-bottom font-sans" style={{ background: '#F5F3EF' }}>
 
@@ -583,7 +628,14 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
             {/* --- ZONE 1: HUD - Phase 1 UI Elements --- */}
             <ScoreBadge matchScores={matchScores} />
 
-
+            {/* Accessibility Toggle */}
+            <button
+                onClick={() => setIsAccessibilityMode(!isAccessibilityMode)}
+                className="absolute top-4 left-32 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md p-1.5 rounded-full border border-white/30 text-white transition-all shadow-lg"
+                title="Toggle Card Colors"
+            >
+                {isAccessibilityMode ? <Eye size={18} className="text-cyan-300" /> : <EyeOff size={18} />}
+            </button>
 
             {/* --- ZONE 2: ARENA (Fills remaining space) --- */}
             <div className="relative w-full flex-1 flex items-center justify-center perspective-1000 z-10 transition-all duration-500">
@@ -628,8 +680,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                         )}
 
                         {/* --- PLAYERS & HANDS (Using PlayerAvatar Component) --- */}
-
-
+                        {/* UPDATE: Pass speechText to all avatars */}
 
                         {/* Partner (Top) */}
                         {partner && (
@@ -643,6 +694,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                speechText={playerSpeech[partner.index]}
                             />
                         )}
 
@@ -658,6 +710,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                speechText={playerSpeech[leftPlayer.index]}
                             />
                         )}
 
@@ -673,16 +726,9 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                speechText={playerSpeech[rightPlayer.index]}
                             />
                         )}
-
-
-                        {/* --- YOUR TURN NOTIFICATION --- */}
-                        {/* --- YOUR TURN NOTIFICATION --- */}
-                        {/* --- YOUR TURN NOTIFICATION --- */}
-
-
-                        {/* --- PLAYERS & HANDS (Using PlayerAvatar Component) --- */}
 
                         {/* --- Gablak Timer (Steal Window) --- */}
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[150%] z-[100] pointer-events-none">
@@ -703,12 +749,10 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                     <div className="absolute -inset-3 sm:-inset-4 bg-yellow-400/40 rounded-lg blur-lg"></div>
                                     <div className="absolute -inset-2 rounded-lg border-3 sm:border-4 border-yellow-400 opacity-60 animate-ping"></div>
                                     <div className="absolute -inset-1 rounded-lg border-2 border-amber-300 opacity-40 animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                                    <Card
+                                    <CardVector
                                         card={gameState.floorCard}
-                                        skin={cardSkin}
                                         className="h-32 w-24 sm:h-36 sm:w-26 md:h-40 md:w-28 shadow-2xl"
-                                        isFourColorMode={isFourColor}
-                                        isHighContrast={isHighContrast}
+                                        isPlayable={false}
                                     />
                                 </div>
                             </div>
@@ -725,19 +769,23 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 const { style, animClass } = getPlayedCardAnimation(pIdx, isLatest);
 
                                 return (
-                                    <div key={`played-${idx}`}
+                                    <motion.div key={`played-${idx}`}
+                                        initial={{ opacity: 0, y: 100, scale: 0.5, rotate: 180 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1, rotate: style.rotate as any }}
+                                        exit={{ opacity: 0, scale: 0.5 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
                                         className={`${animClass}`}
                                         style={style}>
-                                        <Card
-                                            card={played.card}
-                                            skin={cardSkin}
-                                            className="w-full h-full shadow-xl"
-                                            isFourColorMode={isFourColor}
-                                            isHighContrast={isHighContrast}
-                                            cardLanguage={cardLang}
-                                            isAkka={played.metadata?.akka}
-                                        />
-                                    </div>
+                                        <div key={`played-${idx}`}
+                                            className={`${animClass}`}
+                                            style={style}>
+                                            <CardVector
+                                                card={played.card}
+                                                className="w-full h-full shadow-xl"
+                                                isAkka={played.metadata?.akka}
+                                            />
+                                        </div>
+                                    </motion.div>
                                 );
                             })}
 
@@ -765,13 +813,9 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                             ...style,
                                             zIndex: 50 + idx
                                         }}>
-                                        <Card
+                                        <CardVector
                                             card={played.card}
-                                            skin={cardSkin}
                                             className="h-[25%] w-auto aspect-[2.5/3.5] shadow-2xl played-card-mobile opacity-90"
-                                            isFourColorMode={isFourColor}
-                                            isHighContrast={isHighContrast}
-                                            cardLanguage={cardLang}
                                         />
                                     </div>
                                 );
@@ -804,7 +848,14 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
 
                             // Interactive wrapper
                             return (
-                                <div key={`hand-${idx}`}
+                                <motion.div key={`hand-${idx}`}
+                                    initial={{ y: 200, opacity: 0, rotate: 10 }}
+                                    animate={{
+                                        y: isSelected ? -50 : 0,
+                                        opacity: 1,
+                                        rotate: 0,
+                                        transition: { delay: idx * 0.05, type: "spring", stiffness: 200, damping: 20 }
+                                    }}
                                     className={`
                                     relative transition-all duration-300 pointer-events-auto
                                     ${isSelected
@@ -819,15 +870,13 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                     }}
                                     onClick={() => handleCardClick(me.hand.findIndex(c => c.id === card.id))}
                                 >
-                                    <Card
+                                    <CardVector
                                         card={card}
-                                        skin={cardSkin}
                                         className="w-[3.75rem] h-[5.55rem] sm:w-[4.55rem] sm:h-[6.7rem] md:w-[5.2rem] md:h-[7.9rem] shadow-2xl"
-                                        isFourColorMode={isFourColor}
-                                        isHighContrast={isHighContrast}
-                                        cardLanguage={cardLang}
+                                        selected={isSelected}
+                                        isPlayable={valid}
                                     />
-                                </div>
+                                </motion.div>
                             );
                         })}
                     </div>
@@ -844,6 +893,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                 isProjectRevealing={gameState.isProjectRevealing}
                 bid={bid}
                 doublingLevel={gameState.doublingLevel}
+                speechText={playerSpeech[me.index]}
             />
 
             <ActionBar
@@ -856,10 +906,6 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                 settings={settings}
                 onEmoteClick={onEmoteClick}
             />
-
-            {/* Standalone Bottom Timer for Me */}
-            {/* Standalone Bottom Timer REMOVED - Integrated into PlayerAvatar */}
-
 
             {/* Dealer Badge for Me */}
             {
@@ -885,7 +931,5 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
         </div >
     );
 };
-
-
 
 export default Table;

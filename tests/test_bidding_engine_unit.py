@@ -1,6 +1,6 @@
 import pytest
 import time
-from server.bidding_engine import BiddingEngine, BiddingPhase, BidType, ContractState
+from game_engine.logic.bidding_engine import BiddingEngine, BiddingPhase, BidType, ContractState
 from game_engine.models.card import Card
 
 class MockPlayer:

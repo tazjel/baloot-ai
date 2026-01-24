@@ -62,6 +62,8 @@
 - **Backend Reloads**: `py4web` reloads `controllers.py` on save, but it might NOT reload `ai_worker/llm_client.py` unless the server is restarted. Use `./restart_server.ps1` if your LLM changes aren't taking effect.
 - **Redis Inspection**: If AI "thoughts" aren't showing up, use `redis-cli KEYS "bot:thought:*"` to see if the worker is actually producing output.
 - **Port 3005**: The primary entry point is Port 3005. Port 8000 is legacy.
+- **Slash Commands**: Use `/WW` (Window Worker) to launch the full stack. It handles Redis, Backend, Frontend, and AI Worker in one go.
+- **Voice Debugging**: If bots aren't speaking, check `logs/server_manual.log` for `[DIALOGUE]` tags. Ensure your volume is up and the browser has permission to play audio.
 
 ## 🧪 Testing Guidelines
 - **Integration Tests**: `tests/test_scenarios.py` runs full simulated games.

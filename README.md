@@ -12,11 +12,12 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 
 - **Hybrid AI System**:
   - **The Reflex**: Instant heuristic-based decision making for standard plays.
-  - **The Brain**: Asynchronous Deep Learning/LLM-based strategy using Gemini & Redis.
+  - **The Brain**: Asynchronous Reinforcement Learning strategy using Redis (Flywheel-ready).
+- **Voice & Trash Talk**: Dynamic, personality-driven AI dialogue system with Text-to-Speech and visual speech bubbles.
 - **Robust Multiplayer**: Resilient WebSocket architecture capable of handling disconnects and lag.
 - **Data Flywheel**: Automatically records gameplay, analyzes mistakes (via "The Scout"), and trains the AI model.
 - **AI Studio**: A dedicated dashboard for analyzing hands, debugging strategies, and replaying scenarios.
-- **Premium UI**: Polished React frontend with animations, dark mode, and responsive design.
+- **Premium UI**: Polished React frontend with `framer-motion` physics-based animations, glassmorphism design, and interactive feedback.
 
 ## 🚀 Quick Start
 
@@ -52,6 +53,8 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
     python run_game_server.py
     ```
 
+    **Pro Tip**: If you are on Windows, use the `/WW` slash command (or run `workflow_scripts/ww.ps1`) to launch everything at once!
+
 4.  **Start Frontend**
     ```bash
     cd frontend
@@ -60,23 +63,34 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
     ```
     The game will be available at `http://localhost:3000`.
 
+## 📂 Project Structure
+
+- **`server/`**: Core backend application (Game logic, Socket handlers, Controllers).
+- **`game_engine/`**: Reusable game logic engine.
+- **`frontend/`**: React-based user interface.
+- **`ai_worker/`**: AI Strategy and decision making.
+- **`scripts/`**: Development and testing utilities.
+- **`docs/`**: In-depth documentation, status reports, and project history.
+- **`logs/`**: Application and testing logs.
+
 ## 📚 Documentation
 
 - **[Architecture Overview](docs/ARCHITECTURE.md)**: Logic separation, AI Flywheel, and Redis integration.
-- **[Contributing Guide](CONTRIBUTING.md)**: Setup, testing, and code style.
+- **[Contributing Guide](docs/CONTRIBUTING.md)**: Setup, testing, and code style.
+- **[Codebase Map](CODEBASE_MAP.md)**: Master index for AI Agents.
 - **[Game Rules](https://en.wikipedia.org/wiki/Baloot)**: Standard Baloot rules implementation details.
 
 ## 🛠️ Configuration
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `GEMINI_API_KEY` | Key for Google Gemini (AI Worker) | Required for Brain |
 | `REDIS_HOST` | Redis Host address | `localhost` |
 | `REDIS_PORT` | Redis Port | `6379` |
+| `OFFLINE_MODE` | Play without Redis | `false` |
 
 ## 🤝 Contributing
 
-We welcome contributions! Please check our [Contributing Guide](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) for details.
+We welcome contributions! Please check our [Contributing Guide](docs/CONTRIBUTING.md) and [Code of Conduct](docs/CODE_OF_CONDUCT.md) for details.
 
 1.  Fork the Project
 2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)

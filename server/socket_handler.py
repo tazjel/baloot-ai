@@ -1,0 +1,507 @@
+import socketio
+from server.room_manager import room_manager
+from ai_worker.personality import PROFILES, BALANCED, AGGRESSIVE, CONSERVATIVE
+from ai_worker.agent import bot_agent
+from ai_worker.dialogue_system import DialogueSystem
+import time
+import logging
+
+# Configure Logging
+# Configure Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("logs/server_debug.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Create a Socket.IO server
+# async_mode='gevent' is recommended for pywsgi
+sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
+dialogue_system = DialogueSystem()
+
+@sio.event
+def connect(sid, environ):
+    print(f"Client connected: {sid}")
+
+@sio.event
+def disconnect(sid):
+    print(f"Client disconnected: {sid}")
+    # TODO: Handle player disconnection from game (auto-play or pause)
+
+@sio.event
+def create_room(sid, data):
+    print(f"create_room called by {sid}")
+    room_id = room_manager.create_room()
+    return {'success': True, 'roomId': room_id}
+
+@sio.event
+def join_room(sid, data):
+    room_id = data.get('roomId')
+    player_name = data.get('playerName', 'Guest')
+    
+    game = room_manager.get_game(room_id)
+    if not game:
+        return {'success': False, 'error': 'Room not found'}
+    
+    # Check if already joined? (Simplified: Just add)
+    player = game.add_player(sid, player_name)
+    if not player:
+        return {'success': False, 'error': 'Room full'}
+        
+    sio.enter_room(sid, room_id)
+    
+    # For testing: Auto-add 3 bots when first player joins
+    if len(game.players) == 1:
+        # Define Bot Order
+        bot_personas = [BALANCED, AGGRESSIVE, CONSERVATIVE]
+        
+        for i, persona in enumerate(bot_personas):
+            bot_id = f"BOT_{i}_{int(time.time()*1000)}"
+            # Use name from persona, append (Bot) for clarity if needed, or keep clean
+            display_name = f"{persona.name} (Bot)"
+            
+            # Add player with avatar
+            bot_player = game.add_player(bot_id, display_name, avatar=persona.avatar_id)
+            if bot_player:
+                bot_player.is_bot = True
+                sio.emit('player_joined', {'player': bot_player.to_dict()}, room=room_id)
+    
+    # Broadcast to room
+    sio.emit('player_joined', {'player': player.to_dict()}, room=room_id, skip_sid=sid)
+    
+    
+    if len(game.players) == 4:
+         if game.start_game():
+             sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+             # Check if first player is bot
+             handle_bot_turn(game, room_id)
+
+    # Return game state (Must be AFTER start_game to get correct Dealer/Phase)
+    response = {
+        'success': True,
+        'gameState': game.get_game_state(),
+        'yourIndex': player.index
+    }
+             
+    return response
+
+@sio.event
+def game_action(sid, data):
+    room_id = data.get('roomId')
+    action = data.get('action')
+    payload = data.get('payload', {})
+    
+    game = room_manager.get_game(room_id)
+    if not game:
+        return {'success': False, 'error': 'Game not found'}
+    
+    # Map actions
+    # Find player index
+    player = next((p for p in game.players if p.id == sid), None)
+    if not player:
+        return {'success': False, 'error': 'Player not in this game'}
+        
+    result = {'success': False}
+    if action == 'BID':
+        result = game.handle_bid(player.index, payload.get('action'), payload.get('suit'))
+    elif action == 'PLAY':
+        result = game.play_card(player.index, payload.get('cardIndex'), payload.get('metadata'))
+    elif action == 'DECLARE_PROJECT':
+        result = game.handle_declare_project(player.index, payload.get('type'))
+    elif action == 'DOUBLE':
+        result = game.handle_double(player.index)
+    elif action == 'SAWA' or action == 'SAWA_CLAIM':
+        # Result of Sawa (Sawa) request
+        if hasattr(game, 'handle_sawa'):
+             result = game.handle_sawa(player.index)
+        else:
+             result = {'success': False, 'error': 'Sawa not implemented backend'}
+    elif action == 'SAWA_RESPONSE':
+        if hasattr(game, 'handle_sawa_response'):
+             result = game.handle_sawa_response(player.index, payload.get('response')) # ACCEPT/REFUSE
+        else:
+             result = {'success': False, 'error': 'Sawa Response not implemented'}
+
+    elif action == 'QAYD':
+        result = game.handle_qayd(player.index, payload.get('reason'))
+    elif action == 'AKKA':
+        result = game.handle_akka(player.index)
+    elif action == 'UPDATE_SETTINGS':
+        # New Action to sync settings
+        if 'turnDuration' in payload:
+             game.turn_duration = float(payload['turnDuration'])
+             logger.info(f"Updated Turn Duration to {game.turn_duration}s for room {room_id}")
+        result = {'success': True}
+    elif action == 'NEXT_ROUND':
+        if game.phase == "FINISHED":
+             logger.info(f"Starting Next Round for room {room_id} by request.")
+             if game.start_game():
+                 sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+                 handle_bot_turn(game, room_id)
+             result = {'success': True}
+        else:
+             result = {'success': False, 'error': 'Cannot start round, phase is ' + game.phase}
+
+    
+    if result.get('success'):
+        # Broadcast Update
+        sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+        
+        # Trigger Bot Responses for Sawa
+        if action == 'SAWA' or action == 'SAWA_CLAIM':
+             sio.start_background_task(handle_sawa_responses, game, room_id)
+        
+        # Trigger Bot Loop (Background)
+        st = game.get_game_state()
+        cur_turn_export = st['currentTurnIndex']
+        # with open('logs/server_manual.log', 'a') as f:
+        #      f.write(f"{time.time()} Game Action Success. Turn: {game.current_turn} Exported: {cur_turn_export} ID: {id(game)}\n")
+        try:
+             sio.start_background_task(bot_loop, game, room_id)
+        except Exception as e:
+             logger.error(f"Failed to start bot task: {e}")
+        
+        # Check if game finished to trigger auto-restart
+        if game.phase == "FINISHED":
+             # sio.start_background_task(auto_restart_round, game, room_id)
+             pass
+        
+    return result
+
+    return result
+
+@sio.event
+def client_log(sid, data):
+    """Receive telemetry logs from client"""
+    try:
+        category = data.get('category', 'CLIENT')
+        level = data.get('level', 'INFO')
+        msg = data.get('message', '')
+        
+        log_line = f"[{level}] [{category}] {msg}"
+        print(f"[CLIENT-LOG] {log_line}")
+        
+        # Write to file for Agent to read
+        with open('logs/client_debug.log', 'a', encoding='utf-8') as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {log_line}\n")
+            
+    except Exception as e:
+        print(f"Error logging client message: {e}")
+
+def bot_loop(game, room_id, recursion_depth=0):
+    """Background task to handle consecutive bot turns"""
+    """Background task to handle consecutive bot turns"""
+    # Debug logging removed for performance
+
+    try:
+        # Safety break for infinite loops
+        if recursion_depth > 500:
+             logger.warning(f"Bot Loop Safety Break (Depth {recursion_depth})")
+             return
+        
+        # Validate game state
+        if not game or not game.players:
+            logger.error("Invalid game state in bot_loop")
+            return
+            
+        # Check game is in valid playing state
+        # Check game is in valid playing state
+        if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION"]:
+            return
+        
+        # Ensure current_turn is valid
+        if game.current_turn < 0 or game.current_turn >= len(game.players):
+            logger.error(f"Invalid current_turn: {game.current_turn}")
+            return
+        
+        # Check if next player is bot
+        # Check if next player is bot
+        next_idx = game.current_turn
+        if not game.players[next_idx].is_bot:
+            # CRITICAL FIX: Ensure human client has latest state including any phase changes caused by previous bot
+            sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+            return
+
+        # Wait for animation/thinking (testing: 0.05 seconds for faster testing)
+        sio.sleep(0.05) 
+        
+        # Double-check phase hasn't changed
+        if game.phase == "FINISHED":
+            return
+            
+        current_idx = game.current_turn
+        current_player = game.players[current_idx]
+        
+        if not current_player.is_bot:
+            return
+            
+        # print(f"Bot Turn: {current_player.name} ({current_player.position})")
+        
+        decision = bot_agent.get_decision(game.get_game_state(), current_idx)
+        # print(f"Bot Decision: {decision}")
+        
+        action = decision.get('action')
+        reasoning = decision.get('reasoning')
+        res = {'success': False}
+        
+        if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+                action = action.upper() if action else "PASS"
+                suit = decision.get('suit')
+                res = game.handle_bid(current_idx, action, suit, reasoning=reasoning)
+                
+        elif game.phase == "PLAYING":
+                card_idx = decision.get('cardIndex', 0)
+                metadata = {}
+                if reasoning: metadata['reasoning'] = reasoning
+                if decision.get('declarations'): metadata['declarations'] = decision['declarations']
+                res = game.play_card(current_idx, card_idx, metadata=metadata)
+        
+        if res.get('success'):
+             sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+
+             # Trigger Voice
+             sio.start_background_task(handle_bot_speak, game, room_id, current_player, action, res)
+
+             if game.phase == "FINISHED":
+                  # sio.start_background_task(auto_restart_round, game, room_id)
+                  pass
+                  return
+
+             # Chain next turn
+             sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
+        else:
+             logger.error(f"Bot Action Failed: {res}. Attempting Fallback PASS.")
+             
+             # Fallback: Try PASS if Bidding, or Random Play if Playing
+             fallback_res = {'success': False}
+             if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+                  fallback_res = game.handle_bid(current_idx, "PASS")
+             elif game.phase == "PLAYING":
+                  # Play first valid card
+                  fallback_res = game.auto_play_card(current_idx)
+             
+             if fallback_res.get('success'):
+                  sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                  if game.phase == "FINISHED":
+                       # sio.start_background_task(auto_restart_round, game, room_id)
+                       pass
+                       return
+                  sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
+             else:
+                  logger.error(f"Bot Fallback Failed too: {fallback_res}. Attempting Emergency Play (Index 0).")
+                  # Emergency Rescue: Just try playing index 0 blindly
+                  emergency_res = game.play_card(current_idx, 0)
+                  if emergency_res.get('success'):
+                       logger.info("Emergency Play Successful. Continuing Loop.")
+                       sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                       sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
+                  else:
+                       logger.critical(f"Bot Completely Stuck. Emergency Failed: {emergency_res}. Loop Exiting (Will resume on limit).")
+                       return
+            
+    except Exception as e:
+        logger.error(f"Critical Bot Loop Error: {e}")
+        return
+
+def handle_sawa_responses(game, room_id):
+    """Trigger all bots to respond to a Sawa claim"""
+    logger.info(f"Starting Sawa Responses for Room {room_id}")
+    try:
+        sio.sleep(0.5) # Reaction delay
+        
+        if not game.sawa_state['active']: 
+             logger.info("Sawa not active, aborting response handler.")
+             return
+
+        # Find bots that need to respond
+        for p in game.players:
+            if p.is_bot:
+                logger.info(f"Checking Bot {p.name} for Sawa response...")
+                # Check if this bot is on the opposing team (or just needs to respond)
+                decision = bot_agent.get_decision(game.get_game_state(), p.index)
+                
+                if decision and decision.get('action') == 'SAWA_RESPONSE':
+                    resp = decision.get('response')
+                    logger.info(f"Bot {p.name} responding to Sawa: {resp}")
+                    
+                    # Apply response
+                    res = game.handle_sawa_response(p.index, resp)
+                    if res.get('success'):
+                         # Emit update immediately so UI sees progress
+                         sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                         
+                         # If Refused -> Sawa ends -> Loop ends
+                         if res.get('sawa_status') == 'REFUSED':
+                              logger.info("Sawa REFUSED by bot. Ending loop.")
+                              break
+                         if res.get('sawa_status') == 'ACCEPTED':
+                              # All accepted?
+                              pass
+                else:
+                    logger.info(f"Bot {p.name} did not return SAWA_RESPONSE. Decision: {decision}")
+
+    except Exception as e:
+        logger.error(f"Error in handle_sawa_responses: {e}")
+        import traceback
+        traceback.print_exc()
+
+def handle_bot_turn(game, room_id):
+    # Wrapper
+    sio.start_background_task(bot_loop, game, room_id, 0)
+
+def auto_restart_round(game, room_id):
+    """Wait for 3 seconds then start next round if match is not over"""
+    try:
+        # race condition guard
+        if hasattr(game, 'is_restarting') and game.is_restarting:
+            return
+
+        game.is_restarting = True
+        sio.sleep(3.0) # Wait 3 seconds for score display
+        
+        print(f"Checking auto-restart for room {room_id}. Phase: {game.phase}")
+        if game.phase == "FINISHED":
+             print(f"Auto-restarting round for room {room_id}. Current scores: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
+             if game.start_game():
+                  game.is_restarting = False # Reset flag
+                  sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+                  handle_bot_turn(game, room_id)
+        elif game.phase == "GAMEOVER":
+             game.is_restarting = False
+             print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
+        else:
+             game.is_restarting = False
+             
+    except Exception as e:
+        logger.error(f"Error in auto_restart_round: {e}")
+        if game: game.is_restarting = False
+
+@sio.event
+def add_bot(sid, data):
+    room_id = data.get('roomId')
+    if not room_id or room_id not in room_manager.games:
+        return {'success': False, 'error': 'Room not found'}
+        
+    game = room_manager.games[room_id]
+    
+    # Cycle through personas: Balanced -> Aggressive -> Conservative
+    personas = [BALANCED, AGGRESSIVE, CONSERVATIVE]
+    persona = personas[len(game.players) % 3]
+    
+    name = f"{persona.name} (Bot)"
+    
+    bot_id = f"BOT_{len(game.players)}_{int(time.time())}"
+    player = game.add_player(bot_id, name, avatar=persona.avatar_id)
+    
+    if not player:
+        return {'success': False, 'error': 'Room full'}
+        
+    player.is_bot = True 
+    
+    sio.emit('player_joined', {'player': player.to_dict()}, room=room_id)
+    
+    if len(game.players) == 4:
+         if game.start_game():
+             sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+             # Check if first player is bot
+             handle_bot_turn(game, room_id)
+             
+    return {'success': True}
+
+# Check game start logic (usually called after join)
+@sio.event
+def check_start(sid, data):
+    room_id = data.get('roomId')
+    game = room_manager.get_game(room_id)
+    if game and len(game.players) == 4:
+         if game.start_game():
+             sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+             handle_bot_turn(game, room_id)
+
+def timer_background_task(room_manager_instance):
+    """Background task to check for timeouts in all active games"""
+    last_heartbeat = time.time()
+    logger.info("Timer Background Task Started")
+    
+    # Dedicated Debug Logger
+    with open("logs/timer_monitor.log", "w") as f:
+        f.write(f"{time.time()} STARTUP\n")
+
+    while True:
+        sio.sleep(0.1) # Check every 0.1 second for smoother timeouts
+        
+        now = time.time()
+        if now - last_heartbeat > 10:
+             logger.info(f"Timer Task Heartbeat. Checking {len(room_manager_instance.games)} games.")
+             with open("logs/timer_monitor.log", "a") as f:
+                  f.write(f"{now} HEARTBEAT {len(room_manager_instance.games)} games\n")
+             last_heartbeat = now
+             
+        try:
+            # Create list of IDs to iterate safely (in case dict changes size)
+            room_ids = list(room_manager_instance.games.keys())
+            
+            for room_id in room_ids:
+                game = room_manager_instance.get_game(room_id)
+                if not game: continue
+                
+                res = game.check_timeout()
+                if res and res.get('success'):
+                    # Timeout caused an action (Pass or AutoPlay)
+                    # Broadcast update
+                    sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                    
+                    # Trigger Bot if next player is bot
+                    # (Standard bot_loop handles logic, we just trigger it)
+                    handle_bot_turn(game, room_id)
+                    
+                    # Check finish
+                    if game.phase == "FINISHED":
+                         # sio.start_background_task(auto_restart_round, game, room_id)
+                         pass
+
+        except Exception as e:
+            logger.error(f"Error in timer_background_task: {e}")
+            sio.sleep(5.0) # Backoff on error
+
+def handle_bot_speak(game, room_id, player, action, result):
+    """Generate and emit bot dialogue"""
+    try:
+        # Determine Personality from Avatar or Name
+        # Defaults to BALANCED
+        personality = BALANCED 
+        # Reverse map avatar/name
+        # Simple heuristic based on avatar string we assigned
+        if "khalid" in player.avatar: personality = AGGRESSIVE
+        elif "abu_fahad" in player.avatar: personality = CONSERVATIVE
+        elif "saad" in player.avatar: personality = BALANCED
+
+        # Construct Context
+        # "I bid SUN." "I played Ace of Spades."
+        context = f"Did action: {action}."
+        
+        # Add Game Context
+        if game.last_trick and game.last_trick.winner == player.position and action == 'PLAY':
+             context += " I won this trick."
+        
+        if game.phase == "BIDDING":
+             context += f" Current Bid: {game.bid.type if game.bid else 'None'}."
+
+        # Generate
+        text = dialogue_system.generate_reaction(player.name, personality, context)
+        
+        if text:
+            sio.emit('bot_speak', {
+                'playerIndex': player.index,
+                'text': text,
+                'emotion': 'neutral'
+            }, room=room_id)
+            
+    except Exception as e:
+        logger.error(f"Error in handle_bot_speak: {e}")
+
+

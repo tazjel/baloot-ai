@@ -100,6 +100,15 @@ class SocketService {
     }
 
 
+    onBotSpeak(callback: (data: { playerIndex: number, text: string, emotion: string }) => void) {
+        if (!this.socket) return () => { };
+        const handler = (data: any) => callback(data);
+        this.socket.on('bot_speak', handler);
+        return () => {
+            this.socket?.off('bot_speak', handler);
+        };
+    }
+
     // Add more event wrappers here
 }
 
