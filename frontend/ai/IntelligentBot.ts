@@ -11,6 +11,7 @@ export class IntelligentBot {
 */
 
 export class IntelligentBot {
+    public session: any = null;
     constructor() { }
     async loadModel() { console.log("Bot AI Disabled (WASM Fix)"); }
     async predict(gameState: any, myIndex: number) { return -1; }

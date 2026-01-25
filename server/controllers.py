@@ -31,7 +31,7 @@ import os
 import mimetypes
 from py4web import action, request, response, abort
 from server.common import db, logger
-# from ai_worker.llm_client import GeminiClient
+from ai_worker.llm_client import GeminiClient
 from server.room_manager import room_manager
 
 SECRET_KEY = 'your-secret-key'  # TODO: Replace with actual secret key
@@ -343,8 +343,8 @@ def analyze_screenshot():
 
     # Initialize Gemini
     try:
-        # gemini = GeminiClient()
-        raise Exception("AI Service Disabled")
+        gemini = GeminiClient()
+        # raise Exception("AI Service Disabled")
         # Fallback to image/jpeg if content_type is missing
         mime = f.content_type if f.content_type else 'image/jpeg'
         
@@ -451,8 +451,8 @@ def ask_strategy():
         logger.error(f"Failed to retrieve training examples: {e}")
 
     try:
-        # gemini = GeminiClient()
-        raise Exception("AI Service Disabled")
+        gemini = GeminiClient()
+        # raise Exception("AI Service Disabled")
         # Analyze with Examples
         result = gemini.analyze_hand(context, examples=examples)
         if result:
@@ -484,8 +484,8 @@ def generate_scenario():
          f.write(f"\n[REQ] Generate Scenario: {text}\n")
          
     try:
-         # gemini = GeminiClient()
-         raise Exception("AI Service Disabled")
+         gemini = GeminiClient()
+         # raise Exception("AI Service Disabled")
          result = gemini.generate_scenario_from_text(text)
          
          with open(debug_log_path, "a") as f:
@@ -522,8 +522,9 @@ def analyze_match():
               
          history = game.full_match_history
          
-         # gemini = GeminiClient()
-         raise Exception("AI Service Disabled")
+         
+         gemini = GeminiClient()
+         # raise Exception("AI Service Disabled")
          result = gemini.analyze_match_history(history)
          
          with open(debug_log_path, "a") as f:

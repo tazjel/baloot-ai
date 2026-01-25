@@ -126,15 +126,15 @@ class Game:
                 for t in self.round_history
             ], 
             # 'trickHistory': self.trick_history,       # Full game debug - REMOVED for Optimization
-            'sawaState': self.sawa_state,
+            'sawaState': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else self.sawa_state,
             
             # Timer Sync
             'timerStartTime': self.timer_start_time,
             'turnDuration': self.turn_duration,
             'serverTime': time.time(),
             
-            'qaydState': self.qayd_state,
-            'akkaState': self.akka_state,
+            'qaydState': self.trick_manager.qayd_state if hasattr(self.trick_manager, 'qayd_state') else self.qayd_state,
+            'akkaState': self.project_manager.akka_state if hasattr(self.project_manager, 'akka_state') else self.akka_state,
             'gameId': self.room_id,
             # OPTIMIZATION: Do not send full history on every tick. 
             # It should be fetched via a separate API call if needed.
@@ -176,101 +176,12 @@ class Game:
         else:
             self.bid = {"type": None, "bidder": None, "doubled": False}
 
-    # --- AKKA LOGIC ---
+    # --- AKKA LOGIC DELEGATION ---
     def check_akka_eligibility(self, player_index):
-        """
-        Check if player holds the highest remaining card for any suit they have.
-        STRICT RULES:
-        1. Game Mode must be HOKUM.
-        2. Suit must NOT be Trump.
-        3. Card itself must NOT be Ace (Ace is self-evident).
-        4. Card must be the highest remaining card of that suit.
-        """
-        # 1. Game Mode Restriction: ONLY HOKUM
-        if self.game_mode != 'HOKUM':
-            return []
-
-        p = self.players[player_index]
-        if not p.hand: return []
-        
-        # Gather all played cards in this round
-        played_cards = set()
-        
-        # 1. Completed tricks
-        for t in self.round_history:
-             for c_dict in t['cards']:
-                 played_cards.add(f"{c_dict['rank']}{c_dict['suit']}")
-                 
-        # 2. Current table
-        for tc in self.table_cards:
-             c = tc['card']
-             played_cards.add(f"{c.rank}{c.suit}")
-             
-        eligible_suits = []
-        
-        # Group hand by suit
-        hand_by_suit = {}
-        for c in p.hand:
-             if c.suit not in hand_by_suit: hand_by_suit[c.suit] = []
-             hand_by_suit[c.suit].append(c)
-             
-        for suit, cards in hand_by_suit.items():
-             # 2. Suit Restriction: NO TRUMP
-             if suit == self.trump_suit:
-                 continue
-                 
-             # Rank Order for Non-Trump in Hokum follows SUN order (A > 10 > K...)
-             rank_order = ORDER_SUN
-             
-             # Find my best card in this suit
-             my_best = max(cards, key=lambda c: rank_order.index(c.rank))
-             
-             # 3. Card Restriction: NO ACES
-             if my_best.rank == 'A':
-                 continue
-                 
-             my_strength = rank_order.index(my_best.rank)
-             
-             # Check if any card in UNPLAYED (Deck + Others) is stronger
-             can_declare = True
-             
-             for r in rank_order:
-                  strength = rank_order.index(r)
-                  if strength > my_strength:
-                       # This rank is stronger. Is it available?
-                       # It is available if NOT played.
-                       card_sig = f"{r}{suit}"
-                       if card_sig not in played_cards:
-                            # It is out there!
-                            can_declare = False
-                            break
-                            
-             if can_declare:
-                  eligible_suits.append(suit)
-                  
-        return eligible_suits
+        return self.project_manager.check_akka_eligibility(player_index)
 
     def handle_akka(self, player_index):
-        try:
-             eligible = self.check_akka_eligibility(player_index)
-             if not eligible:
-                  return {"error": "Not eligible for Akka"}
-             
-             # Valid!
-             p = self.players[player_index]
-             
-             # Update State
-             self.akka_state = {
-                 'claimer': p.position,
-                 'suits': eligible, # Sending list of suits where he is Boss
-                 'timestamp': time.time()
-             }
-             
-             return {"success": True, "akka_state": self.akka_state}
-             
-        except Exception as e:
-             logger.error(f"Error in handle_akka: {e}")
-             return {"error": str(e)}
+        return self.project_manager.handle_akka(player_index)
 
     def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict] = None) -> Dict[str, Any]:
         # Auto-dismiss project reveal if valid play is attempted
@@ -289,8 +200,19 @@ class Game:
             
             card = player.hand[card_idx]
             
-            if not self.is_valid_move(card, player.hand):
-                return {"error": "Invalid move"}
+            # --- QAYD SYSTEM CHANGE: Allow illegal moves, but flag them ---
+            is_valid = self.is_valid_move(card, player.hand)
+            
+            if not is_valid:
+                 # Flag as illegal but ALLOW play
+                 if not metadata: metadata = {}
+                 metadata['is_illegal'] = True
+                 logger.info(f"ILLEGAL MOVE DETECTED by {player.position}: {card}. Flagging for Qayd.")
+                 
+                 # Optional: Record specific reason?
+                 metadata['illegal_reason'] = "Rule Violation"
+
+            # -------------------------------------------------------------
             
             # Metadata Validation (Akka) BEFORE pop
             # If we pop first, check_akka_eligibility won't see the card.
@@ -332,6 +254,45 @@ class Game:
                 "metadata": metadata
             })
             
+            # BALOOT PROJECT CHECKS (Hokum Only)
+            # Rule: Declare 'Baloot' (20 pts) when playing the SECOND card of the pair (K or Q of Trump).
+            if self.game_mode == 'HOKUM' and card.suit == self.trump_suit and card.rank in ['K', 'Q']:
+                counterpart_rank = 'Q' if card.rank == 'K' else 'K'
+                has_played_counterpart = False
+                
+                # Check previous tricks in this round
+                for trick in self.round_history:
+                    # History structure: {'cards': [...], 'playedBy': [...]}
+                    for i, card_dict in enumerate(trick['cards']):
+                         played_by = trick['playedBy'][i]
+                         if played_by == player.position:
+                            # Handle both object and dict variations
+                            c_rank = card_dict.get('rank')
+                            c_suit = card_dict.get('suit')
+                            
+                            if c_rank == counterpart_rank and c_suit == self.trump_suit:
+                                has_played_counterpart = True
+                                break
+                    if has_played_counterpart: break
+                
+                if has_played_counterpart:
+                    # Found it! Declare Baloot.
+                    logger.info(f"BALOOT DECLARED by {player.position} (Played {card} after {counterpart_rank})")
+                    if player.position not in self.declarations:
+                        self.declarations[player.position] = []
+                    
+                    # Add Baloot Project
+                    self.declarations[player.position].append({
+                        'type': 'BALOOT',
+                        'rank': 'K', # Baloot is usually ranked by K
+                        'score': 20,
+                        'suit': self.trump_suit,
+                        'cards': [c for c in player.hand if False] # No cards "hold" the project anymore, it's historical
+                    })
+                    
+                    # Trigger Animation check
+                    self.is_project_revealing = True
+
             if len(self.table_cards) == 4:
                 self.resolve_trick()
                 return {"success": True}
@@ -415,6 +376,13 @@ class Game:
         self.sawa_failed_khasara = False
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
         self.akka_state = None
+        
+        if hasattr(self, 'trick_manager'):
+             self.trick_manager.sawa_state = self.sawa_state
+             self.trick_manager.qayd_state = self.qayd_state
+        if hasattr(self, 'project_manager'):
+             self.project_manager.akka_state = None
+             
         self.reset_timer()
 
         
@@ -620,79 +588,30 @@ class Game:
     def handle_declare_project(self, player_index, type):
         return self.project_manager.handle_declare_project(player_index, type)
 
+    # --- QAYD LOGIC DELEGATION ---
+    def handle_qayd(self, reporter_index):
+        return self.trick_manager.handle_qayd(reporter_index)
 
+    def apply_khasara(self, loser_team, reason):
+        return self.trick_manager.apply_khasara(loser_team, reason)
+
+    # --- SAWA LOGIC DELEGATION ---
     def handle_sawa(self, player_index):
-        """Player claims they can win all remaining tricks (Sawa/Sawa)"""
-        if player_index != self.current_turn:
-             return {"error": "Not your turn"}
-        
-        if not self.players[player_index].hand:
-             return {"error": "Hand empty"}
-
-        if len(self.table_cards) > 0:
-             return {"error": "Cannot called Sawa after playing a card"}
-             
-        self.sawa_state = {
-            "active": True,
-            "claimer": self.players[player_index].position, 
-            "responses": {}, 
-            "status": "PENDING",
-            "challenge_active": False 
-        }
-        return {"success": True, "sawa_state": self.sawa_state}
+        result = self.trick_manager.handle_sawa(player_index)
+        # Sync state for legacy access compatibility
+        if hasattr(self.trick_manager, 'sawa_state'):
+             self.sawa_state = self.trick_manager.sawa_state
+        return result
 
     def _resolve_sawa_win(self):
-        """End round immediately, giving all remaining potential points to claimer's team"""
-        claimer_pos = self.sawa_state["claimer"]
-        
-        claimer_idx = next(i for i, p in enumerate(self.players) if p.position == claimer_pos)
-        
-        # Collect all cards from hands
-        all_cards = []
-        for p in self.players:
-            all_cards.extend(p.hand)
-            p.hand = [] # Empty hands
-            
-        # Create a dummy trick with all cards won by claimer
-        dummy_trick = {
-            'cards': [{'card': c.to_dict(), 'playedBy': claimer_pos} for c in all_cards], 
-            'winner': claimer_pos,
-            'points': 0 
-        }
-        
-        self.trick_history.append(dummy_trick)
-        self.end_round()
+        return self.trick_manager._resolve_sawa_win()
 
     def handle_sawa_response(self, player_index, response):
-        if not self.sawa_state['active'] or self.sawa_state['status'] != 'PENDING':
-             return {"error": "No active Sawa claim"}
-             
-        responder_pos = self.players[player_index].position
-        claimer_pos = self.sawa_state['claimer']
-        
-        claimer_team = 'us' if claimer_pos in ['Bottom', 'Top'] else 'them'
-        responder_team = 'us' if responder_pos in ['Bottom', 'Top'] else 'them'
-        
-        if claimer_team == responder_team:
-             return {"error": "Teammate cannot respond"}
-             
-        self.sawa_state['responses'][responder_pos] = response
-        
-        opponents = [p for p in self.players if p.team != claimer_team]
-        op_responses = [self.sawa_state['responses'].get(p.position) for p in opponents]
-        
-        if 'REFUSE' in op_responses:
-             self.sawa_state['status'] = 'REFUSED'
-             self.sawa_state['active'] = False
-             self.sawa_state['challenge_active'] = True  # Enable challenge mode
-             return {"success": True, "sawa_status": "REFUSED", "challenge": True}
-             
-        if all(r == 'ACCEPT' for r in op_responses):
-             self.sawa_state['status'] = 'ACCEPTED'
-             self._resolve_sawa_win() 
-             return {"success": True, "sawa_status": "ACCEPTED"}
-             
-        return {"success": True, "message": "Waiting for partner"}
+        result = self.trick_manager.handle_sawa_response(player_index, response)
+        # Sync state
+        if hasattr(self.trick_manager, 'sawa_state'):
+             self.sawa_state = self.trick_manager.sawa_state
+        return result
 
     def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
         return self.trick_manager.is_valid_move(card, hand)
@@ -760,9 +679,15 @@ class Game:
         else:
              self.phase = GamePhase.FINISHED.value
              
-        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        if hasattr(self, 'trick_manager'):
+             self.trick_manager.reset_state()
+             self.sawa_state = self.trick_manager.sawa_state
+             self.qayd_state = self.trick_manager.qayd_state
+        else:
+             self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+             
         self.sawa_failed_khasara = False
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
         self.reset_timer()
 
     def reset_timer(self, duration=None):

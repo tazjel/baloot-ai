@@ -38,17 +38,17 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({ text, isVisible, onC
                 ...positionStyles[position],
                 backgroundColor: '#ffffff',
                 color: '#1f2937',
-                padding: '12px 16px',
-                borderRadius: '16px',
-                maxWidth: '220px',
-                fontSize: '14px',
+                padding: '6px 8px',
+                borderRadius: '8px',
+                maxWidth: '120px',
+                fontSize: '10px',
                 fontWeight: 'bold',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
                 zIndex: 50,
                 pointerEvents: 'none',
                 whiteSpace: 'normal',
                 textAlign: 'center',
-                border: '2px solid #e5e7eb',
+                border: '1px solid #e5e7eb',
                 animation: 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
             }}
         >
@@ -56,16 +56,16 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({ text, isVisible, onC
                 style={{
                     content: '""',
                     position: 'absolute',
-                    width: '10px',
-                    height: '10px',
+                    width: '6px',
+                    height: '6px',
                     backgroundColor: '#ffffff',
                     transform: 'rotate(45deg)',
-                    borderBottom: '2px solid #e5e7eb',
-                    borderRight: '2px solid #e5e7eb',
-                    ...(position === 'top' ? { bottom: '-7px', left: '50%', marginLeft: '-5px' } : {}),
-                    ...(position === 'bottom' ? { top: '-7px', left: '50%', marginLeft: '-5px', borderBottom: 'none', borderRight: 'none', borderTop: '2px solid #e5e7eb', borderLeft: '2px solid #e5e7eb' } : {}),
-                    ...(position === 'left' ? { right: '-7px', top: '50%', marginTop: '-5px', transform: 'rotate(-45deg)', borderBottom: '2px solid #e5e7eb', borderRight: '2px solid #e5e7eb' } : {}),
-                    ...(position === 'right' ? { left: '-7px', top: '50%', marginTop: '-5px', transform: 'rotate(135deg)', borderBottom: '2px solid #e5e7eb', borderRight: '2px solid #e5e7eb' } : {})
+                    borderBottom: '1px solid #e5e7eb',
+                    borderRight: '1px solid #e5e7eb',
+                    ...(position === 'top' ? { bottom: '-4px', left: '50%', marginLeft: '-3px' } : {}),
+                    ...(position === 'bottom' ? { top: '-4px', left: '50%', marginLeft: '-3px', borderBottom: 'none', borderRight: 'none', borderTop: '1px solid #e5e7eb', borderLeft: '1px solid #e5e7eb' } : {}),
+                    ...(position === 'left' ? { right: '-4px', top: '50%', marginTop: '-3px', transform: 'rotate(-45deg)', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' } : {}),
+                    ...(position === 'right' ? { left: '-4px', top: '50%', marginTop: '-3px', transform: 'rotate(135deg)', borderBottom: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb' } : {})
                 }}
             />
             "{text}"

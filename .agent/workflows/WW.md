@@ -23,7 +23,7 @@ This workflow launches the complete game environment including the new AI subsys
    Run this from `.`
    // turbo
    ```powershell
-   python run_game_server.py
+   python -m server.main
    ```
 
 5. **Launch Frontend (Vite)**

@@ -146,6 +146,28 @@ export class SoundManager {
         osc.start(t);
         osc.stop(t + 1.2);
     }
+
+    // SFX: Error / Invalid Move (Low Buzz)
+    public playErrorSound() {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx) return;
+
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, t);
+        osc.frequency.linearRampToValueAtTime(100, t + 0.3);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.3);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.3);
+    }
     // SFX: Project Declaration (Wow effect)
     public playProjectSound() {
         if (this.isMuted) return;
@@ -211,6 +233,28 @@ export class SoundManager {
         osc1.stop(t + 0.5);
         osc2.start(t);
         osc2.stop(t + 0.5);
+    }
+
+    // SFX: UI Click (Short mechanical tick)
+    public playClick() {
+        if (this.isMuted) return;
+        const ctx = this.getContext();
+        if (!ctx) return;
+        const t = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(800, t);
+        osc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.05);
     }
 }
 

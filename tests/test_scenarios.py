@@ -7,6 +7,7 @@ edge cases, and stress testing.
 
 from typing import Dict, List, Optional, Callable
 from server.game_logic import Game, SUITS, RANKS
+from game_engine.models.card import Card
 import random
 
 
@@ -70,33 +71,33 @@ class BiddingTestScenario(ScenarioBase):
         if self.bid_type == 'SUN':
             # Strong SUN hand: Multiple Aces and Tens
             strong_hand = [
-                {'rank': 'A', 'suit': 'S', 'id': 'AS'},
-                {'rank': 'A', 'suit': 'H', 'id': 'AH'},
-                {'rank': '10', 'suit': 'S', 'id': '10S'},
-                {'rank': '10', 'suit': 'H', 'id': '10H'},
-                {'rank': 'K', 'suit': 'D', 'id': 'KD'},
+                Card('S', 'A'),
+                Card('H', 'A'),
+                Card('S', '10'),
+                Card('H', '10'),
+                Card('D', 'K'),
             ]
             game.players[0].hand = strong_hand
         
         elif self.bid_type == 'HOKUM':
             # Strong HOKUM hand: Jack, 9, Ace in one suit
             strong_hand = [
-                {'rank': 'J', 'suit': 'S', 'id': 'JS'},
-                {'rank': '9', 'suit': 'S', 'id': '9S'},
-                {'rank': 'A', 'suit': 'S', 'id': 'AS'},
-                {'rank': '10', 'suit': 'S', 'id': '10S'},
-                {'rank': 'A', 'suit': 'H', 'id': 'AH'},
+                Card('S', 'J'),
+                Card('S', '9'),
+                Card('S', 'A'),
+                Card('S', '10'),
+                Card('H', 'A'),
             ]
             game.players[0].hand = strong_hand
         
         elif self.bid_type == 'ASHKAL':
             # Very strong SUN hand for ASHKAL
             strong_hand = [
-                {'rank': 'A', 'suit': 'S', 'id': 'AS'},
-                {'rank': 'A', 'suit': 'H', 'id': 'AH'},
-                {'rank': 'A', 'suit': 'D', 'id': 'AD'},
-                {'rank': '10', 'suit': 'S', 'id': '10S'},
-                {'rank': '10', 'suit': 'H', 'id': '10H'},
+                Card('S', 'A'),
+                Card('H', 'A'),
+                Card('D', 'A'),
+                Card('S', '10'),
+                Card('H', '10'),
             ]
             game.players[0].hand = strong_hand
         
@@ -131,33 +132,33 @@ class ProjectTestScenario(ScenarioBase):
         if self.project_type == 'FOUR':
             # Four of a kind
             project_hand = [
-                {'rank': 'K', 'suit': 'S', 'id': 'KS'},
-                {'rank': 'K', 'suit': 'H', 'id': 'KH'},
-                {'rank': 'K', 'suit': 'D', 'id': 'KD'},
-                {'rank': 'K', 'suit': 'C', 'id': 'KC'},
-                {'rank': '7', 'suit': 'S', 'id': '7S'},
+                Card('S', 'K'),
+                Card('H', 'K'),
+                Card('D', 'K'),
+                Card('C', 'K'),
+                Card('S', '7'),
             ]
             game.players[0].hand = project_hand
         
         elif self.project_type == 'SEQUENCE':
             # Sequence of 3+ cards
             project_hand = [
-                {'rank': 'A', 'suit': 'S', 'id': 'AS'},
-                {'rank': 'K', 'suit': 'S', 'id': 'KS'},
-                {'rank': 'Q', 'suit': 'S', 'id': 'QS'},
-                {'rank': 'J', 'suit': 'S', 'id': 'JS'},
-                {'rank': '7', 'suit': 'H', 'id': '7H'},
+                Card('S', 'A'),
+                Card('S', 'K'),
+                Card('S', 'Q'),
+                Card('S', 'J'),
+                Card('H', '7'),
             ]
             game.players[0].hand = project_hand
         
         elif self.project_type == 'BALOOT':
             # K and Q of trump (only valid in HOKUM)
             project_hand = [
-                {'rank': 'K', 'suit': 'S', 'id': 'KS'},
-                {'rank': 'Q', 'suit': 'S', 'id': 'QS'},
-                {'rank': 'J', 'suit': 'S', 'id': 'JS'},
-                {'rank': '9', 'suit': 'S', 'id': '9S'},
-                {'rank': 'A', 'suit': 'H', 'id': 'AH'},
+                Card('S', 'K'),
+                Card('S', 'Q'),
+                Card('S', 'J'),
+                Card('S', '9'),
+                Card('H', 'A'),
             ]
             game.players[0].hand = project_hand
             # Force HOKUM bid with Spades as trump
@@ -195,11 +196,11 @@ class SawaTestScenario(ScenarioBase):
         """Setup a scenario where Sawa is likely"""
         # Give player very strong hand
         strong_hand = [
-            {'rank': 'A', 'suit': 'S', 'id': 'AS'},
-            {'rank': 'A', 'suit': 'H', 'id': 'AH'},
-            {'rank': 'A', 'suit': 'D', 'id': 'AD'},
-            {'rank': 'A', 'suit': 'C', 'id': 'AC'},
-            {'rank': '10', 'suit': 'S', 'id': '10S'},
+            Card('S', 'A'),
+            Card('H', 'A'),
+            Card('D', 'A'),
+            Card('C', 'A'),
+            Card('S', '10'),
         ]
         game.players[0].hand = strong_hand
         return True
@@ -262,11 +263,11 @@ class EdgeCaseScenario(ScenarioBase):
         if self.case_type == 'all_pass':
             # Give all players weak hands to encourage passing
             weak_hand = [
-                {'rank': '7', 'suit': 'S', 'id': '7S'},
-                {'rank': '8', 'suit': 'H', 'id': '8H'},
-                {'rank': '7', 'suit': 'D', 'id': '7D'},
-                {'rank': '8', 'suit': 'C', 'id': '8C'},
-                {'rank': '7', 'suit': 'H', 'id': '7H'},
+                Card('S', '7'),
+                Card('H', '8'),
+                Card('D', '7'),
+                Card('C', '8'),
+                Card('H', '7'),
             ]
             for player in game.players:
                 player.hand = weak_hand.copy()

@@ -53,4 +53,7 @@ Thumbs.db
 
 uploads/
 *.mp4
+
+# Generated Data
+backend/data/
 .agent/knowledge/video_frames/

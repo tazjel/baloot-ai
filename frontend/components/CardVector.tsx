@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { CardModel, Suit, Rank } from '../types';
+import { VISUAL_ASSETS } from '../constants';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
 
 interface CardVectorProps {
@@ -9,8 +10,8 @@ interface CardVectorProps {
     selected?: boolean;
     onClick?: () => void;
     isPlayable?: boolean;
-    // Legacy
     isAkka?: boolean;
+    skin?: string;
 }
 
 const CardVector: React.FC<CardVectorProps> = ({
@@ -21,6 +22,7 @@ const CardVector: React.FC<CardVectorProps> = ({
     onClick,
     isPlayable = true,
     isAkka = false,
+    skin = 'card_default'
 }) => {
     if (!card) return null;
 
@@ -120,6 +122,9 @@ const CardVector: React.FC<CardVectorProps> = ({
 
     return (
         <div
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            aria-label={onClick && card ? `${card.rank} of ${card.suit}` : undefined}
             className={`
         relative aspect-[2.5/3.5] bg-white rounded-lg border border-gray-300 shadow-md select-none transition-transform duration-300
         font-serif overflow-hidden
@@ -128,12 +133,23 @@ const CardVector: React.FC<CardVectorProps> = ({
         ${className}
       `}
             onClick={onClick}
+            onKeyDown={(e) => {
+                if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+                    onClick();
+                }
+            }}
             style={{
                 boxShadow: '2px 2px 5px rgba(0,0,0,0.1)'
             }}
         >
             {isHidden ? (
-                <div className="w-full h-full bg-blue-800 flex items-center justify-center bg-[url('/assets/royal_card_back.png')] bg-cover border-4 border-white"></div>
+                <div
+                    className="w-full h-full flex items-center justify-center border-4 border-white bg-cover bg-center"
+                    style={{
+                        backgroundImage: skin === 'card_default' ? `url('/assets/royal_card_back.png')` : 'none',
+                        background: skin !== 'card_default' ? (VISUAL_ASSETS.CARDS.find(c => c.id === skin)?.value || '#1e3a8a') : undefined
+                    }}
+                ></div>
             ) : (
                 <>
                     {/* Top Index */}
@@ -153,12 +169,12 @@ const CardVector: React.FC<CardVectorProps> = ({
                         {isAce ? (
                             <SuitIcon size={64} />
                         ) : isFace ? (
-                            <div className="w-full h-full border-2 border-double rounded flex items-center justify-center bg-gray-50 opacity-80" style={{ borderColor: color }}>
-                                {/* Placeholder Court Art */}
-                                <div className="text-center">
-                                    <span className="text-4xl block opacity-20">{rankText}</span>
-                                    <SuitIcon size={40} />
+                            <div className="w-full h-full flex items-center justify-center relative opacity-80">
+                                {/* Improved Court Placeholder: No Box */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                                    <span className="text-6xl font-black" style={{ color }}>{rankText}</span>
                                 </div>
+                                <SuitIcon size={40} />
                             </div>
                         ) : (
                             <div className="relative w-full h-full pointer-events-none">

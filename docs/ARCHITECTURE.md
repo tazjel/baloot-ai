@@ -8,36 +8,34 @@ graph TD
     Client[React Frontend] <-->|Socket.IO| Server[Gevent Game Server]
     Server <-->|State/Moves| Redis[(Redis Cache/Streams)]
     Brain[AI Worker] <-->|Read State/Write Decision| Redis
-    Brain -.->|Async Training| DB[(Database)]
-    Scout[Automated Scout] -.->|Read Logs| Server
-    Scout -.->|Generate Reports| DB
+    Scout[Automated Scout] -->|Analyze Logs| Mistakes[Mistakes JSON]
+    Trainer[Trainer Script] -->|Read Mistakes| Redis
+    Logs[Game Logs] --> Scout
 ```
 
 ## Key Technologies
 
 ### 1. Redis ("The Nervous System")
-Redis is not just a cache; it is the central communication bus.
+Redis is the central communication bus.
 - **Role**:
     - **Speed**: Stores "Hot" game state for sub-millisecond access.
     - **Reflexes**: Caches common AI decisions (e.g., "Always play Ace on King") to avoid recalculation.
-    - **Queues**: Buffers game logs and training data for the AI Flywheel.
+    - **Brain Memory**: Stores "Correct Moves" learned from the Scout.
 
 ### 2. Automated Scout ("The Observer")
-- **Role**: Batch processes game logs to identify and analyze "Losses" or "Close Games", generating candidate training data for the Brain.
-- **Stack**: Python, Gemini 2.0 (Analysis), PowerShell (Orchestrator).
+- **Role**: Batch processes game logs to identify "Losses", sends them to Gemini LLM for analysis, and extracts "Mistakes".
+- **Stack**: Python, Gemini Flash (Analysis), Regex Parsing.
 
 ### 3. Docker ("The Container")
-- **Role**: Ensures the complex environment (Redis, Python dependencies, potential GPU drivers for AI) runs identically on all developer machines and cloud servers.
+- **Role**: Ensures Redis and Python dependencies run authentically on any machine.
 
-## Future Capabilities Initiated by this Stack
+## Implemented Capabilities
 
-By keeping Redis and Docker, we unlock:
-
-### 🧠 The AI Data Flywheel
-Instead of static bots, we can build a **Self-Improving System**:
-1.  **Live Ingestion**: Every move made by top players is pushed to a Redis Stream.
-2.  **Background Training**: A separate Docker container (AI Worker) consumes this stream, fine-tuning the `BotContext` models 24/7 without slowing down the game.
-3.  **Hot Swapping**: New models are published to Redis, and Game Servers pick them up instantly.
+### 🧠 The AI Data Flywheel (Active)
+We have built a **Self-Improving System**:
+1.  **Scout**: Analyzes logs nightly (or on-demand) to find mistakes.
+2.  **Training**: `train_brain.py` pushes corrected moves to Redis using a hash of the game state.
+3.  **Bot Agent**: Before using heuristics, the bot checks `brain:correct:{hash}`. If a match is found, it plays the "Grandmaster Move".
 
 ### 🎥 'Time Travel' Replay System
 Redis Streams can store the exact sequence of events for every active game.

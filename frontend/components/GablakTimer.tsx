@@ -39,34 +39,30 @@ const GablakTimer: React.FC<GablakTimerProps> = ({ biddingPhase, isActive, durat
     const isCritical = timeLeft < 2;
 
     return (
-        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 z-50 flex flex-col items-center animate-pulse-fast">
+        <div className="absolute top-[40%] left-1/2 -translate-x-1/2 z-50 flex flex-col items-center animate-in fade-in zoom-in duration-300">
             <div className={`
-                flex items-center gap-2 px-6 py-2 rounded-full border-2 shadow-[0_0_20px_rgba(255,165,0,0.5)]
-                backdrop-blur-md transition-colors duration-300
-                ${isCritical ? 'bg-red-900/80 border-red-500 text-red-200' : 'bg-amber-900/80 border-amber-500 text-amber-200'}
+                flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-lg backdrop-blur-sm
+                transition-colors duration-300
+                ${isCritical ? 'bg-red-900/90 border-red-500/50 text-red-100' : 'bg-amber-900/90 border-amber-500/50 text-amber-100'}
             `}>
-                <Clock size={20} className={isCritical ? 'animate-bounce' : ''} />
-                <span className="font-bold font-tajawal text-lg">
-                    فرصة قيدها! (Steal Window)
-                </span>
-                <span className="font-mono text-xl w-12 text-center">
-                    {timeLeft.toFixed(1)}s
+                <Clock size={14} className={isCritical ? 'animate-bounce' : ''} />
+                <div className="flex flex-col items-center leading-none">
+                    <span className="font-bold font-tajawal text-xs sm:text-sm">
+                        فرصة قيد (Gablak)
+                    </span>
+                </div>
+                <span className="font-mono text-sm font-bold w-8 text-center bg-black/20 rounded px-1">
+                    {timeLeft.toFixed(1)}
                 </span>
             </div>
 
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-black/50 rounded-full mt-2 overflow-hidden border border-white/10">
+            {/* Micro Progress Bar */}
+            <div className="w-[80%] h-1 bg-black/40 rounded-full mt-1 overflow-hidden">
                 <div
                     className={`h-full transition-all duration-100 ease-linear ${isCritical ? 'bg-red-500' : 'bg-amber-500'}`}
                     style={{ width: `${progress}%` }}
                 />
             </div>
-
-            {isActive && (
-                <div className="mt-2 text-xs text-amber-300 font-bold bg-black/60 px-2 py-1 rounded">
-                    Tap project/play to steal!
-                </div>
-            )}
         </div>
     );
 };

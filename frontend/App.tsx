@@ -403,7 +403,16 @@ const App: React.FC = () => {
 
 
 
-          {/* Settings and Store buttons removed per user request */}
+
+          {/* Settings Button */}
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="absolute top-4 right-4 z-[60] bg-black/40 hover:bg-black/60 p-2 rounded-full text-white/50 hover:text-white transition-all backdrop-blur-sm border border-white/10"
+          >
+            <Settings size={20} />
+          </button>
+
+          {/* Settings and Store buttons removed per user request - RESTORED SETTINGS */}
 
           {/* Emote Menu (rendered by ActionBar button click) */}
           {isEmoteMenuOpen && gameState.phase === GamePhase.Playing && (
@@ -420,7 +429,13 @@ const App: React.FC = () => {
 
           {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
           {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
-          {isSettingsOpen && <SettingsModal settings={gameState.settings} onUpdate={(s) => updateSettings(s)} onClose={() => setIsSettingsOpen(false)} />}
+          {isSettingsOpen && <SettingsModal
+            settings={gameState.settings}
+            equippedItems={equippedItems}
+            onUpdate={(s) => updateSettings(s)}
+            onEquip={handleEquip}
+            onClose={() => setIsSettingsOpen(false)}
+          />}
           {levelUpData && <LevelUpModal newLevel={levelUpData.newLevel} rewards={levelUpData.rewards} onClose={() => setLevelUpData(null)} />}
           {gameState.phase === GamePhase.GameOver && <VictoryModal scores={gameState.matchScores} onHome={() => { setCurrentView('LOBBY'); startNewRound(); }} onRematch={() => startNewRound()} onReview={() => setShowReviewModal(true)} />}
 

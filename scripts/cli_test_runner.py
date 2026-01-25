@@ -35,7 +35,7 @@ import random
 from typing import Dict, List, Optional
 
 from server.game_logic import Game, GamePhase
-from server.bot_agent import bot_agent
+from ai_worker.agent import bot_agent
 from server.game_logger import GameLogger, LogLevel
 from test_scenarios import get_scenario, list_scenarios, get_scenario_info
 

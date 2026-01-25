@@ -5,10 +5,13 @@ import hashlib
 import time
 
 # Settings
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 try:
-    from settings import REDIS_URL
+    from server.settings import REDIS_URL
 except ImportError:
-    REDIS_URL = "redis://localhost:6379/0"
+    print("Warning: Could not import settings. Using default 127.0.0.1")
+    REDIS_URL = "redis://127.0.0.1:6379/0"
 
 def train_brain(mistakes_file):
     """
@@ -40,7 +43,7 @@ def train_brain(mistakes_file):
             
             if correct_move and context_hash:
                 # Store in Redis
-                key = f"brain:move:{context_hash}"
+                key = f"brain:correct:{context_hash}"
                 value = json.dumps(correct_move)
                 
                 r.set(key, value)

@@ -59,7 +59,10 @@ const ActionBar: React.FC<ActionBarProps> = ({
 
     // --- ACTIONS ---
     const handleSawa = () => onPlayerAction('SAWA_CLAIM');
-    const handleRecord = () => console.log("Record/Qaydha clicked");
+    const handleRecord = () => {
+        soundManager.playClick();
+        onPlayerAction('QAYD_CLAIM');
+    };
 
     const ActionButton = ({ onClick, disabled, className, children, activeClass = dockBtnActive }: any) => (
         <motion.button
@@ -276,7 +279,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
 
     return (
         <AnimatePresence mode="wait">
-            {phase === GamePhase.Bidding && renderBiddingDock()}
+            {(phase === GamePhase.Bidding || gameState.biddingPhase === 'GABLAK_WINDOW') && renderBiddingDock()}
             {phase === GamePhase.Doubling && renderDoublingDock()}
             {phase === GamePhase.Playing && renderDock()}
             {phase === GamePhase.VariantSelection && renderVariantDock()}

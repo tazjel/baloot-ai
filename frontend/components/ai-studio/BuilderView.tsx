@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { RefreshCw, Save, Upload, Video, Camera, Wand2 } from 'lucide-react';
+import { RefreshCw, Save, Upload, Video, Camera, Wand2, X } from 'lucide-react';
 import { submitTrainingData, analyzeScreenshot, askStrategy, generateScenario } from '../../services/trainingService';
 import ScenarioTable from '../ScenarioTable';
 import ActionSelector from './ActionSelector';

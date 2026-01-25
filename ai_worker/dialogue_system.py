@@ -8,9 +8,9 @@ from typing import Optional
 from ai_worker.personality import PersonalityProfile, BALANCED
 
 # Load env variables
-# Assuming this runs from project root or server, we need to find .env.local
-# Strategy: Look up 2 dirs from here
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env.local')
+# Load env variables
+# Strategy: Look up 2 dirs from here (project root)
+env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(dotenv_path=env_path)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -29,7 +29,8 @@ class DialogueSystem:
 
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-1.5-flash',
+            # Use gemini-flash-latest as verified in Scout phase
+            self.model = genai.GenerativeModel('gemini-flash-latest',
                 generation_config=genai.GenerationConfig(
                     temperature=1.1,
                     top_p=0.95,
@@ -60,9 +61,28 @@ class DialogueSystem:
 
         try:
             self._last_call_time = time.time()
-            response = self.model.generate_content(prompt)
-            if response.text:
-                text = response.text.strip().replace('"', '').replace("'", "")
+            # Safety settings to allow banter
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
+            
+            response = self.model.generate_content(prompt, safety_settings=safety_settings)
+            
+            text = ""
+            if response.candidates and response.candidates[0].content.parts:
+                text = response.candidates[0].content.parts[0].text
+            else:
+                 # Try direct text accessor if possible, but safe logic above covers most
+                 try:
+                     text = response.text
+                 except:
+                     pass
+
+            if text:
+                text = text.strip().replace('"', '').replace("'", "")
                 # remove prefixes like "Reaction:" if any
                 if ":" in text:
                     text = text.split(":", 1)[1].strip()

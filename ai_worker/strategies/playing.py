@@ -1,5 +1,5 @@
 from ai_worker.bot_context import BotContext
-from game_engine.logic.utils import scan_hand_for_projects # Reuse existing utils
+
 from game_engine.models.constants import POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM
 
 class PlayingStrategy:
@@ -24,6 +24,8 @@ class PlayingStrategy:
         played_tricks = ctx.raw_state.get('currentRoundTricks', [])
         if len(played_tricks) == 0:
              # Using existing util found in core engine
+             # Local import to avoid circular dependency
+             from game_engine.logic.utils import scan_hand_for_projects 
              projects = scan_hand_for_projects(ctx.hand, ctx.mode)
              if projects:
                   serialized_projects = []

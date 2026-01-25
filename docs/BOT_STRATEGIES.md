@@ -23,3 +23,19 @@ strategies and heuristics for the AI Bot.
 ### General
 - Prioritize playing high cards in Sun if partner is winning, to save them or maximize points.
 - In Hokum, do not lead Trump unless necessary or trying to draw trumps.
+
+## The Hybrid AI Mind
+
+### 1. The Reflex (Heuristic)
+The bot uses standard rules (e.g., "Always cover a King with an Ace") for 90% of moves. This is fast and reliable.
+
+### 2. The Brain (Redis Memory)
+Before acting, the bot checks Redis. If "The Scout" has previously analyzed this specific situation and found a mistake, the bot uses the **Learned Correction**.
+- **Key**: `brain:correct:{context_hash}`
+- **Source**: Gemini AI Analysis of past games.
+
+### 3. Personalities (Voice & Trash Talk)
+Bots have distinct personalities that affect their bidding and speech:
+- **Saad (Balanced)**: Standard risk. Says "Thinking..." or neutral comments.
+- **Khalid (Aggressive)**: Bids risky Sun/Hokum. Says "Sira!" (Get out!) or taunts.
+- **Abu Fahad (Conservative)**: Rarely bids unless holding masters. complains "Ya Sater" (Oh protector).

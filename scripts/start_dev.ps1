@@ -23,7 +23,7 @@ if (-not $redisRunning) {
 
 # 2. Start Backend
 Write-Host "`n--> Starting Backend Server (New Window)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "python run_game_server.py"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "python -m server.main"
 
 # 3. Start Frontend
 Write-Host "`n--> Starting Frontend (New Window)..." -ForegroundColor Cyan

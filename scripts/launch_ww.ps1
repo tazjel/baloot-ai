@@ -22,7 +22,7 @@ if ($dockerCheck -match "baloot-redis") {
 
 # 4. Start Game Server (SocketIO)
 Write-Host "`n[3/4] Starting Game Server..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "python run_game_server.py"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "python -m server.main"
 
 # 5. Start Frontend (Vite)
 Write-Host "`n[4/4] Starting Frontend..." -ForegroundColor Yellow

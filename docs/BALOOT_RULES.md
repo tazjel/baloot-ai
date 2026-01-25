@@ -81,3 +81,20 @@ Projects are declared during **Trick 1**.
 - **Rounding**: Score rounding (e.g., remainder > 5 rounds up).
 - **Khasara**: If the Bidding team scores *less* than the Opponent team, they lose *all* their points to the Opponent (Total Pot Transfer).
 - **Winning Score**: First team to reach **152** points wins the game.
+- **Winning Score**: First team to reach **152** points wins the game.
+
+## 6. Penalties & Human Mistakes (Qayd)
+
+The game implements a strict "Card Laid is Card Played" rule with potential for fouls (Revoke).
+
+### Freedom of Play
+- Players are **not** blocked from making illegal moves (e.g., failing to follow suit, under-trumping).
+- The onus is on the player to know the rules and play correctly.
+
+### Qayd (Penalty) System
+- If a player commits a foul (illegal move), the game **does not stop automatically**.
+- Opponents (Human or AI) must detect the foul and click the **"Qaydha" button** (Gavel Icon).
+- **Qayd Resolution**:
+    1.  **Valid Claim**: If the move was indeed illegal, the **Offending Team LOSES** the round immediately (Full points awarded to opposition: 16 in Hokum, 26 in Sun).
+    2.  **False Claim**: If the move was legal, the **Reporting Team LOSES** the round immediately for the disruption.
+- **Strict Enforcement**: AI Bots are trained to detect fouls instantly. **Do not try to cheat them.**

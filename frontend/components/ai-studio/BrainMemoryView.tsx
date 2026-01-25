@@ -1,4 +1,5 @@
 import { Brain, RefreshCw, X, ArrowLeft, Code, Database } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { getBrainMemory, deleteBrainMemory } from '../../services/trainingService';
 
 interface BrainMemoryViewProps {

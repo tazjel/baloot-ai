@@ -97,6 +97,17 @@ class BotAgent:
                               "reasoning": response['reasoning']
                           }
             
+            # 0.1 QAYD CHECK (High Priority)
+            # If the last played card is flagged as illegal, claim Qayd immediately.
+            if ctx.phase == 'PLAYING' and ctx.table_cards:
+                 last_play_raw = game_state.get('tableCards', [])[-1]
+                 if 'metadata' in last_play_raw and last_play_raw['metadata'] and last_play_raw['metadata'].get('is_illegal'):
+                      logger.info(f"[BOT] {ctx.position} detected illegal move! Calling Qayd.")
+                      return {
+                           "action": "QAYD_CLAIM",
+                           "reasoning": "Opponent played an illegal move (Flagged)."
+                      }
+
             # 1. Reflex / Analysis Queue
 
             # (We keep queue logic light here)
@@ -126,7 +137,18 @@ class BotAgent:
 
                       if brain_move_json:
                           logger.info(f"🧠 THE BRAIN found a move for {context_hash}!")
-                          return json.loads(brain_move_json)
+                          brain_move = json.loads(brain_move_json)
+
+                          if ctx.phase == 'PLAYING':
+                               target_rank = brain_move.get('rank')
+                               target_suit = brain_move.get('suit')
+                               for i, c in enumerate(ctx.hand):
+                                    if c.rank == target_rank and c.suit == target_suit:
+                                         return {"action": "PLAY", "cardIndex": i, "reasoning": "Brain Override: " + brain_move.get('reason', '')}
+                               # If card not found, log and fall through
+                               logger.warning(f"Brain suggested {target_rank}{target_suit} but not in hand {ctx.hand}")
+                          else:
+                               return brain_move
 
                  except Exception as e:
                       logger.error(f"Brain Lookup Falied: {e}") 

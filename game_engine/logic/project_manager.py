@@ -5,6 +5,7 @@ from server.logging_utils import logger
 class ProjectManager:
     def __init__(self, game):
         self.game = game
+        self.akka_state = None
 
     def handle_declare_project(self, player_index, type):
          try:
@@ -119,3 +120,106 @@ class ProjectManager:
         # Trigger Reveal Animation
         if self.game.declarations:
              self.game.is_project_revealing = True 
+
+    def init_akka(self):
+         self.akka_state = None
+
+    # --- AKKA LOGIC ---
+    def check_akka_eligibility(self, player_index):
+        """
+        Check if player holds the highest remaining card for any suit they have.
+        STRICT RULES:
+        1. Game Mode must be HOKUM.
+        2. Suit must NOT be Trump.
+        3. Card itself must NOT be Ace (Ace is self-evident).
+        4. Card must be the highest remaining card of that suit.
+        """
+        from game_engine.models.constants import ORDER_SUN 
+        import time 
+        
+        # 1. Game Mode Restriction: ONLY HOKUM
+        if self.game.game_mode != 'HOKUM':
+            return []
+
+        p = self.game.players[player_index]
+        if not p.hand: return []
+        
+        # Gather all played cards in this round
+        played_cards = set()
+        
+        # 1. Completed tricks
+        for t in self.game.round_history:
+             for c_dict in t['cards']:
+                 played_cards.add(f"{c_dict['rank']}{c_dict['suit']}")
+                 
+        # 2. Current table
+        for tc in self.game.table_cards:
+             c = tc['card']
+             played_cards.add(f"{c.rank}{c.suit}")
+             
+        eligible_suits = []
+        
+        # Group hand by suit
+        hand_by_suit = {}
+        for c in p.hand:
+             if c.suit not in hand_by_suit: hand_by_suit[c.suit] = []
+             hand_by_suit[c.suit].append(c)
+             
+        for suit, cards in hand_by_suit.items():
+             # 2. Suit Restriction: NO TRUMP
+             if suit == self.game.trump_suit:
+                 continue
+                 
+             # Rank Order for Non-Trump in Hokum follows SUN order (A > 10 > K...)
+             rank_order = ORDER_SUN
+             
+             # Find my best card in this suit
+             my_best = max(cards, key=lambda c: rank_order.index(c.rank))
+             
+             # 3. Card Restriction: NO ACES
+             if my_best.rank == 'A':
+                 continue
+                 
+             my_strength = rank_order.index(my_best.rank)
+             
+             # Check if any card in UNPLAYED (Deck + Others) is stronger
+             can_declare = True
+             
+             for r in rank_order:
+                  strength = rank_order.index(r)
+                  if strength > my_strength:
+                       # This rank is stronger. Is it available?
+                       # It is available if NOT played.
+                       card_sig = f"{r}{suit}"
+                       if card_sig not in played_cards:
+                            # It is out there!
+                            can_declare = False
+                            break
+                            
+             if can_declare:
+                  eligible_suits.append(suit)
+                  
+        return eligible_suits
+
+    def handle_akka(self, player_index):
+        try:
+             import time
+             eligible = self.check_akka_eligibility(player_index)
+             if not eligible:
+                  return {"error": "Not eligible for Akka"}
+             
+             # Valid!
+             p = self.game.players[player_index]
+             
+             # Update State
+             self.akka_state = {
+                 'claimer': p.position,
+                 'suits': eligible, # Sending list of suits where he is Boss
+                 'timestamp': time.time()
+             }
+             
+             return {"success": True, "akka_state": self.akka_state}
+             
+        except Exception as e:
+             logger.error(f"Error in handle_akka: {e}")
+             return {"error": str(e)} 

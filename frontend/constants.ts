@@ -5,7 +5,7 @@ export const RANKS_ORDER = [Rank.Seven, Rank.Eight, Rank.Nine, Rank.Jack, Rank.Q
 export const generateDeck = (): CardModel[] => {
   const suits = [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades];
   const ranks = [Rank.Seven, Rank.Eight, Rank.Nine, Rank.Ten, Rank.Jack, Rank.Queen, Rank.King, Rank.Ace];
-  
+
   let deck: CardModel[] = [];
   let idCounter = 0;
 
@@ -34,4 +34,19 @@ export const AVATARS = {
   RIGHT: "https://picsum.photos/id/65/100/100",
   TOP: "https://picsum.photos/id/66/100/100",
   LEFT: "https://picsum.photos/id/67/100/100"
+};
+
+export const VISUAL_ASSETS = {
+  CARDS: [
+    { id: 'card_default', name: 'Royal Back', type: 'image', value: '/assets/royal_card_back.png' },
+    { id: 'card_classic_blue', name: 'Classic Blue', type: 'css', value: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' },
+    { id: 'card_classic_red', name: 'Classic Red', type: 'css', value: 'linear-gradient(135deg, #991b1b 0%, #ef4444 100%)' },
+    { id: 'card_modern_black', name: 'Modern Black', type: 'css', value: 'linear-gradient(135deg, #000000 0%, #444444 100%)' },
+  ],
+  TABLES: [
+    { id: 'table_default', name: 'Premium Wood', type: 'image', value: 'PREMIUM_ASSETS' }, // Special handling for our complex wood+felt
+    { id: 'table_classic_green', name: 'Classic Green', type: 'css', value: '#1a472a' },
+    { id: 'table_royal_blue', name: 'Royal Blue', type: 'css', value: '#1e3a8a' },
+    { id: 'table_midnight', name: 'Midnight', type: 'css', value: '#0f172a' },
+  ]
 };

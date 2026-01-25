@@ -23,7 +23,7 @@ vi.mock('../../utils/devLogger', () => ({
 
 // Mock child components to simplify testing the Table logic itself
 // We want to test that Table renders them and passes props, not test the children themselves.
-vi.mock('../Card', () => ({
+vi.mock('../CardVector', () => ({
     default: ({ card, onClick, className }: any) => (
         <div
             data-testid={`card-${card.rank}-${card.suit}`}

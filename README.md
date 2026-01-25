@@ -12,10 +12,11 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 
 - **Hybrid AI System**:
   - **The Reflex**: Instant heuristic-based decision making for standard plays.
-  - **The Brain**: Asynchronous Reinforcement Learning strategy using Redis (Flywheel-ready).
-- **Voice & Trash Talk**: Dynamic, personality-driven AI dialogue system with Text-to-Speech and visual speech bubbles.
+  - **The Brain**: Reinforcement Learning system that learns from game logs via Redis.
+  - **The Scout**: Automated daily analysis tool that uses LLMs (Gemini) to find mistakes and generate training data.
+- **Voice & Trash Talk**: Dynamic, personality-driven AI dialogue system. Bots speak in Arabic (Hejazi/Najdi dialects) using Text-to-Speech!
+  - *Khalid (Aggressive)*, *Saad (Balanced)*, *Abu Fahad (Conservative)*.
 - **Robust Multiplayer**: Resilient WebSocket architecture capable of handling disconnects and lag.
-- **Data Flywheel**: Automatically records gameplay, analyzes mistakes (via "The Scout"), and trains the AI model.
 - **AI Studio**: A dedicated dashboard for analyzing hands, debugging strategies, and replaying scenarios.
 - **Premium UI**: Polished React frontend with `framer-motion` physics-based animations, glassmorphism design, and interactive feedback.
 
@@ -50,7 +51,7 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
     pip install -r requirements.txt
 
     # Run Game Server
-    python run_game_server.py
+    python -m server.main
     ```
 
     **Pro Tip**: If you are on Windows, use the `/WW` slash command (or run `workflow_scripts/ww.ps1`) to launch everything at once!

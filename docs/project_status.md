@@ -19,30 +19,28 @@
 - [x] **Premium UI Polish**: Implemented `framer-motion` for physics-based animations, glassmorphism, and smooth transitions.
 - [ ] **Mobile Responsiveness**: Verify AI Studio on mobile (375px).
 
-### Phase 3: AI & Data Flywheel
+### Phase 3: AI & Data Flywheel (COMPLETED)
 - [x] **Brain Dashboard**: UI to visualize learned Redis keys.
-- [x] **Automated Scout**: Nightly batch processing of game logs.
-- [x] **Voice Lines**: Audio integration for bot personalities.
+- [x] **Automated Scout**: Batch processing of game logs using Gemini.
+- [x] **Training Pipeline**: `train_brain.py` ingesting data into Redis.
+- [x] **Bot Integration**: Bots query Redis for "Correct Moves" before acting.
 
-### Phase 4: Engineering Health
+### Phase 4: Engineering Health (COMPLETED)
 - [x] **Scoring Verification**: Fixed Critical Bug (Kaboot+Projects) and added comprehensive tests.
-- [x] **Strict Typing (High Impact)**: Refactored `game.py`, `types.ts`, `gameLogic.ts`.
-- [x] **Game Logic Refactoring**: Delegated complex logic to `TrickManager`, simplifying `resolve_trick`.
+- [x] **Strict Typing**: Refactored `game.py`, `types.ts`, `gameLogic.ts`.
+- [x] **Game Logic Refactoring**: Delegated complex logic to `TrickManager`.
 - [x] **Unit Tests**: Coverage for `BiddingEngine` and `Scoring`.
-- [x] **Circular Dependency Resolution**: Fixed critical import loop in `game_engine` and restored test suite health.
+- [x] **Circular Dependency Resolution**: Fixed critical import loop in `game_engine`.
 
-### Phase 5: Professional Codebase Structure
-- [x] **Documentation Cleanup**: Moved all docs to `docs/`.
-- [x] **Scripts Organization**: Moved utility scripts to `scripts/`.
-- [x] **Logs Organization**: Moved logs to `logs/`.
-- [x] **Workflows**: Established standard workflows (`/WW`, `/test-all`) for consistent development.
-- [ ] **Core Refactor**: Move root python files to `server/` or `app/`.
+### Phase 5: Voice & Polish (COMPLETED)
+- [x] **Dialogue System**: LLM-generated Arabic reactions.
+- [x] **Architecture**: Socket.IO events for `bot_speak`.
+- [x] **Frontend**: Speech Bubbles and TTS integration.
+- [x] **Personalities**: Distinct voices and biases for AI agents.
 
 ## ✅ Completed Milestones
-- **GitHub Migration**: Successfully migrated to dedicated repo, cleaned up history/assets, and pushed to `baloot-ai`.
-- **Game Flow Control**: Disabled auto-restart; implemented manual "Next Round" flow.
-- **Unified Bot Identity**: Bots now have persistent names and avatars.
-- **Performance Optimization**: Profiled and fixed 4-bot game lag.
+- **Data Flywheel**: The loop (Log -> Scout -> Train -> Redis -> Bot) is fully operational.
+- **Voice Interaction**: Bots now trash talk and react to gameplay.
+- **GitHub Migration**: Successfully migrated to dedicated repo.
 - **AI Infrastructure**: "The Brain" (Redis), "The Scout" (Gemini), AI Studio.
 - **Core Engine**: Solid Bidding/Scoring/Doubling engines verified by tests.
-- **Card Design V2**: Implemented Vector-based card system (infinite resolution) to replace legacy images.

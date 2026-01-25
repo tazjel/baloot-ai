@@ -25,7 +25,7 @@ Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
 Write-Host "Starting Game Server..."
-$serverProcess = Start-Process powershell -ArgumentList "-Command", "python run_game_server.py" -PassThru -WindowStyle Hidden
+$serverProcess = Start-Process powershell -ArgumentList "-Command", "python -m server.main" -PassThru -WindowStyle Hidden
 
 Write-Host "Starting Frontend (Vite)..."
 Set-Location "frontend"

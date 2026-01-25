@@ -15,6 +15,23 @@ interface CardV2Props {
     animationDelay?: number;
 }
 
+interface SuitIconProps {
+    suit: Suit;
+    color: string;
+    size: number;
+    className?: string;
+}
+
+const SuitIconRender: React.FC<SuitIconProps> = ({ suit, color, size, className }) => {
+    switch (suit) {
+        case Suit.Spades: return <Spade size={size} color={color} className={className} />;
+        case Suit.Hearts: return <Heart size={size} color={color} className={className} />;
+        case Suit.Clubs: return <Club size={size} color={color} className={className} />;
+        case Suit.Diamonds: return <Diamond size={size} color={color} className={className} />;
+        default: return null;
+    }
+};
+
 const getRankSymbolAR = (rank: Rank): string => {
     switch (rank) {
         case Rank.Ace: return 'أ';
@@ -50,15 +67,6 @@ const CardV2: React.FC<CardV2Props> = ({
     const suitColor = getSuitColor(card.suit);
     const rankSymbol = getRankSymbolAR(card.rank); // Default to Arabic for ExternalApp feel
     const isCourtCard = [Rank.King, Rank.Queen, Rank.Jack].includes(card.rank);
-
-    const SuitIcon = ({ size, className }: { size: number, className?: string }) => {
-        switch (card.suit) {
-            case Suit.Spades: return <Spade size={size} color={suitColor} className={className} />;
-            case Suit.Hearts: return <Heart size={size} color={suitColor} className={className} />;
-            case Suit.Clubs: return <Club size={size} color={suitColor} className={className} />;
-            case Suit.Diamonds: return <Diamond size={size} color={suitColor} className={className} />;
-        }
-    };
 
     // Premium texture background (CSS only)
     const textureStyle = {
@@ -131,7 +139,7 @@ const CardV2: React.FC<CardV2Props> = ({
                 <span style={{ color: suitColor }} className="font-bold text-[clamp(1.2rem,4vw,2rem)] font-sans">
                     {rankSymbol}
                 </span>
-                <SuitIcon size={isSmall ? 10 : 14} />
+                <SuitIconRender suit={card.suit} color={suitColor} size={isSmall ? 10 : 14} />
             </div>
 
             {/* Bottom Right Index (Rotated) */}
@@ -139,7 +147,7 @@ const CardV2: React.FC<CardV2Props> = ({
                 <span style={{ color: suitColor }} className="font-bold text-[clamp(1.2rem,4vw,2rem)] font-sans">
                     {rankSymbol}
                 </span>
-                <SuitIcon size={isSmall ? 10 : 14} />
+                <SuitIconRender suit={card.suit} color={suitColor} size={isSmall ? 10 : 14} />
             </div>
 
             {/* Center Content */}
@@ -153,7 +161,7 @@ const CardV2: React.FC<CardV2Props> = ({
 
                         {/* Court Icon - Placeholder for now, can use Crown SVG later */}
                         <div className="border-4 double p-4 rounded-full bg-white/50 backdrop-blur-[2px]" style={{ borderColor: suitColor }}>
-                            <SuitIcon size={42} />
+                            <SuitIconRender suit={card.suit} color={suitColor} size={42} />
                         </div>
 
                         {/* Crown Hint */}
@@ -168,7 +176,7 @@ const CardV2: React.FC<CardV2Props> = ({
                         {/* Simple Pips for Numbers */}
                         <div className="grid grid-cols-2 gap-1 p-2 border-2 rounded-lg opacity-80" style={{ borderColor: suitColor }}>
                             {Array.from({ length: 4 }).map((_, i) => (
-                                <SuitIcon key={i} size={12} />
+                                <SuitIconRender key={i} suit={card.suit} color={suitColor} size={12} />
                             ))}
                         </div>
                     </div>

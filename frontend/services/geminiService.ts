@@ -1,6 +1,6 @@
 import { GameState, PlayerPosition, GamePhase } from "../types";
 
-export const getBotDecision = async (gameState: GameState, playerPos: PlayerPosition): Promise<{ action: string, cardIndex?: number }> => {
+export const getSimpleBotDecision = async (gameState: GameState, playerPos: PlayerPosition): Promise<{ action: string, cardIndex?: number }> => {
   // Simulate "thinking" delay
   // await new Promise(resolve => setTimeout(resolve, 500)); 
 

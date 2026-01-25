@@ -6,6 +6,7 @@ import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCard
 import ProjectSelectionModal from './ProjectSelectionModal';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { canDeclareAkka, sortHand } from '../utils/gameLogic';
+import { VISUAL_ASSETS } from '../constants';
 import premiumWood from '../assets/premium_wood_texture.png';
 import premiumFelt from '../assets/premium_felt_texture.png';
 import royalBack from '../assets/royal_card_back.png';
@@ -139,7 +140,7 @@ const ContractIndicator = ({ bid, players, doublingLevel }: { bid: any, players:
     );
 };
 
-const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, bid, doublingLevel, speechText }: {
+const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, showProjects, bid, doublingLevel, speechText }: {
     player: Player,
     isCurrentTurn: boolean,
     position: 'top' | 'left' | 'right' | 'bottom',
@@ -147,6 +148,7 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
     totalTime: number,
     declarations: any,
     isProjectRevealing: boolean,
+    showProjects: boolean, // New Prop
     bid?: any,
     doublingLevel?: number,
     speechText?: string | null
@@ -261,7 +263,7 @@ rounded - full bg - white shadow - xl overflow - hidden relative z - 10
                 )
             }
             {
-                isProjectRevealing && declarations?.[player.position] && declarations[player.position].length > 0 && (
+                showProjects && declarations?.[player.position] && declarations[player.position].length > 0 && (
                     <div className="absolute top-10 left-1/2 -translate-x-1/2 w-max flex flex-col items-center gap-1 z-50 animate-bounce-in">
                         {declarations[player.position].map((proj: any, idx: number) => {
                             let label = '';
@@ -288,7 +290,7 @@ rounded - full bg - white shadow - xl overflow - hidden relative z - 10
 
 const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction, onChallenge, onAddBot, isCuttingDeck = false, tableSkin = 'table_default', cardSkin = 'card_default', onSawa, onEmoteClick, isSendingAction = false }) => {
     // --- HOOKS ---
-    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState } = gameState || {};
+    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing } = gameState || {};
 
     // Voice Hook
     const { speak } = useVoice();
@@ -296,6 +298,19 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
 
     // Accessibility Mode
     const [isAccessibilityMode, setIsAccessibilityMode] = useState(false);
+
+    // Project Reveal Persistence
+    const [showProjects, setShowProjects] = useState(false);
+
+    useEffect(() => {
+        if (isProjectRevealing) {
+            setShowProjects(true);
+        } else {
+            // Delay hiding to ensure visibility
+            const timer = setTimeout(() => setShowProjects(false), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [isProjectRevealing]);
 
     // Listen for Bot Speak Events
     useEffect(() => {
@@ -543,9 +558,9 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
     // --- Helper: Get Relative Position for Played Cards ---
     // Style: Tight cluster in center with slight overlap
     const getPlayedCardAnimation = (playerIndex: number, isLatest: boolean) => {
-        // DEFENSIVE: Ensure player exists and has index property
-        const playerZeroIndex = players[0]?.index ?? 0;
-        const relativeIndex = (playerIndex - playerZeroIndex + 4) % 4; // 0=Me, 1=Right, 2=Partner, 3=Left
+        // FIXED: Relative index based on ME, not players[0] which might be anyone
+        const myIndex = me?.index ?? 0;
+        const relativeIndex = (playerIndex - myIndex + 4) % 4; // 0=Me, 1=Right, 2=Partner, 3=Left
 
         // Card size for played cards - Responsive
         // Mobile: 60x84, Desktop: 85x118
@@ -650,7 +665,11 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                     p-[8px] sm:p-[10px] md:p-[12px] 
                     flex items-center justify-center
                 `}
-                    style={{ backgroundImage: `url(${premiumWood})` }}
+                    style={{
+                        backgroundImage: (tableSkin === 'table_default' || !VISUAL_ASSETS.TABLES.find(t => t.id === tableSkin)?.type) ? `url(${premiumWood})` : undefined,
+                        background: (VISUAL_ASSETS.TABLES.find(t => t.id === tableSkin)?.type === 'css') ? VISUAL_ASSETS.TABLES.find(t => t.id === tableSkin)?.value : undefined,
+                        backgroundSize: 'cover'
+                    }}
                 >
                     {/* Inner Carpet */}
                     <div className="w-full h-full rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] overflow-visible shadow-inner relative border-4 border-[#3e2723]">
@@ -694,6 +713,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                showProjects={showProjects}
                                 speechText={playerSpeech[partner.index]}
                             />
                         )}
@@ -710,6 +730,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                showProjects={showProjects}
                                 speechText={playerSpeech[leftPlayer.index]}
                             />
                         )}
@@ -726,18 +747,12 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 isProjectRevealing={gameState.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
+                                showProjects={showProjects}
                                 speechText={playerSpeech[rightPlayer.index]}
                             />
                         )}
 
-                        {/* --- Gablak Timer (Steal Window) --- */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[150%] z-[100] pointer-events-none">
-                            <GablakTimer
-                                biddingPhase={gameState?.biddingPhase}
-                                isActive={isMyTurn}
-                                duration={5}
-                            />
-                        </div>
+
 
                         {/* --- FLOOR CARD (BUYER) - Phase I/II --- */}
                         {gameState.floorCard && dealPhase !== 'IDLE' && dealPhase !== 'DEAL_1' && dealPhase !== 'DEAL_2' && (
@@ -753,6 +768,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                         card={gameState.floorCard}
                                         className="h-32 w-24 sm:h-36 sm:w-26 md:h-40 md:w-28 shadow-2xl"
                                         isPlayable={false}
+                                        skin={cardSkin}
                                     />
                                 </div>
                             </div>
@@ -783,6 +799,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                                 card={played.card}
                                                 className="w-full h-full shadow-xl"
                                                 isAkka={played.metadata?.akka}
+                                                skin={cardSkin}
                                             />
                                         </div>
                                     </motion.div>
@@ -816,6 +833,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                         <CardVector
                                             card={played.card}
                                             className="h-[25%] w-auto aspect-[2.5/3.5] shadow-2xl played-card-mobile opacity-90"
+                                            skin={cardSkin}
                                         />
                                     </div>
                                 );
@@ -849,6 +867,9 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                             // Interactive wrapper
                             return (
                                 <motion.div key={`hand-${idx}`}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Play ${card.rank} of ${card.suit}`}
                                     initial={{ y: 200, opacity: 0, rotate: 10 }}
                                     animate={{
                                         y: isSelected ? -50 : 0,
@@ -862,19 +883,25 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                             ? 'bottom-12 sm:bottom-14 z-[60] scale-110'
                                             : `${baseClass} ${hoverClass} hover:z-[55] hover:scale-105`
                                         }
-                                    ${!valid && phase === GamePhase.Playing ? 'opacity-50 grayscale' : 'opacity-100'}
+                                    opacity-100
                                 `}
                                     style={{
                                         transformOrigin: 'bottom center',
                                         zIndex: isSelected ? 60 : 50 + (sortedHand.length - idx)
                                     }}
                                     onClick={() => handleCardClick(me.hand.findIndex(c => c.id === card.id))}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            handleCardClick(me.hand.findIndex(c => c.id === card.id));
+                                        }
+                                    }}
                                 >
                                     <CardVector
                                         card={card}
                                         className="w-[3.75rem] h-[5.55rem] sm:w-[4.55rem] sm:h-[6.7rem] md:w-[5.2rem] md:h-[7.9rem] shadow-2xl"
                                         selected={isSelected}
-                                        isPlayable={valid}
+                                        isPlayable={true}
+                                        skin={cardSkin}
                                     />
                                 </motion.div>
                             );
@@ -893,6 +920,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                 isProjectRevealing={gameState.isProjectRevealing}
                 bid={bid}
                 doublingLevel={gameState.doublingLevel}
+                showProjects={showProjects}
                 speechText={playerSpeech[me.index]}
             />
 
