@@ -6,6 +6,8 @@
 
 This contains everything you need to run your app locally.
 
+> **Developers**: Please read the [Frontend Guide](../docs/FRONTEND_GUIDE.md) for architecture details.
+
 View your app in AI Studio: https://ai.studio/apps/drive/1qd78wkWM5c8pZUc-MaZyx3VsewehTTQm
 
 ## Run Locally

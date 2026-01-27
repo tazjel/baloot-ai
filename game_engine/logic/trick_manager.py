@@ -53,85 +53,28 @@ class TrickManager:
 
     def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
         try:
-            # 0. Check Closed Doubling Constraint (Magfool)
-            if not self.game.table_cards and self.game.bidding_engine and self.game.bidding_engine.contract:
-                contract = self.game.bidding_engine.contract
-                if self.game.game_mode == 'HOKUM' and contract.variant == 'CLOSED': # Magfool
-                    if card.suit == self.game.trump_suit:
-                        has_non_trump = any(c.suit != self.game.trump_suit for c in hand)
-                        if has_non_trump:
-                            return False
-
-            if not self.game.table_cards:
-                return True
-            
-            lead_play = self.game.table_cards[0]
-            lead_card = lead_play['card']
-            lead_suit = lead_card.suit
-            
-            # 1. Follow Suit (Mandatory in Sun & Hokum)
-            has_suit = any(c.suit == lead_suit for c in hand)
-            if has_suit:
-                if card.suit != lead_suit:
-                    return False
-                if self.game.game_mode == 'HOKUM' and lead_suit == self.game.trump_suit:
-                     pass 
-                else:
-                     return True
-
-            if self.game.game_mode == 'SUN':
-                return True # If can't follow suit, play anything.
-            
-            # --- HOKUM STRICT RULES ---
-            
-            # Determine Current Winner of the Trick
-            winner_idx = self.get_trick_winner()
-            curr_winner_play = self.game.table_cards[winner_idx]
-            curr_winner_pos = curr_winner_play['playedBy']
-            
-            me = self.game.players[self.game.current_turn]
-            my_team = me.team
-            winner_p = next(p for p in self.game.players if p.position == curr_winner_pos)
-            is_partner_winning = (winner_p.team == my_team)
-            
-            # 2. Partner Winning? -> Play Anything (unless forced to follow suit, handled above)
-            if is_partner_winning:
-                return True
-
-            # 3. Enemy Winning
-            # Must Trump if possible OR Must Over-Trump
-            
-            has_trump = any(c.suit == self.game.trump_suit for c in hand)
-            
-            # Case A: Void in Lead Suit
-            if not has_suit:
-                if has_trump:
-                    # Must play Trump
-                    if card.suit != self.game.trump_suit:
-                        return False
-                    
-                    # Must Over-Trump?
-                    if curr_winner_play['card'].suit == self.game.trump_suit:
-                        can_beat, beating_cards = self.can_beat_trump(curr_winner_play['card'], hand)
-                        if can_beat:
-                             if card not in beating_cards: 
-                                  played_strength = 100 + ORDER_HOKUM.index(card.rank)
-                                  winning_strength = 100 + ORDER_HOKUM.index(curr_winner_play['card'].rank)
-                                  if played_strength <= winning_strength:
-                                       return False
-                return True
-
-            # Case B: Followed Suit (Lead was Trump) -> has_suit True
-            if lead_suit == self.game.trump_suit:
-                 can_beat, beating_cards = self.can_beat_trump(curr_winner_play['card'], hand)
-                 if can_beat:
-                      played_strength = 100 + ORDER_HOKUM.index(card.rank)
-                      winning_strength = 100 + ORDER_HOKUM.index(curr_winner_play['card'].rank)
-                      if played_strength <= winning_strength:
-                           return False
-
-            return True
-
+             from game_engine.logic.validation import is_move_legal
+             
+             # Prepare context
+             # Map players to teams
+             players_team_map = {p.position: p.team for p in self.game.players}
+             my_idx = self.game.current_turn
+             my_team = self.game.players[my_idx].team
+             
+             contract_variant = None
+             if self.game.bidding_engine and self.game.bidding_engine.contract:
+                 contract_variant = self.game.bidding_engine.contract.variant
+             
+             return is_move_legal(
+                 card=card,
+                 hand=hand,
+                 table_cards=self.game.table_cards,
+                 game_mode=self.game.game_mode,
+                 trump_suit=self.game.trump_suit,
+                 my_team=my_team,
+                 players_team_map=players_team_map,
+                 contract_variant=contract_variant
+             )
         except Exception as e:
             logger.error(f"Error in is_valid_move: {e}")
             return True # Fallback

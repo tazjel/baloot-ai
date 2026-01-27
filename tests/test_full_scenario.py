@@ -94,7 +94,7 @@ game.round_history = [{'winner': p2.position, 'points': 100}] * 8 # Fake
 raw_us = 130  # Max raw in Sun
 raw_them = 0
 game.game_mode = 'SUN'
-result = game.calculate_game_points_with_tiebreak(raw_us, raw_them, 0, 0, 'us')
+result = game.scoring_engine.calculate_game_points_with_tiebreak(raw_us, raw_them, 0, 0, 'us')
 print(f"Sun 130 pts -> Game Points: {result['game_points']}")
 
 if result['game_points']['us'] == 26:

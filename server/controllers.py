@@ -34,7 +34,8 @@ from server.common import db, logger
 from ai_worker.llm_client import GeminiClient
 from server.room_manager import room_manager
 
-SECRET_KEY = 'your-secret-key'  # TODO: Replace with actual secret key
+# NOTE: In production, load this from os.environ.get('SECRET_KEY')
+SECRET_KEY = os.environ.get('JWT_SECRET', 'dev-secret-key-change-in-prod')
 
 def token_required(f):
     def decorated(*args, **kwargs):
@@ -599,3 +600,80 @@ def get_match_history(game_id):
         return {"error": "Game not found"}
         
     return {"history": game.full_match_history}
+
+
+@action('puzzles', method=['GET', 'OPTIONS'])
+def get_puzzles():
+    """
+    List available AI Classroom Puzzles.
+    """
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    try:
+        import json
+        # Locate the benchmarks file
+        APP_FOLDER = os.path.dirname(os.path.dirname(__file__)) # Root
+        puzzle_path = os.path.join(APP_FOLDER, 'ai_worker', 'benchmarks', 'golden_puzzles.json')
+        
+        if not os.path.exists(puzzle_path):
+             return {"puzzles": []}
+             
+        with open(puzzle_path, 'r', encoding='utf-8') as f:
+             puzzles = json.load(f)
+             
+        # Return summary list
+        summary = []
+        for p in puzzles:
+             summary.append({
+                 "id": p.get('id'),
+                 "difficulty": p.get('difficulty'),
+                 "description": p.get('description'),
+                 "context_hash": p.get('context_hash')
+             })
+             
+        return {"puzzles": summary}
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch puzzles: {e}")
+        return {"error": str(e)}
+
+@action('puzzles/<puzzle_id>', method=['GET', 'OPTIONS'])
+def get_puzzle_detail(puzzle_id):
+    """
+    Get full detail for a specific puzzle.
+    """
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    try:
+        import json
+        APP_FOLDER = os.path.dirname(os.path.dirname(__file__))
+        puzzle_path = os.path.join(APP_FOLDER, 'ai_worker', 'benchmarks', 'golden_puzzles.json')
+        
+        if not os.path.exists(puzzle_path):
+             response.status = 404
+             return {"error": "Puzzle database not found"}
+             
+        with open(puzzle_path, 'r', encoding='utf-8') as f:
+             puzzles = json.load(f)
+             
+        puzzle = next((p for p in puzzles if p.get('id') == puzzle_id), None)
+        
+        if not puzzle:
+             response.status = 404
+             return {"error": "Puzzle not found"}
+             
+        return {"puzzle": puzzle}
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch puzzle {puzzle_id}: {e}")
+        return {"error": str(e)}

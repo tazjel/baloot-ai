@@ -1,0 +1,208 @@
+[
+    {
+        "id": "strategy_sahn_1",
+        "category": "PLAYING",
+        "description": "Smart Sahn: Lead Trump when opponents might have them (Standard Sahn).",
+        "setup": {
+            "mode": "HOKUM",
+            "trump": "♠",
+            "my_hand": [
+                "J♠",
+                "9♠",
+                "A♥"
+            ],
+            "table": [],
+            "my_pos": "Bottom",
+            "bidder": "Bottom",
+            "history": []
+        },
+        "expected_action": "PLAY",
+        "expected_card": "J♠",
+        "reasoning_keyword": "Sahn"
+    },
+    {
+        "id": "strategy_sahn_void_avoid",
+        "category": "PLAYING",
+        "description": "Smart Sahn: Do NOT lead Trump if opponents are known void. Avoid leading dangerous suit.",
+        "setup": {
+            "mode": "HOKUM",
+            "trump": "♠",
+            "my_hand": [
+                "J♠",
+                "9♠",
+                "A♥"
+            ],
+            "table": [],
+            "my_pos": "Bottom",
+            "bidder": "Bottom",
+            "history": [
+                {
+                    "winner": "Bottom",
+                    "cards": [
+                        {
+                            "rank": "7",
+                            "suit": "♠",
+                            "playedBy": "Bottom"
+                        },
+                        {
+                            "rank": "K",
+                            "suit": "♥",
+                            "playedBy": "Right"
+                        },
+                        {
+                            "rank": "8",
+                            "suit": "♠",
+                            "playedBy": "Top"
+                        },
+                        {
+                            "rank": "Q",
+                            "suit": "♦",
+                            "playedBy": "Left"
+                        }
+                    ]
+                }
+            ]
+        },
+        "expected_action": "PLAY",
+        "expected_card": "A♥",
+        "reasoning_keyword": "Master"
+    },
+    {
+        "id": "strategy_cut_enemy",
+        "category": "PLAYING",
+        "description": "Cutting: Enemy winning with Master non-trump. Must cut with Trump.",
+        "setup": {
+            "mode": "HOKUM",
+            "trump": "♦",
+            "my_hand": [
+                "7♦",
+                "J♣"
+            ],
+            "table": [
+                {
+                    "rank": "A",
+                    "suit": "♠",
+                    "playedBy": "Right"
+                }
+            ],
+            "my_pos": "Bottom",
+            "bidder": "Right",
+            "history": []
+        },
+        "expected_action": "PLAY",
+        "expected_card": "7♦",
+        "reasoning_keyword": "Trumping"
+    },
+    {
+        "id": "strategy_duck_winner",
+        "category": "PLAYING",
+        "description": "Ducking: Partner Winning with Master. Do not overtake. Play points if safe, or trash.",
+        "setup": {
+            "mode": "SUN",
+            "trump": null,
+            "my_hand": [
+                "K♠",
+                "7♠"
+            ],
+            "table": [
+                {
+                    "rank": "A",
+                    "suit": "♠",
+                    "playedBy": "Top"
+                }
+            ],
+            "my_pos": "Bottom",
+            "bidder": "Top",
+            "history": []
+        },
+        "expected_action": "PLAY",
+        "expected_card": "K♠",
+        "reasoning_keyword": "Feed"
+    },
+    {
+        "id": "bid_strong_sun",
+        "category": "BIDDING",
+        "description": "Bidding: Strong Sun Hand (Aces/Tens) should bid SUN.",
+        "setup": {
+            "mode": null,
+            "trump": null,
+            "my_hand": [
+                "A♠",
+                "10♠",
+                "A♥",
+                "10♥",
+                "K♦",
+                "Q♦",
+                "7♣",
+                "8♣"
+            ],
+            "table": [],
+            "my_pos": "Bottom",
+            "bidder": null,
+            "history": [],
+            "phase": "BIDDING",
+            "bidding_round": 1
+        },
+        "expected_action": "ASHKAL",
+        "reasoning_keyword": "Strong Sun"
+    },
+    {
+        "id": "bid_strong_hokum",
+        "category": "BIDDING",
+        "description": "Bidding: Strong Hokum Hand (J/9/A of Suit) should bid HOKUM.",
+        "setup": {
+            "mode": null,
+            "trump": null,
+            "my_hand": [
+                "J♠",
+                "9♠",
+                "A♠",
+                "7♠",
+                "K♥",
+                "Q♦",
+                "7♣",
+                "8♣"
+            ],
+            "table": [],
+            "my_pos": "Bottom",
+            "bidder": null,
+            "history": [],
+            "phase": "BIDDING",
+            "bidding_round": 1,
+            "floor_card": {
+                "rank": "7",
+                "suit": "♠"
+            }
+        },
+        "expected_action": "HOKUM",
+        "expected_suit": "♠",
+        "reasoning_keyword": "Good ♠ Suit"
+    },
+    {
+        "id": "bid_pass_trash",
+        "category": "BIDDING",
+        "description": "Bidding: Weak Hand should PASS.",
+        "setup": {
+            "mode": null,
+            "trump": null,
+            "my_hand": [
+                "7♠",
+                "8♠",
+                "7♥",
+                "8♥",
+                "7♦",
+                "8♦",
+                "7♣",
+                "8♣"
+            ],
+            "table": [],
+            "my_pos": "Bottom",
+            "bidder": null,
+            "history": [],
+            "phase": "BIDDING",
+            "bidding_round": 1
+        },
+        "expected_action": "PASS",
+        "reasoning_keyword": "Weak"
+    }
+]

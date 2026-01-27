@@ -6,9 +6,10 @@ interface LobbyProps {
     onStartGame: (settings: GameSettings) => void;
     onMultiplayer: () => void;
     onAIStudio: () => void;
+    onAIClassroom?: () => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio }) => {
+const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, onAIClassroom }) => {
     const [turnDuration, setTurnDuration] = useState<number>(3);
     const [strictMode, setStrictMode] = useState<boolean>(true);
 
@@ -120,6 +121,15 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio })
                     >
                         <Brain size={20} />
                         <span>استوديو الذكاء الاصطناعي</span>
+                    </button>
+
+                    {/* AI Classroom Button */}
+                    <button
+                        onClick={() => typeof onAIClassroom !== 'undefined' && onAIClassroom()}
+                        className="w-full py-3 bg-teal-900/20 border border-teal-500/30 hover:bg-teal-900/40 text-teal-400 font-bold rounded-full transition-all flex items-center justify-center gap-2 touch-target mt-3"
+                    >
+                        <Brain size={20} />
+                        <span>الفصل الدراسي (تدريب)</span>
                     </button>
 
                 </div>

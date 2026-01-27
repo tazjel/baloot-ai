@@ -167,7 +167,7 @@ def game_action(sid, data):
         
         # Check if game finished to trigger auto-restart
         if game.phase == "FINISHED":
-             # sio.start_background_task(auto_restart_round, game, room_id)
+             # Auto-restart logic is handled by client request or explicit timer
              pass
         
     return result

@@ -9,20 +9,6 @@ class CardMemory:
     def __init__(self):
         self.reset()
 
-    def reset(self):
-        self.played_cards = set()
-        self.voids = {0: set(), 1: set(), 2: set(), 3: set()} # Player Index -> Set of Suits
-        self.partners_aces = set() # Suits where partner showed an Ace
-        self.turn_history = [] # List of (player_idx, card_str)
-
-    def mark_played(self, card_str):
-        self.played_cards.add(card_str)
-
-    def mark_void(self, player_idx, suit):
-        if suit in SUITS:
-            self.voids[player_idx].add(suit)
-            # logger.info(f"Memory: Player {player_idx} is VOID in {suit}")
-
     def is_card_played(self, rank, suit):
         return f"{rank}{suit}" in self.played_cards
 
@@ -38,20 +24,84 @@ class CardMemory:
     def get_remaining_in_suit(self, suit):
         return [c for c in self.get_remaining_cards() if c['suit'] == suit]
 
+    def reset(self):
+        self.played_cards = set()
+        self.voids = {} # Player Ref -> Set of Suits
+        self.partners_aces = set() 
+        self.turn_history = [] 
+
+    def mark_played(self, card_str):
+        self.played_cards.add(card_str)
+
+    def populate_from_state(self, game_state):
+        """
+        Rebuilds memory from the full game history provided in the state.
+        Critically, this infers VOIDS based on player actions.
+        """
+        self.reset()
+        
+        # 1. Mark Table Cards as Played
+        for tc in game_state.get('tableCards', []):
+             c = tc['card']
+             self.mark_played(f"{c['rank']}{c['suit']}")
+             
+        # 2. Process Round History (Tricks)
+        # Assuming round_history / currentRoundTricks structure:
+        # [{'winner': 'Bottom', 'cards': [{'suit': 'S', 'rank': 'A', 'playedBy': 'Bottom'}, ...]}, ...]
+        
+        history = game_state.get('currentRoundTricks', [])
+        # Also check 'pastRoundResults' for previous rounds if we wanted long-term memory?
+        # No, Baloot memory is per-round (cards are reshuffled).
+        
+        trump = game_state.get('trumpSuit')
+        mode = game_state.get('gameMode')
+        
+        for trick in history:
+            led_suit = None
+            if trick.get('cards'):
+                 led_suit = trick['cards'][0]['suit']
+                 
+            for c_data in trick.get('cards', []):
+                 rank = c_data['rank']
+                 suit = c_data['suit']
+                 player_pos = c_data.get('playedBy') # Position 'Bottom', etc.
+                 
+                 # Mark Played
+                 self.mark_played(f"{rank}{suit}")
+                 
+                 # Infer Voids
+                 if led_suit and suit != led_suit:
+                      # Player failed to follow suit -> VOID in led_suit
+                      # Map Position String to Index? 
+                      # BotContext usually handles index. Memory needs a standard.
+                      # Let's use Position String if possible, or assume caller handles mapping.
+                      # For simplicity, let's store Voids by Position String in this new version.
+                      self.mark_void(player_pos, led_suit)
+                      
+                      # Hokum Constraint: If failed to follow suit, AND failed to Trump (when enemy winning?)
+                      # In Baloot, you MUST play trump if you can't follow lead.
+                      # So if they played non-trump on a non-trump lead... they are void in Trump too?
+                      # Only if: Mode is Hokum, Lead was Non-Trump, and they played Non-Trump.
+                      if mode == 'HOKUM' and led_suit != trump and suit != trump:
+                           self.mark_void(player_pos, trump)
+
+    def mark_void(self, player_ref, suit):
+        # player_ref can be int index or string position
+        if suit in SUITS:
+            self.voids.setdefault(player_ref, set()).add(suit)
+
+    def is_void(self, player_ref, suit):
+        return suit in self.voids.get(player_ref, set())
+
+    def get_remaining_trumps(self, trump_suit):
+        return [c for c in self.get_remaining_in_suit(trump_suit)]
+
     def is_master(self, rank, suit, mode, trump):
         """
         Check if a card is the highest remaining in its suit.
         """
         remaining = self.get_remaining_in_suit(suit)
-        if not remaining: return True # Should not happen if I hold the card
-        
-        # Filter out the card itself if it's in remaining (it usually isn't if I hold it, 
-        # but let's be safe: we are checking if *my* card is master against *others*)
-        
-        # Determine strict order for this suit
-        # HOKUM Trump: J 9 A 10 K Q 8 7
-        # HOKUM Non-Trump: A K Q J 10 9 8 7
-        # SUN: A 10 K Q J 9 8 7
+        if not remaining: return True 
         
         order = []
         if mode == 'HOKUM':
@@ -66,12 +116,10 @@ class CardMemory:
         try:
             my_idx = order.index(rank)
         except ValueError:
-            return False # Invalid rank?
+            return False 
             
-        # Check if any OTHER remaining card has a lower index (stronger)
         for c in remaining:
-            if c['rank'] == rank: continue # Skip myself
-            
+            if c['rank'] == rank: continue 
             try:
                 op_idx = order.index(c['rank'])
                 if op_idx < my_idx:

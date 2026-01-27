@@ -19,5 +19,5 @@ curl -I http://localhost:3000/
 
 4. Check Bot Agent Imports
 ```powershell
-python -c "from bot_agent import bot_agent; print('Bot Agent Loaded Successfully')"
+python -c "from ai_worker.agent import BotAgent; print('Bot Agent Loaded Successfully')"
 ```

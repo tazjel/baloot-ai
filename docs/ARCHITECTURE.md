@@ -7,7 +7,16 @@ The Baloot Game Project is a modern, high-performance web application designed f
 graph TD
     Client[React Frontend] <-->|Socket.IO| Server[Gevent Game Server]
     Server <-->|State/Moves| Redis[(Redis Cache/Streams)]
-    Brain[AI Worker] <-->|Read State/Write Decision| Redis
+    Client[React Frontend] <-->|Socket.IO| Server[Gevent Game Server]
+    Server <-->|State/Moves| Redis[(Redis Cache/Streams)]
+    
+    subgraph AI_Worker["AI Intelligence Layer"]
+        BrainClient[Brain Client] <-->|Overrides| Redis
+        Referee[Referee Observer] -->|Qayd/Sawa| BotAgent
+        BotAgent -->|Coordination| BrainClient
+    end
+    
+    BrainClient <--> Redis
     Scout[Automated Scout] -->|Analyze Logs| Mistakes[Mistakes JSON]
     Trainer[Trainer Script] -->|Read Mistakes| Redis
     Logs[Game Logs] --> Scout
@@ -29,6 +38,12 @@ Redis is the central communication bus.
 ### 3. Docker ("The Container")
 - **Role**: Ensures Redis and Python dependencies run authentically on any machine.
 
+### 4. AI Worker Components (New)
+The monolithic agent has been decomposed into modular components:
+- **`BrainClient`**: Handles all Redis connectivity, "Correct Move" lookups, and Flyerwheel data capture.
+- **`RefereeObserver`**: Observes the game state for mandatory rule enforcement (e.g., claiming *Sawa* or calling *Qayd* on illegal moves).
+- **`BotAgent`**: Acts as a coordinator, delegating to Referee -> Brain -> Strategy in that order.
+
 ## Implemented Capabilities
 
 ### 🧠 The AI Data Flywheel (Active)
@@ -49,6 +64,6 @@ Directly connecting 1000 spectators to a Game Room would crash the server.
 
 ## Directory Structure
 - `server/`: The core Game Engine and Socket.IO handler.
-- `ai_worker/` (Planned): The heavy-lifting AI logic.
+- `ai_worker/`: The heavy-lifting AI logic (`BrainClient`, `RefereeObserver`, `strategies/`).
 - `frontend/`: React UI.
 - `docs/`: System documentation.

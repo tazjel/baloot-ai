@@ -9,9 +9,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 2. Redis (Container)
-$dockerCheck = docker ps --filter "name=baloot-redis" --format "{{.Names}}"
-if ($dockerCheck -match "baloot-redis") {
+# 2. Redis (Container)
+$running = docker ps --filter "name=baloot-redis" --format "{{.Names}}"
+$exists = docker ps -a --filter "name=baloot-redis" --format "{{.Names}}"
+
+if ($running -match "baloot-redis") {
     Write-Host "✅ Redis is already running." -ForegroundColor Green
+} elseif ($exists -match "baloot-redis") {
+    Write-Host "🔄 Redis exists but stopped. Starting..." -ForegroundColor Yellow
+    docker start baloot-redis
 } else {
     Write-Host "🚀 Starting Redis container..." -ForegroundColor Yellow
     docker run --name baloot-redis -p 6379:6379 -d redis

@@ -2,8 +2,69 @@ from ai_worker.bot_context import BotContext
 
 from game_engine.models.constants import POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM
 
+from ai_worker.mcts.mcts import MCTSSolver
+from ai_worker.mcts.utils import generate_random_distribution
+from ai_worker.mcts.fast_game import FastGame
+
 class PlayingStrategy:
-    def get_decision(self, ctx: BotContext, memory=None):
+    def __init__(self):
+        self.mcts_solver = MCTSSolver()
+        self.use_mcts_endgame = True
+
+    def get_decision(self, ctx: BotContext) -> dict:
+        legal_indices = ctx.get_legal_moves()
+        if not legal_indices:
+            return {"cardIndex": -1, "reasoning": "No Legal Moves (Error)"}
+            
+        # --- MCTS ENDGAME TRIGGER ---
+        # If we have 4 or fewer cards (Tricks 5,6,7,8), enable Deep Think.
+        if self.use_mcts_endgame and len(ctx.hand) <= 4 and len(ctx.hand) > 0:
+             try:
+                 # 1. Distribute Hands (Guessing Opponents)
+                 hands = generate_random_distribution(ctx)
+                 
+                 # 2. Build Fast State
+                 # Need to map BotContext current_turn to index
+                 # Bot is always Bottom (0) in Context perspective usually?
+                 # No, BotContext.my_pos tells us.
+                 # Actually FastGame assumes 0=Bottom, 1=Right...
+                 # We must ensure Hand 0 is correct.
+                 # generate_random_distribution puts My Hand at 0. So simulation works from Bot POV.
+                 
+                 # Current Turn: If table is empty, I lead (0).
+                 # If table has cards, turn is whoever is next.
+                 # In FastGame, we simulate from CURRENT moment.
+                 # If it's my turn, current_turn = 0.
+                 
+                 fast_game = FastGame(
+                     players_hands=hands,
+                     trump=ctx.trump,
+                     mode=ctx.mode,
+                     current_turn=0, # Bot is acting now
+                     dealer_index=ctx.raw_state.get('dealerIndex', 0),
+                     table_cards=ctx.raw_state.get('tableCards', []) # Need mapping in FastGame init
+                 )
+                 
+                 # 3. Search
+                 best_idx = self.mcts_solver.search(fast_game, timeout_ms=300)
+                 
+                 # 4. Map back to Hand Index
+                 # best_idx is index in My Hand (FastGame)
+                 # FastGame Hand 0 is COPY of ctx.hand.
+                 # So indices match.
+                 
+                 return {
+                     "cardIndex": best_idx,
+                     "reasoning": f"Oracle (MCTS) - Verified {len(ctx.hand)} cards"
+                 }
+                 
+             except Exception as e:
+                 import traceback
+                 # trace = traceback.format_exc()
+                 # print(f"MCTS Failed: {e} - Falling back to Heuristics")
+                 pass
+        
+        # --- STANDARD HEURISTICS ---
         # 0. Endgame Solver
         endgame_move = self.get_endgame_decision(ctx)
         if endgame_move:
@@ -36,6 +97,26 @@ class PlayingStrategy:
                        serialized_projects.append(sp)
                   decision['declarations'] = serialized_projects
         
+        # 3. FINAL LEGALITY CHECK (Guardrail)
+        if decision and decision.get('action') == 'PLAY':
+             legal_indices = ctx.get_legal_moves()
+             chosen_idx = decision.get('cardIndex')
+             
+             if chosen_idx not in legal_indices:
+                  if not legal_indices:
+                       # Should not happen unless hand empty, handled elsewhere?
+                       pass 
+                  else:
+                       import logging
+                       logger = logging.getLogger("ai_worker")
+                       logger.warning(f"Bot {ctx.position} attempted ILLEGAL move: {ctx.hand[chosen_idx]}. Legal: {[ctx.hand[i] for i in legal_indices]}. OVERRIDING.")
+                       
+                       # Contextual Fallback
+                       # If we picked a card, but it's illegal, maybe we should pick the 'best' legal card?
+                       # Simple fallback: First legal index.
+                       decision['cardIndex'] = legal_indices[0]
+                       decision['reasoning'] += " (Legality Override)"
+
         return decision
 
     def _play_sun_strategy(self, ctx: BotContext):
@@ -91,27 +172,83 @@ class PlayingStrategy:
         max_score = -100
         trump = ctx.trump
         
+        # Determine if we (or partner) bought the project.
+        bidder_team = 'us' if ctx.bid_winner in [ctx.position, self._get_partner_pos(ctx.player_index)] else 'them'
+        should_open_trump = (bidder_team == 'us')
+        
+        # SMART SAHN: Only open trumps if enemies still have them!
+        if should_open_trump:
+             # Check if ANY opponent is NOT void in trump
+             # If all opponents are void in trump, don't bleed ours.
+             opponents_might_have_trump = False
+             my_team = ctx.team
+             for p in ctx.raw_state.get('players', []):
+                  if p.get('team') != my_team:
+                       if not ctx.is_player_void(p.get('position'), trump):
+                            opponents_might_have_trump = True
+                            break
+             
+             if not opponents_might_have_trump:
+                  should_open_trump = False
+        
+        # Debug Logging
+        # logger.debug(f"Hokum Lead Calc: Trump={trump} Open={should_open_trump}")
+
         for i, c in enumerate(ctx.hand):
              score = 0
              is_trump = (c.suit == trump)
              
+             score = 0
+             is_trump = (c.suit == trump)
+             
+             # VOID AVOIDANCE
+             is_danger = False
+             my_team = ctx.team # Initialize here!
+             if not is_trump:
+                  for p in ctx.raw_state.get('players', []):
+                       if p.get('team') != my_team:
+                            if ctx.is_player_void(p.get('position'), c.suit):
+                                 is_danger = True
+                                 break
+             
              if is_trump:
-                  if ctx.is_master_card(c): score += 100
-                  elif c.rank == 'J': score += 25
-                  elif c.rank == '9': score += 20
-                  else: score += 5
+                  if should_open_trump:
+                       score += 40 
+                       
+                  # Contextual Master Bonus
+                  # If enemies are dry, leading master trump is less valuable (unless to draw partner).
+                  # Reduce bonus if !should_open_trump?
+                  # Actually, if enemies are dry, leading J is useless.
+                  # Logic: If I have Master Trump, but enemies are dry, score should be low.
+                  master_bonus = 100
+                  if is_trump and not opponents_might_have_trump:
+                       master_bonus = 10 # Drastically reduce. Save it for ruffing.
+                       
+                       
+                  if ctx.is_master_card(c): score += master_bonus
+                  elif c.rank == 'J': 
+                       if should_open_trump: score += 80
+                       else: score += 10 # Don't just lead J if enemies dry
+                  elif c.rank == '9': 
+                       if should_open_trump: score += 60 
+                       else: score += 5
+                  else: score += 10 
              else:
                   # Non-Trump
                   if ctx.is_master_card(c): 
-                       score += 50 # Master in non-trump is good
-                  elif c.rank == 'A': score += 18
+                       score += 50 
+                  elif c.rank == 'A': score += 30
                   else:
-                       # Penalize unsupported honors (Leading K/Q without A is risky)
                        has_ace = any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand)
                        if not has_ace:
-                            if c.rank == 'K': score -= 15 # Heavy penalty to pass void check
+                            if c.rank == 'K': score -= 15 
                             elif c.rank == 'Q': score -= 10
                             elif c.rank == 'J': score -= 5
+                            
+                  if is_danger:
+                       score -= 200 # NUCLEAR DETERRENT: Leading into a void is almost always wrong.
+                  
+             # print(f"Card {c} Score: {score} Danger={is_danger}")
                   
              if score > max_score:
                   max_score = score
@@ -119,6 +256,8 @@ class PlayingStrategy:
         
         reason = "Hokum Lead"
         if ctx.is_master_card(ctx.hand[best_card_idx]): reason = "Leading Master Card"
+        # If score was influenced by danger
+        if ctx.hand[best_card_idx].suit == trump and should_open_trump: reason = "Smart Sahn (Drawing Trumps)"
         
         return {"action": "PLAY", "cardIndex": best_card_idx, "reasoning": reason}
 
@@ -350,11 +489,47 @@ class PlayingStrategy:
          return best_i
 
     def _get_trash_card(self, ctx):
-         # Pick lowest strength card overall
-         # Or lowest valid point card?
-         # Simple: Lowest rank of any non-trump suit?
-         # TODO: make smarter.
-         return {"action": "PLAY", "cardIndex": 0, "reasoning": "Trash"}
+         # Smart Trash Selection
+         # 1. Avoid Masters
+         # 2. Avoid Point Cards (A, 10, K) if possible
+         # 3. Prefer Short Suits (to create voids)
+         # 4. In Hokum, do not throw Trumps unless forced (usually handled by caller context)
+         
+         best_idx = 0
+         min_value = 1000
+         
+         trump = ctx.trump if ctx.mode == 'HOKUM' else None
+         
+         for i, c in enumerate(ctx.hand):
+              score = 0
+              
+              # Base Rank Value (Lower is better for trash)
+              if c.rank == 'A': score += 20
+              elif c.rank == '10': score += 15
+              elif c.rank == 'K': score += 10
+              elif c.rank == 'Q': score += 5
+              elif c.rank == 'J': score += 2 # J is low in Sun, high in Hokum
+              elif c.rank == '9': score += 1 # 9 is low in Sun, high in Hokum
+              else: score += 0 # 7, 8
+              
+              # Mode Specifics
+              if ctx.mode == 'HOKUM':
+                   if c.suit == trump:
+                        score += 50 # Keep trumps!
+                        if c.rank == 'J': score += 100
+                        if c.rank == '9': score += 80
+              
+              # Master Protection
+              if ctx.is_master_card(c): score += 30
+              
+              # Length logic seems complex without counting suits first.
+              # Simple heuristic: Just dump the lowest rank non-trump.
+              
+              if score < min_value:
+                   min_value = score
+                   best_idx = i
+                   
+         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Smart Trash"}
 
     def get_endgame_decision(self, ctx: BotContext):
         # Simply check if we have all masters (Cheat/Optimization)

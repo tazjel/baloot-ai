@@ -77,6 +77,7 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 ## 📚 Documentation
 
 - **[Architecture Overview](docs/ARCHITECTURE.md)**: Logic separation, AI Flywheel, and Redis integration.
+- **[Frontend Guide](docs/FRONTEND_GUIDE.md)**: Architecture, State Management, and UI Systems.
 - **[Contributing Guide](docs/CONTRIBUTING.md)**: Setup, testing, and code style.
 - **[Codebase Map](CODEBASE_MAP.md)**: Master index for AI Agents.
 - **[Game Rules](https://en.wikipedia.org/wiki/Baloot)**: Standard Baloot rules implementation details.

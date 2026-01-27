@@ -1,7 +1,7 @@
 
 import unittest
 from game_logic import Game, GamePhase
-from ai_worker.agent import ai_worker.agent
+from ai_worker.agent import bot_agent
 import time
 import random
 

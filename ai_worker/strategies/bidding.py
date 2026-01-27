@@ -99,16 +99,47 @@ class BiddingStrategy:
                   if not (ctx.floor_card and ctx.floor_card.rank == 'A'):
                        return {"action": "ASHKAL", "reasoning": "Strong Sun Hand + Dealer Privilege"}
         
+        # 6. Defensive / Psychological Logic
+        scores = ctx.raw_state.get('matchScores', {'us': 0, 'them': 0})
+        them_score = scores.get('them', 0)
+        
+        is_danger_zone = them_score >= 120
+        is_critical_zone = them_score >= 135
+        
+        # If in critical zone, lower thresholds to prevent clear pass-out win
+        if is_critical_zone:
+             sun_threshold -= 3
+             hokum_threshold -= 3
+             
+        # "Suicide Bid" / Project Denial
+        # If opponents bid SUN and are winning, they might have 400/100. 
+        # We must interrupt to invalid their projects, even if we eat Khasara.
+        if current_bid:
+             bidder_pos = current_bid.get('bidder')
+             if bidder_pos != self._get_partner_pos_name(ctx.position):
+                  # Opponents bidding
+                  if is_critical_zone or (them_score >= 100):
+                       # If they bid SUN, they are dangerous
+                       if current_bid.get('type') == 'SUN':
+                            # Aggressively try to steal with Hokum
+                            hokum_threshold -= 6 
+                            # If we have a vaguely playable suit, do it.
+                            if best_hokum_score > 10: 
+                                 # Ensure we bid HOKUM if possible
+                                 # Logic below will pick it if score > threshold
+                                 pass
+                                 
         # logger.info(f"Bid Logic: P{ctx.player_index} (Dealer? {is_last_to_speak}). SunScore: {sun_score} vs {sun_threshold}. Hokum: {best_hokum_score} vs {hokum_threshold}")
 
-        
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
             
         # Only consider Hokum if nobody else has bid it yet
         if not has_hokum_bid:
             if best_hokum_score >= hokum_threshold and best_suit:
-                 return {"action": "HOKUM", "suit": best_suit, "reasoning": f"Good {best_suit} Suit (Score {best_hokum_score})"}
+                 reason = f"Good {best_suit} Suit (Score {best_hokum_score})"
+                 if is_critical_zone: reason += " [Defensive]"
+                 return {"action": "HOKUM", "suit": best_suit, "reasoning": reason}
         
         return {"action": "PASS", "reasoning": "Hand too weak"}
 
@@ -187,14 +218,25 @@ class BiddingStrategy:
                 elif r in ['K', 'Q']: score += 2 
                 else: score += 1 
             else:
-                if r == 'A': score += 5
-                elif r == 'K': score += 1
+                if r == 'A': score += 8 # Increased from 5. Aces are critical.
+                elif r == 'K': score += 2 # Increased from 1.
                 
         score += sum(1 for c in hand if c.suit == trump_suit) * 2
         
         has_k = any(c.rank == 'K' and c.suit == trump_suit for c in hand)
         has_q = any(c.rank == 'Q' and c.suit == trump_suit for c in hand)
         if has_k and has_q: score += 5
+
+        # Project Bonus (Generic)
+        from game_engine.logic.utils import scan_hand_for_projects
+        projects = scan_hand_for_projects(hand, 'HOKUM')
+        if projects:
+             for p in projects:
+                  # Add 50% of project points to score
+                  # e.g. 100 project -> +10 score roughly
+                  raw_val = p.get('score', 0)
+                  score += (raw_val / 10) 
+
         
         # Distribution
         from game_engine.models.constants import SUITS as ALL_SUITS

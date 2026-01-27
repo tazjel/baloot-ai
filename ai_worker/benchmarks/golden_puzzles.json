@@ -1,0 +1,127 @@
+[
+  {
+    "id": "puzzle_3",
+    "context_hash": "seed-a2e13ab2",
+    "description": "Your partner has already captured the trick with the Ace of Spades. Playing your King (10 points) is a waste because the Ace is the highest. Save your King for a future trick or throw 10/K on a winning trick to add points.",
+    "game_state": {
+      "players": [
+        {
+          "position": "Bottom",
+          "hand": [
+            {
+              "suit": "S",
+              "rank": "K"
+            },
+            {
+              "suit": "S",
+              "rank": "7"
+            },
+            {
+              "suit": "H",
+              "rank": "10"
+            }
+          ],
+          "name": "Me"
+        },
+        {
+          "position": "Right",
+          "hand": [],
+          "name": "Bot"
+        },
+        {
+          "position": "Top",
+          "hand": [],
+          "name": "Partner"
+        },
+        {
+          "position": "Left",
+          "hand": [],
+          "name": "Bot"
+        }
+      ],
+      "bid": {
+        "type": "SUN",
+        "bidder": "Top"
+      },
+      "currentTurnIndex": 0,
+      "playedCards": {
+        "2": {
+          "suit": "S",
+          "rank": "A",
+          "playedBy": "Top"
+        },
+        "3": {
+          "suit": "H",
+          "rank": "7",
+          "playedBy": "Left"
+        }
+      },
+      "floorCard": null
+    },
+    "solution": {
+      "suit": "S",
+      "rank": "7"
+    },
+    "difficulty": "Hard"
+  },
+  {
+    "id": "puzzle_4",
+    "context_hash": "seed-c106ccea",
+    "description": "The opponent is winning with an Ace. You have a Trump (Diamond). You should 'cut' the trick to win it for your team.",
+    "game_state": {
+      "players": [
+        {
+          "position": "Bottom",
+          "hand": [
+            {
+              "suit": "D",
+              "rank": "7"
+            },
+            {
+              "suit": "C",
+              "rank": "J"
+            }
+          ],
+          "name": "Me"
+        },
+        {
+          "position": "Right",
+          "hand": [],
+          "name": "Bot"
+        },
+        {
+          "position": "Top",
+          "hand": [],
+          "name": "Partner"
+        },
+        {
+          "position": "Left",
+          "hand": [],
+          "name": "Bot"
+        }
+      ],
+      "bid": {
+        "type": "HOKUM",
+        "suit": "D",
+        "bidder": "Right"
+      },
+      "currentTurnIndex": 0,
+      "playedCards": {
+        "1": {
+          "suit": "S",
+          "rank": "A",
+          "playedBy": "Right"
+        }
+      },
+      "floorCard": {
+        "suit": "D",
+        "rank": "7"
+      }
+    },
+    "solution": {
+      "suit": "D",
+      "rank": "7"
+    },
+    "difficulty": "Hard"
+  }
+]

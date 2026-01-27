@@ -15,7 +15,7 @@ from server.common import logger # Use common logger
 
 # Configuration
 # Ensuring backend/data/training exists
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "data", "training"))
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "ai_worker", "data", "training"))
 MISTAKES_FILE = os.path.join(DATA_DIR, "mistakes_extracted.json")
 os.makedirs(DATA_DIR, exist_ok=True)
 

@@ -16,7 +16,7 @@ from .project_manager import ProjectManager
 from .scoring_engine import ScoringEngine
 
 from .bidding_engine import BiddingEngine
-from ai_worker.agent import bot_agent
+
 
 # Configure Logging
 from server.logging_utils import log_event, log_error, logger
@@ -666,7 +666,9 @@ class Game:
                 'declarations': serialized_declarations
             }
             self.full_match_history.append(round_snapshot)
+            self.full_match_history.append(round_snapshot)
             try:
+                 from ai_worker.agent import bot_agent
                  bot_agent.capture_round_data(round_snapshot)
             except Exception:
                  pass

@@ -556,82 +556,88 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
     };
 
     // --- Helper: Get Relative Position for Played Cards ---
-    // Style: Tight cluster in center with slight overlap
     const getPlayedCardAnimation = (playerIndex: number, isLatest: boolean) => {
-        // FIXED: Relative index based on ME, not players[0] which might be anyone
         const myIndex = me?.index ?? 0;
         const relativeIndex = (playerIndex - myIndex + 4) % 4; // 0=Me, 1=Right, 2=Partner, 3=Left
 
-        // Card size for played cards - Responsive
-        // Mobile: 60x84, Desktop: 85x118
-        // We can't easily use Tailwind classes inside inline styles for detailed transform calculations usually,
-        // but we can scale the base values or use a hook. 
-        // For simplicity, let's assume a smaller base size and rely on CSS scaling or just keep it tight.
-        // Let's use smaller fixed pixels for mobile logic if we had width access.
-        // Alternative: Use viewport units?
         const cardWidth = window.innerWidth < 640 ? 60 : 85;
         const cardHeight = window.innerWidth < 640 ? 84 : 118;
+        const offsetDistance = window.innerWidth < 640 ? 25 : 40; // Tighter
 
-
-        // Offsets from center (Reduced for overlap)
-        const offsetDistance = window.innerWidth < 640 ? 30 : 45; // Tighter on mobile
-
-
-        // Base positioning
-        let xOffset = 0;
-        let yOffset = 0;
+        // 1. Determine Final Position (Target)
+        let targetX = 0;
+        let targetY = 0;
         let rotation = 0;
+        let initialX = 0;
+        let initialY = 0;
 
-        // Add some "messiness" based on index to look organic? 
-        // Or strict "Cross" but tight?
-        // User asked for "little overlapping". 
-        // Strict relative positioning:
+        const range = 500; // Throw distance
 
         switch (relativeIndex) {
-            case 0: // Me (Bottom) - card is bottom-center
-                xOffset = 0;
-                yOffset = offsetDistance;
-                rotation = -2 + ((playerIndex * 7) % 4); // Deterministic "random"
+            case 0: // Me (Bottom)
+                targetX = 0;
+                targetY = offsetDistance;
+                initialX = 0;
+                initialY = range; // Come from bottom
+                rotation = -2 + ((playerIndex * 7) % 5);
                 break;
-            case 1: // Right - card is right-center
-                xOffset = offsetDistance * 1.5;
-                yOffset = 0;
-                rotation = 85 + ((playerIndex * 7) % 4);
+            case 1: // Right
+                targetX = offsetDistance * 1.5;
+                targetY = 0;
+                initialX = range; // Come from right
+                initialY = 0;
+                rotation = 85 + ((playerIndex * 7) % 5);
                 break;
-            case 2: // Partner (Top) - card is top-center
-                xOffset = 0;
-                yOffset = -offsetDistance;
-                rotation = 180 + ((playerIndex * 7) % 4);
+            case 2: // Partner (Top)
+                targetX = 0;
+                targetY = -offsetDistance;
+                initialX = 0;
+                initialY = -range; // Come from top
+                rotation = 180 + ((playerIndex * 7) % 5);
                 break;
-            case 3: // Left - card is left-center
-                xOffset = -offsetDistance * 1.5;
-                yOffset = 0;
-                rotation = -85 + ((playerIndex * 7) % 4);
+            case 3: // Left
+                targetX = -offsetDistance * 1.5;
+                targetY = 0;
+                initialX = -range; // Come from left
+                initialY = 0;
+                rotation = -85 + ((playerIndex * 7) % 5);
                 break;
         }
 
-        // Z-index: later cards on top is standard.
-        // But for "pile" feel, maybe they just stack naturally?
-        // `tableCards` is ordered by play time. 
-        // We find the index of THIS card in the tableCards array to determine Z.
+        // Z-Index Logic
         const playOrder = gameState.tableCards.findIndex(c => (c as any).playedBy === players[playerIndex].position);
         const zIndex = 40 + (playOrder >= 0 ? playOrder : 0);
 
-        const style: React.CSSProperties = {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: `${cardWidth}px`,
-            height: `${cardHeight}px`,
-            transform: `translate(calc(-50% + ${xOffset}px), calc(-50% + ${yOffset}px)) rotate(${rotation}deg)`,
-            zIndex: zIndex,
-            transition: isLatest ? 'transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28)' : 'none', // Pop effect
-            boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
-        };
+        // Telemetry for Verification
+        if (isLatest) {
+             // @ts-ignore
+             import('../utils/devLogger').then(({ devLogger }) => {
+                 devLogger.log('VISUAL_DEBUG', `Card Animation Calculated`, {
+                     player: players[playerIndex].name,
+                     pos: players[playerIndex].position,
+                     relativeIdx: relativeIndex,
+                     target: { x: targetX, y: targetY },
+                     initial: { x: initialX, y: initialY }
+                 });
+             });
+        }
 
         return {
-            style,
-            animClass: isLatest ? 'animate-throw-pop animate-thump' : '' // Added Thump
+            initial: { opacity: 0, x: initialX, y: initialY, scale: 0.8, rotate: rotation },
+            animate: { opacity: 1, x: targetX, y: targetY, scale: 1, rotate: rotation },
+            exit: { opacity: 0, scale: 0.5 },
+            style: {
+                position: 'absolute' as 'absolute',
+                top: '50%',
+                left: '50%',
+                width: `${cardWidth}px`,
+                height: `${cardHeight}px`,
+                marginTop: `-${cardHeight / 2}px`, // Center anchor
+                marginLeft: `-${cardWidth / 2}px`, // Center anchor
+                zIndex: zIndex,
+                boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
+            },
+            animClass: isLatest ? 'animate-thump' : '' // Custom tailwind class for thump impact
         };
     };
 
@@ -782,31 +788,26 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 const playerObj = players.find(p => p && p.position === played?.playedBy);
                                 const pIdx = playerObj?.index ?? 0;
                                 const isLatest = idx === tableCards.length - 1;
-                                const { style, animClass } = getPlayedCardAnimation(pIdx, isLatest);
+                                const { initial, animate, exit, style, animClass } = getPlayedCardAnimation(pIdx, isLatest);
 
                                 return (
-                                    <motion.div key={`played-${idx}`}
-                                        initial={{ opacity: 0, y: 100, scale: 0.5, rotate: 180 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1, rotate: style.rotate as any }}
-                                        exit={{ opacity: 0, scale: 0.5 }}
-                                        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                    <motion.div key={`played-${idx}-${played.card.id}`}
+                                        initial={initial}
+                                        animate={animate}
+                                        exit={exit}
+                                        transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
                                         className={`${animClass}`}
                                         style={style}>
-                                        <div key={`played-${idx}`}
-                                            className={`${animClass}`}
-                                            style={style}>
                                             <CardVector
                                                 card={played.card}
                                                 className="w-full h-full shadow-xl"
-                                                isAkka={played.metadata?.akka}
+                                                isPlayable={false}
                                                 skin={cardSkin}
                                             />
-                                        </div>
                                     </motion.div>
                                 );
                             })}
-
-                            {/* 2. Sweeping Cards (Trick done) */}
+                        {/* 2. Sweeping Cards (Trick done) */}
                             {gameState.lastTrick && gameState.lastTrick.cards && gameState.lastTrick.cards.map((played, idx) => {
                                 if (!played || !played.card) return null; // Safety Check
                                 const playerObj = players.find(p => p && p.position === (played as any)?.playedBy);

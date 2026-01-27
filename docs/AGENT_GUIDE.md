@@ -37,6 +37,11 @@
 2.  **Update Strategy**: Edit `ai_worker` strategies (do not bloat `bot_agent.py` further).
 3.  **Test**: Run `pytest tests/test_bot_strategy.py`.
 
+### 3. Frontend Persistence & State
+**Symptom**: User settings (skins, volume) reset on refresh.
+**Fix**: Check `App.tsx` -> `useGameState` effect hooks. We use `localStorage` for visual preferences.
+**Reference**: See [FRONTEND_GUIDE](FRONTEND_GUIDE.md) for the state management model.
+
 ## 📂 File Map
 | Path | Purpose |
 |------|---------|
@@ -45,7 +50,10 @@
 | `game_engine/logic/trick_manager.py` | Handles trick resolution and card validation. |
 | `game_engine/logic/project_manager.py` | Handles project declarations and scoring. |
 | `bot_agent.py` | The "Reflex" bot logic (Uses shared strategies in `ai_worker/strategies`). |
+| `game_engine/logic/project_manager.py` | Handles project declarations and scoring. |
+| `bot_agent.py` | The "Reflex" bot logic (Uses shared strategies in `ai_worker/strategies`). |
 | `logs/timer_monitor.log` | **Most important log file**. Tracks loop health. |
+| `docs/FRONTEND_GUIDE.md` | **Read this first** before touching React code. |
 
 ## 🧠 AI Studio & Data Flywheel
 1.  **Native Video Analysis**:

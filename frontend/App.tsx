@@ -24,6 +24,8 @@ import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
 import { submitTrainingData } from './services/trainingService';
+import PuzzleList from './pages/PuzzleList';
+import PuzzleBoard from './pages/PuzzleBoard';
 
 
 const App: React.FC = () => {
@@ -182,7 +184,8 @@ const App: React.FC = () => {
   };
 
   // --- CONTENT RENDER ---
-  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO'>('LOBBY');
+  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD'>('LOBBY');
+  const [selectedPuzzleId, setSelectedPuzzleId] = useState<string | null>(null);
   const [errorObj, setErrorObj] = useState<string | null>(null);
 
   // Global Error Handler
@@ -299,10 +302,28 @@ const App: React.FC = () => {
         }}
         onMultiplayer={() => setCurrentView('MULTIPLAYER_LOBBY')}
         onAIStudio={() => setCurrentView('AI_STUDIO')}
+        onAIClassroom={() => setCurrentView('PUZZLE_LIST')}
       />
     );
   } else if (currentView === 'AI_STUDIO') {
     content = <AIStudio onBack={() => setCurrentView('LOBBY')} />;
+  } else if (currentView === 'PUZZLE_LIST') {
+    content = (
+      <PuzzleList
+        onSelectPuzzle={(id) => {
+          setSelectedPuzzleId(id);
+          setCurrentView('PUZZLE_BOARD');
+        }}
+        onBack={() => setCurrentView('LOBBY')}
+      />
+    );
+  } else if (currentView === 'PUZZLE_BOARD') {
+    content = (
+      <PuzzleBoard
+        id={selectedPuzzleId || ""}
+        onBack={() => setCurrentView('PUZZLE_LIST')}
+      />
+    );
   } else if (currentView === 'MULTIPLAYER_LOBBY') {
     content = (
       <MultiplayerLobby

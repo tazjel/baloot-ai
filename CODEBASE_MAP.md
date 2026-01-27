@@ -8,6 +8,7 @@
 - `memory.py`: `CardMemory` class (formerly `bot_memory.py`). Tracks played cards, void suits, and partner signals.
 - `dialogue_system.py`: Generates trash talk and dialogue using Gemini.
 - `strategies/`: Specific bidding and playing strategies.
+- `data/`: Training data and scout analysis results (formerly `backend/data`).
 
 ### `game_engine/`
 **Purpose**: Core game logic independent of the web server.
@@ -25,6 +26,18 @@
 - `room_manager.py`: Manages active game sessions.
 - `models.py`: Database models (User, GameResult).
 - `settings.py`: Configuration (Redis URL, etc.).
+
+### `archive/`
+**Purpose**: Legacy code and scripts.
+- `legacy_server_node/`: Archived Node.js server.
+- `legacy_server_node/`: Archived Node.js server.
+- `legacy_patch.py`, `old_test_game_phases.py`: Archived scripts.
+
+### `scripts/`
+Refactored into functional groups:
+- `verification/`: Integration tests and verify scripts (`verify_game_flow.py`, `verify_ai_client.py`).
+- `debugging/`: Tools for symptom analysis (`repro_crash.py`, `debug_screenshot.py`).
+- Root: Workflow entry points (`run_nightly_scout.ps1`, `restart_server.ps1`).
 
 ### `frontend/`
 **Purpose**: React/Vite Frontend.
