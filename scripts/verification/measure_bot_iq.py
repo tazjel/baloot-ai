@@ -80,6 +80,10 @@ def run_benchmark():
         cases = json.load(f)
         
     playing_strategy = PlayingStrategy()
+    # Disable MCTS for IQ Benchmark (Heuristic Verification)
+    if hasattr(playing_strategy, 'cognitive'):
+        playing_strategy.cognitive.enabled = False
+        
     bidding_strategy = BiddingStrategy()
     
     total = 0

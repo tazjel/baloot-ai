@@ -2,67 +2,22 @@ from ai_worker.bot_context import BotContext
 
 from game_engine.models.constants import POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM
 
-from ai_worker.mcts.mcts import MCTSSolver
-from ai_worker.mcts.utils import generate_random_distribution
-from ai_worker.mcts.fast_game import FastGame
-
+from ai_worker.cognitive import CognitiveOptimizer
+ 
 class PlayingStrategy:
     def __init__(self):
-        self.mcts_solver = MCTSSolver()
+        self.cognitive = CognitiveOptimizer()
         self.use_mcts_endgame = True
 
     def get_decision(self, ctx: BotContext) -> dict:
         legal_indices = ctx.get_legal_moves()
         if not legal_indices:
-            return {"cardIndex": -1, "reasoning": "No Legal Moves (Error)"}
-            
-        # --- MCTS ENDGAME TRIGGER ---
-        # If we have 4 or fewer cards (Tricks 5,6,7,8), enable Deep Think.
-        if self.use_mcts_endgame and len(ctx.hand) <= 4 and len(ctx.hand) > 0:
-             try:
-                 # 1. Distribute Hands (Guessing Opponents)
-                 hands = generate_random_distribution(ctx)
-                 
-                 # 2. Build Fast State
-                 # Need to map BotContext current_turn to index
-                 # Bot is always Bottom (0) in Context perspective usually?
-                 # No, BotContext.my_pos tells us.
-                 # Actually FastGame assumes 0=Bottom, 1=Right...
-                 # We must ensure Hand 0 is correct.
-                 # generate_random_distribution puts My Hand at 0. So simulation works from Bot POV.
-                 
-                 # Current Turn: If table is empty, I lead (0).
-                 # If table has cards, turn is whoever is next.
-                 # In FastGame, we simulate from CURRENT moment.
-                 # If it's my turn, current_turn = 0.
-                 
-                 fast_game = FastGame(
-                     players_hands=hands,
-                     trump=ctx.trump,
-                     mode=ctx.mode,
-                     current_turn=0, # Bot is acting now
-                     dealer_index=ctx.raw_state.get('dealerIndex', 0),
-                     table_cards=ctx.raw_state.get('tableCards', []) # Need mapping in FastGame init
-                 )
-                 
-                 # 3. Search
-                 best_idx = self.mcts_solver.search(fast_game, timeout_ms=300)
-                 
-                 # 4. Map back to Hand Index
-                 # best_idx is index in My Hand (FastGame)
-                 # FastGame Hand 0 is COPY of ctx.hand.
-                 # So indices match.
-                 
-                 return {
-                     "cardIndex": best_idx,
-                     "reasoning": f"Oracle (MCTS) - Verified {len(ctx.hand)} cards"
-                 }
-                 
-             except Exception as e:
-                 import traceback
-                 # trace = traceback.format_exc()
-                 # print(f"MCTS Failed: {e} - Falling back to Heuristics")
-                 pass
+            return {"cardIndex": -1, "reasoning": "No Legal Moves (Error)"}    
+
+        # --- COGNITIVE ENGINE (Oracle) ---
+        oracle_decision = self.cognitive.get_decision(ctx)
+        if oracle_decision:
+             return oracle_decision
         
         # --- STANDARD HEURISTICS ---
         # 0. Endgame Solver

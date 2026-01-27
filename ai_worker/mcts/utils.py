@@ -22,13 +22,8 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
     my_hand_str = [str(c) for c in ctx.hand]
     
     # Remove Played Cards (from Memory)
-    if 'played_cards' in ctx.memory.raw_state: # Accessing internal state of memory if possible, or recalculate
-        played = ctx.memory.played_cards # Set of strings
-    else:
-        # Fallback if memory structure is different
-        played = set() 
-        # But we need robust tracking. 
-        # Standardize on BotContext.memory having `played_cards`
+    played = ctx.memory.played_cards # Set of strings like "7H"
+
         
     remaining = []
     for c in all_cards:
