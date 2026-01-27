@@ -69,7 +69,7 @@ class TestSawaLogic(unittest.TestCase):
         ctx = self._create_context(['7♥', '8♦'], 'SUN', played_cards=[])
         # A♥ is unplayed. So 7♥ is NOT master.
         
-        decision = bot_agent._evaluate_sawa_refusal(ctx)
+        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
         self.assertEqual(decision['response'], 'ACCEPT')
 
     def test_sawa_refusal_master_sun(self):
@@ -77,7 +77,7 @@ class TestSawaLogic(unittest.TestCase):
         ctx = self._create_context(['A♥', '7♦'], 'SUN', played_cards=[])
         # A♥ is Master.
         
-        decision = bot_agent._evaluate_sawa_refusal(ctx)
+        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
         self.assertEqual(decision['response'], 'REFUSE')
         self.assertIn('Master', decision['reasoning'])
 
@@ -86,7 +86,7 @@ class TestSawaLogic(unittest.TestCase):
         ctx = self._create_context(['J♠', '7♦'], 'HOKUM', trump='♠', played_cards=[])
         # J♠ is Master Trump.
         
-        decision = bot_agent._evaluate_sawa_refusal(ctx)
+        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
         self.assertEqual(decision['response'], 'REFUSE')
 
     def test_sawa_refusal_master_hokum_nontrump(self):
@@ -94,7 +94,7 @@ class TestSawaLogic(unittest.TestCase):
         ctx = self._create_context(['A♥', '7♦'], 'HOKUM', trump='♠', played_cards=[])
         # A♥ is Master Non-Trump.
         
-        decision = bot_agent._evaluate_sawa_refusal(ctx)
+        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
         self.assertEqual(decision['response'], 'REFUSE')
 
     def test_integration_sawa_response(self):

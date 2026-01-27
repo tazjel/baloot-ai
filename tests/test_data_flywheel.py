@@ -16,7 +16,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 def test_flywheel():
     print("Testing Data Flywheel...")
     
-    if not bot_agent.redis_client:
+    if not bot_agent.brain.redis_client:
         print("SKIPPING: No Redis Connection.")
         return
 
@@ -34,7 +34,7 @@ def test_flywheel():
     # Verify Stream
     print("Reading Stream 'analytics:hand_finished'...")
     # Read last entry
-    entries = bot_agent.redis_client.xread({'analytics:hand_finished': '0-0'}, count=1)
+    entries = bot_agent.brain.redis_client.xread({'analytics:hand_finished': '0-0'}, count=1)
     
     if entries:
         stream_key, messages = entries[0]

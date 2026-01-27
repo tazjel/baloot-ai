@@ -4,11 +4,14 @@
 - **MCTS Integrity**: We fixed the "AI Optimism Bug". The MCTS engine (`mcts.py`) now correctly uses adversarial selection (Minimax-style) during the Selection phase. Without this, the AI assumes opponents will play to help it win.
 - **Simulation State**: We fixed the "Suit Identity Bug" in `utils.py`. The simulation generator MUST use `constants.SUITS` (♠, ♥, ♦, ♣) and NOT string literals ('S', 'H'...). Using the wrong symbols created duplicate cards in memory, breaking the simulation logic.
 - **Professor Mode**: Now uses live MCTS analysis. Thresholds are set to 0.20 (Blunder) and 0.10 (Mistake).
+- **Professor Debugging**: We added rigorous logging to `professor.py`. If you see "Illegal move" reports, grep `server_manual.log` for "PROFESSOR BUG".
+- **Restart Logic**: `socket_handler.py` now explicitly handles `GAMEOVER` phase for "New Game" requests. Ensure any future Game Over logic respects this.
 
 ## Workflow Shortcuts
 - **Start Stack**: `python -m server.main` (Backend) + `npm run dev` (Frontend).
 - **Verify Logic**: `python scripts/verification/verify_game_logic.py`.
 - **Verify Professor**: Use `game_engine/logic/game.py` locally or monitor `server_manual.log` for "Professor: Triggering Intervention".
+- **Restart Game**: Use `/restart` slash command to cleanly reboot server and client.
 
 ## Gotchas
 - **State Duplication**: `Table.tsx` is prone to state duplication. Check `WarRoomOverlay` interactions carefully.

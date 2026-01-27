@@ -41,7 +41,7 @@ class DialogueSystem:
         except Exception as e:
             self.logger.error(f"Failed to initialize Gemini: {e}")
 
-    def generate_reaction(self, player_name: str, personality: PersonalityProfile, context: str, game_state: dict = None) -> Optional[str]:
+    def generate_reaction(self, player_name: str, personality: PersonalityProfile, context: str, game_state: dict = None, rivalry_summary: dict = None) -> Optional[str]:
         """
         Generates a reaction line. Returns None if generation fails or is rate-limited.
         This method is BLOCKING and should be run in a thread.
@@ -57,7 +57,7 @@ class DialogueSystem:
         if not self.model:
             return self._get_fallback_message(personality)
 
-        prompt = self._construct_prompt(player_name, personality, context)
+        prompt = self._construct_prompt(player_name, personality, context, rivalry_summary)
 
         try:
             self._last_call_time = time.time()
@@ -92,12 +92,25 @@ class DialogueSystem:
             self.logger.error(f"Gemini generation error: {e}")
             return self._get_fallback_message(personality)
 
-    def _construct_prompt(self, player_name: str, personality: PersonalityProfile, context: str) -> str:
+    def _construct_prompt(self, player_name: str, personality: PersonalityProfile, context: str, rivalry_summary: dict = None) -> str:
+        rivalry_text = ""
+        if rivalry_summary:
+            if rivalry_summary.get('status') == 'novice':
+                 rivalry_text = "Opponent is a NOVICE. Be condescending."
+            elif rivalry_summary.get('wins_vs_ai', 0) > rivalry_summary.get('total_losses', 0):
+                 rivalry_text = "Opponent is WINNING the rivalry. Act jealous or vengeful."
+            else:
+                 rivalry_text = "You are DOMINATING this opponent. Mock them."
+                 
+            if rivalry_summary.get('nemesis') == player_name:
+                 rivalry_text += " You are their NEMESIS. Rub it in."
+
         return f"""
 Roleplay: You are {player_name}, a Baloot card game player in Saudi Arabia.
 Personality: {personality.description} (Key traits: {personality.name})
 Language: Arabic (Saudi Hejazi/Najdi Dialect). Use terms like "Sira", "Hakam", "Kaboot", "Akal", "Ya Ghashim", "Bunt", "Ikka".
 Current Situation: {context}
+Relationship: {rivalry_text}
 
 Task: Shout a short, reactive 1-sentence comment (max 6 words). 
 - If you are winning/aggressive, trash talk in Arabic.

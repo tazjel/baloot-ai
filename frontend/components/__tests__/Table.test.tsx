@@ -35,9 +35,25 @@ vi.mock('../CardVector', () => ({
     )
 }));
 
-vi.mock('../PlayerAvatar', () => ({
-    // PlayerAvatar is local to Table.tsx, so this mock might not work if it's not exported.
-    // However, it's a functional component, so as long as it doesn't crash, we are fine.
+vi.mock('../table/PlayerAvatar', () => ({
+    default: ({ player }: any) => (
+        <div data-testid="player-avatar">
+            {player.name}
+            <img alt={player.name} />
+        </div>
+    )
+}));
+
+vi.mock('../table/TurnTimer', () => ({
+    default: () => <div data-testid="turn-timer" />
+}));
+
+vi.mock('../table/ScoreBadge', () => ({
+    default: () => <div data-testid="score-badge" />
+}));
+
+vi.mock('../table/ContractIndicator', () => ({
+    default: () => <div data-testid="contract-indicator" />
 }));
 
 // Mock DevLogSidebar to prevent its useEffect from crashing due to missing devLogger.getHistory

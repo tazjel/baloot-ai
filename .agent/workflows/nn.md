@@ -4,27 +4,29 @@ description: Update all documentation and record session lessons/tips for the ne
 
 # Finalize Session & Knowledge Transfer
 
-This workflow ensures the codebase is clean, documentation is up-to-date, and critical context is preserved for the next session.
+This workflow ensures the codebase is clean, documentation is up-to-date, tests pass, and critical context is preserved.
 
-1. **Analyze Codebase Changes**:
-   - Review recent file moves (e.g., `scripts/verification`, `ai_worker/data`).
-   - Identify any new dependencies or import path changes.
+1.  **Verify System Health (Smoke Test)**:
+    - Ensure recent changes didn't break core game logic.
+    // turbo
+    python -m pytest tests/test_game_logic.py
 
-2. **Update Structural Documentation**:
-   - **CODEBASE_MAP.md**: Update to reflect the current directory structure (remove `backend/`, add `ai_worker/data`, etc.).
-   - **task.md**: Ensure all completed items are checked off.
+2.  **Clean Up & Logs**:
+    - Truncate the main server log to save space for the next session.
+    // turbo
+    Write-Output "" > logs/server_manual.log
 
-3. **Record Developer Tips & Tricks (Context Transfer)**:
-   - Create or Update `.agent/knowledge/developer_tips.md` (or add a new Knowledge Item) with:
-     - **Critical Import Paths**: e.g., `from ai_worker.agent import BotAgent`.
-     - **Command Shortcuts**: e.g., "Use `python scripts/verification/verify_*.py` for tests".
-     - **Gotchas**: Any errors encountered today and how to avoid them (e.g. `backend/` folder is gone).
-     - **Next Session To-Dos**: Explicit instructions for the next agent.
+3.  **Update "Brain" Artifacts**:
+    - **task.md**: Mark all completed items as `[x]`. Ensure the "Next Steps" section is populated.
+    - **walkthrough.md**: Add a final "Verification Results" section summarizing the last stable state (e.g., "Server running, New Game fixed").
 
-4. **Update Feature Documentation**:
-   - Review `docs/` for outdated references to moved files.
-   - Update `README.md` if high-level workflows changed.
+4.  **Update Persistent Knowledge**:
+    - **.agent/knowledge/developer_tips.md**: Add any specific "Gotchas" found today (e.g., "Restart server after patching FastGame").
+    - **.agent/knowledge/project_status.md** (if exists): Update the "Current Phase" or "Recent Achievements".
+    - **CODEBASE_MAP.md**: Update if any new directories were created (e.g., `ai_worker/professor.py`).
 
-5. **Self-Correction Check**:
-   - Did we leave the codebase in a compilable state?
-   - Are there any broken symlinks or references?
+5.  **Context for Next Agent**:
+    - Create a "Handover Note" in `task.md` or a new file if needed, explaining exactly where we left off (e.g., "Professor is debuggable, but UI needs polish").
+
+6.  **Final Polish**:
+    - **README.md**: If high-level features changed (e.g., "Added War Room"), update the features list.

@@ -36,11 +36,28 @@ class FastGame:
         self.played_cards_in_trick = [] # List of (player_idx, Card)
         
         if table_cards:
-             # Convert existing table to internal format
-             # Assumes table_cards passed has 'playedBy' as index or we map it?
-             # For simplicity in MCTS, we might generate fresh states where table is empty usually,
-             # or we map the current partial trick.
-             pass 
+             # Convert existing table to internal format (player_idx, Card)
+             # Map 'playedBy' (Bottom/Right/Top/Left) to index (0/1/2/3)
+             pos_to_idx = {'Bottom': 0, 'Right': 1, 'Top': 2, 'Left': 3}
+             
+             for tc in table_cards:
+                 # Check if 'card' is already a Card object or dict
+                 c_obj = tc['card']
+                 if isinstance(c_obj, dict):
+                     c_obj = Card(c_obj['suit'], c_obj['rank'])
+                     
+                 # Check playedBy format
+                 p_by = tc.get('playedBy', '')
+                 p_idx = pos_to_idx.get(p_by, 0) # Default to 0 if unknown (risk, but mostly valid)
+                 
+                 self.played_cards_in_trick.append((p_idx, c_obj))
+                 
+             # Correctly set turn if cards are on table
+             # If table has K cards, the next turn is (leader + K) % 4
+             if self.played_cards_in_trick:
+                 leader_idx = self.played_cards_in_trick[0][0]
+                 cards_played_count = len(self.played_cards_in_trick)
+                 self.current_turn = (leader_idx + cards_played_count) % 4 
 
         self.tricks_history = tricks_history if tricks_history else []
         self.is_finished = False

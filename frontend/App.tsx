@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Table from './components/Table';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
-import { ProfessorOverlay } from './components/ProfessorOverlay';
+import { ProfessorOverlay } from './components/overlays/ProfessorOverlay';
 import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
 import DisputeModal from './components/DisputeModal';
 import SettingsModal from './components/SettingsModal';
@@ -505,7 +505,7 @@ const App: React.FC = () => {
 
           {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
           {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
-          {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onContinue={handleProfContinue} />}
+          {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
           {isSettingsOpen && <SettingsModal
             settings={gameState.settings}
             equippedItems={equippedItems}

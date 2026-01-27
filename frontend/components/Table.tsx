@@ -2,10 +2,11 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import CardVector from './CardVector';
-import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCards, PanelRightOpen, ArrowRight, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon } from 'lucide-react';
-import { WarRoomOverlay } from './overlays/WarRoomOverlay';
+import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon } from 'lucide-react';
+import { ProfessorOverlay } from './overlays/ProfessorOverlay';
+import { useGameTension } from '../hooks/useGameTension';
+import { HeartbeatLayer } from './effects/HeartbeatLayer';
 import ProjectSelectionModal from './ProjectSelectionModal';
-import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { canDeclareAkka, sortHand } from '../utils/gameLogic';
 import { VISUAL_ASSETS } from '../constants';
 import premiumWood from '../assets/premium_wood_texture.png';
@@ -16,10 +17,15 @@ import SawaModal from './SawaModal';
 import ActionBar from './ActionBar';
 import GablakTimer from './GablakTimer';
 import { DevLogSidebar } from './DevLogSidebar';
-import { SpeechBubble } from './SpeechBubble';
 import { useVoice, VoicePersonality } from '../hooks/useVoice';
 import socketService from '../services/SocketService';
 import HandFan from './HandFan';
+
+// Imported modular components
+import PlayerAvatar from './table/PlayerAvatar';
+import ScoreBadge from './table/ScoreBadge';
+import ContractIndicator from './table/ContractIndicator';
+import TurnTimer from './table/TurnTimer';
 
 interface TableProps {
     gameState: GameState;
@@ -36,14 +42,6 @@ interface TableProps {
     isPaused?: boolean;
 }
 
-// Avatar Mapping
-const AVATAR_MAP: Record<string, string> = {
-    'avatar_saad': 'https://api.dicebear.com/7.x/avataaars/svg?seed=Saad&backgroundColor=b6e3f4',
-    'avatar_khalid': 'https://api.dicebear.com/7.x/avataaars/svg?seed=Khalid&backgroundColor=c0aede&clothing=blazerAndShirt',
-    'avatar_abu_fahad': 'https://api.dicebear.com/7.x/avataaars/svg?seed=AbuFahad&backgroundColor=ffdfbf&facialHair=beardMajestic',
-    'bot_1': 'https://api.dicebear.com/7.x/bottts/svg?seed=Bot1'
-};
-
 // Helper to map name/avatar to personality
 const getPersonality = (player: Player): VoicePersonality => {
     if (!player.avatar) return 'BALANCED';
@@ -51,246 +49,6 @@ const getPersonality = (player: Player): VoicePersonality => {
     if (player.avatar.includes('abu_fahad')) return 'CONSERVATIVE';
     if (player.avatar.includes('saad')) return 'BALANCED';
     return 'BALANCED';
-};
-
-const ScoreBadge = ({ matchScores }: { matchScores: any }) => {
-    if (!matchScores) return null;
-    return (
-        <div className="absolute top-4 left-4 z-50 flex gap-3">
-            {/* Us Score */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl px-2 py-0.5 shadow-xl border-2 border-white/20 backdrop-blur-sm">
-                <div className="text-[9px] text-white/80 font-bold">نحن</div>
-                <div className="text-[15px] font-black text-white">{matchScores.us}</div>
-            </div>
-            {/* Them Score */}
-            <div className="bg-gradient-to-br from-red-600 to-red-800 rounded-2xl px-2 py-0.5 shadow-xl border-2 border-white/20 backdrop-blur-sm">
-                <div className="text-[9px] text-white/80 font-bold">هم</div>
-                <div className="text-[15px] font-black text-white">{matchScores.them}</div>
-            </div>
-        </div>
-    );
-};
-
-const TurnTimer = ({ isActive, timeLeft, totalTime, isPaused = false }: { isActive: boolean, timeLeft: number, totalTime: number, isPaused?: boolean }) => {
-    if (!isActive) return null;
-
-    const radius = 36;
-    const stroke = 6;
-    const circumference = 2 * Math.PI * radius;
-    const percentage = timeLeft / totalTime;
-    const progress = percentage * circumference;
-
-    let strokeColor = '#22c55e'; // Green
-    if (percentage < 0.25) strokeColor = '#ef4444'; // Red
-    else if (percentage < 0.5) strokeColor = '#D4AF37'; // Gold
-
-    return (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[84px] h-[84px] pointer-events-none z-50 flex items-center justify-center">
-            <svg
-                className="-rotate-90 absolute inset-0"
-                width="84" height="84"
-                viewBox="0 0 84 84"
-            >
-                <circle cx="42" cy="42" r={radius} stroke="rgba(0,0,0,0.4)" strokeWidth={stroke} fill="none" />
-                <circle
-                    cx="42" cy="42" r={radius}
-                    stroke={strokeColor}
-                    strokeWidth={stroke}
-                    strokeLinecap="round"
-                    fill="none"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={circumference - progress}
-                    className={`transition-all duration-1000 ease-linear shadow-lg ${isPaused ? 'pause-animation' : ''}`}
-                    style={{ filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }}
-                />
-            </svg>
-            <span className="text-amber-400 font-black text-sm sm:text-base md:text-lg drop-shadow-md z-50">
-                {timeLeft}
-            </span>
-            {isPaused && <Pause size={20} className="absolute text-white animate-pulse" />}
-        </div>
-    );
-};
-
-const ContractIndicator = ({ bid, players, doublingLevel }: { bid: any, players: Player[], doublingLevel: number }) => {
-    if (!bid || !bid.type) return null;
-    const isDoubled = doublingLevel >= 2;
-    const bidder = players.find(p => p.position === bid.bidder);
-    if (!bidder) return null;
-    const isOurTeam = bidder.position === PlayerPosition.Bottom || bidder.position === PlayerPosition.Top;
-    const teamBg = isOurTeam ? 'bg-blue-600' : 'bg-red-600';
-
-    return (
-        <div className={`${teamBg} rounded - full shadow - xl px - 2 py - 0.5 border - 2 border - white / 20 backdrop - blur - sm flex items - center gap - 1`}>
-            <span className="text-[9px] sm:text-[10px] font-bold text-white">{bidder.name}</span>
-            <div className="flex items-center gap-1 bg-white/20 rounded-full px-1 py-0.5">
-                {bid.type === 'SUN' ? <Sun size={10} className="text-amber-300" /> : <Gavel size={10} className="text-white" />}
-                <span className="text-[9px] font-black text-white uppercase">{bid.type}</span>
-            </div>
-            {bid.suit && (
-                <div className="bg-white/20 rounded-full p-0.5">
-                    {bid.suit === Suit.Spades && <Spade size={10} className="text-white" />}
-                    {bid.suit === Suit.Hearts && <Heart size={10} className="text-red-300" />}
-                    {bid.suit === Suit.Clubs && <Club size={10} className="text-green-300" />}
-                    {bid.suit === Suit.Diamonds && <Diamond size={10} className="text-blue-300" />}
-                </div>
-            )}
-            {isDoubled && (
-                <div className="bg-red-600 text-white text-[8px] font-black px-1 py-0 rounded-full border border-white/20 shadow-lg animate-pulse">
-                    x{doublingLevel}
-                </div>
-            )}
-        </div>
-    );
-};
-
-const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, showProjects, bid, doublingLevel, speechText, isPaused }: {
-    player: Player,
-    isCurrentTurn: boolean,
-    position: 'top' | 'left' | 'right' | 'bottom',
-    timeLeft: number,
-    totalTime: number,
-    declarations: any,
-    isProjectRevealing: boolean,
-    showProjects: boolean, // New Prop
-    bid?: any,
-    doublingLevel?: number,
-    speechText?: string | null,
-    isPaused?: boolean
-}) => {
-    const isPartner = position === 'top';
-    let posClass = 'absolute z-30';
-    // Adjusted: Less negative offset on mobile to prevent clipping
-    if (position === 'left') posClass += ' top-1/2 -translate-y-1/2 left-1 sm:-left-[5rem] md:-left-[5.5rem]';
-    else if (position === 'right') posClass += ' top-1/2 -translate-y-1/2 right-1 sm:-right-[5rem] md:-right-[5.5rem]';
-    else if (position === 'top') posClass += ' top-1 sm:top-2 left-1/2 -translate-x-1/2';
-    else if (position === 'bottom') posClass += ' bottom-14 left-1/2 -translate-x-1/2 z-[200]'; // Lifted slightly
-
-
-    return (
-        <div className={`flex flex - col items - center ${posClass} `}>
-
-            {/* Speech Bubble integration */}
-            <SpeechBubble
-                text={speechText || null}
-                isVisible={!!speechText}
-                position={position === 'top' ? 'bottom' : position === 'bottom' ? 'top' : position === 'left' ? 'right' : 'left'}
-            />
-
-            <div className="relative">
-                {/* Timer rendered for all positions now */}
-                <TurnTimer isActive={isCurrentTurn} timeLeft={timeLeft} totalTime={totalTime} isPaused={isPaused} />
-
-                {/* Dark Overlay for Active Player to boost Timer contrast */}
-                {isCurrentTurn && (
-                    <div className="absolute inset-0 z-40 bg-black/60 rounded-full animate-in fade-in duration-300"></div>
-                )}
-
-
-                <div className={`
-w - [1.7rem] h - [1.7rem] sm: w - [2.0rem] sm: h - [2.0rem] md: w - [2.35rem] md: h - [2.35rem]
-rounded - full bg - white shadow - xl overflow - hidden relative z - 10
-                    ${isCurrentTurn ? 'halo-active' : ''}
-                    ${isPartner ? 'border-2 border-[var(--color-premium-gold)]' : 'border-2 border-white/80'}
-`}>
-                    <img
-                        src={player.avatar && player.avatar.startsWith('http') ? player.avatar : (AVATAR_MAP[player.avatar] || player.avatar)}
-                        className="w-full h-full object-cover"
-                        alt={player.name}
-                        onError={(e) => {
-                            // Fallback if image fails or is missing
-                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${player.name}`;
-                        }}
-                    />
-                </div >
-            </div >
-            {
-                player.isDealer && (
-                    <div className="absolute -bottom-2 right-1/2 translate-x-1/2 bg-[var(--color-premium-gold)] border border-white/50 rounded-md px-1.5 py-0.5 flex items-center justify-center z-40 shadow-sm">
-                        <span className="text-[8px] font-black text-black leading-none">Dealer</span>
-                    </div>
-                )
-            }
-            {
-                !isPartner && (
-                    <div className={`
-                    bg-black/80 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold 
-                    -mt-2 sm:-mt-3 z-20 mb-1
-                    ${position === 'bottom' ? '-order-1 mb-0 -mt-0 -mb-2' : ''}
-                    ${isPartner ? 'border border-amber-500/50' : 'border border-white/20'}
-                    ${isCurrentTurn ? 'bg-amber-600/90' : ''}
-                `}>
-                        {player.name}
-                    </div>
-                )
-            }
-            {
-                player.actionText && (
-                    <div key={player.actionText} className="absolute -top-4 -right-10 bg-white/90 text-black px-2 py-1 rounded-lg rounded-bl-none shadow-md border border-gray-200 z-50 whitespace-nowrap animate-in fade-in zoom-in duration-200">
-                        <span className="text-[10px] sm:text-xs font-bold">{player.actionText === 'PASS' ? 'بس' : player.actionText}</span>
-                    </div>
-                )
-            }
-
-            {/* Winning Bid Tag - Rendered BELOW the avatar */}
-            {
-                bid && bid.bidder === player.position && (
-                    <div className={`
-                    absolute -bottom-5 left-1/2 -translate-x-1/2 
-                    flex items-center gap-1 px-3 py-0.5 rounded-full shadow-lg z-50
-                    animate-in fade-in slide-in-from-top-2 duration-500
-                    ${(player.position === PlayerPosition.Bottom || player.position === PlayerPosition.Top) ? 'bg-blue-600' : 'bg-red-600'}
-                    border border-white/30
-                 `}>
-                        {/* Simplified: No Name, just Icon + Text */}
-                        {bid.type === 'SUN' ? <Sun size={12} className="text-amber-300" /> : <Gavel size={12} className="text-white" />}
-
-                        <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider">
-                            {bid.type}
-                        </span>
-
-                        {/* Suit Icon if applicable */}
-                        {bid.suit && (
-                            <div className="bg-white/20 rounded-full p-0.5 ml-1">
-                                {bid.suit === Suit.Spades && <Spade size={10} className="text-white" />}
-                                {bid.suit === Suit.Hearts && <Heart size={10} className="text-red-300" />}
-                                {bid.suit === Suit.Clubs && <Club size={10} className="text-green-300" />}
-                                {bid.suit === Suit.Diamonds && <Diamond size={10} className="text-blue-300" />}
-                            </div>
-                        )}
-                        {/* Multiplier Badge */}
-                        {(doublingLevel && doublingLevel >= 2) && (
-                            <div className="bg-red-500 text-white text-[9px] font-black px-1.5 rounded-full ml-1 animate-pulse border border-white/20">
-                                x{doublingLevel}
-                            </div>
-                        )}
-                    </div>
-                )
-            }
-            {
-                showProjects && declarations?.[player.position] && declarations[player.position].length > 0 && (
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-max flex flex-col items-center gap-1 z-50 animate-bounce-in">
-                        {declarations[player.position].map((proj: any, idx: number) => {
-                            let label = '';
-                            switch (proj.type) {
-                                case 'SIRA': label = 'سرا'; break;
-                                case 'FIFTY': label = '50'; break;
-                                case 'HUNDRED': label = '100'; break;
-                                case 'FOUR_HUNDRED': label = '400'; break;
-                                case 'BALOOT': label = 'بلوت'; break;
-                            }
-                            return (
-                                <div key={idx} className="bg-gradient-to-r from-amber-300 to-yellow-500 text-black font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1">
-                                    <Trophy size={14} className="text-amber-800" />
-                                    <span>{label}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )
-            }
-        </div >
-    );
 };
 
 export default function Table({
@@ -319,6 +77,8 @@ export default function Table({
 
     // Project Reveal Persistence
     const [showProjects, setShowProjects] = useState(false);
+    const [showProfessor, setShowProfessor] = useState(false);
+    const { tension, bpm } = useGameTension(gameState);
 
     useEffect(() => {
         if (isProjectRevealing) {
@@ -412,7 +172,7 @@ export default function Table({
     // Sorted Hand for Display
     const sortedHand = React.useMemo(() => {
         if (!me?.hand) return [];
-        return sortHand(me.hand, gameState.gameMode || 'SUN', gameState.trumpSuit);
+        return sortHand(me.hand, (gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN', gameState.trumpSuit);
     }, [me?.hand, gameState.gameMode, gameState.trumpSuit]);
 
     // Calculate Card Groups for Elevation (Alternating Up/Down)
@@ -668,6 +428,9 @@ export default function Table({
 
             {/* --- ZONE 1: HUD - Phase 1 UI Elements --- */}
             <ScoreBadge matchScores={matchScores} />
+            <div className="absolute top-16 left-4 z-50">
+                <ContractIndicator bid={bid} players={players} doublingLevel={gameState.doublingLevel || 1} />
+            </div>
 
             {/* Accessibility Toggle */}
             <button
@@ -688,8 +451,18 @@ export default function Table({
             </button>
 
             {/* Analytics Overlay */}
-            {/* Analytics Overlay */}
-            <WarRoomOverlay
+            {/* Overlays */}
+            <HeartbeatLayer tension={tension} bpm={bpm} />
+            <AnimatePresence>
+                {gameState?.sawaState && gameState.sawaState.active && (
+                    <SawaModal
+                        sawaState={gameState.sawaState}
+                        onResponse={handleSawaResponse}
+                        me={me}
+                    />
+                )}
+            </AnimatePresence>
+            <ProfessorOverlay
                 gameState={gameState}
                 showAnalytics={showAnalytics}
                 setShowAnalytics={setShowAnalytics}

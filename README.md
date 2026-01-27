@@ -17,6 +17,8 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 - **Voice & Trash Talk**: Dynamic, personality-driven AI dialogue system. Bots speak in Arabic (Hejazi/Najdi dialects) using Text-to-Speech!
   - *Khalid (Aggressive)*, *Saad (Balanced)*, *Abu Fahad (Conservative)*.
 - **Robust Multiplayer**: Resilient WebSocket architecture capable of handling disconnects and lag.
+- **"The Professor" Mode 🎓**: Real-time AI Coach that interrupts the game when you make a strategic blunder, explaining the mistake and offering a better move.
+- **War Room Dashboard 📉**: Live analytics showing Win Probability graphs and Blunder Heatmaps during gameplay.
 - **AI Studio**: A dedicated dashboard for analyzing hands, debugging strategies, and replaying scenarios.
 - **Premium UI**: Polished React frontend with `framer-motion` physics-based animations, glassmorphism design, and interactive feedback.
 

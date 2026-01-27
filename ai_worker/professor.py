@@ -53,16 +53,29 @@ class Professor:
             ctx = BotContext(game_state, player_index) # Personality checks not needed for MCTS
             
             # 2. Run MCTS Analysis
-            # logger.debug(f"Professor: Analyzing position for {player.name} playing {human_card}...")
+            logger.debug(f"PROFESSOR: Analyzing for {player.name} ({player_index}). Hand: {[str(c) for c in player.hand]}")
+            logger.debug(f"PROFESSOR: Table Context: {[f'{tc.get('playedBy')}:{str(tc.get('card'))}' for tc in game.table_cards]}")
             
             analysis = self.cognitive.analyze_position(ctx)
             
             if not analysis:
-                # Fallback to simple check if MCTS fails
+                logger.warning("PROFESSOR: MCTS returned NO analysis.")
                 return None
                 
             best_move_idx = analysis['best_move']
             move_values = analysis['move_values']
+            
+            # DEBUG LOG: Dump all considered moves and their legality
+            if hasattr(game, 'is_valid_move'):
+                 for m_idx, stats in move_values.items():
+                      c_card = player.hand[m_idx]
+                      is_real_legal = game.is_valid_move(c_card, player.hand)
+                      suffix = " (ILLEGAL in Real Game!)" if not is_real_legal else ""
+                      if not is_real_legal:
+                           logger.error(f"PROFESSOR BUG: MCTS considers ILLEGAL move {c_card} as valid candidate! Stats: {stats}")
+                      else:
+                           logger.debug(f"MCTSCandidate: {c_card} -> WinRate: {stats['win_rate']:.2f} ({stats['visit_count'] if 'visit_count' in stats else stats.get('visits')}v)")
+
             
             if card_index == best_move_idx:
                 return None # Human played the optimal move!
@@ -82,7 +95,7 @@ class Professor:
             diff = best_ev - human_ev
             
             if diff > 0.05:
-                logger.debug(f"PROFESSOR: Human={human_card} ({human_ev:.2f}, {human_visits}v) Best={player.hand[best_move_idx]} ({best_ev:.2f}, {best_visits}v) Diff={diff:.2f}")
+                logger.info(f"PROFESSOR: Opportunity Detected! Human={human_card} ({human_ev:.2f}) vs Best={player.hand[best_move_idx]} ({best_ev:.2f}). Diff={diff:.2f}")
             
             # 4. Determine Blunder Level
             blunder_type = None
@@ -99,15 +112,46 @@ class Professor:
             # 5. Construct Message
             best_card = player.hand[best_move_idx]
             
+            # Safety Check: Is the "Better Card" actually legal?
+            if hasattr(game, 'is_valid_move') and not game.is_valid_move(best_card, player.hand):
+                 logger.critical(f"PROFESSOR FATAL: Suggested ILLEGAL MOVE {best_card} as better option! Aborting intervention.")
+                 return None
+
             intro = random.choice(self.responses[blunder_type])
             reason = f"Playing {best_card} is calculated to be +{int(diff*100)}% better."
             
+            # 4b. Extract Candidate Moves (Holographic Thought)
+            candidates = []
+            sorted_moves = sorted(move_values.items(), key=lambda item: item[1]['win_rate'], reverse=True)
+            
+            for rank, (m_idx, stats) in enumerate(sorted_moves[:3]):
+                # Skip if it is the played card
+                if m_idx == card_index:
+                    continue
+                    
+                c_card = player.hand[m_idx]
+                
+                # Double check candidate legality
+                if hasattr(game, 'is_valid_move') and not game.is_valid_move(c_card, player.hand):
+                     continue # Skip illegal candidates from UI suggestion
+
+                c_diff = stats['win_rate'] - human_ev
+                
+                candidates.append({
+                    "card": c_card.to_dict(),
+                    "win_rate": stats['win_rate'],
+                    "visits": stats['visits'],
+                    "diff": c_diff,
+                    "rank": rank + 1
+                })
+
             intervention = {
                 "type": blunder_type,
                 "message": f"Professor: {intro} {reason}",
                 "better_card": best_card.to_dict(),
                 "reason": reason,
-                "diff": diff
+                "diff": diff,
+                "candidates": candidates  # Ghost Cards
             }
             logger.info(f"Professor: Triggering Intervention: {intervention}")
             return intervention
