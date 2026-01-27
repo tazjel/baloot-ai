@@ -113,3 +113,11 @@
 - **Frontend Animations**: We use `framer-motion` exclusively. Do not write complex CSS keyframes manually; use the `motion.div` wrapper component.
 - **Test Before Commit**: Due to complex imports, `pytest` is your best friend. Run `pytest tests/test_bidding_engine.py` (or relevant test) *before* marking a task complete.
 - **Engine State Sync in Tests**: When writing unit tests for stateful components like `BiddingEngine`, remember to manually sync `floor_card` and `phase` if you are injecting them directly into the engine instance, as the engine doesn't automatically pull from the parent `Game` object in isolated unit tests. See `tests/test_bidding_rules.py` for examples of advancing turns before testing priority-based actions like Ashkal.
+
+### 6. Cognitive AI (The Oracle) 🧠
+- **Heuristic vs Oracle**: The bot uses a Hybrid Brain.
+    - **Heuristic (`PlayingStrategy`)**: Used for Tricks 1-4. Fast, rule-based, good for opening.
+    - **Oracle (`CognitiveOptimizer`)**: Used for Tricks 5-8 (Endgame). Uses MCTS simulation.
+- **Testing Pitfall**: **MCTS requires a full world state.** Do NOT enable MCTS when running `measure_bot_iq.py` or unit tests with mock/sparse states. It will hallucinate moves because it can't simulate a game with 3 cards total. Always disable it (`strategy.cognitive.enabled = False`) for heuristic verification.
+- **FastGame**: The `FastGame` class is a **stripped logic clone**. It does NOT trigger events, logs, or timers. If you change a core rule in `Game.py`, you MUST update `FastGame.py` or `validation.py` (shared logic).
+- **Circular Imports**: `Game` imports `Strategy`. `Strategy` imports `Cognitive`. `Cognitive` imports `FastGame`. `FastGame` imports `validation`. **DO NOT** make `FastGame` import `Game`. This will crash the server. Keep `FastGame` pure.

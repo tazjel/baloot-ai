@@ -25,7 +25,7 @@ def test_dealer_randomness_via_socket():
             sio.disconnect()
 
         try:
-            sio.connect('http://localhost:3001')
+            sio.connect('http://localhost:3005')
             
             # 1. Create Room
             # We need to simulate the events. 
