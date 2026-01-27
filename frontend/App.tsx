@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 
 import Table from './components/Table';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
-import { GameState, RoundResult } from './types';
+import { ProfessorOverlay } from './components/ProfessorOverlay';
+import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
 import DisputeModal from './components/DisputeModal';
 import SettingsModal from './components/SettingsModal';
 import VictoryModal from './components/VictoryModal';
@@ -18,7 +20,7 @@ import MultiplayerLobby from './components/MultiplayerLobby';
 import { AIAnalysisPanel } from './components/AIAnalysisPanel';
 import GameLayout from './components/GameLayout';
 import AIStudio from './components/AIStudio'; // Added
-import { PlayerPosition, GamePhase, Suit } from './types';
+
 import { useGameState } from './hooks/useGameState';
 import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
@@ -94,6 +96,10 @@ const App: React.FC = () => {
   const [reportReason, setReportReason] = useState("");
   const [reportCorrectMove, setReportCorrectMove] = useState("");
 
+  // Professor Mode State
+  const [profIntervention, setProfIntervention] = useState<any>(null);
+  const [pendingPlay, setPendingPlay] = useState<{ cardIndex: number, metadata?: any } | null>(null);
+
   useEffect(() => {
     localStorage.setItem('baloot_owned_items', JSON.stringify(ownedItems));
     localStorage.setItem('baloot_equipped_items', JSON.stringify(equippedItems));
@@ -110,7 +116,7 @@ const App: React.FC = () => {
 
   // --- EMOTES & FX ---
   const handleSendEmote = (msg: string) => {
-    addSystemMessage(`أنا: ${msg}`);
+    addSystemMessage(`أنا: ${msg} `);
     setIsEmoteMenuOpen(false);
   };
 
@@ -135,6 +141,54 @@ const App: React.FC = () => {
   const handleChallenge = () => {
     setIsDisputeModalOpen(true);
     setDisputeVerdict(null);
+  };
+
+  // --- PROFESSOR MODE HANDLERS ---
+  const handleProfUndo = () => {
+    setProfIntervention(null);
+    setPendingPlay(null);
+  };
+
+  const handleProfContinue = () => {
+    if (pendingPlay) {
+      // Retry with skip flag
+      // We use the original handler but append skip_professor to payload
+      // Note: App doesn't modify payload deep usually, but let's do it right.
+      const newPayload = { ...pendingPlay, skip_professor: true };
+      if (roomId) {
+        // Determine card index again? No, it's in payload
+        socketService.sendAction(roomId, 'PLAY', newPayload);
+      } else {
+        handlePlayerAction('PLAY', newPayload);
+      }
+    }
+    setProfIntervention(null);
+    setPendingPlay(null);
+  };
+
+  const handlePlayerActionWithProfessor = (action: string, payload: any) => {
+    // Intercept PLAY if connected to server
+    if (action === 'PLAY' && roomId && !payload?.skip_professor && !userProfile.disableProfessor) {
+      // We initiate the action via SocketService manually to catch the 200 OK w/ Error Code
+      // Actually, 'sendAction' callback receives the response.
+
+      // We must bypass handlePlayerAction's internal sends to avoid double send if we want custom error handling.
+      // However, handlePlayerAction ALSO blocks duplicates.
+
+      // Let's call socketService directly.
+      socketService.sendAction(roomId, 'PLAY', payload, (res) => {
+        if (!res.success && res.error === 'PROFESSOR_INTERVENTION') {
+          setProfIntervention(res.intervention);
+          setPendingPlay(payload); // Contains cardIndex and metadata
+        } else if (!res.success) {
+          addSystemMessage(`Action Failed: ${res.error}`);
+        }
+      });
+      return;
+    }
+
+    // Default
+    handlePlayerAction(action, payload);
   };
 
   const handleDisputeConfirm = (suspectPos: PlayerPosition) => {
@@ -190,7 +244,7 @@ const App: React.FC = () => {
 
   // Global Error Handler
   useEffect(() => {
-    const errorHandler = (event: ErrorEvent) => setErrorObj(`${event.message} \n ${event.filename} : ${event.lineno}`);
+    const errorHandler = (event: ErrorEvent) => setErrorObj(`${event.message} \n ${event.filename} : ${event.lineno} `);
     window.addEventListener('error', errorHandler);
     return () => window.removeEventListener('error', errorHandler);
   }, []);
@@ -216,7 +270,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (gameState.qaydState?.active) {
       setIsDisputeModalOpen(false); // Force close modal if open
-      addSystemMessage(`Dispute Raised by ${gameState.qaydState.reporter}! Reason: ${gameState.qaydState.reason}`);
+      addSystemMessage(`Dispute Raised by ${gameState.qaydState.reporter} !Reason: ${gameState.qaydState.reason} `);
     }
   }, [gameState.qaydState, addSystemMessage]);
 
@@ -260,7 +314,7 @@ const App: React.FC = () => {
             import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Create Room Response', res));
 
             if (res.success) {
-              const rid = res.roomId;
+              const rid = res.roomId as string;
               // 2. Join as Me
               const myName = userProfile.firstName || 'Me';
 
@@ -271,7 +325,7 @@ const App: React.FC = () => {
                 if (joinRes.success) {
                   try {
                     console.log("Joining game with state:", joinRes.gameState);
-                    joinGame(rid, joinRes.yourIndex, joinRes.gameState);
+                    joinGame(rid, joinRes.yourIndex as number, joinRes.gameState as GameState);
                     updateSettings(settings);
                     setCurrentView('GAME');
 
@@ -342,7 +396,7 @@ const App: React.FC = () => {
           <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
             <Table
               gameState={gameState}
-              onPlayerAction={handlePlayerAction}
+              onPlayerAction={handlePlayerActionWithProfessor}
               onChallenge={handleChallenge}
               onAddBot={addBot}
               onDebugAction={handleDebugAction}
@@ -352,6 +406,7 @@ const App: React.FC = () => {
               onSawa={handleSawa}
               onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
               isSendingAction={isSendingAction}
+              isPaused={!!profIntervention}
             />
 
             {/* AI Report Button (Only visible if game is active) */}
@@ -401,7 +456,7 @@ const App: React.FC = () => {
                     <button
                       onClick={async () => {
                         await submitTrainingData({
-                          contextHash: `live-${Date.now()}`,
+                          contextHash: `live - ${Date.now()} `,
                           gameState: JSON.stringify(gameState), // Capture current state
                           badMove: "Unknown (User Reported)", // Ideally track last move
                           correctMove: reportCorrectMove,
@@ -443,13 +498,14 @@ const App: React.FC = () => {
           )}
 
           {flyingItems.map(item => (
-            <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}%`, top: `${item.startY}%`, '--end-x': `${item.endX}%`, '--end-y': `${item.endY}%` } as any}>
+            <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}% `, top: `${item.startY}% `, '--end-x': `${item.endX}% `, '--end-y': `${item.endY}% ` } as any}>
               {item.type === 'slipper' ? '🩴' : item.type === 'tomato' ? '🍅' : item.type === 'flower' ? '🌹' : '🥚'}
             </div>
           ))}
 
           {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
           {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
+          {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onContinue={handleProfContinue} />}
           {isSettingsOpen && <SettingsModal
             settings={gameState.settings}
             equippedItems={equippedItems}

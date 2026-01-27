@@ -61,6 +61,12 @@ class Game:
         self.timer_active = True # Legacy
         self.last_timer_reset = 0
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.timer_paused = False # Flag for Professor or other pauses
+        
+        # Analytics
+        self.win_probability_history = [] # List of {trick: int, us: float}
+        self.blunders = {} # Map[PlayerPosition] -> count
+        
         
         # Managers
         self.trick_manager = TrickManager(self)
@@ -89,6 +95,10 @@ class Game:
             "bid": self.bid,
             "teamScores": self.team_scores,
             "matchScores": self.match_scores,
+            "analytics": {
+                "winProbability": self.win_probability_history,
+                "blunders": self.blunders
+            },
             "floorCard": self.floor_card.to_dict() if self.floor_card else None,
             "dealerIndex": self.dealer_index,
             "biddingRound": self.bidding_round,
@@ -692,15 +702,66 @@ class Game:
         self.sawa_failed_khasara = False
         self.reset_timer()
 
+    def calculate_win_probability(self):
+        """
+        Heuristic-based probability calculation.
+        Formula: 50% + ((UsTotal - ThemTotal) / Target) * Weight
+        """
+        # 1. Calculate Current Round Points
+        round_us = 0
+        round_them = 0
+        for trick in self.round_history:
+            points = trick['points']
+            winner_pos = trick['winner']
+            if winner_pos in ['Bottom', 'Top']:
+                round_us += points
+            else:
+                round_them += points
+                
+        # 2. Add Match Scores (Total Context)
+        total_us = self.match_scores['us'] + round_us
+        total_them = self.match_scores['them'] + round_them
+        
+        # 3. Apply Heuristic (Target 152)
+        diff = total_us - total_them
+        # Clamp diff to reasonable bounds (-152 to 152 effectively)
+        prob = 0.5 + (diff / 152.0) * 0.5
+        
+        # Clamp result 0.0 to 1.0
+        return max(0.0, min(1.0, prob))
+
+    def increment_blunder(self, player_index):
+        """Increments the blunder count for a specific player."""
+        try:
+            player = self.players[player_index]
+            pos = player.position
+            self.blunders[pos] = self.blunders.get(pos, 0) + 1
+            logger.info(f"Blunder recorded for {pos}. Total: {self.blunders[pos]}")
+        except Exception as e:
+            logger.error(f"Error incrementing blunder: {e}")
+
     def reset_timer(self, duration=None):
         self.timer.reset(duration)
+        self.timer_paused = False # Unpause on reset
         
         # Reset specific states
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+
+    def pause_timer(self):
+        """Pauses the turn timer (e.g. for Professor Intervention)"""
+        self.timer_paused = True # Legacy flag for double safety
+        self.timer.pause()
+        logger.info(f"Timer Paused for Room {self.room_id}")
+
+    def resume_timer(self):
+        """Resumes the turn timer"""
+        self.timer_paused = False
+        self.timer.resume()
+        logger.info(f"Timer Resumed for Room {self.room_id}")
         
     def check_timeout(self):
         """Called by background loop to check if current turn expired"""
-        if not self.timer.active:
+        if not self.timer.active or self.timer_paused:
             return None
             
         # Don't check timeout in terminal phases

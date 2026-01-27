@@ -113,6 +113,13 @@ class TrickManager:
         self.game.current_turn = winner_player.index
         self.game.reset_timer() 
         
+        # --- ANALYTICS: Track Win Probability ---
+        prob = self.game.calculate_win_probability()
+        self.game.win_probability_history.append({
+            "trick": len(self.game.round_history),
+            "us": prob
+        }) 
+        
         # --- PROJECT RESOLUTION (End of Trick 1) ---
         if len(self.game.round_history) == 1:
              # This will be handled by ProjectManager via Game delegation

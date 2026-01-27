@@ -1,7 +1,13 @@
-
 import { io, Socket } from "socket.io-client";
+import { GameState } from "../types";
 
 const SERVER_URL = "http://localhost:3005"; // Direct connection to Backend (Bypasses Proxy)
+
+interface ApiResponse {
+    success: boolean;
+    error?: string;
+    [key: string]: unknown;
+}
 
 class SocketService {
     public socket: Socket | null = null;
@@ -19,7 +25,6 @@ class SocketService {
                 console.error('Socket Connection Error:', err);
             });
         } else if (!this.socket.connected) {
-        } else if (!this.socket.connected) {
             this.socket.connect();
         }
         return this.socket;
@@ -31,22 +36,22 @@ class SocketService {
         }
     }
 
-    createRoom(callback: (res: any) => void) {
+    createRoom(callback: (res: ApiResponse) => void) {
         if (!this.socket) return;
         this.socket.emit('create_room', {}, callback);
     }
 
-    joinRoom(roomId: string, playerName: string, callback: (res: any) => void) {
+    joinRoom(roomId: string, playerName: string, callback: (res: ApiResponse) => void) {
         if (!this.socket) return;
         this.socket.emit('join_room', { roomId, playerName }, callback);
     }
 
-    sendAction(roomId: string, action: string, payload: any, callback?: (res: any) => void) {
+    sendAction(roomId: string, action: string, payload: Record<string, unknown>, callback?: (res: ApiResponse) => void) {
         if (!this.socket) {
             if (callback) callback({ success: false, error: "Socket not connected" });
             return;
         }
-        this.socket.emit('game_action', { roomId, action, payload }, (res: any) => {
+        this.socket.emit('game_action', { roomId, action, payload }, (res: ApiResponse) => {
             // @ts-ignore
             import('../utils/devLogger').then(({ devLogger }) => {
                 if (res.success) devLogger.log('SOCKET', 'Action Success', { action });
@@ -61,19 +66,19 @@ class SocketService {
         });
     }
 
-    sendDebugAction(roomId: string, action: string, payload: any) {
+    sendDebugAction(roomId: string, action: string, payload: Record<string, unknown>) {
         if (!this.socket) return;
-        this.socket.emit('debug_action', { roomId, action, payload }, (res: any) => {
+        this.socket.emit('debug_action', { roomId, action, payload }, (res: ApiResponse) => {
             if (!res.success) {
                 console.error("Debug Action Failed:", res.error);
             }
         });
     }
 
-    onGameUpdate(callback: (gameState: any) => void) {
+    onGameUpdate(callback: (gameState: GameState) => void) {
         if (!this.socket) return () => { };
 
-        const handler = (data: any) => {
+        const handler = (data: { gameState: GameState }) => {
             // @ts-ignore
             import('../utils/devLogger').then(({ devLogger }) => devLogger.log('SOCKET', 'Game Update Received', { phase: data.gameState.phase, turn: data.gameState.currentTurnIndex }));
             callback(data.gameState)
@@ -85,16 +90,16 @@ class SocketService {
         };
     }
 
-    onGameStart(callback: (gameState: any) => void) {
+    onGameStart(callback: (gameState: GameState) => void) {
         if (!this.socket) return () => { };
-        const handler = (data: any) => callback(data.gameState);
+        const handler = (data: { gameState: GameState }) => callback(data.gameState);
         this.socket.on('game_start', handler);
         return () => {
             this.socket?.off('game_start', handler);
         };
     }
 
-    addBot(roomId: string, callback: (res: any) => void) {
+    addBot(roomId: string, callback: (res: ApiResponse) => void) {
         if (!this.socket) return;
         this.socket.emit('add_bot', { roomId }, callback);
     }
@@ -102,7 +107,7 @@ class SocketService {
 
     onBotSpeak(callback: (data: { playerIndex: number, text: string, emotion: string }) => void) {
         if (!this.socket) return () => { };
-        const handler = (data: any) => callback(data);
+        const handler = (data: { playerIndex: number, text: string, emotion: string }) => callback(data);
         this.socket.on('bot_speak', handler);
         return () => {
             this.socket?.off('bot_speak', handler);

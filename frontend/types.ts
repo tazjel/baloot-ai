@@ -166,6 +166,8 @@ export interface GameState {
   phase: GamePhase;
   biddingPhase?: string; // e.g. "GABLAK_WINDOW"
   tableCards: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata }[];
+  gameMode?: string;
+  trumpSuit?: Suit;
   bid: Bid;
   teamScores: { us: number; them: number };
   matchScores: { us: number; them: number }; // For Championship (152)
@@ -212,4 +214,8 @@ export interface GameState {
 
   // Debug/Dev
   fullMatchHistory?: any[];
+  analytics?: {
+    winProbability: { trick: number; us: number }[];
+    blunders?: { [key: string]: number }; // Map "Bottom": count
+  };
 }

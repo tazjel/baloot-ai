@@ -3,6 +3,7 @@ from server.room_manager import room_manager
 from ai_worker.personality import PROFILES, BALANCED, AGGRESSIVE, CONSERVATIVE
 from ai_worker.agent import bot_agent
 from ai_worker.dialogue_system import DialogueSystem
+from ai_worker.professor import professor
 import time
 import logging
 
@@ -109,7 +110,21 @@ def game_action(sid, data):
     if action == 'BID':
         result = game.handle_bid(player.index, payload.get('action'), payload.get('suit'))
     elif action == 'PLAY':
-        result = game.play_card(player.index, payload.get('cardIndex'), payload.get('metadata'))
+        # CHECK FOR PROFESSOR INTERVENTION (If Human Player)
+        # Skip if explicitly bypassed (user clicked "I know what I'm doing")
+        skip_professor = payload.get('skip_professor', False)
+        
+        intervention = None
+        if not skip_professor and not player.is_bot:
+             card_idx = payload.get('cardIndex')
+             intervention = professor.check_move(game, player.index, card_idx)
+             
+        if intervention:
+             result = {'success': False, 'error': 'PROFESSOR_INTERVENTION', 'intervention': intervention}
+             game.pause_timer()
+             game.increment_blunder(player.index)
+        else:
+             result = game.play_card(player.index, payload.get('cardIndex'), payload.get('metadata'))
     elif action == 'DECLARE_PROJECT':
         result = game.handle_declare_project(player.index, payload.get('type'))
     elif action == 'DOUBLE':

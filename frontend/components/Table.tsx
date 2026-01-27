@@ -2,7 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import CardVector from './CardVector';
-import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCards, PanelRightOpen, ArrowRight, Plus, Megaphone, Eye, EyeOff } from 'lucide-react';
+import { TriangleAlert, Trophy, ShieldAlert, Pause, Menu, Gavel, Sun, WalletCards, PanelRightOpen, ArrowRight, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon } from 'lucide-react';
+import { WarRoomOverlay } from './overlays/WarRoomOverlay';
 import ProjectSelectionModal from './ProjectSelectionModal';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { canDeclareAkka, sortHand } from '../utils/gameLogic';
@@ -18,6 +19,7 @@ import { DevLogSidebar } from './DevLogSidebar';
 import { SpeechBubble } from './SpeechBubble';
 import { useVoice, VoicePersonality } from '../hooks/useVoice';
 import socketService from '../services/SocketService';
+import HandFan from './HandFan';
 
 interface TableProps {
     gameState: GameState;
@@ -31,6 +33,7 @@ interface TableProps {
     onSawa?: () => void;
     onEmoteClick?: () => void;
     isSendingAction?: boolean;
+    isPaused?: boolean;
 }
 
 // Avatar Mapping
@@ -68,7 +71,7 @@ const ScoreBadge = ({ matchScores }: { matchScores: any }) => {
     );
 };
 
-const TurnTimer = ({ isActive, timeLeft, totalTime }: { isActive: boolean, timeLeft: number, totalTime: number }) => {
+const TurnTimer = ({ isActive, timeLeft, totalTime, isPaused = false }: { isActive: boolean, timeLeft: number, totalTime: number, isPaused?: boolean }) => {
     if (!isActive) return null;
 
     const radius = 36;
@@ -97,13 +100,14 @@ const TurnTimer = ({ isActive, timeLeft, totalTime }: { isActive: boolean, timeL
                     fill="none"
                     strokeDasharray={circumference}
                     strokeDashoffset={circumference - progress}
-                    className="transition-all duration-1000 ease-linear shadow-lg"
+                    className={`transition-all duration-1000 ease-linear shadow-lg ${isPaused ? 'pause-animation' : ''}`}
                     style={{ filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.5))' }}
                 />
             </svg>
             <span className="text-amber-400 font-black text-sm sm:text-base md:text-lg drop-shadow-md z-50">
                 {timeLeft}
             </span>
+            {isPaused && <Pause size={20} className="absolute text-white animate-pulse" />}
         </div>
     );
 };
@@ -140,7 +144,7 @@ const ContractIndicator = ({ bid, players, doublingLevel }: { bid: any, players:
     );
 };
 
-const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, showProjects, bid, doublingLevel, speechText }: {
+const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, declarations, isProjectRevealing, showProjects, bid, doublingLevel, speechText, isPaused }: {
     player: Player,
     isCurrentTurn: boolean,
     position: 'top' | 'left' | 'right' | 'bottom',
@@ -151,7 +155,8 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
     showProjects: boolean, // New Prop
     bid?: any,
     doublingLevel?: number,
-    speechText?: string | null
+    speechText?: string | null,
+    isPaused?: boolean
 }) => {
     const isPartner = position === 'top';
     let posClass = 'absolute z-30';
@@ -174,7 +179,7 @@ const PlayerAvatar = ({ player, isCurrentTurn, position, timeLeft, totalTime, de
 
             <div className="relative">
                 {/* Timer rendered for all positions now */}
-                <TurnTimer isActive={isCurrentTurn} timeLeft={timeLeft} totalTime={totalTime} />
+                <TurnTimer isActive={isCurrentTurn} timeLeft={timeLeft} totalTime={totalTime} isPaused={isPaused} />
 
                 {/* Dark Overlay for Active Player to boost Timer contrast */}
                 {isCurrentTurn && (
@@ -288,7 +293,20 @@ rounded - full bg - white shadow - xl overflow - hidden relative z - 10
     );
 };
 
-const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction, onChallenge, onAddBot, isCuttingDeck = false, tableSkin = 'table_default', cardSkin = 'card_default', onSawa, onEmoteClick, isSendingAction = false }) => {
+export default function Table({
+    gameState,
+    onPlayerAction,
+    onChallenge,
+    onAddBot,
+    onDebugAction,
+    isCuttingDeck = false,
+    tableSkin = 'table_default',
+    cardSkin = 'card_default',
+    onSawa,
+    onEmoteClick,
+    isSendingAction = false,
+    isPaused = false
+}: TableProps) {
     // --- HOOKS ---
     const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing } = gameState || {};
 
@@ -351,7 +369,9 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
     const [timeLeft, setTimeLeft] = useState(turnDuration);
     const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
     const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+
     const [showProjectModal, setShowProjectModal] = useState(false);
+    const [showAnalytics, setShowAnalytics] = useState(false);
 
     // Telemetry: Log Table Mount
     useEffect(() => {
@@ -610,16 +630,16 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
 
         // Telemetry for Verification
         if (isLatest) {
-             // @ts-ignore
-             import('../utils/devLogger').then(({ devLogger }) => {
-                 devLogger.log('VISUAL_DEBUG', `Card Animation Calculated`, {
-                     player: players[playerIndex].name,
-                     pos: players[playerIndex].position,
-                     relativeIdx: relativeIndex,
-                     target: { x: targetX, y: targetY },
-                     initial: { x: initialX, y: initialY }
-                 });
-             });
+            // @ts-ignore
+            import('../utils/devLogger').then(({ devLogger }) => {
+                devLogger.log('VISUAL_DEBUG', `Card Animation Calculated`, {
+                    player: players[playerIndex].name,
+                    pos: players[playerIndex].position,
+                    relativeIdx: relativeIndex,
+                    target: { x: targetX, y: targetY },
+                    initial: { x: initialX, y: initialY }
+                });
+            });
         }
 
         return {
@@ -658,17 +678,34 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                 {isAccessibilityMode ? <Eye size={18} className="text-cyan-300" /> : <EyeOff size={18} />}
             </button>
 
+            {/* Analytics Toggle (War Room) */}
+            <button
+                onClick={() => setShowAnalytics(!showAnalytics)}
+                className={`absolute top-4 left-44 z-50 p-1.5 rounded-full border transition-all shadow-lg ${showAnalytics ? 'bg-yellow-500/80 border-yellow-300 text-white' : 'bg-white/20 border-white/30 text-white hover:bg-white/40'}`}
+                title="Toggle War Room"
+            >
+                <ChartIcon size={18} />
+            </button>
+
+            {/* Analytics Overlay */}
+            {/* Analytics Overlay */}
+            <WarRoomOverlay
+                gameState={gameState}
+                showAnalytics={showAnalytics}
+                setShowAnalytics={setShowAnalytics}
+            />
+
             {/* --- ZONE 2: ARENA (Fills remaining space) --- */}
             <div className="relative w-full flex-1 flex items-center justify-center perspective-1000 z-10 transition-all duration-500">
                 {/* The PREMIUM Table */}
                 <div className={`
-                    relative 
-                    w-[98%] sm:w-[95%] md:w-[85%] lg:w-[80%] 
+                    relative
+                    w-[98%] sm:w-[95%] md:w-[85%] lg:w-[80%]
                     h-[92%] sm:h-[90%] md:h-[88%]
-                    rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3rem] 
+                    rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3rem]
                     shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)] md:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.6)]
                     bg-cover bg-center
-                    p-[8px] sm:p-[10px] md:p-[12px] 
+                    p-[8px] sm:p-[10px] md:p-[12px]
                     flex items-center justify-center
                 `}
                     style={{
@@ -721,6 +758,7 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
                                 speechText={playerSpeech[partner.index]}
+                                isPaused={isPaused}
                             />
                         )}
 
@@ -798,16 +836,16 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
                                         transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
                                         className={`${animClass}`}
                                         style={style}>
-                                            <CardVector
-                                                card={played.card}
-                                                className="w-full h-full shadow-xl"
-                                                isPlayable={false}
-                                                skin={cardSkin}
-                                            />
+                                        <CardVector
+                                            card={played.card}
+                                            className="w-full h-full shadow-xl"
+                                            isPlayable={false}
+                                            skin={cardSkin}
+                                        />
                                     </motion.div>
                                 );
                             })}
-                        {/* 2. Sweeping Cards (Trick done) */}
+                            {/* 2. Sweeping Cards (Trick done) */}
                             {gameState.lastTrick && gameState.lastTrick.cards && gameState.lastTrick.cards.map((played, idx) => {
                                 if (!played || !played.card) return null; // Safety Check
                                 const playerObj = players.find(p => p && p.position === (played as any)?.playedBy);
@@ -846,70 +884,19 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
 
             {/* --- ZONE 3: ACTIONS & HAND (Unified Action Bar) --- */}
 
-            {/* USER HAND RENDER (Restored) */}
-            {
-                me && me.hand && (
-                    <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-end justify-center -space-x-8 sm:-space-x-10 md:-space-x-12 z-50 perspective-1000 w-full px-4 overflow-visible pointer-events-none">
-                        {sortedHand.map((card, idx) => {
-                            const originalIndex = me.hand.findIndex(c => c.id === card.id);
-                            const isSelected = selectedCardIndex === originalIndex;
-                            const valid = isCardPlayable(card);
-
-                            // Visual Grouping Logic
-                            const groupIdx = cardGroups[card.id] || 0;
-                            const isElevated = groupIdx % 2 === 0; // Even groups up, Odd groups down
-
-                            // Base positioning
-                            // Up: bottom-5
-                            // Down: bottom-0
-                            const baseClass = isElevated ? 'bottom-5 sm:bottom-6' : 'bottom-0';
-                            const hoverClass = isElevated ? 'hover:bottom-9 sm:hover:bottom-10' : 'hover:bottom-4';
-
-                            // Interactive wrapper
-                            return (
-                                <motion.div key={`hand-${idx}`}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Play ${card.rank} of ${card.suit}`}
-                                    initial={{ y: 200, opacity: 0, rotate: 10 }}
-                                    animate={{
-                                        y: isSelected ? -50 : 0,
-                                        opacity: 1,
-                                        rotate: 0,
-                                        transition: { delay: idx * 0.05, type: "spring", stiffness: 200, damping: 20 }
-                                    }}
-                                    className={`
-                                    relative transition-all duration-300 pointer-events-auto
-                                    ${isSelected
-                                            ? 'bottom-12 sm:bottom-14 z-[60] scale-110'
-                                            : `${baseClass} ${hoverClass} hover:z-[55] hover:scale-105`
-                                        }
-                                    opacity-100
-                                `}
-                                    style={{
-                                        transformOrigin: 'bottom center',
-                                        zIndex: isSelected ? 60 : 50 + (sortedHand.length - idx)
-                                    }}
-                                    onClick={() => handleCardClick(me.hand.findIndex(c => c.id === card.id))}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            handleCardClick(me.hand.findIndex(c => c.id === card.id));
-                                        }
-                                    }}
-                                >
-                                    <CardVector
-                                        card={card}
-                                        className="w-[3.75rem] h-[5.55rem] sm:w-[4.55rem] sm:h-[6.7rem] md:w-[5.2rem] md:h-[7.9rem] shadow-2xl"
-                                        selected={isSelected}
-                                        isPlayable={true}
-                                        skin={cardSkin}
-                                    />
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                )
-            }
+            {/* USER HAND RENDER (Refactored to HandFan) */}
+            {me && me.hand && (
+                <HandFan
+                    hand={me.hand}
+                    selectedCardIndex={selectedCardIndex}
+                    isMyTurn={isMyTurn}
+                    onCardClick={handleCardClick}
+                    cardSkin={cardSkin}
+                    gameMode={gameState.gameMode || 'SUN'}
+                    trumpSuit={gameState.trumpSuit}
+                    settings={settings}
+                />
+            )}
             {/* NEW LOCATION: HUD - Bottom Center Avatar (Top Level) */}
             <PlayerAvatar
                 player={me}
@@ -960,5 +947,3 @@ const Table: React.FC<TableProps> = ({ gameState, onPlayerAction, onDebugAction,
         </div >
     );
 };
-
-export default Table;

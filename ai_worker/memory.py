@@ -37,6 +37,10 @@ class CardMemory:
         """
         Rebuilds memory from the full game history provided in the state.
         Critically, this infers VOIDS based on player actions.
+        
+        TODO: Upgrade to "Mind's Eye" Probabilistic Memory.
+        Current implementation uses binary voids (Has Suit / Void).
+        Future: self.hand_distributions = {player: {suit: prob}}
         """
         self.reset()
         
