@@ -1,6 +1,8 @@
 import logging
 import random
 from ai_worker.agent import BotAgent, bot_agent
+from ai_worker.cognitive import CognitiveOptimizer
+from ai_worker.bot_context import BotContext
 from game_engine.logic.game import Game
 from game_engine.models.card import Card
 
@@ -9,13 +11,30 @@ logger = logging.getLogger(__name__)
 class Professor:
     def __init__(self):
         self.agent = bot_agent # Reuse the existing singleton agent
+        self.cognitive = CognitiveOptimizer(use_inference=True)
         self.enabled = True 
         # Thresholds
-        self.blunder_threshold = 0.8 # Probability diff? Or Score diff?
+        self.blunder_threshold = 0.20 # EV Difference triggering a "Blunder"
+        self.mistake_threshold = 0.10 # EV Difference triggering a "Mistake"
+        self.minor_threshold = 0.05   # EV Difference triggering a "Note"
+        
+        # Responses
+        self.responses = {
+            "BLUNDER": [
+                "Whoa! That move is risky.",
+                "I wouldn't recommend that.",
+                "Are you sure? That loses significant value."
+            ],
+            "MISTAKE": [
+                "There is a better option.",
+                "Think twice about that.",
+                "I see a stronger play."
+            ]
+        }
         
     def check_move(self, game: Game, player_index: int, card_index: int) -> dict | None:
         """
-        Analyzes the human's intended move.
+        Analyzes the human's intended move using MCTS.
         Returns None if move is fine.
         Returns dict with { 'warning': str, 'better_move': str } if it's a blunder.
         """
@@ -29,62 +48,72 @@ class Professor:
             
             human_card = player.hand[card_index]
             
-            # 1. Ask the Expert (Bot) what it would do
-            # We need to give the bot the full state
+            # 1. Create Context for Human
             game_state = game.get_game_state()
+            ctx = BotContext(game_state, player_index) # Personality checks not needed for MCTS
             
-            # The agent usually returns { 'action': 'PLAY', 'cardIndex': i, 'reasoning': ... }
-            # We want the BEST move.
-            # NOTE: BotAgent.get_decision includes randomness or personality traits.
-            # For the Professor, we might want the "Optimal" move (e.g., MCTS or 'Balanced' profile).
+            # 2. Run MCTS Analysis
+            # logger.debug(f"Professor: Analyzing position for {player.name} playing {human_card}...")
             
-            # For now, let's trust the standard BotAgent decision logic.
-            # Ideally, we should enable maximum strength here.
+            analysis = self.cognitive.analyze_position(ctx)
             
-            bot_decision = self.agent.get_decision(game_state, player_index)
-            
-            if bot_decision.get('action') != 'PLAY':
-                return None
-            
-            bot_card_idx = bot_decision.get('cardIndex')
-            if bot_card_idx is None:
+            if not analysis:
+                # Fallback to simple check if MCTS fails
                 return None
                 
-            bot_card = player.hand[bot_card_idx]
+            best_move_idx = analysis['best_move']
+            move_values = analysis['move_values']
             
-            # 2. Compare
-            if human_card.id == bot_card.id:
-                return None # Human played exactly what Bot recommends. Good job!
+            if card_index == best_move_idx:
+                return None # Human played the optimal move!
                 
-            # 3. Simple Heuristic Blunder Check (Placeholder for MCTS Value Analysis)
-            # If Human plays non-trump while holding Ace of led suit?
-            # If Human plays low trump when they could eat?
+            # 3. Compare EV (Expected Value)
+            human_stats = move_values.get(card_index)
+            best_stats = move_values.get(best_move_idx)
             
-            # For Phase 1 (MVP):
-            # If Bot is VERY strict about a rule (e.g. Legal move), game engine handles it.
-            # Professor checks for STRATEGIC blunders.
+            if not human_stats or not best_stats:
+                return None
+                
+            human_ev = human_stats['win_rate'] # Normalized 0-1 (Wins / Visits)
+            best_ev = best_stats['win_rate']
+            human_visits = human_stats['visits']
+            best_visits = best_stats['visits']
             
-            # EXAMPLE: "You played a King but the Ace is still out!"
-            # This requires inspecting memory or state.
+            diff = best_ev - human_ev
             
-            reason = bot_decision.get('reasoning', 'I would have played differently.')
+            if diff > 0.05:
+                logger.debug(f"PROFESSOR: Human={human_card} ({human_ev:.2f}, {human_visits}v) Best={player.hand[best_move_idx]} ({best_ev:.2f}, {best_visits}v) Diff={diff:.2f}")
             
-            # Random chance to intervene to avoid annoyance (or only on 'High Confidence' diffs)
-            # For demo/MVP, let's intervene if move is different and reasoned.
+            # 4. Determine Blunder Level
+            blunder_type = None
+            if diff >= self.blunder_threshold:
+                blunder_type = "BLUNDER"
+            elif diff >= self.mistake_threshold:
+                blunder_type = "MISTAKE"
+            # elif diff >= self.minor_threshold:
+            #     blunder_type = "NOTE" 
             
-            # IMPORTANT: Don't interrupt trivial differences.
-            # How to measure triviality?
-            # If both are legal and similar rank?
+            if not blunder_type:
+                return None
+                
+            # 5. Construct Message
+            best_card = player.hand[best_move_idx]
             
-            return {
-                "type": "BLUNDER",
-                "message": f"Professor: Wait! I wouldn't play {human_card}. {reason}",
-                "better_card": bot_card.to_dict(),
-                "reason": reason
+            intro = random.choice(self.responses[blunder_type])
+            reason = f"Playing {best_card} is calculated to be +{int(diff*100)}% better."
+            
+            intervention = {
+                "type": blunder_type,
+                "message": f"Professor: {intro} {reason}",
+                "better_card": best_card.to_dict(),
+                "reason": reason,
+                "diff": diff
             }
+            logger.info(f"Professor: Triggering Intervention: {intervention}")
+            return intervention
             
         except Exception as e:
-            logger.error(f"Professor Error: {e}")
+            logger.error(f"Professor Error: {e}", exc_info=True)
             return None
 
 # Singleton

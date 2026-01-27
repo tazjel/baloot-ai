@@ -1,8 +1,8 @@
-
 import random
 from typing import List, Set
 from game_engine.models.card import Card
 from ai_worker.bot_context import BotContext
+from game_engine.models.constants import SUITS
 
 def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
     """
@@ -13,7 +13,7 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
     # 1. Identify Remaining Cards
     # We need a full deck set
     all_cards = []
-    for s in ['S','H','D','C']:
+    for s in SUITS:
         ranks = ['7','8','9','10','J','Q','K','A']
         for r in ranks:
             all_cards.append(Card(s, r))

@@ -29,6 +29,19 @@ class MCTSSolver:
         start_time = time.time()
         iterations = 0
         
+        return self.search_with_details(root_state, timeout_ms)[0]
+
+    def search_with_details(self, root_state: FastGame, timeout_ms: int = 100):
+        """
+        Runs MCTS and returns (best_move_idx, detailed_stats).
+        stats: dict[move_idx] -> { 'visits': int, 'wins': float, 'win_rate': float }
+        """
+        root_node = MCTSNode(move_idx=-1)
+        root_node.untried_moves = root_state.get_legal_moves()
+        
+        start_time = time.time()
+        iterations = 0
+        
         while (time.time() - start_time) * 1000 < timeout_ms:
             iterations += 1
             node = root_node
@@ -36,7 +49,8 @@ class MCTSSolver:
             
             # 1. Selection
             while node.untried_moves == [] and node.children:
-                node = self._select_child(node)
+                is_us_turn = (state.teams[state.current_turn] == 'us')
+                node = self._select_child(node, is_us_turn)
                 state.apply_move(node.move_idx)
                 
             # 2. Expansion
@@ -46,54 +60,67 @@ class MCTSSolver:
                 node = self._expand(node, move, state)
                 
             # 3. Simulation (Rollout)
+            # Optimized rollout?
+            # For now standard random
             steps = 0
             while not state.is_terminal():
                 legal = state.get_legal_moves()
-                if not legal: break # Should not happen unless error
+                if not legal: break
                 move_idx = random.choice(legal)
                 state.apply_move(move_idx)
                 steps += 1
                 
             # 4. Backpropagation
-            # Score perspective: maximize 'us' score
-            # Just using Raw Score Difference or Win/Loss?
-            # Win/Loss is better for tree search stability usually.
-            # But Score matters (26 pts > 16 pts).
-            # Let's normalize score: Diff / MaxPossible (~152).
-            
+            # Calculate reward from 'us' perspective
             us_score = state.scores['us']
             them_score = state.scores['them']
             
-            # Simple Reward: Who won the match? (Or just this partial game?)
-            # Partial Game optimization: Maximize score difference.
             score_diff = us_score - them_score
-            reward = 0.5 + (score_diff / 50.0) # Normalize loosely. 0.5 is tie.
+            reward = 0.5 + (score_diff / 100.0) 
             if reward > 1.0: reward = 1.0
             if reward < 0.0: reward = 0.0
             
-            self._backpropagate(node, reward, state.teams[root_state.current_turn])
+            self._backpropagate(node, reward)
             
-        # Select best move (highest visits)
+        if not root_node.children:
+            # Fallback if no simulations ran (shouldn't happen with 100ms)
+            legal = root_state.get_legal_moves()
+            if not legal: return -1, {}
+            return legal[0], {}
+
+        # Select best move
         best_move = max(root_node.children.items(), key=lambda item: item[1].visits)[0]
         
-        # print(f"MCTS Finished: {iterations} iters, Best Move: {best_move}")
-        return best_move
+        # Build details
+        details = {}
+        for move_idx, child in root_node.children.items():
+            win_rate = child.wins / child.visits if child.visits > 0 else 0
+            details[move_idx] = {
+                'visits': child.visits,
+                'wins': child.wins,
+                'win_rate': win_rate
+            }
+            
+        return best_move, details
 
-    def _select_child(self, node):
+    def _select_child(self, node, is_us_turn: bool):
         # Upper Confidence Bound (UCB1)
-        # Should select based on perspective of player at this node? 
-        # Yes, MCTS usually assumes alternating turns (Minimax style selection if 2-player zero-sum).
-        # But Baloot is Team Game (2v2).
-        # We assume if it's 'us', we pick max UCB. If 'them', we pick... max UCB for THEM?
-        # Simplified UCB usually works if we flip reward.
-        # Let's assume standard UCB for now.
+        # Adversarial: 
+        # If is_us_turn: Maximize (wins/visits)
+        # If not is_us_turn (Opponent): Maximize (1 - wins/visits) [Minimax style]
         
         best_score = float('-inf')
         best_child = None
         
         for child in node.children.values():
-            ucb = (child.wins / child.visits) + \
-                  self.exploration_constant * math.sqrt(2 * math.log(node.visits) / child.visits)
+            exploit = child.wins / child.visits
+            
+            if not is_us_turn:
+                # Opponent wants to minimize 'us' score (maximize '1 - us')
+                exploit = 1.0 - exploit
+                
+            ucb = exploit + self.exploration_constant * math.sqrt(2 * math.log(node.visits) / child.visits)
+            
             if ucb > best_score:
                 best_score = ucb
                 best_child = child
@@ -107,15 +134,7 @@ class MCTSSolver:
         node.children[move_idx] = child
         return child
 
-    def _backpropagate(self, node, reward, root_team):
-        # Reward is based on 'us' perspective (0-1).
-        # If the player at the node was 'them', they want to minimize 'us' reward?
-        # Actually standard MCTS backprop adds reward to all nodes visited.
-        # But UCB Selection must be aware of perspective.
-        # SIMPLIFICATION: We just accumulate 'us' wins.
-        # Selection logic should inverse for opponents. 
-        # (TODO: Refine for strict Minimax-MCTS later).
-        
+    def _backpropagate(self, node, reward):
         while node:
             node.visits += 1
             node.wins += reward

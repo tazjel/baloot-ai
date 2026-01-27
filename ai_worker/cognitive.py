@@ -67,3 +67,36 @@ class CognitiveOptimizer:
             logger.error(f"Cognitive Engine Failed: {e}", exc_info=False)
             # Ideally minimal logging to avoid spam in production, or verbose if debugging.
             return None
+
+    def analyze_position(self, ctx: BotContext) -> dict:
+        """
+        Returns detailed analysis of the current position using MCTS.
+        Returns dict with keys: 'best_move', 'move_values' (dict of move_idx -> stats).
+        """
+        if not self.enabled: return None
+        
+        try:
+            # 1. Probabilistic Inference
+            hands = generate_random_distribution(ctx)
+            
+            # 2. Simulation Environment Setup
+            fast_game = FastGame(
+                players_hands=hands,
+                trump=ctx.trump,
+                mode=ctx.mode,
+                current_turn=0,
+                dealer_index=ctx.raw_state.get('dealerIndex', 0),
+                table_cards=ctx.raw_state.get('tableCards', [])
+            )
+            
+            # 3. Execution
+            best_idx, details = self.solver.search_with_details(fast_game, timeout_ms=300)
+            
+            return {
+                "best_move": best_idx,
+                "move_values": details
+            }
+            
+        except Exception as e:
+            logger.error(f"Cognitive Analysis Failed: {e}", exc_info=False)
+            return None
