@@ -42,6 +42,17 @@ db = DAL(
 )
 
 # #######################################################
+# connect to redis (shared client)
+# #######################################################
+redis_client = None
+try:
+    import redis
+    redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+except Exception as e:
+    logger.error(f"Failed to initialize shared Redis client: {e}")
+
+
+# #######################################################
 # define global objects that may or may not be used by the actions
 # #######################################################
 cache = Cache(size=1000)

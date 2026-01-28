@@ -107,6 +107,7 @@
 - [x] **Logic Fix**: Corrected `isCurrentTurn` Logic in `Table.tsx` to use dynamic player indices, ensuring Timer appears on correct avatar.
 - [x] **Performance**: Reduced Bot Delay (0.5s -> 0.05s) and Optimized `get_game_state` payload size.
 - [x] **UI**: Separated Countdown Number into a distinct bubble.
+- [x] **Critical Fix**: Resolved "Failed to fetch thoughts" crash by implementing shared Redis client in `server/common.py` (Fixed Connection Leak).
 - [ ] **Verification**: Monitor for any further freezes during gameplay.
 - **UI Cleanup**: Removed clutter based on user feedback:
     - Deleted card count stacks from avatars.

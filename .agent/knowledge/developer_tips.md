@@ -32,3 +32,9 @@
 - **Testing**: Signaling logic is heavily unit tested in `tests/test_signals.py`.
 
 - **Strategy Modes**: `BotAgent` now supports `heuristic`, `neural`, and `hybrid` modes per player via `game_state` config. Use this for A/B testing.
+
+## Connection Management (Session 2026-01-28)
+- **Redis Connections**: NEVER create new `redis.Redis()` connections inside high-frequency endpoints (like `get_ai_thoughts`). This exhausts file descriptors.
+- **Shared Client**: Always use `server.common.redis_client`. It is initialized once and shared.
+- **Symptom**: "Failed to fetch thoughts" or `Connection closed by server` usually means the backend is out of sockets.
+

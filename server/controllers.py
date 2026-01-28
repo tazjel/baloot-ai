@@ -30,7 +30,8 @@ import jwt
 import os
 import mimetypes
 from py4web import action, request, response, abort
-from server.common import db, logger
+from py4web import action, request, response, abort
+from server.common import db, logger, redis_client
 from ai_worker.llm_client import GeminiClient
 from server.room_manager import room_manager
 
@@ -243,10 +244,10 @@ def get_brain_memory():
         return ""
 
     try:
-        import redis
-        REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-        # from ai_worker.worker import REDIS_URL
-        r = redis.from_url(REDIS_URL, decode_responses=True)
+        if not redis_client:
+             return {"memory": []}
+        
+        r = redis_client
         
         # Scan for learned moves: brain:correct:*
         keys = r.keys("brain:correct:*")
@@ -287,10 +288,10 @@ def delete_brain_memory(context_hash):
         return ""
         
     try:
-        import redis
-        REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-        # from ai_worker.worker import REDIS_URL
-        r = redis.from_url(REDIS_URL, decode_responses=True)
+        if not redis_client:
+             return {"error": "Redis not connected"}
+
+        r = redis_client
         
         key = f"brain:correct:{context_hash}"
         r.delete(key)
@@ -551,12 +552,10 @@ def get_ai_thoughts(game_id):
         return ""
 
     try:
-        # Connect relative to worker/bot logic
-        import redis
-        import json
-        REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-        # from ai_worker.worker import REDIS_URL
-        r = redis.from_url(REDIS_URL, decode_responses=True)
+        if not redis_client:
+             return {"thoughts": {}}
+
+        r = redis_client
         
         # Scan for thoughts: bot:thought:{game_id}:{player_index}
         pattern = f"bot:thought:{game_id}:*"
