@@ -26,8 +26,8 @@ import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
 import { submitTrainingData } from './services/trainingService';
-import PuzzleList from './pages/PuzzleList';
-import PuzzleBoard from './pages/PuzzleBoard';
+import AcademyPage from './pages/AcademyPage';
+import PuzzleArena from './components/Academy/PuzzleArena';
 
 
 const App: React.FC = () => {
@@ -363,7 +363,7 @@ const App: React.FC = () => {
     content = <AIStudio onBack={() => setCurrentView('LOBBY')} />;
   } else if (currentView === 'PUZZLE_LIST') {
     content = (
-      <PuzzleList
+      <AcademyPage
         onSelectPuzzle={(id) => {
           setSelectedPuzzleId(id);
           setCurrentView('PUZZLE_BOARD');
@@ -373,7 +373,7 @@ const App: React.FC = () => {
     );
   } else if (currentView === 'PUZZLE_BOARD') {
     content = (
-      <PuzzleBoard
+      <PuzzleArena
         id={selectedPuzzleId || ""}
         onBack={() => setCurrentView('PUZZLE_LIST')}
       />

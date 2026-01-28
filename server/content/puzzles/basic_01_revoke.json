@@ -1,0 +1,26 @@
+{
+    "id": "basic_01_revoke",
+    "title": "Don't Break the Sira!",
+    "description": "Your partner led a Heart. You have a Heart. You MUST play it.",
+    "difficulty": "Beginner",
+    "tags": ["Rules", "Sira", "Revoke"],
+    "initial_state": {
+        "players": [
+            {"name": "Me", "position": "Bottom", "hand": [{"rank": "K", "suit": "H"}, {"rank": "7", "suit": "D"}]},
+            {"name": "Right", "position": "Right", "hand": []},
+            {"name": "Partner", "position": "Top", "hand": []},
+            {"name": "Left", "position": "Left", "hand": []}
+        ],
+        "playedCards": {
+            "Top": {"rank": "A", "suit": "H"}
+        },
+        "currentTurn": 0,
+        "dealerIndex": 3,
+        "bid": {"type": "SUN", "suit": "H", "playerIndex": 0},
+        "scores": {"us": 0, "them": 0}
+    },
+    "solution": {
+        "type": "sequence",
+        "data": ["KH"]
+    }
+}

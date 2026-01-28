@@ -39,6 +39,7 @@ def run():
     try:
         import server.models # Ensure tables are defined
         import server.controllers # Register routes
+        import server.academy_controllers # Register Academy routes
         from py4web.core import bottle
     except Exception as e:
         print(f"CRITICAL: Failed to import controllers or py4web: {e}")
