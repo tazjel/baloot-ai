@@ -13,8 +13,8 @@ class TestOracleBidding(unittest.TestCase):
         
         # Setup specific strong hand
         self.hand = [
-            Card('H', 'A'), Card('H', '10'), Card('H', 'K'), Card('H', 'Q'), 
-            Card('S', 'A'), Card('S', '10'), Card('D', 'A'), Card('C', 'A')
+            Card('♥', 'A'), Card('♥', '10'), Card('♥', 'K'), Card('♥', 'Q'), 
+            Card('♠', 'A'), Card('♠', '10'), Card('♦', 'A'), Card('♣', 'A')
         ]
         
         self.ctx = MagicMock(spec=BotContext)
@@ -32,13 +32,18 @@ class TestOracleBidding(unittest.TestCase):
         
         print("\nOracle Summary:", summary)
         
-        sun_ev = summary.get('SUN', 0)
+        print("\nOracle Summary:", summary)
+        
+        # New API returns 'details' dict
+        sun_details = summary['details'].get('SUN', {})
+        sun_ev = sun_details.get('ev', 0)
         
         # With 4 Aces + Strong Hearts, we should win almost all tricks.
         # Max score is 152.
         # We should get at least 100.
         
         self.assertGreater(sun_ev, 50, "Strong hand should have high EV")
+        self.assertEqual(summary['best_bid'], 'SUN', "Should recommend SUN for 4 Aces")
         
 if __name__ == '__main__':
     unittest.main()

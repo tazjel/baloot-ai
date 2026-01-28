@@ -197,20 +197,19 @@ class FastGame:
         
         # Calculate Points
         points = 0
+        card_debugs = []
         for _, card in self.played_cards_in_trick:
              if self.mode == 'SUN':
                   points += POINT_VALUES_SUN.get(card.rank, 0)
              else:
                   val = POINT_VALUES_HOKUM.get(card.rank, 0)
-                  # J/9 special case is built into constant map?
-                  # Usually map is generic. Need to check if Trump.
                   if card.suit == self.trump:
                        if card.rank == 'J': val = 20
                        elif card.rank == '9': val = 14
                   points += val
+             card_debugs.append(f"{card}({points})")
                   
-        # Rounding logic skipped for fast sim (raw points allowed)
-        # Or integer math.
+        # print(f"Trick Resolved: Mode {self.mode}. Cards: {card_debugs}. Winner: P{winner_idx} ({winner_team}). Points: {points}")
         
         self.scores[winner_team] += points
         self.tricks_collected[winner_team] += 1

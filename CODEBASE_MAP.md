@@ -8,6 +8,7 @@
 - `memory.py`: `CardMemory` class (formerly `bot_memory.py`). Tracks played cards, void suits, and partner signals.
 - `dialogue_system.py`: Generates trash talk and dialogue using Gemini.
 - `strategies/`: Specific bidding and playing strategies.
+- `signals/`: Collaborative Signaling Framework (Manager, Definitions, Emitter/Detector).
 - `data/`: Training data and scout analysis results (formerly `backend/data`).
 
 ### `game_engine/`

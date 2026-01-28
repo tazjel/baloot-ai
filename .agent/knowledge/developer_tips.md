@@ -25,4 +25,10 @@
 ## Hybrid AI Architecture (Session 2026-01-28)
 - **FastGame Encoding**: We implemented `FeatureExtractor.encode_fast()` to bypass object creation overhead. Use this when running MCTS simulations requiring neural inference.
 - **Dependency Injection**: `MCTSSolver` now requires `neural_strategy` for PUCT. This is wired through `BotAgent` -> `PlayingStrategy` -> `CognitiveOptimizer`.
+
+## Collaborative Signaling (Session 2026-01-28)
+- **Source of Truth**: `collaborative_signaling_framework.md` is the master doc for all signal definitions.
+- **Opposite Color Rule**: We implemented the advanced "Low Card = Opposite Color" signal. If debugging weird leads, check if `check_partner_signals` returned `PREFER_OPPOSITE`.
+- **Testing**: Signaling logic is heavily unit tested in `tests/test_signals.py`.
+
 - **Strategy Modes**: `BotAgent` now supports `heuristic`, `neural`, and `hybrid` modes per player via `game_state` config. Use this for A/B testing.

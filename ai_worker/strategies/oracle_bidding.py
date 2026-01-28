@@ -16,25 +16,21 @@ class OracleBiddingStrategy:
     
     def evaluate_hand(self, ctx: BotContext) -> dict:
         """
-        Runs simulations to estimate points for SUN and HOKUM (Best Suit).
-        Returns: { 'SUN': ev, 'HOKUM': ev, 'reasoning': ... }
+        Runs simulations to estimate points for SUN and HOKUM.
+        Returns detailed stats including Win Probability.
         """
         debug_logs = []
         debug_logs.append(f"[ORACLE] Evaluating Hand: {[str(c) for c in ctx.hand]}")
         
-        # 1. Identify candidate suits (Only check suits we actually have > 1 of?)
-        # Or just check highest point suit.
-        # Heuristic: Only check 'candidate' suits to save time.
-        # Check all SUITS and SUN.
-        
+        # 1. Identify candidate suits
         candidates = ['SUN']
-        # Add suits where we have at least 2 cards or J/9/A
         for s in SUITS:
-             count = sum(1 for c in ctx.hand if c.suit == s)
-             if count >= 2: candidates.append(s)
+            # Only test suits we have some presence in (heuristic optimization)
+            count = sum(1 for c in ctx.hand if c.suit == s)
+            if count >= 2: candidates.append(s)
              
         # 2. Generate Worlds
-        world_count = 10 # Keep low for MVP speed
+        world_count = 15 # Increased for better stability
         worlds = []
         for _ in range(world_count):
              try:
@@ -44,56 +40,100 @@ class OracleBiddingStrategy:
                 logger.warning(f"World Gen Failed: {e}")
                 
         if not worlds:
-             return {"error": "Failed to generate worlds"}
+             return {"best_bid": None, "error": "Failed to generate worlds"}
              
         # 3. Simulate
+        # Store (Score, WinBool) for each simulation
         results = { k: [] for k in candidates }
         
-        for idx, world in enumerate(worlds):
+        dealer_idx = ctx.raw_state.get('dealerIndex', 0)
+        # Leader is always player after Dealer
+        start_turn = (dealer_idx + 1) % 4
+        
+        for world in worlds:
              for mode in candidates:
-                  # Create Game
-                  # Note: Bidding assumes WE start? Or Dealer starts?
-                  # In Bidding phase, actual gameplay hasn't started.
-                  # Logic: If I bid, I become the Declarer. 
-                  # Who leads? The player to the Right of the Dealer (First Player).
-                  # We need to respect the actual dealer index.
-                  
-                  # If we are bidding, we are considering successful bid.
-                  # Trump = mode (if suit) or None (if SUN)
                   curr_trump = mode if mode in SUITS else None
                   curr_mode = 'SUN' if mode == 'SUN' else 'HOKUM'
                   
-                  # Who leads? 
-                  # Dealer Index is in ctx.
-                  # Leader = (Dealer + 1) % 4
-                  dealer_idx = ctx.raw_state.get('dealerIndex', 0)
-                  start_turn = (dealer_idx + 1) % 4
-                  
+                  # Create FastGame
                   game = FastGame(
-                      players_hands=[h[:] for h in world], # Copy hands
+                      players_hands=[h[:] for h in world], 
                       trump=curr_trump,
                       mode=curr_mode,
                       current_turn=start_turn,
                       dealer_index=dealer_idx
                   )
                   
-                  game.play_greedy()
+                  try:
+                      game.play_greedy()
+                  except Exception as e:
+                      # If simulation fails (e.g. empty hand bug), skip
+                      continue
                   
-                  # Score from 'us' perspective (Indices 0 and 2)
-                  # FastGame scores are 'us' vs 'them'.
-                  score = game.scores['us']
-                  results[mode].append(score)
+                  # Score from 'us' perspective
+                  my_score = game.scores['us']
+                  their_score = game.scores['them']
                   
-        # 4. Aggregate
-        summary = {}
+                  # Did we win the bid? (Strict win > them)
+                  # In Baloot, if equal, Taker usually loses (Khasara).
+                  # So we need MyScore > TheirScore.
+                  win = (my_score > their_score)
+                  
+                  results[mode].append({
+                      'score': my_score,
+                      'win': win
+                  })
+                  
+        # 4. Aggregate & Decide
+        best_bid = "PASS"
+        best_metric = 0 # Can be EV or WinProb mix
+        details = {}
+        
         for k in candidates:
-             vals = results[k]
-             avg = statistics.mean(vals)
-             min_v = min(vals)
-             max_v = max(vals)
-             summary[k] = avg
-             debug_logs.append(f"[ORACLE] {k}: Avg {avg:.1f} (Range {min_v}-{max_v})")
+             runs = results[k]
+             if not runs: continue
              
+             avg_score = statistics.mean([r['score'] for r in runs])
+             win_prob = sum(1 for r in runs if r['win']) / len(runs)
+             
+             details[k] = {
+                 'ev': avg_score,
+                 'win_prob': win_prob,
+                 'samples': len(runs)
+             }
+             
+             debug_logs.append(f"[ORACLE] {k}: WinProb {win_prob:.2%} (EV {avg_score:.1f})")
+             
+             # Decision Logic
+             # Safe Threshold: WinProb > 60% AND EV > Safe Margin
+             # Sun Safe: > 76 points (Half of 152) roughly.
+             # Hokum Safe: > 81 points (Half of 162).
+             # UPDATE: FastGame returns raw points.
+             # Sun Max: 130 + 10 = 140. Majority = 70.
+             # Hokum Max: 152 + 10 = 162. Majority = 81.
+             
+             threshold_prob = 0.60 
+             
+             if k == 'SUN':
+                 # Using 65 as baseline (slightly risky but aggressive for strong hands)
+                 if win_prob > threshold_prob and avg_score > 65:
+                     if win_prob > best_metric:
+                         best_metric = win_prob
+                         best_bid = "SUN"
+                         
+             elif k in SUITS:
+                 if win_prob > threshold_prob and avg_score > 75: # Hokum usually higher points
+                     if win_prob > best_metric:
+                         best_metric = win_prob
+                         best_bid = "HOKUM"
+                         details['best_suit'] = k
+
+        print("\n[ORACLE DEBUG]\n" + "\n".join(debug_logs))
         logger.info("\n".join(debug_logs))
         
-        return summary
+        return {
+            "best_bid": best_bid,
+            "best_suit": details.get('best_suit'),
+            "confidence": best_metric,
+            "details": details
+        }

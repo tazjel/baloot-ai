@@ -98,6 +98,19 @@ class PlayingStrategy:
              return self._get_hokum_follow(ctx)
 
     def _get_sun_lead(self, ctx: BotContext):
+        # 0. Check for Collaborative Signals (New)
+        signal = self._check_partner_signals(ctx)
+        if signal and signal['type'] == 'ENCOURAGE':
+             target_suit = signal['suit']
+             # Try to lead this suit
+             for i, c in enumerate(ctx.hand):
+                  if c.suit == target_suit:
+                       return {
+                            "action": "PLAY", 
+                            "cardIndex": i, 
+                            "reasoning": f"Answering Partner's Signal (Encourage {target_suit})"
+                       }
+
         best_card_idx = 0
         max_score = -100
         
@@ -453,15 +466,39 @@ class PlayingStrategy:
 
     def _get_trash_card(self, ctx):
          # Smart Trash Selection
-         # 1. Avoid Masters
-         # 2. Avoid Point Cards (A, 10, K) if possible
-         # 3. Prefer Short Suits (to create voids)
-         # 4. In Hokum, do not throw Trumps unless forced (usually handled by caller context)
+         # 0. Collaborative Signaling (New)
+         # If we have a strong suit (Master), signal partner to switch to it by discarding a HIGH card.
+         
+         from ai_worker.signals.manager import SignalManager
+         from game_engine.models.constants import SUITS
+         
+         signal_mgr = SignalManager()
+         trump = ctx.trump if ctx.mode == 'HOKUM' else None
+         
+         # Iterate over all suits to see if we want to encourage any
+         for s in SUITS:
+             if s == trump: continue # Don't signal Encouragement on Trump usually (unless specific strategy)
+             
+             if signal_mgr.should_signal_encourage(ctx.hand, s, ctx.mode):
+                 # We have a strong suit! (e.g. A, K, 10)
+                 # Find the best card to signal with.
+                 sig_card = signal_mgr.get_discard_signal_card(ctx.hand, s, ctx.mode)
+                 
+                 if sig_card:
+                     # Find index
+                     for i, c in enumerate(ctx.hand):
+                         if c.suit == sig_card.suit and c.rank == sig_card.rank:
+                             return {
+                                 "action": "PLAY", 
+                                 "cardIndex": i, 
+                                 "reasoning": f"Collaborative Signal: Encourage {s} (Discarding {c.rank})"
+                             }
+         
+         # 1. Fallback: Standard Trash Logic
+         # Avoid Masters, Point Cards, Short Suits.
          
          best_idx = 0
          min_value = 1000
-         
-         trump = ctx.trump if ctx.mode == 'HOKUM' else None
          
          for i, c in enumerate(ctx.hand):
               score = 0
@@ -485,9 +522,6 @@ class PlayingStrategy:
               # Master Protection
               if ctx.is_master_card(c): score += 30
               
-              # Length logic seems complex without counting suits first.
-              # Simple heuristic: Just dump the lowest rank non-trump.
-              
               if score < min_value:
                    min_value = score
                    best_idx = i
@@ -510,97 +544,140 @@ class PlayingStrategy:
         # Helper
         return 'Team A' if pos in ['Bottom', 'Top'] else 'Team B'
 
-    def _check_ashkal_signal(self, ctx: BotContext):
+    def _check_partner_signals(self, ctx: BotContext):
         """
-        Check if we should respond to an Ashkal signal from partner.
-        Strategy:
-        - Round 1 Ashkal: Partner wants SAME COLOR as Floor Card (but different suit).
-        - Round 2 Ashkal: Partner wants OPPOSITE COLOR.
+        Scans previous tricks to see if partner sent a signal.
+        Returns: { 'suit': '♥', 'strength': HIGH } or None
         """
-        bid = ctx.raw_state.get('bid', {})
-        if not bid: return None
+        from ai_worker.signals.manager import SignalManager
+        from ai_worker.signals.definitions import SignalType
         
-        is_ashkal = bid.get('isAshkal', False)
-        if not is_ashkal: return None
+        tricks = ctx.raw_state.get('currentRoundTricks', [])
+        if not tricks: return None
         
-        # Check if Bidder is Partner?
-        # Ashkal mechanics: Need to check who is the bidder.
-        # If I am the Responder, the Bidder MUST be my Partner (Wait, Ashkal -> Partner becomes Bidder).
-        # So *I* am the Bidder if my Partner called Ashkal? 
-        # Or *My Partner* is the Bidder if *I* called Ashkal?
-        # User Tip: "When your partner calls Ashkal... you should play..."
-        # This implies I am reacting.
-        # IF Partner calls Ashkal -> I become Bidder.
-        # If I am Bidder, I don't usually Lead (unless forced).
-        # But if *I* am the partner and *he* called it, I am the one playing.
-        # "Partner will take the card on the floor!" -> So *I* (Partner) take the card.
-        # So *I* have the bid.
-        # If I have the Bid, I play first? 
-        # Standard Baloot: Lead is usually (Dealer + 1). (Right of Dealer).
-        # If Dealer (0) calls Ashkal. Partner (2) takes.
-        # Lead is 1. (Right of Dealer).
-        # So I (2) play SECOND.
-        # So I am FOLLOWING.
-        # But this function `_get_sun_lead` is for LEADING.
-        # If I am Leading, it means either:
-        # A) I won a trick.
-        # B) I am the valid leader (e.g. if I am Prio 0 for some reason, or winner of prev trick).
+        partner_pos = self._get_partner_pos(ctx.player_index)
+        signal_mgr = SignalManager()
         
-        # Heuristic: If I am leading in a SUN game, and it was an Ashkal contract...
-        # ... and I am the Bidder (implied because Sun/Ashkal usually sticks).
-        # I should lead the requested suit?
-        # YES.
+        # Scan backwards (most recent signal is most relevant?)
+        # Actually, any signal in the round is valid until we react?
+        # Let's look at the LAST trick mainly.
         
-        floor_card = ctx.raw_state.get('floorCard')
-        if not floor_card: return None
-        floor_suit = floor_card.get('suit')
-        if not floor_suit: return None
+        last_trick = tricks[-1]
+        cards = last_trick.get('cards', [])
+        winner = last_trick.get('winner') # Index? Position? Usually player index.
+        lead_suit = last_trick.get('leadSuit') # Assuming this exists or we derive it
         
-        # Determine Color Strategy
-        # Round logic: `bid` now has `round`.
-        bid_round = bid.get('round', 1)
-        
-        colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
-        floor_color = colors.get(floor_suit)
-        
-        target_suits = []
-        
-        if bid_round == 1:
-             # SAME COLOR, Different Suit
-             # If Floor=Hearts(Red), Target=Diamonds(Red)
-             for s, color in colors.items():
-                  if color == floor_color and s != floor_suit:
-                       target_suits.append(s)
-        else:
-             # OPPOSITE COLOR
-             # If Floor=Hearts(Red), Target=Spades/Clubs(Black)
-             for s, color in colors.items():
-                  if color != floor_color:
-                       target_suits.append(s)
-                       
-        # Scan hand for matches
-        best_idx = -1
-        max_score = -100
-        
-        # Reuse Sun Lead logic but filter for target suits
-        for i, c in enumerate(ctx.hand):
-             if c.suit in target_suits:
-                  score = 0
-                  rank = c.rank
-                  # Prioritize Ace / 10 / K
-                  if rank == 'A': score += 20
-                  elif rank == '10': score += 15
-                  elif rank == 'K': score += 10
-                  else: score += 5
-                  
-                  if score > max_score:
-                       max_score = score
-                       best_idx = i
-                       
-        if best_idx != -1:
-             return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ashkal Signal Response"}
+        # If lead_suit is missing, derive from first card
+        if not lead_suit and cards:
+             # Cards usually list of {card:.., player:..}
+             # Check structure.
+             pass
              
+        # Find partner's card
+        partner_card = None
+        for c_data in cards:
+             # c_data structure often { 'suit':..., 'rank':..., 'playerIndex':... }
+             p_idx = c_data.get('playerIndex')
+             # Convert to pos? 
+             # BotContext usually gives us 'position' string for players, but tricks might store int index.
+             # We need to match partner_pos (String) with p_idx (Int?)
+             # self._get_partner_pos returns 'Top'/'Bottom'.
+             # We need equality check.
+             # Easier: PlayStrategy usually works with ctx.player_index (int). 
+             # partner_idx = (my_idx + 2) % 4
+             
+             my_idx = ctx.player_index
+             partner_idx = (my_idx + 2) % 4
+             
+             if p_idx == partner_idx:
+                  # Found partner card
+                  from game_engine.models.card import Card
+                  partner_card = Card(c_data['suit'], c_data['rank'])
+                  break
+        
+        if not partner_card: return None
+        
+        # Did partner follow suit?
+        # We need to know the lead suit of that trick.
+        # Assuming first card is lead.
+        if not cards: return None
+        first_card_data = cards[0]
+        actual_lead_suit = first_card_data['suit']
+        
+        if partner_card.suit != actual_lead_suit:
+             # Discard Detected!
+             # Check for Signal
+             sig_type = signal_mgr.get_signal_for_card(partner_card)
+             if sig_type == SignalType.ENCOURAGE:
+                  # Partner wants us to play this suit!
+                  # Verify we have this suit?
+                  return {'suit': partner_card.suit, 'type': 'ENCOURAGE'}
+             
+             elif sig_type == SignalType.PREFER_OPPOSITE_COLOR:
+                  # Partner wants OPPOSITE COLOR of the discarded card.
+                  # Discard Red -> Want Black. Discard Black -> Want Red.
+                  discard_suit = partner_card.suit
+                  colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
+                  my_color = colors.get(discard_suit)
+                  
+                  target_suits = []
+                  for s, color in colors.items():
+                       if color != my_color:
+                            target_suits.append(s)
+                            
+                  return {'suits': target_suits, 'type': 'PREFER_OPPOSITE'}
+                  
         return None
+
+    def _get_sun_lead(self, ctx: BotContext):
+         # 0. Check for Collaborative Signals (New)
+         signal = self._check_partner_signals(ctx)
+         
+         if signal:
+              if signal['type'] == 'ENCOURAGE':
+                   target_suit = signal['suit']
+                   # Try to lead this suit
+                   for i, c in enumerate(ctx.hand):
+                        if c.suit == target_suit:
+                             return {
+                                  "action": "PLAY", 
+                                  "cardIndex": i, 
+                                  "reasoning": f"Answering Partner's Signal (Encourage {target_suit})"
+                             }
+              elif signal['type'] == 'PREFER_OPPOSITE':
+                   target_suits = signal.get('suits', [])
+                   # Try to lead one of these suits.
+                   # Heuristic: Pick the one where we have a better lead (e.g. Master, or good sequence).
+                   # Or just any valid card if we trust partner has the master.
+                   
+                   best_sig_idx = -1
+                   best_sig_score = -100
+                   
+                   for i, c in enumerate(ctx.hand):
+                        if c.suit in target_suits:
+                             # Score this lead
+                             # Reuse logic? Or simplified?
+                             # Let's say we prefer leading a Master or a known winner.
+                             score = 0
+                             if ctx.is_master_card(c): score += 50
+                             elif c.rank == 'A': score += 30
+                             elif c.rank == '10': score += 20
+                             else: score += 10
+                             
+                             if score > best_sig_score:
+                                  best_sig_score = score
+                                  best_sig_idx = i
+                                  
+                   if best_sig_idx != -1:
+                        tgt = ctx.hand[best_sig_idx].suit
+                        return {
+                                  "action": "PLAY", 
+                                  "cardIndex": best_sig_idx, 
+                                  "reasoning": f"Answering Partner's Signal (Prefer Opposite Color: {tgt})"
+                        }
+         
+         best_card_idx = 0
+         max_score = -100
 
     def _check_akka(self, ctx: BotContext):
          """

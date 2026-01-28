@@ -139,23 +139,40 @@ class BiddingStrategy:
              if sun_score > 12 or best_hokum_score > 10:
                  from ai_worker.strategies.oracle_bidding import OracleBiddingStrategy
                  oracle = OracleBiddingStrategy()
-                 ev_stats = oracle.evaluate_hand(ctx)
+                 oracle_res = oracle.evaluate_hand(ctx)
                  
-                 # Basic Parser: If SUN EV > 20 points? (Wait, simulated points are full game points 0-152)
-                 # Game Score 152. Losing 0-152.
-                 # SUN Pass line ~ 80 points (half)?
-                 # Actually, winning > 76 points means we win game. 
-                 # But we need to offset the risk of bidding.
+                 # New API Usage
+                 best_bid = oracle_res.get('best_bid')
+                 confidence = oracle_res.get('confidence', 0)
                  
-                 sun_ev = ev_stats.get('SUN', 0)
-                 if sun_ev > 85: # Strict win
-                      simulated_decision = "SUN"
-                 
+                 if best_bid in ['SUN', 'HOKUM']:
+                      simulated_decision = best_bid
+                      
+                      # Override Action if high confidence?
+                      # Or just log for now?
+                      # Implementation Plan says: "If Oracle is confident (WinProb > 60%), use its bid."
+                      # The Oracle internal logic already checks > 60% to return best_bid.
+                      # So if best_bid is presented, we trust it.
+                      
+                      pass
+                      
                  # Log comparison
-                 logger.info(f"[ORACLE vs HEURISTIC] Heuristic: SunScore {sun_score} -> Decision: Pending. Oracle: SunEV {sun_ev} -> Rec: {simulated_decision}")
+                 if simulated_decision:
+                      logger.info(f"[ORACLE vs HEURISTIC] Heuristic: SunScore {sun_score}. Oracle: {simulated_decision} (Conf {confidence:.2%})")
 
         except Exception as e:
             logger.error(f"Oracle Fail: {e}")
+
+        if simulated_decision:
+            # If Oracle suggests a bid, use it.
+            # But ensure we respect legal constraints (should be handled by Oracle checking world distribution, but verify suit exists?)
+            if simulated_decision == "SUN":
+                 return {"action": "SUN", "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
+            elif simulated_decision == "HOKUM":
+                 # Which suit?
+                 best_s = oracle_res.get('best_suit')
+                 if best_s:
+                      return {"action": "HOKUM", "suit": best_s, "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
 
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
