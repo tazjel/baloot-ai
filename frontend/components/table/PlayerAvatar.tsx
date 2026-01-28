@@ -1,6 +1,6 @@
 import React from 'react';
 import { Player, PlayerPosition, Suit } from '../../types';
-import { Sun, Gavel, Trophy, Spade, Heart, Club, Diamond } from 'lucide-react';
+import { Sun, Gavel, Trophy, Spade, Heart, Club, Diamond, Megaphone } from 'lucide-react';
 // Correct import paths assuming this file is in frontend/components/table/
 import { SpeechBubble } from '../SpeechBubble';
 import TurnTimer from './TurnTimer';
@@ -26,6 +26,7 @@ interface PlayerAvatarProps {
     doublingLevel?: number;
     speechText?: string | null;
     isPaused?: boolean;
+    akkaState?: any;
 }
 
 const PlayerAvatar = ({
@@ -40,7 +41,8 @@ const PlayerAvatar = ({
     bid,
     doublingLevel,
     speechText,
-    isPaused
+    isPaused,
+    akkaState
 }: PlayerAvatarProps) => {
     const isPartner = position === 'top';
     let posClass = 'absolute z-30';
@@ -170,6 +172,15 @@ rounded-full bg-white shadow-xl overflow-hidden relative z-10
                                 </div>
                             );
                         })}
+                    </div>
+                )
+            }
+            {/* AKKA BADGE */}
+            {
+                akkaState && akkaState.claimer === player.position && (
+                    <div className="absolute top-16 left-1/2 -translate-x-1/2 w-max bg-rose-600 text-white font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1 z-50 animate-pulse">
+                        <Megaphone size={14} className="text-white" />
+                        <span>أكة!</span>
                     </div>
                 )
             }

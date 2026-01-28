@@ -275,7 +275,10 @@ def bot_loop(game, room_id, recursion_depth=0):
         reasoning = decision.get('reasoning')
         res = {'success': False}
         
-        if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+        if action == 'AKKA':
+             res = game.handle_akka(current_idx)
+
+        elif game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
                 action = action.upper() if action else "PASS"
                 suit = decision.get('suit')
                 res = game.handle_bid(current_idx, action, suit, reasoning=reasoning)
@@ -542,6 +545,8 @@ def handle_bot_speak(game, room_id, player, action, result):
         # Construct Context
         # "I bid SUN." "I played Ace of Spades."
         context = f"Did action: {action}."
+        if action == 'AKKA':
+             context += " I declared Akka (Highest Non-Trump). I command this suit!"
         
         # Add Game Context
         if game.last_trick and game.last_trick.winner == player.position and action == 'PLAY':

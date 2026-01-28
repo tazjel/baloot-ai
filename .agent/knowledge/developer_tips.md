@@ -21,3 +21,8 @@
 ## Next Session Priorities
 1. **YOLO Data Collection**: This is the next major initiative.
 2. **Bot Personality Integration**: Connect the dialogue system to these new MCTS insights (e.g., bragging when `win_rate > 0.9`).
+
+## Hybrid AI Architecture (Session 2026-01-28)
+- **FastGame Encoding**: We implemented `FeatureExtractor.encode_fast()` to bypass object creation overhead. Use this when running MCTS simulations requiring neural inference.
+- **Dependency Injection**: `MCTSSolver` now requires `neural_strategy` for PUCT. This is wired through `BotAgent` -> `PlayingStrategy` -> `CognitiveOptimizer`.
+- **Strategy Modes**: `BotAgent` now supports `heuristic`, `neural`, and `hybrid` modes per player via `game_state` config. Use this for A/B testing.

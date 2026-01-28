@@ -40,6 +40,7 @@ class BotContext:
              
         # Derived
         self.is_dealer = (self.player_index == self.dealer_index)
+        self.akka_state = game_state.get('akkaState', None)
         
         # Core Components
         from ai_worker.memory import CardMemory

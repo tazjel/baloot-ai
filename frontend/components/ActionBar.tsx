@@ -2,7 +2,7 @@ import React from 'react';
 import { GameState, GamePhase, Suit, Player } from '../types';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { Gavel, Megaphone, Sun, RefreshCw, X, Trophy, Smile } from 'lucide-react';
-import { canDeclareAkka, canDeclareKawesh } from '../utils/gameLogic';
+import { canDeclareAkka, canDeclareKawesh, scanHandForAkka } from '../utils/gameLogic';
 import { soundManager } from '../services/SoundManager';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -90,14 +90,13 @@ const ActionBar: React.FC<ActionBarProps> = ({
         const hasProjects = availableProjects.length > 0;
 
         let canAkka = false;
-        if (selectedCardIndex !== null && isMyTurn && phase === GamePhase.Playing) {
-            const card = me.hand[selectedCardIndex];
-            if (card) {
-                let trumpSuit = gameState.bid.suit || null;
-                if (gameState.bid.type === 'HOKUM' && !trumpSuit) trumpSuit = gameState.floorCard?.suit || null;
-                if (canDeclareAkka(card, me.hand, gameState.tableCards, gameState.bid.type === 'SUN' ? 'SUN' : 'HOKUM', trumpSuit, gameState.currentRoundTricks || [])) {
-                    canAkka = true;
-                }
+        if (isMyTurn && phase === GamePhase.Playing) {
+            let trumpSuit = gameState.bid.suit || null;
+            if (gameState.bid.type === 'HOKUM' && !trumpSuit) trumpSuit = gameState.floorCard?.suit || null;
+
+            // Scan Hand for any Akka eligibility
+            if (scanHandForAkka(me.hand, gameState.tableCards, gameState.bid.type === 'SUN' ? 'SUN' : 'HOKUM', trumpSuit, gameState.currentRoundTricks || [])) {
+                canAkka = true;
             }
         }
         const canSawa = isMyTurn && phase === GamePhase.Playing;
@@ -125,7 +124,8 @@ const ActionBar: React.FC<ActionBarProps> = ({
                     onClick={() => {
                         if (canAkka) {
                             soundManager.playAkkaSound();
-                            onPlayerAction('PLAY', { cardIndex: selectedCardIndex, metadata: { akka: true } });
+                            // Standalone Akka Action
+                            onPlayerAction('AKKA');
                         }
                     }}
                     disabled={!canAkka}

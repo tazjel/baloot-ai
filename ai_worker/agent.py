@@ -7,6 +7,7 @@ import traceback
 from ai_worker.bot_context import BotContext
 from ai_worker.strategies.bidding import BiddingStrategy
 from ai_worker.strategies.playing import PlayingStrategy
+from ai_worker.strategies.neural import NeuralStrategy
 from ai_worker.personality import PROFILES, BALANCED
 from ai_worker.memory import CardMemory
 
@@ -25,9 +26,13 @@ class BotAgent:
         # Personality
         self.personality = BALANCED # Default
         
+        # Neural Brain
+        model_path = os.path.join(os.path.dirname(__file__), 'models', 'strategy_net_best.pth')
+        self.neural_strategy = NeuralStrategy(model_path)
+
         # Strategies
         self.bidding_strategy = BiddingStrategy()
-        self.playing_strategy = PlayingStrategy()
+        self.playing_strategy = PlayingStrategy(neural_strategy=self.neural_strategy)
 
         # Core Components
         self.brain = BrainClient()
@@ -95,8 +100,39 @@ class BotAgent:
                  except Exception as e:
                       logger.error(f"[BRAIN] Integration Error: {e}")
 
-            # 3. STRATEGY: Heuristic Fallback
-            if ctx.phase == 'BIDDING':
+            # 3. STRATEGY CONFIGURATION
+            # Allow per-player config in game_state['players'][idx].get('strategy')
+            # 'neural' -> Direct Neural Inference (Speed/Imitation)
+            # 'mcts' / 'hybrid' -> Neural-Guided MCTS (Strength/Search)
+            # 'heuristic' -> Rule-based (Baseline)
+            
+            player_data = game_state['players'][player_index]
+            strategy_cfg = player_data.get('strategy', 'heuristic') # Default to heuristic if unspecified? Or balanced?
+            
+            # Defaults
+            use_neural_direct = False
+            ctx.use_mcts = True # Default to using Brain
+            
+            if strategy_cfg == 'heuristic':
+                use_neural_direct = False
+                ctx.use_mcts = False # Force Pure Rules
+                
+            elif strategy_cfg == 'neural':
+                use_neural_direct = True and self.neural_strategy.enabled
+                ctx.use_mcts = False # Disable MCTS to test pure network
+                
+            elif strategy_cfg in ['mcts', 'hybrid']:
+                use_neural_direct = False # Do not shortcut
+                ctx.use_mcts = True 
+
+            # 4. NEURAL DIRECT EXECUTION
+            if ctx.phase == 'PLAYING' and use_neural_direct:
+                 neural_move = self.neural_strategy.get_decision(ctx)
+                 if neural_move:
+                      return neural_move
+
+            # 5. STRATEGY DISPATCH (MCTS + Heuristics)
+            if ctx.phase in ['BIDDING', 'DOUBLING']:
                  return self.bidding_strategy.get_decision(ctx)
                  
             elif ctx.phase == 'PLAYING':

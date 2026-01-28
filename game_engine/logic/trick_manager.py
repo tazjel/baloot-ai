@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple, Any
 from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, POINT_VALUES_SUN, POINT_VALUES_HOKUM
+from game_engine.logic.referee import Referee
 from server.logging_utils import logger, log_event
 
 class TrickManager:
@@ -166,16 +167,131 @@ class TrickManager:
              if 'metadata' in last_play and last_play['metadata'] and last_play['metadata'].get('is_illegal'):
                   is_illegal = True
                   
-             # Determine Loser
-             loser_team = None
-             reason = ""
+             # Determine Loser via REFEREE
+             violation = None
              
-             if is_illegal:
+             # Reconstruct State for Referee
+             game_mode = self.game.game_mode
+             trump_suit = self.game.trump_suit
+             is_locked = self.game.is_locked
+             
+             # Context for Last Play
+             # We need the STATE BEFORE the card was played.
+             # This is tricky because table_cards already has the card.
+             # but `hand` of offender does NOT have it (popped).
+             # To run Referee check properly, we need to temporarily un-pop or pass card + hand.
+             
+             offender = next(p for p in self.game.players if p.position == offender_pos)
+             played_card_obj = last_play['card']
+             
+             # We need to know who was winning BEFORE this card was played.
+             # Remove last card temporarily
+             current_table_minus_last = self.game.table_cards[:-1]
+             
+             # Calculate winner of partial trick
+             from game_engine.logic.validation import get_trick_winner_index
+             partial_winner_idx = get_trick_winner_index(current_table_minus_last, game_mode, trump_suit)
+             
+             if partial_winner_idx != -1:
+                  curr_winner_play = current_table_minus_last[partial_winner_idx]
+                  curr_winner_pos = curr_winner_play['playedBy']
+                  curr_winner_card = curr_winner_play['card']
+                  winner_team = next(p.team for p in self.game.players if p.position == curr_winner_pos)
+                  is_partner_winning = (winner_team == offender.team)
+                  
+                  # Find highest trump if any
+                  highest_trump_rank = None
+                  for tc in current_table_minus_last:
+                       c = tc['card']
+                       if c.suit == trump_suit:
+                            if highest_trump_rank is None:
+                                 highest_trump_rank = c.rank
+                            else:
+                                 s_curr = ORDER_HOKUM.index(c.rank)
+                                 s_high = ORDER_HOKUM.index(highest_trump_rank)
+                                 if s_curr < s_high: # Lower index is stronger
+                                      highest_trump_rank = c.rank
+             else:
+                  # Leading card
+                  curr_winner_pos = None
+                  winner_team = None
+                  is_partner_winning = False
+                  curr_winner_card = None
+                  highest_trump_rank = None
+                  
+             led_suit = current_table_minus_last[0]['card'].suit if current_table_minus_last else None
+             
+             # Run Referee Checks
+             # 1. Locked Lead
+             if not violation and not current_table_minus_last: # Leading
+                  v = Referee.check_locked_lead(is_locked, trump_suit, offender.hand + [played_card_obj], played_card_obj)
+                  if v: violation = v
+                  
+             # 2. Revoke
+             if not violation and led_suit:
+                  v = Referee.check_revoke(offender.hand + [played_card_obj], led_suit, played_card_obj)
+                  if v: violation = v
+                  
+             # 3. Eating
+             if not violation and led_suit and game_mode == 'HOKUM':
+                  v = Referee.check_eating(
+                       game_mode, trump_suit, offender.hand + [played_card_obj], led_suit, played_card_obj,
+                       curr_winner_pos, offender.team, is_partner_winning
+                  )
+                  if v: violation = v
+                  
+             # 4. Undertrump
+             if not violation and game_mode == 'HOKUM':
+                  v = Referee.check_undertrump(
+                       game_mode, trump_suit, offender.hand + [played_card_obj], played_card_obj,
+                       highest_trump_rank, False # partner_has_high check omitted for simplicity or checked elsewhere
+                  )
+                  if v: violation = v
+
+             # Determine KABOOT Potential (Counterfactual)
+             # If Violation detected, check if Kaboot was likely
+             penalty_points_override = None
+             
+             if violation:
+                 # Check if Offender spoiled a Kaboot
+                 # Need remaining cards by player
+                 rem_cards = {p.position: p.hand + ([played_card_obj] if p == offender else []) for p in self.game.players}
+                 # Note: offender already had played_card_obj popped? 
+                 # In handle_qayd, we accessed offender.hand.
+                 # Actually `offender` in line 184 is a fresh reference but `hand` is mutable.
+                 # `played_card_obj` was popped.
+                 # So we reconstruct hands.
+                 
+                 offender_team = offender.team
+                 offender_has_tricks = any(
+                     (next(p.team for p in self.game.players if p.position == t['winner']) == offender_team)
+                     for t in self.game.round_history
+                 )
+                 
+                 team_map = {p.position: p.team for p in self.game.players}
+                 
+                 is_kaboot = Referee.estimate_kaboot(
+                      offending_team_has_tricks=offender_has_tricks,
+                      remaining_cards_by_player=rem_cards,
+                      players_team_map=team_map,
+                      offender_team=offender_team,
+                      game_mode=game_mode,
+                      trump_suit=trump_suit
+                 )
+                 
+                 if is_kaboot:
+                      # Award Kaboot Points
+                      if game_mode == 'SUN':
+                           penalty_points_override = 44
+                      else:
+                           penalty_points_override = 26 # Boosted for Hokum
+                      logger.info(f"REFEREE ESTIMATION: KABOOT PREVENTED! Penalty set to {penalty_points_override}")
+
+             if violation:
                   # Claim Valid -> Offender Loses
-                  offender = next(p for p in self.game.players if p.position == offender_pos)
                   loser_team = offender.team
-                  reason = f"Qayd Valid: {offender_pos} played illegal move."
-                  logger.info(reason)
+                  reason = f"Qayd Valid: {violation}"
+                  logger.info(f"REFEREE RULING: {reason}")
              else:
                   # Claim Invalid -> Reporter Loses
                   loser_team = reporter.team
@@ -183,26 +299,35 @@ class TrickManager:
                   logger.info(reason)
                   
              # Execute Penalty (Khasara)
-             self.apply_khasara(loser_team, reason)
+             self.apply_khasara(loser_team, reason, points_override=penalty_points_override)
              return {"success": True, "message": reason}
              
         except Exception as e:
              logger.error(f"Error in handle_qayd: {e}")
              return {"error": str(e)}
 
-    def apply_khasara(self, loser_team, reason):
+    def apply_khasara(self, loser_team, reason, points_override=None):
         """Ends round giving full points (16/26) to the winner team."""
         winner_team = 'us' if loser_team == 'them' else 'them'
         
         # Calculate max round points
-        points = 26 if self.game.game_mode == 'SUN' else 16
+        points = points_override if points_override else (26 if self.game.game_mode == 'SUN' else 16)
         
         # Multiply if doubled
         if self.game.doubling_level >= 2:
              points *= self.game.doubling_level
              
-        score_us = points if winner_team == 'us' else 0
-        score_them = points if winner_team == 'them' else 0
+        # Calculate Project Points (All Declared Projects)
+        project_points = 0
+        if hasattr(self.game, 'declarations') and self.game.declarations:
+             for pos, projs in self.game.declarations.items():
+                  for proj in projs:
+                       project_points += proj.get('score', 0)
+                       
+        total_points = points + project_points
+             
+        score_us = total_points if winner_team == 'us' else 0
+        score_them = total_points if winner_team == 'them' else 0
         
         # Log and End
         log_event("ROUND_END_PENALTY", self.game.room_id, details={

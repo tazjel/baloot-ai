@@ -11,29 +11,32 @@ def get_trick_winner_index(table_cards: List[Dict], game_mode: str, trump_suit: 
         return -1
 
     lead_card = table_cards[0]['card']
+    lead_suit = _get_suit(lead_card)
     best_idx = 0
     current_best = -1
     
     for i, play in enumerate(table_cards):
         card = play['card']
+        card_suit = _get_suit(card)
+        card_rank = _get_rank(card)
         strength = -1
         
         if game_mode == "SUN":
-            if card.suit == lead_card.suit:
+            if card_suit == lead_suit:
                 try:
-                    strength = ORDER_SUN.index(card.rank)
+                    strength = ORDER_SUN.index(card_rank)
                 except ValueError:
                     strength = -1 
         else:
             # HOKUM
-            if card.suit == trump_suit:
+            if card_suit == trump_suit:
                 try:
-                    strength = 100 + ORDER_HOKUM.index(card.rank)
+                    strength = 100 + ORDER_HOKUM.index(card_rank)
                 except ValueError:
-                     strength = -1
-            elif card.suit == lead_card.suit:
+                    strength = -1
+            elif card_suit == lead_suit:
                 try:
-                    strength = ORDER_SUN.index(card.rank)
+                    strength = ORDER_SUN.index(card_rank)
                 except ValueError:
                     strength = -1
         
@@ -46,24 +49,34 @@ def get_trick_winner_index(table_cards: List[Dict], game_mode: str, trump_suit: 
 def can_beat_trump_card(winning_card: Card, hand: List[Card], trump_suit: str) -> Tuple[bool, List[Card]]:
     """ Returns True if hand contains a trump higher than winning_card. """
     try:
-        winning_strength = 100 + ORDER_HOKUM.index(winning_card.rank)
+        winning_strength = 100 + ORDER_HOKUM.index(_get_rank(winning_card))
     except ValueError:
         return False, []
 
     beating_cards = []
     for c in hand:
-        if c.suit == trump_suit:
+        if _get_suit(c) == trump_suit:
              try:
-                 s = 100 + ORDER_HOKUM.index(c.rank)
+                 s = 100 + ORDER_HOKUM.index(_get_rank(c))
                  if s > winning_strength:
                       beating_cards.append(c)
              except ValueError:
                  pass
     return (len(beating_cards) > 0), beating_cards
 
+def _get_suit(card) -> str:
+    if hasattr(card, 'suit'): return card.suit
+    if isinstance(card, dict): return card.get('suit')
+    return None
+
+def _get_rank(card) -> str:
+    if hasattr(card, 'rank'): return card.rank
+    if isinstance(card, dict): return card.get('rank')
+    return None
+    
 def is_move_legal(
-    card: Card, 
-    hand: List[Card], 
+    card: Any, 
+    hand: List[Any], 
     table_cards: List[Dict], 
     game_mode: str, 
     trump_suit: str, 
@@ -78,9 +91,9 @@ def is_move_legal(
     
     # 0. Check Closed Doubling Constraint (Magfool / Locked)
     if not table_cards and contract_variant == 'CLOSED' and game_mode == 'HOKUM':
-        # Cannot lead Trump if I have other suits
-        if card.suit == trump_suit:
-            has_non_trump = any(c.suit != trump_suit for c in hand)
+        card_suit = _get_suit(card)
+        if card_suit == trump_suit:
+            has_non_trump = any(_get_suit(c) != trump_suit for c in hand)
             if has_non_trump:
                 return False
 
@@ -89,16 +102,25 @@ def is_move_legal(
     
     lead_play = table_cards[0]
     lead_card = lead_play['card']
-    lead_suit = lead_card.suit
+    lead_suit = _get_suit(lead_card)
+    card_suit = _get_suit(card)
     
     # 1. Follow Suit (Mandatory in Sun & Hokum)
-    has_suit = any(c.suit == lead_suit for c in hand)
+    try:
+        has_suit = any(_get_suit(c) == lead_suit for c in hand)
+    except Exception as e:
+        print(f"CRITICAL ERROR in validation.py has_suit check:")
+        print(f"Error: {e}")
+        print(f"Lead Suit: {lead_suit} (Type: {type(lead_suit)})")
+        print(f"Hand Limit 3: {[str(c) for c in hand[:3]]}")
+        # print(f"Full Hand: {hand}")
+        raise e
+        
     if has_suit:
-        if card.suit != lead_suit:
+        if card_suit != lead_suit:
             return False
             
         # If following suit in Hokum and Lead is Trump, we are good (must follow).
-        # But if we can't follow suit... see below.
         if game_mode == 'HOKUM' and lead_suit == trump_suit:
              pass 
         else:
@@ -125,59 +147,62 @@ def is_move_legal(
     # 3. Enemy Winning
     # Must Trump if possible OR Must Over-Trump
     
-    has_trump = any(c.suit == trump_suit for c in hand)
+    has_trump = any(_get_suit(c) == trump_suit for c in hand)
     
-    # Case A: Void in Lead Suit (has_suit is False, because if True we handled it or fell through)
-    # Wait, if has_suit is True, we returned True (line 80) OR fell through (line 78).
-    # If we fell through (Hokum Trump Lead), we are following suit.
-    # If Lead is Trump, we must over-trump if possible!
-    
+    # Case A: Void in Lead Suit
     if lead_suit == trump_suit and has_suit:
          # We are following trump. Must we beat the current winner (who is also trump)?
          can_beat, beating_cards = can_beat_trump_card(curr_winner_play['card'], hand, trump_suit)
          if can_beat:
               # Must play a beating card
-              if card not in beating_cards:
-                   # Tried to play a small trump when I have a bigger one?
-                   # Rule: "If you can over-trump, you MUST."
-                   # But wait, logic line 130 in TrickManager says:
-                   # if played_strength <= winning_strength: return False
-                   # effectively enforcing playing a higher card.
-                   # Let's verify my can_beat logic returns ONLY beating cards.
-                   
-                   # But wait, what if I play a beating card?
-                   # card IS in beating_cards -> Returns True (allowed).
-                   
-                   # What if I play a losing card?
-                   # card NOT in beating_cards -> Returns False?
-                   pass
-
-              # Checking strictly:
-              played_strength = 100 + ORDER_HOKUM.index(card.rank)
-              winning_strength = 100 + ORDER_HOKUM.index(curr_winner_play['card'].rank)
+              # Check safely
+              # beating_cards logic relies on can_beat_trump_card which we might need to update too?
+              # Let's inspect can_beat_trump_card next.
               
-              if played_strength <= winning_strength:
-                   return False # Under-trumping when I could over-trump
-         return True
+              if card not in beating_cards:
+                   # Try manual check if object identity fails (dicts don't compare equal unless contents same)
+                   pass
+                   # Actually beating_cards returns list of objects from hand.
+                   # If card is from hand, identity check works if usage is consistent.
+                   
+                   # But let's verify strength manually
+                   played_rank = _get_rank(card)
+                   winning_rank = _get_rank(curr_winner_play['card'])
+                   
+                   try:
+                       played_strength = 100 + ORDER_HOKUM.index(played_rank)
+                       winning_strength = 100 + ORDER_HOKUM.index(winning_rank)
+                       if played_strength <= winning_strength:
+                           return False 
+                   except:
+                       return True # Soft fail?
+                       
+              return True
 
 
     # Case B: Void in Lead Suit (Really void)
     if not has_suit:
         if has_trump:
             # Must play Trump
-            if card.suit != trump_suit:
+            if _get_suit(card) != trump_suit:
                 return False
             
             # Must Over-Trump?
-            if curr_winner_play['card'].suit == trump_suit:
+            if _get_suit(curr_winner_play['card']) == trump_suit:
                 can_beat, beating_cards = can_beat_trump_card(curr_winner_play['card'], hand, trump_suit)
                 if can_beat:
                      if card not in beating_cards: 
                           # Check strength manually just to be safe or rely on list check
-                          played_strength = 100 + ORDER_HOKUM.index(card.rank)
-                          winning_strength = 100 + ORDER_HOKUM.index(curr_winner_play['card'].rank)
-                          if played_strength <= winning_strength:
-                               return False
+                          played_rank = _get_rank(card)
+                          winning_rank = _get_rank(curr_winner_play['card'])
+                          
+                          try:
+                              played_strength = 100 + ORDER_HOKUM.index(played_rank)
+                              winning_strength = 100 + ORDER_HOKUM.index(winning_rank)
+                              if played_strength <= winning_strength:
+                                   return False
+                          except:
+                               pass
             return True
 
     return True

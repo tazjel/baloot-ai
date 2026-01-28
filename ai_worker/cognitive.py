@@ -4,6 +4,7 @@ from ai_worker.bot_context import BotContext
 from ai_worker.mcts.mcts import MCTSSolver
 from ai_worker.mcts.utils import generate_random_distribution
 from ai_worker.mcts.fast_game import FastGame
+from ai_worker.learning.dataset_logger import DatasetLogger
 
 logger = logging.getLogger(__name__)
 
@@ -12,20 +13,20 @@ class CognitiveOptimizer:
     The 'Brain' of the AI: Handles simulation-based decision making.
     Encapsulates MCTS, Hand Estimation, and Fast Simulation.
     """
-    def __init__(self, use_inference=True):
-        self.solver = MCTSSolver()
+    def __init__(self, use_inference=True, neural_strategy=None):
+        self.solver = MCTSSolver(neural_strategy=neural_strategy)
         self.use_inference = use_inference
         self.enabled = True
+        self.dataset_logger = DatasetLogger() # Auto-init logger
 
     def get_decision(self, ctx: BotContext) -> dict:
         """
         Attempts to find the optimal move using MCTS.
-        Returns a decision dict (cardIndex, reasoning) or None if skipped/failed.
         """
         if not self.enabled: return None
         
-        # Trigger Condition: Endgame (Start of Trick 5 -> 4 cards left)
-        if len(ctx.hand) > 4 or len(ctx.hand) == 0:
+        # Trigger Condition: Run always for data collection
+        if len(ctx.hand) == 0:
             return None
             
         try:
@@ -56,17 +57,56 @@ class CognitiveOptimizer:
             )
             
             # 3. Execution (The Oracle)
-            best_idx = self.solver.search(fast_game, timeout_ms=300)
+            # Calculate Adaptive Budget
+            budget = self._calculate_budget(ctx)
+            
+            # 3. Execution (The Oracle)
+            best_idx, details = self.solver.search_with_details(
+                fast_game, 
+                timeout_ms=500, # Increased timeout
+                max_iterations=budget
+            )
+            
+            # DATASET LOGGING (Neural Net Training)
+            try:
+                if self.dataset_logger:
+                    self.dataset_logger.log_sample(ctx, best_idx, details)
+            except: 
+                pass
             
             return {
                 "cardIndex": best_idx,
-                "reasoning": f"Oracle (MCTS) - Verified {len(ctx.hand)} cards"
+                "reasoning": f"Oracle (MCTS) - Budget {budget} - Verified {len(ctx.hand)} cards"
             }
             
         except Exception as e:
             logger.error(f"Cognitive Engine Failed: {e}", exc_info=False)
             # Ideally minimal logging to avoid spam in production, or verbose if debugging.
             return None
+
+    def _calculate_budget(self, ctx: BotContext) -> int:
+        """
+        Dynamic Difficulty Adjustment (DDA).
+        Adjusts simulation budget based on score difference.
+        """
+        base_budget = 2000
+        
+        # Get scores
+        scores = ctx.raw_state.get('matchScores', {'us': 0, 'them': 0})
+        us_score = scores.get('us', 0)
+        them_score = scores.get('them', 0)
+        
+        diff = us_score - them_score
+        
+        # MERCY RULE: If we are winning big, play dumb.
+        if diff > 50:
+            return 500
+            
+        # PANIC RULE: If we are losing big, try harder.
+        if diff < -50:
+            return 5000
+            
+        return base_budget
 
     def analyze_position(self, ctx: BotContext) -> dict:
         """

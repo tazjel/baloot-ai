@@ -205,11 +205,29 @@ class ProjectManager:
         try:
              import time
              eligible = self.check_akka_eligibility(player_index)
+             p = self.game.players[player_index]
+
              if not eligible:
-                  return {"error": "Not eligible for Akka"}
+                  # INVALID AKKA! REFEREE INTERVENTION
+                  # We record the attempt but flag it as a violation
+                  logger.warning(f"INVALID AKKA CLAIM by {p.position}")
+                  
+                  # Trigger Qayd/Blunder
+                  self.game.increment_blunder(player_index)
+                  
+                  # We return success=False but with specific error code to let UI show Referee
+                  return {
+                      "success": False, 
+                      "error": "REFEREE_FLAG", 
+                      "message": "Invalid Akka! (Higher cards exist)",
+                      "intervention": {
+                          "type": "INVALID_AKKA",
+                          "playerIndex": player_index,
+                          "message": "Cannot declare Akka! Higher cards are still in play."
+                      }
+                  }
              
              # Valid!
-             p = self.game.players[player_index]
              
              # Update State
              self.akka_state = {

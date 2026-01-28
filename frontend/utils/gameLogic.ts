@@ -604,6 +604,29 @@ export const canDeclareAkka = (
 };
 
 /**
+ * Scans the entire hand to check if ANY card is eligible for Akka.
+ */
+export const scanHandForAkka = (
+    hand: CardModel[],
+    tableCards: { card: CardModel, metadata?: TableCardMetadata }[],
+    mode: 'SUN' | 'HOKUM',
+    trumpSuit: Suit | null,
+    currentRoundTricks: { cards: CardModel[] }[] = []
+): boolean => {
+    // Basic checks first to save performance
+    if (mode !== 'HOKUM') return false;
+    if (tableCards.length > 0) return false;
+
+    // Check every card in hand
+    for (const card of hand) {
+        if (canDeclareAkka(card, hand, tableCards, mode, trumpSuit, currentRoundTricks)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+/**
  * Checks if a user can declare "Kawesh" (Redeal).
  * Rules:
  * 1. Hand must possess NO Court Cards (A, K, Q, J, 10).

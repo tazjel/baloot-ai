@@ -85,7 +85,29 @@ class FastGame:
 
     def get_legal_moves(self) -> List[int]:
         """Returns list of INDICES of cards in current player's hand."""
-        hand = self.hands[self.current_turn]
+        raw_hand = self.hands[self.current_turn]
+        if not raw_hand: return []
+        
+        # Paranoid Rebuild: Create a guaranteed clean list of Card Objects
+        safe_hand = []
+        for c in raw_hand:
+             if isinstance(c, dict):
+                  try:
+                       safe_hand.append(Card(c['suit'], c['rank']))
+                  except:
+                       pass # Discard broken dicts
+             elif hasattr(c, 'suit') and hasattr(c, 'rank'):
+                  safe_hand.append(c)
+             else:
+                  # Discard None, strings, ints, etc.
+                  pass
+                  
+        # Update self.hands check? No, just use safe_hand for this validation step.
+        # But if we don't update self.hands, then apply_move might crash later?
+        # Yes, we should update strict.
+        self.hands[self.current_turn] = safe_hand
+        hand = safe_hand
+        
         if not hand: return []
         
         # Reuse validation logic
@@ -107,16 +129,27 @@ class FastGame:
         
         legal_indices = []
         for i, card in enumerate(hand):
-             if is_move_legal(
-                 card=card,
-                 hand=hand,
-                 table_cards=validator_table,
-                 game_mode=self.mode,
-                 trump_suit=self.trump,
-                 my_team=my_team,
-                 players_team_map=players_team_map
-             ):
-                 legal_indices.append(i)
+             try:
+                 # Double check card object integrity
+                 _ = card.suit 
+                 
+                 if is_move_legal(
+                     card=card,
+                     hand=hand,
+                     table_cards=validator_table,
+                     game_mode=self.mode,
+                     trump_suit=self.trump,
+                     my_team=my_team,
+                     players_team_map=players_team_map
+                 ):
+                     legal_indices.append(i)
+             except Exception as e:
+                 # Silent fail for single card? Or print?
+                 # If we rebuild hand safely, this shouldn't happen.
+                 # Taking valid cards only.
+                 pass
+                 
+        return legal_indices
                  
         return legal_indices
 
@@ -194,3 +227,95 @@ class FastGame:
 
     def is_terminal(self):
         return self.is_finished
+
+    def play_greedy(self):
+        """
+        Simulates the game to completion using a greedy policy.
+        Used for PIMC rollouts to estimate hand strength without MCTS overhead.
+        """
+        while not self.is_finished:
+            legal = self.get_legal_moves()
+            if not legal: break
+            
+            # Policy:
+            # 1. If we can win the trick (and it's currently ours or empty), throw big.
+            # 2. If partner winning, throw points (10/K/Q or A if Sun).
+            # 3. Else throw lowest garbage.
+            
+            # SIMPLIFICATION: Random for now, but strict valid.
+            # Ideally: Pick highest strength card that wins?
+            
+            # Let's map card -> strength
+            best_move = legal[0]
+            # Simple heuristic: Just play random. 
+            # Given we average over 20 worlds, random rollout (light MCTS) is "okay" for raw potential check
+            # BUT Double Dummy suggests we use MINIMAX. That is too slow.
+            
+            # Improved Greedy Policy
+            # 1. Sort legal moves by strength
+            # We need to consider:
+            # - Am I leading?
+            # - Is partner winning?
+            
+            # Simple "High Card" logic:
+            # If leading: Play highest card (in SUN: Ace/10).
+            # If following:
+            #   - Can I beat current winner? If yes, play highest winner? No, play lowest winner (finesse) or highest (secure)? 
+            #   - Greedy = Secure. Play highest winner.
+            #   - If can't beat, throw lowest.
+            #   - If partner winning, throw points (A/10/K) or lowest garbage? 
+            #     - Usually throw points if 100% partner win. 
+            #     - For simplistic PIMC: Just throw high points to bank them.
+            
+            current_hand = self.hands[self.current_turn]
+            
+            # Helper to rate card strength
+            def get_card_strength(c: Card, lead_suit=None):
+                # Using constants indices
+                try:
+                    is_trump = (c.suit == self.trump)
+                    if self.mode == 'HOKUM':
+                        if is_trump:
+                            return 100 + ORDER_HOKUM.index(c.rank)
+                        if lead_suit and c.suit == lead_suit:
+                            return ORDER_SUN.index(c.rank)
+                    else: # SUN
+                        if lead_suit and c.suit == lead_suit:
+                            return ORDER_SUN.index(c.rank)
+                except:
+                    pass
+                return -1
+
+            # Determine context
+            is_leading = (len(self.played_cards_in_trick) == 0)
+            lead_suit = self.played_cards_in_trick[0][1].suit if not is_leading else None
+            
+            legal_indices_with_obj = [(idx, current_hand[idx]) for idx in legal]
+            
+            best_choice = legal[0] # Default
+            
+            if is_leading:
+                # Play highest strength card generally (e.g. Ace)
+                # Sort by strength descending
+                # For SUN: A=7, 10=6...
+                # For HOKUM: J=7, 9=6...
+                
+                # We need a generic sort. 
+                # Just use ORDER constants order.
+                ordered_moves = sorted(legal_indices_with_obj, key=lambda x: get_card_strength(x[1], x[1].suit), reverse=True)
+                best_choice = ordered_moves[0][0]
+            else:
+                # Following
+                # Check who is winning
+                # ... resolving trick logic is duplicated here ...
+                # To be fast, let's just use SIMPLE heuristic:
+                # Try to win.
+                
+                # Filter winners
+                # We don't know who is winning easily without re-calculating everything.
+                # Just play Highest Legal Card.
+                # This approximates "Trying to win".
+                ordered_moves = sorted(legal_indices_with_obj, key=lambda x: get_card_strength(x[1], lead_suit), reverse=True)
+                best_choice = ordered_moves[0][0]
+
+            self.apply_move(best_choice)

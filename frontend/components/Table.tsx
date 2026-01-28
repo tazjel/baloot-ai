@@ -66,7 +66,7 @@ export default function Table({
     isPaused = false
 }: TableProps) {
     // --- HOOKS ---
-    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing } = gameState || {};
+    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
 
     // Voice Hook
     const { speak } = useVoice();
@@ -549,6 +549,7 @@ export default function Table({
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
                                 speechText={playerSpeech[leftPlayer.index]}
+                                akkaState={akkaState}
                             />
                         )}
 
@@ -566,6 +567,7 @@ export default function Table({
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
                                 speechText={playerSpeech[rightPlayer.index]}
+                                akkaState={akkaState}
                             />
                         )}
 
@@ -683,6 +685,7 @@ export default function Table({
                 doublingLevel={gameState.doublingLevel}
                 showProjects={showProjects}
                 speechText={playerSpeech[me.index]}
+                akkaState={akkaState}
             />
 
             <ActionBar

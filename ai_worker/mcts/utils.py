@@ -19,7 +19,19 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
             all_cards.append(Card(s, r))
             
     # Remove My Hand
-    my_hand_str = [str(c) for c in ctx.hand]
+    # Defensive: Ensure ctx.hand contains Card objects
+    sanitized_hand = []
+    for c in ctx.hand:
+        if isinstance(c, dict):
+            # Reconstruct Card from dict if needed
+            sanitized_hand.append(Card(c['suit'], c['rank']))
+        elif hasattr(c, 'suit'):
+             sanitized_hand.append(c)
+        else:
+             # Fallback or error?
+             pass
+             
+    my_hand_str = [str(c) for c in sanitized_hand]
     
     # Remove Played Cards (from Memory)
     played = ctx.memory.played_cards # Set of strings like "7H"
@@ -51,7 +63,7 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
     hands = [[], [], [], []] # Bottom, Right, Top, Left
     
     # Fill Bottom (Self)
-    hands[0] = [c for c in ctx.hand] # Copy
+    hands[0] = [c for c in sanitized_hand] # Copy
     
     # Fill Others
     # This naive distribution assumes equal counts. 
@@ -170,7 +182,16 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
 
 def _naive_distribution(remaining, target_counts, my_hand):
     hands = [[], [], [], []]
-    hands[0] = [c for c in my_hand]
+    
+    # Defensive: Ensure my_hand contains Card objects even here (if passed directly)
+    sanitized_my_hand = []
+    for c in my_hand:
+        if isinstance(c, dict):
+            sanitized_my_hand.append(Card(c['suit'], c['rank']))
+        elif hasattr(c, 'suit'):
+             sanitized_my_hand.append(c)
+             
+    hands[0] = [c for c in sanitized_my_hand]
     
     current_idx_for_dist = 1
     for card in remaining:

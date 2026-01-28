@@ -5,8 +5,8 @@ from game_engine.models.constants import POINT_VALUES_SUN, POINT_VALUES_HOKUM, O
 from ai_worker.cognitive import CognitiveOptimizer
  
 class PlayingStrategy:
-    def __init__(self):
-        self.cognitive = CognitiveOptimizer()
+    def __init__(self, neural_strategy=None):
+        self.cognitive = CognitiveOptimizer(neural_strategy=neural_strategy)
         self.use_mcts_endgame = True
 
     def get_decision(self, ctx: BotContext) -> dict:
@@ -14,10 +14,18 @@ class PlayingStrategy:
         if not legal_indices:
             return {"cardIndex": -1, "reasoning": "No Legal Moves (Error)"}    
 
+        # --- AKKA CHECK (Master Declaration) ---
+        # Checks if we have the highest non-trump card and should signal partner
+        akka_decision = self._check_akka(ctx)
+        if akka_decision:
+             return akka_decision
+
         # --- COGNITIVE ENGINE (Oracle) ---
-        oracle_decision = self.cognitive.get_decision(ctx)
-        if oracle_decision:
-             return oracle_decision
+        # Checks if MCTS is enabled for this turn/player
+        if getattr(ctx, 'use_mcts', True):
+            oracle_decision = self.cognitive.get_decision(ctx)
+            if oracle_decision:
+                return oracle_decision
         
         # --- STANDARD HEURISTICS ---
         # 0. Endgame Solver
@@ -593,4 +601,73 @@ class PlayingStrategy:
              return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ashkal Signal Response"}
              
         return None
+
+    def _check_akka(self, ctx: BotContext):
+         """
+         Checks if eligible for 'Akka' declaration.
+         Returns {"action": "AKKA"} if eligible and not declared yet.
+         """
+         if ctx.mode != 'HOKUM': return None
+         
+         # Check if already declared by me
+         if ctx.akka_state and ctx.akka_state.get('claimer') == ctx.position:
+              return None
+              
+         # Gather all played cards (Memory + Table)
+         # ctx.memory.played_cards is set of "RankSuit" e.g. "7S"?
+         # Let's double check memory format or normalize.
+         # Assuming CardMemory stores standard format.
+         # If not safely known, we can rebuild from raw history if needed, but slow.
+         # Let's trust memory.played_cards (Set of strings).
+         # AND add current table cards.
+         
+         played = set(ctx.memory.played_cards)
+         for tc in ctx.table_cards:
+              c = tc['card']
+              played.add(f"{c.rank}{c.suit}")
+              
+         # Scan Hand
+         eligible = False
+         
+         # Group by suit
+         my_suits = {}
+         for c in ctx.hand:
+              if c.suit not in my_suits: my_suits[c.suit] = []
+              my_suits[c.suit].append(c)
+              
+         for suit, cards in my_suits.items():
+              if suit == ctx.trump: continue
+              
+              # Find my best
+              # Akka follows SUN order for non-trump suits in Hokum
+              rank_order = ORDER_SUN
+              
+              # Filter cards valid in ranking
+              valid_cards = [c for c in cards if c.rank in rank_order]
+              if not valid_cards: continue
+              
+              my_best = max(valid_cards, key=lambda c: rank_order.index(c.rank))
+              
+              if my_best.rank == 'A': continue
+              
+              my_strength = rank_order.index(my_best.rank)
+              is_master = True
+              
+              # Check if everything stronger is played
+              for r in rank_order:
+                   strength = rank_order.index(r)
+                   if strength > my_strength:
+                        sig = f"{r}{suit}"
+                        if sig not in played:
+                             is_master = False
+                             break
+              
+              if is_master:
+                   eligible = True
+                   break
+                   
+         if eligible:
+              return {"action": "AKKA", "reasoning": "Declaring Master (Akka)"}
+         
+         return None
 

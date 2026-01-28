@@ -131,6 +131,32 @@ class BiddingStrategy:
                                  
         # logger.info(f"Bid Logic: P{ctx.player_index} (Dealer? {is_last_to_speak}). SunScore: {sun_score} vs {sun_threshold}. Hokum: {best_hokum_score} vs {hokum_threshold}")
 
+        simulated_decision = None
+        # ORACLE CHECK (Experimental) from ai_worker.strategies.oracle_bidding import OracleBiddingStrategy
+        try:
+             # Only check if impactful (e.g. not a total pass hand)
+             # Or check every time to build logs? Let's check if score > 10
+             if sun_score > 12 or best_hokum_score > 10:
+                 from ai_worker.strategies.oracle_bidding import OracleBiddingStrategy
+                 oracle = OracleBiddingStrategy()
+                 ev_stats = oracle.evaluate_hand(ctx)
+                 
+                 # Basic Parser: If SUN EV > 20 points? (Wait, simulated points are full game points 0-152)
+                 # Game Score 152. Losing 0-152.
+                 # SUN Pass line ~ 80 points (half)?
+                 # Actually, winning > 76 points means we win game. 
+                 # But we need to offset the risk of bidding.
+                 
+                 sun_ev = ev_stats.get('SUN', 0)
+                 if sun_ev > 85: # Strict win
+                      simulated_decision = "SUN"
+                 
+                 # Log comparison
+                 logger.info(f"[ORACLE vs HEURISTIC] Heuristic: SunScore {sun_score} -> Decision: Pending. Oracle: SunEV {sun_ev} -> Rec: {simulated_decision}")
+
+        except Exception as e:
+            logger.error(f"Oracle Fail: {e}")
+
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
             

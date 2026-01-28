@@ -5,7 +5,8 @@ class Card:
     def __init__(self, suit, rank, id=None):
         self.suit = suit
         self.rank = rank
-        self.id = id if id else f"{rank}{suit}-{int(time.time()*1000)}{random.randint(0,999)}"
+        # Optimization: Only generate ID if strictly needed
+        self.id = id if id else f"{rank}{suit}"
 
     def to_dict(self):
         return {"suit": self.suit, "rank": self.rank, "id": self.id, "value": 0}
