@@ -606,16 +606,66 @@ class PlayingStrategy:
         
         if partner_card.suit != actual_lead_suit:
              # Discard Detected!
+             
+             # CONTEXT: Was Partner Winning?
+             # Tahreeb: Discarder's Partner (ME/US) is winning.
+             # Partner discarded, so they didn't win.
+             # If I (ctx.player_index) won the trick, then it is TAHREEB.
+             
+             winner_idx = last_trick.get('winner')
+             # partner_idx = (ctx.player_index + 2) % 4
+             
+             # If I won, then my partner (the discarder) sees his partner (me) winning.
+             is_tahreeb_context = (winner_idx == ctx.player_index)
+             
              # Check for Signal
-             sig_type = signal_mgr.get_signal_for_card(partner_card)
-             if sig_type == SignalType.ENCOURAGE:
+             # Manager expects "is_partner_winning" from perspective of Discarder.
+             # Discarder's partner is Me. So if I won, is_partner_winning=True.
+             sig_type = signal_mgr.get_signal_for_card(partner_card, is_tahreeb_context)
+             
+             # --- DIRECTIONAL SIGNAL CHECK ---
+             # Retrieve Discard History from Memory
+             # Note: Memory stores by Position String/ID. We need to match.
+             # partner_pos from _get_partner_pos is correct string key (e.g. 'Top') based on memory impl.
+             discards = ctx.memory.discards.get(partner_pos, [])
+             
+             directional_sig = signal_mgr.analyze_directional_signal(discards, partner_card.suit)
+             
+             if directional_sig == SignalType.CONFIRMED_POSITIVE:
+                  return {'suit': partner_card.suit, 'type': 'CONFIRMED_POSITIVE'}
+             elif directional_sig == SignalType.CONFIRMED_NEGATIVE:
+                  # Treated same as NEGATIVE_DISCARD contextually? Or stronger?
+                  # For leading, Negative means "Don't Lead". 
+                  # Playing Strategy usually looks for "Positive" signals to Lead.
+                  # But returning it helps avoid leading it if we were considering it.
+                  return {'suit': partner_card.suit, 'type': 'CONFIRMED_NEGATIVE'}
+             
+             # --- END DIRECTIONAL CHECK ---
+             
+             if sig_type == SignalType.URGENT_CALL:
+                  return {'suit': partner_card.suit, 'type': 'URGENT_CALL'}
+                  
+             elif sig_type == SignalType.ENCOURAGE:
                   # Partner wants us to play this suit!
-                  # Verify we have this suit?
                   return {'suit': partner_card.suit, 'type': 'ENCOURAGE'}
              
+             elif sig_type == SignalType.NEGATIVE_DISCARD:
+                  # Partner DOES NOT WANT this suit.
+                  # Implies PREFER_SAME_COLOR
+                  discard_suit = partner_card.suit
+                  colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
+                  my_color = colors.get(discard_suit)
+                  
+                  target_suits = []
+                  for s, color in colors.items():
+                       if color == my_color and s != discard_suit:
+                            target_suits.append(s)
+                            
+                  return {'suits': target_suits, 'type': 'PREFER_SAME_COLOR', 'negated': discard_suit}
+             
              elif sig_type == SignalType.PREFER_OPPOSITE_COLOR:
+                  # Legacy or Specific Low Card logic if enabled
                   # Partner wants OPPOSITE COLOR of the discarded card.
-                  # Discard Red -> Want Black. Discard Black -> Want Red.
                   discard_suit = partner_card.suit
                   colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
                   my_color = colors.get(discard_suit)
@@ -634,30 +684,112 @@ class PlayingStrategy:
          signal = self._check_partner_signals(ctx)
          
          if signal:
-              if signal['type'] == 'ENCOURAGE':
+              # 1. URGENT CALL (Barqiya)
+              if signal['type'] == 'URGENT_CALL':
                    target_suit = signal['suit']
-                   # Try to lead this suit
+                   # Late Game Check (<5 cards)
+                   # If late, MUST return.
+                   is_late_game = (len(ctx.hand) < 5)
+                   
+                   can_follow_signal = any(c.suit == target_suit for c in ctx.hand)
+                   
+                   if can_follow_signal:
+                        if is_late_game:
+                             # MUST PLAY TARGET SUIT
+                             for i, c in enumerate(ctx.hand):
+                                  if c.suit == target_suit:
+                                       return {"action": "PLAY", "cardIndex": i, "reasoning": f"BARQIYA (Urgent): Forced Return {target_suit}"}
+                        else:
+                             # Early Game: Check if we have "Winners" (Ace/10) to play first
+                             # Play winners of OTHER suits, then return.
+                             # If no winners, return immediately.
+                             my_winners = [i for i, c in enumerate(ctx.hand) if c.rank in ['A', '10'] and c.suit != target_suit]
+                             if my_winners:
+                                  best_winner = self._find_best_winner_sun(ctx, my_winners)
+                                  return {"action": "PLAY", "cardIndex": best_winner, "reasoning": f"BARQIYA (Early Game): Taking Winner first"}
+                             else:
+                                  # No winners, return signal
+                                  for i, c in enumerate(ctx.hand):
+                                       if c.suit == target_suit:
+                                            return {"action": "PLAY", "cardIndex": i, "reasoning": f"BARQIYA (Returning Signal)"}
+
+              # 2. ENCOURAGE OR CONFIRMED POSITIVE
+              elif signal['type'] in ['ENCOURAGE', 'CONFIRMED_POSITIVE']:
+                   target_suit = signal['suit']
+                   
+                   # --- ASSET PROTECTION RULE (THE "10") ---
+                   # Check if we hold the 10 of target_suit
+                   ten_idx = -1
+                   has_ten = False
+                   cards_in_suit = []
+                   
+                   for i, c in enumerate(ctx.hand):
+                       if c.suit == target_suit:
+                           cards_in_suit.append(c)
+                           if c.rank == '10':
+                               ten_idx = i
+                               has_ten = True
+                   
+                   if has_ten:
+                       # RULE 1: LONE 10
+                       # If 10 is the ONLY card we have in that suit, we MUST play it.
+                       if len(cards_in_suit) == 1:
+                           return {
+                               "action": "PLAY", 
+                               "cardIndex": ten_idx, 
+                               "reasoning": f"Asset Protection: Lone 10 Return ({target_suit})"
+                           }
+                           
+                       # RULE 2: SEQUENCE PROTECTION (10, 9, 8...)
+                       # Heuristic: If we have 10 and smaller cards (9, 8, 7),
+                       # Leading 10 is risky (Ace eats). Leading Small protects 10 (Partner eats or Ace forced).
+                       # Specifically research says: "If holding sequence like 10, 9, 8 -> Lead 8".
+                       
+                       ranks = [c.rank for c in cards_in_suit]
+                       # Check for presence of 'protection' cards (9, 8, 7)
+                       # J, Q, K are not protectors in Sun (they are weak/points).
+                       has_protector = any(r in ['9', '8', '7'] for r in ranks)
+                       
+                       if has_protector:
+                           # Find best protector (Lowest rank?)
+                           # 7, 8 are safe leads.
+                           protectors = [i for i, c in enumerate(ctx.hand) if c.suit == target_suit and c.rank in ['9', '8', '7']]
+                           if protectors:
+                               best_prot = self._find_lowest_rank_card_sun(ctx, protectors)
+                               return {
+                                   "action": "PLAY", 
+                                   "cardIndex": best_prot, 
+                                   "reasoning": f"Asset Protection: Sequence Guard for 10 ({target_suit})"
+                               }
+
+                   # Standard Return (if rules didn't trigger)
                    for i, c in enumerate(ctx.hand):
                         if c.suit == target_suit:
                              return {
                                   "action": "PLAY", 
                                   "cardIndex": i, 
-                                  "reasoning": f"Answering Partner's Signal (Encourage {target_suit})"
+                                  "reasoning": f"Answering Partner's Signal ({signal['type']} {target_suit})"
                              }
+
+              # 3. PREFER SAME COLOR (Tahreeb Derived)
+              elif signal['type'] == 'PREFER_SAME_COLOR':
+                   target_suits = signal.get('suits', [])
+                   # Usually only 1 suit (Same color, opposite shape)
+                   # Logic: Try to lead this suit if we have a good card?
+                   for i, c in enumerate(ctx.hand):
+                        if c.suit in target_suits:
+                             # Boost score or return immediately if good?
+                             if c.rank in ['A', '10', 'K']:
+                                  return {"action": "PLAY", "cardIndex": i, "reasoning": f"Answering Partner's Signal (Tahreeb: {c.suit})"}
+
+              # 4. PREFER OPPOSITE (Legacy/Fallback)
               elif signal['type'] == 'PREFER_OPPOSITE':
                    target_suits = signal.get('suits', [])
-                   # Try to lead one of these suits.
-                   # Heuristic: Pick the one where we have a better lead (e.g. Master, or good sequence).
-                   # Or just any valid card if we trust partner has the master.
-                   
                    best_sig_idx = -1
                    best_sig_score = -100
                    
                    for i, c in enumerate(ctx.hand):
                         if c.suit in target_suits:
-                             # Score this lead
-                             # Reuse logic? Or simplified?
-                             # Let's say we prefer leading a Master or a known winner.
                              score = 0
                              if ctx.is_master_card(c): score += 50
                              elif c.rank == 'A': score += 30

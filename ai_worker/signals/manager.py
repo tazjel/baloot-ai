@@ -12,19 +12,110 @@ class SignalManager:
     def __init__(self):
         pass
 
-    def get_signal_for_card(self, card, mode='SUN'):
+    def get_signal_for_card(self, card, is_partner_winning, mode='SUN'):
         """
         Analyzes a discarded card to see what signal it sends.
+        Advanced Tahreeb/Tanfeer Logic:
+        - If Partner Winning (Tahreeb): 
+             - Discard = NEGATIVE (Don't want this).
+             - Implies PREFER_SAME_COLOR (Want the other suit of same color).
+        - If Enemy Winning (Tanfeer):
+             - Discard = POSITIVE (Encourage).
+             - Ace Discard = URGENT_CALL (Barqiya).
         """
         rank = card.rank
         
-        # High Cards = ENCOURAGE
-        if rank in ['A', '10', 'K']:
-            return SignalType.ENCOURAGE
+        if is_partner_winning:
+             # TAHREEB (Negative Signaling)
+             # "Any card you discard means you don't want it."
+             # Also implies "Same Color, Opposite Shape" -> PREFER_SAME_COLOR
+             return SignalType.NEGATIVE_DISCARD
+             
+        else:
+             # TANFEER (Positive Signaling)
+             # "If you 'shun' (discard), it means you want the suit."
+             
+             # BARQIYA (The Telegraph) - Ultra High Urgency
+             if rank == 'A':
+                  return SignalType.URGENT_CALL
+             
+             # Standard Encouragement
+             if rank in ['10', 'K', 'Q', 'J']: # Even J/Q can be signals in Tanfeer
+                  return SignalType.ENCOURAGE
+             
+             # Low cards in Tanfeer?
+             # Usually Tanfeer requires a "Power Card" to show strength.
+             # Discarding a 7 in Tanfeer might just be trash/ducking.
+             # Research: "If you 'Tanfeer,' it means you want that suit OR you have the Ace"
+             # So usually high cards. 
+             # Let's keep 7,8,9 as NONE or maybe weak encourage?
+             # Implementation Plan said: "Enemy plays Ace (Wins). Bot discards 10s -> Encourage".
+             # Bot discards 7 -> Probably just trash.
+             pass
+             
+        return SignalType.NONE
+
+    def analyze_directional_signal(self, discards, suit_of_interest):
+        """
+        Analyzes a sequence of discards (same suit) to detect Directional Signaling.
         
-        # Low Cards = PREFER_OPPOSITE_COLOR Signal
-        if rank in ['7', '8', '9']: # J?
-            return SignalType.PREFER_OPPOSITE_COLOR
+        Args:
+            discards: List of dicts [{'rank': '7', 'suit': 'S', 'trick_idx': 1}, ...]
+                      Must be sorted by trick_idx.
+            suit_of_interest: The suit we are checking signals for.
+            
+        Returns:
+            SignalType.CONFIRMED_POSITIVE (Low -> High)
+            SignalType.CONFIRMED_NEGATIVE (High -> Low)
+            SignalType.NONE
+        """
+        relevant_discards = [d for d in discards if d['suit'] == suit_of_interest]
+        
+        # We need at least 2 cards to form a directional signal
+        if len(relevant_discards) < 2:
+            return SignalType.NONE
+            
+        # Get the first two discards of this suit
+        # Note: 'discards' list passed in should be chronological.
+        d1 = relevant_discards[0]
+        d2 = relevant_discards[1]
+        
+        # Check Ranks
+        # We need a rank comparison helper. 
+        # Since this is generic signaling (usually applied in Sun or Hokum indiscriminately for directional logic),
+        # we'll use Sun Order (A > 10 > K...) or just simple ordering?
+        # Research says: "Small to Big" means "7 then J" or "7 then 9".
+        # It usually implies standard geometric size, but in Baloot "Big" usually means Power (A, 10, K).
+        # Let's use the standard Sun Order indices for "Value".
+        # But wait, 7 is smaller than 8? Yes.
+        # A (Index 0) is Biggest. 7 (Index 7) is Smallest.
+        # So "Low to High" means: Small Card (High Index) -> Big Card (Low Index).
+        
+        from game_engine.models.constants import ORDER_SUN
+        
+        try:
+            val1 = ORDER_SUN.index(d1['rank']) # Lower index = Higher Power
+            val2 = ORDER_SUN.index(d2['rank'])
+            
+            # Logic:
+            # ORDER_SUN is Ascending Power (0=7, 7=A).
+            # Low (Index 0) -> High (Index 7)
+            # So if val1 < val2 (First card was weaker), then SIGNAL IS INCREASING POWER.
+            # "Low to High" = "Small then Big" = CONFIRMED_POSITIVE.
+            
+            if val1 < val2:
+                return SignalType.CONFIRMED_POSITIVE
+                
+            # Logic:
+            # High (Index 7) -> Low (Index 0)
+            # So if val1 > val2 (First card was stronger), then SIGNAL IS DECREASING POWER.
+            # "High to Low" = "Big then Small" = CONFIRMED_NEGATIVE.
+            
+            if val1 > val2:
+                return SignalType.CONFIRMED_NEGATIVE
+                
+        except ValueError:
+            pass
             
         return SignalType.NONE
 
@@ -80,6 +171,7 @@ class SignalManager:
             elif c.rank == 'K': 
                  if has_ace: score = 90 # Good backup signal
                  elif has_ten and 'Q' in ranks: score = 80 # Signal sequence
+                 # In Tanfeer, K signal means "I have A" or "I want this".
                  else: score = 40
                  
             # Queen     

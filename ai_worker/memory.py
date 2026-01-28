@@ -27,6 +27,7 @@ class CardMemory:
     def reset(self):
         self.played_cards = set()
         self.voids = {} # Player Ref -> Set of Suits
+        self.discards = {} # Player Ref -> List of Discard Events
         self.partners_aces = set() 
         self.turn_history = [] 
 
@@ -76,11 +77,16 @@ class CardMemory:
                  # Infer Voids
                  if led_suit and suit != led_suit:
                       # Player failed to follow suit -> VOID in led_suit
-                      # Map Position String to Index? 
-                      # BotContext usually handles index. Memory needs a standard.
-                      # Let's use Position String if possible, or assume caller handles mapping.
-                      # For simplicity, let's store Voids by Position String in this new version.
                       self.mark_void(player_pos, led_suit)
+                      
+                      # Track Discard for Signaling History
+                      # structure: { player_pos: [ { card: {rank, suit}, trick_idx: i } ] }
+                      if player_pos not in self.discards: self.discards[player_pos] = []
+                      self.discards[player_pos].append({
+                          'rank': rank,
+                          'suit': suit,
+                          'trick_idx': history.index(trick) # Naive index
+                      })
                       
                       # Hokum Constraint: If failed to follow suit, AND failed to Trump (when enemy winning?)
                       # In Baloot, you MUST play trump if you can't follow lead.
