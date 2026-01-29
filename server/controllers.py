@@ -26,17 +26,13 @@ Warning: Fixtures MUST be declared with @action.uses({fixtures}) else your app w
 """
 
 import bcrypt
-import jwt
 import os
 import mimetypes
 from py4web import action, request, response, abort
-from py4web import action, request, response, abort
 from server.common import db, logger, redis_client
+import server.auth_utils as auth_utils
 from ai_worker.llm_client import GeminiClient
 from server.room_manager import room_manager
-
-# NOTE: In production, load this from os.environ.get('SECRET_KEY')
-SECRET_KEY = os.environ.get('JWT_SECRET', 'dev-secret-key-change-in-prod')
 
 def token_required(f):
     def decorated(*args, **kwargs):
@@ -47,17 +43,11 @@ def token_required(f):
 
         token = auth_header.split(" ")[1]  # Extract the token part
         
-        try:
-            # Decode the token
-            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-            request.user = payload  # You can attach user information to the request
-        except jwt.ExpiredSignatureError:
-            # Token has expired
-            abort(401, 'Token has expired')
-        except jwt.InvalidTokenError:
-            # Token is invalid
-            abort(401, 'Invalid token')
-
+        payload = auth_utils.verify_token(token)
+        if not payload:
+             abort(401, 'Invalid or Expired Token')
+             
+        request.user = payload  # You can attach user information to the request
         return f(*args, **kwargs)
 
     return decorated
@@ -133,10 +123,11 @@ def signin():
     # Check if the supplied password matches the hashed password in the database
     if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         # Create a JWT token
-        token = jwt.encode({'user_id': user.id}, SECRET_KEY, algorithm='HS256')
+        token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
         response.status = 200
         return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
-        return {"error": "Invalid credentials"}
+        
+    return {"error": "Invalid credentials"}
 
 
 @action('save_score', method=['POST'])
@@ -176,7 +167,7 @@ def leaderboard():
     # This is a bit complex in pure pydal without raw SQL for grouping sometimes,
     # let's just return recent games for now for simplicity.
     # Sort by League Points
-    top_players = db(db.app_user).select(orderby=~db.app_user.league_points, limit=10)
+    top_players = db(db.app_user).select(orderby=~db.app_user.league_points, limitby=(0, 10))
     return {"leaderboard": [p.as_dict() for p in top_players]}
 
 
@@ -184,17 +175,20 @@ def leaderboard():
 def catch_all(path=None):
     print("default page being served")
     # Construct an absolute path to the React index.html file.
-    APP_FOLDER = os.path.dirname(__file__)
-    file_path = os.path.join(APP_FOLDER, 'static', 'build', 'index.html')
+    SERVER_FOLDER = os.path.dirname(__file__)
+    PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
+    file_path = os.path.join(PROJECT_ROOT, 'static', 'build', 'index.html')
 
     # Ensure the file exists
     if not os.path.isfile(file_path):
         # Handle the error appropriately (e.g., return a 404 page)
-        return 'File not found', 404
+        return f'File not found: {file_path}', 404
 
     with open(file_path, 'rb') as f:
         response.headers['Content-Type'] = 'text/html'
         return f.read()
+        
+
 
 @action('training_data', method=['GET', 'OPTIONS'])
 @action.uses(db)
@@ -207,7 +201,7 @@ def get_training_data():
         return ""
         
     logger.debug(f"[DEBUG] fetch training_data")
-    rows = db(db.bot_training_data).select(orderby=~db.bot_training_data.created_on, limit=50)
+    rows = db(db.bot_training_data).select(orderby=~db.bot_training_data.created_on, limitby=(0, 50))
     logger.debug(f"[DEBUG] returning {len(rows)} training examples")
     return {"data": [r.as_dict() for r in rows]}
 
@@ -432,7 +426,7 @@ def ask_strategy():
     examples = []
     try:
          # Fetch recent training data (limit 20)
-         rows = db(db.bot_training_data).select(orderby=~db.bot_training_data.created_on, limit=20)
+         rows = db(db.bot_training_data).select(orderby=~db.bot_training_data.created_on, limitby=(0, 20))
          for r in rows:
              # Basic Filtering: Check if example matches current Game Mode
              # We store gameState as JSON string. 
@@ -574,7 +568,7 @@ def get_ai_thoughts(game_id):
                 except:
                     pass
                     
-        return {"thoughts": thoughts}
+        return {"thoughts": make_serializable(thoughts)}
 
     except Exception as e:
         logger.error(f"Failed to fetch thoughts: {e}")
@@ -593,12 +587,53 @@ def get_match_history(game_id):
     if request.method == 'OPTIONS':
         return ""
         
-    game = room_manager.get_game(game_id)
-    if not game:
-        response.status = 404
-        return {"error": "Game not found"}
-        
-    return {"history": game.full_match_history}
+    try:
+        game = room_manager.get_game(game_id)
+        if not game:
+            # Try DB
+            record = db.match_archive(game_id=game_id)
+            if record and record.history_json:
+                 import json
+                 try:
+                     return {"history": json.loads(record.history_json)}
+                 except:
+                     pass
+            
+            response.status = 404
+            return {"error": "Game not found"}
+            
+        return {"history": make_serializable(game.full_match_history)}
+    except Exception as e:
+        logger.error(f"Error in get_match_history: {e}")
+        import traceback
+        traceback.print_exc()
+        response.status = 500
+        return {"error": f"Internal Error: {str(e)}"}
+
+def make_serializable(obj):
+    """
+    Recursively converts objects to JSON-serializable formats.
+    Handles Enums, Objects with to_dict, and datetimes.
+    """
+    from enum import Enum
+    import datetime
+    
+    if isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_serializable(v) for v in obj]
+    elif isinstance(obj, tuple):
+        return [make_serializable(v) for v in obj]
+    elif isinstance(obj, Enum):
+        return obj.value
+    elif hasattr(obj, 'to_dict'):
+        return make_serializable(obj.to_dict())
+    elif isinstance(obj, (datetime.datetime, datetime.date)):
+        return str(obj)
+    elif isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    else:
+        return str(obj)
 
 
 @action('puzzles', method=['GET', 'OPTIONS'])
@@ -676,3 +711,98 @@ def get_puzzle_detail(puzzle_id):
     except Exception as e:
         logger.error(f"Failed to fetch puzzle {puzzle_id}: {e}")
         return {"error": str(e)}
+
+# --- Explicit Binding for Custom Runner ---
+from py4web.core import bottle
+
+def bind(app):
+    """
+    Explicitly bind all controller actions to the main Bottle app instance.
+    This bypasses py4web's auto-discovery which fails in this custom environment.
+    """
+    import os
+    
+    with open("logs/import_debug.txt", "a") as f:
+        f.write(f"DEBUG: Binding Main Controllers to App {id(app)}\n")
+        
+        # Idempotency Guard
+        if getattr(app, '_main_controllers_bound', False):
+            f.write("DEBUG: Main Controllers already bound. Skipping.\n")
+            return
+            
+        def safe_mount(path, method, callback):
+            try:
+                app.route(path, method=method, callback=callback)
+                f.write(f"DEBUG: Mounted {path} [{method}]\n")
+            except Exception as e:
+                f.write(f"DEBUG: Failed to mount {path}: {e}\n")
+
+        # 1. Static Files
+        # We need to serve /static/... from the actual static folder (Project Root/static)
+        SERVER_FOLDER = os.path.dirname(__file__)
+        PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
+        STATIC_FOLDER = os.path.join(PROJECT_ROOT, 'static')
+        
+        f.write(f"DEBUG: Serving Static from {STATIC_FOLDER} (Exists? {os.path.exists(STATIC_FOLDER)})\n")
+        
+        def serve_static(filepath):
+            return bottle.static_file(filepath, root=STATIC_FOLDER)
+            
+        safe_mount('/static/<filepath:path>', 'GET', serve_static)
+
+        # 2. Auth & User
+        safe_mount('/user', 'GET', user)
+        safe_mount('/signup', 'POST', signup)
+        safe_mount('/signup', 'OPTIONS', signup)
+        safe_mount('/signin', 'POST', signin)
+        
+        # 3. Game & Score
+        safe_mount('/save_score', 'POST', save_score)
+        safe_mount('/leaderboard', 'GET', leaderboard)
+        
+        # 4. AI / Brain / Training
+        safe_mount('/training_data', 'GET', get_training_data)
+        safe_mount('/training_data', 'OPTIONS', get_training_data)
+        
+        safe_mount('/submit_training', 'POST', submit_training)
+        safe_mount('/submit_training', 'OPTIONS', submit_training)
+        
+        safe_mount('/brain/memory', 'GET', get_brain_memory)
+        safe_mount('/brain/memory', 'OPTIONS', get_brain_memory)
+        
+        safe_mount('/brain/memory/<context_hash>', 'DELETE', delete_brain_memory)
+        safe_mount('/brain/memory/<context_hash>', 'OPTIONS', delete_brain_memory)
+        
+        safe_mount('/analyze_screenshot', 'POST', analyze_screenshot)
+        safe_mount('/analyze_screenshot', 'OPTIONS', analyze_screenshot)
+        
+        safe_mount('/ask_strategy', 'POST', ask_strategy)
+        safe_mount('/ask_strategy', 'OPTIONS', ask_strategy)
+        
+        safe_mount('/generate_scenario', 'POST', generate_scenario)
+        safe_mount('/generate_scenario', 'OPTIONS', generate_scenario)
+        
+        safe_mount('/analyze_match', 'POST', analyze_match)
+        safe_mount('/analyze_match', 'OPTIONS', analyze_match)
+        
+        safe_mount('/ai_thoughts/<game_id>', 'GET', get_ai_thoughts)
+        safe_mount('/ai_thoughts/<game_id>', 'OPTIONS', get_ai_thoughts)
+        
+        safe_mount('/match_history/<game_id>', 'GET', get_match_history)
+        safe_mount('/match_history/<game_id>', 'OPTIONS', get_match_history)
+        
+        safe_mount('/puzzles', 'GET', get_puzzles)
+        safe_mount('/puzzles', 'OPTIONS', get_puzzles)
+        
+        safe_mount('/puzzles/<puzzle_id>', 'GET', get_puzzle_detail)
+        safe_mount('/puzzles/<puzzle_id>', 'OPTIONS', get_puzzle_detail)
+
+        # 5. Index / Catch-All
+        # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.
+        # Bottle matches longest prefix usually.
+        safe_mount('/', 'GET', catch_all)
+        safe_mount('/index', 'GET', catch_all)
+        safe_mount('/<path:path>', 'GET', catch_all) # Wildcard for SPA Routing
+        
+        setattr(app, '_main_controllers_bound', True)
+

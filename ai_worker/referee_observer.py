@@ -14,7 +14,7 @@ class RefereeObserver:
         """
         if ctx.phase == 'PLAYING' and ctx.table_cards:
             last_play_raw = game_state.get('tableCards', [])[-1]
-            if 'metadata' in last_play_raw and last_play_raw.get('metadata', {}).get('is_illegal'):
+            if isinstance(last_play_raw, dict) and (last_play_raw.get('metadata') or {}).get('is_illegal'):
                 logger.info(f"[REFEREE] {ctx.position} detected illegal move! Calling Qayd.")
                 return {
                     "action": "QAYD_CLAIM",

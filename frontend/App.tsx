@@ -28,6 +28,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { submitTrainingData } from './services/trainingService';
 import AcademyPage from './pages/AcademyPage';
 import PuzzleArena from './components/Academy/PuzzleArena';
+import ReplayPage from './pages/ReplayPage';
 
 
 const App: React.FC = () => {
@@ -238,8 +239,9 @@ const App: React.FC = () => {
   };
 
   // --- CONTENT RENDER ---
-  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD'>('LOBBY');
+  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD' | 'REPLAY'>('LOBBY');
   const [selectedPuzzleId, setSelectedPuzzleId] = useState<string | null>(null);
+  const [replayGameId, setReplayGameId] = useState<string | null>(null);
   const [errorObj, setErrorObj] = useState<string | null>(null);
 
   // Global Error Handler
@@ -357,8 +359,51 @@ const App: React.FC = () => {
         onMultiplayer={() => setCurrentView('MULTIPLAYER_LOBBY')}
         onAIStudio={() => setCurrentView('AI_STUDIO')}
         onAIClassroom={() => setCurrentView('PUZZLE_LIST')}
+        onReplay={() => {
+          setReplayGameId(""); // Start empty to show list
+          setCurrentView('REPLAY');
+        }}
       />
     );
+  } else if (currentView === 'REPLAY') {
+    content = (
+      <ReplayPage
+        gameId={replayGameId || ""}
+        onBack={() => setCurrentView('LOBBY')}
+        onFork={(newId) => {
+          // Debugging user report: "Fork not working"
+          // Force ensure socket is connected
+          if (!socketService.socket || !socketService.socket.connected) {
+            socketService.connect();
+            // Wait a tiny bit? Or assume connect() is fast/async?
+            // We'll proceed, but if it fails, the callback will catch it.
+          }
+
+          // Join the forked game as a player
+          const myName = userProfile.firstName || 'Me';
+
+          // @ts-ignore
+          import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Attempt Start', { newId }));
+
+          socketService.joinRoom(newId, myName, (joinRes) => {
+            if (joinRes.success) {
+              joinGame(newId, joinRes.yourIndex as number, joinRes.gameState as GameState);
+              setCurrentView('GAME');
+              // @ts-ignore
+              import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Joined Successfully', joinRes));
+            } else {
+              const msg = "Failed to join forked game: " + joinRes.error;
+              setErrorObj(msg);
+              alert(msg); // Force user visibility
+              // @ts-ignore
+              import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Join Error', joinRes));
+            }
+          });
+        }}
+        onLoadReplay={(id) => setReplayGameId(id)}
+      />
+    );
+
   } else if (currentView === 'AI_STUDIO') {
     content = <AIStudio onBack={() => setCurrentView('LOBBY')} />;
   } else if (currentView === 'PUZZLE_LIST') {

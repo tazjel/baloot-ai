@@ -38,3 +38,18 @@
 - **Shared Client**: Always use `server.common.redis_client`. It is initialized once and shared.
 - **Symptom**: "Failed to fetch thoughts" or `Connection closed by server` usually means the backend is out of sockets.
 
+
+## Py4Web / Bottle Integration (Session 2026-01-29)
+- **Split Brain Issue**: When using `gevent` and custom runners (`main.py`), `py4web`'s auto-discovery (`bottle.default_app()`) can attach routes to the wrong instance.
+- **Fix (Explicit Binding)**: Always pass the active `wsgi_app` to your controllers and manually bind routes:
+  ```python
+  def bind(app):
+      app.route('/my/path', callback=my_func)
+  ```
+- **Static Files (404)**: `bottle.static_file` defaults the `root` to the current working directory of the *process*, not the file. Always calculate `PROJECT_ROOT` dynamically:
+  ```python
+  PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+  STATIC_FOLDER = os.path.join(PROJECT_ROOT, 'static')
+  ```
+- **Vite Proxy**: Frontend Dev Server (5173) needs explicit proxy rules for `/static` to handle assets outside the SPA route.
+

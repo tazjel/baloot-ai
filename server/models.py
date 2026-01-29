@@ -43,4 +43,14 @@ db.define_table('bot_training_data',
                 Field('created_on', 'datetime', default=lambda: datetime.datetime.now())
                 )
 
+# Define match archive for Replay Studio
+db.define_table('match_archive',
+                Field('game_id', unique=True, required=True),
+                Field('user_email'), # Optional linkage
+                Field('history_json', 'text'), # Full JSON blob
+                Field('final_score_us', 'integer'),
+                Field('final_score_them', 'integer'),
+                Field('timestamp', 'datetime', default=lambda: datetime.datetime.now())
+                )
+
 db.commit()

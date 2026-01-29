@@ -23,15 +23,50 @@ logger = logging.getLogger(__name__)
 # Create a Socket.IO server
 # async_mode='gevent' is recommended for pywsgi
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
+import server.auth_utils as auth_utils
+
+# Memory Storage for Authenticated Users (Handshake Auth)
+# sid -> {user_id, email, username, ...}
+connected_users = {}
+
 dialogue_system = DialogueSystem()
 
 @sio.event
-def connect(sid, environ):
-    print(f"Client connected: {sid}")
+def connect(sid, environ, auth=None):
+    # Support both auth dict and query params (for some clients)
+    token = (auth or {}).get('token')
+    
+    # Also check query string as fallback
+    if not token:
+        from urllib.parse import parse_qs
+        qs = environ.get('QUERY_STRING', '')
+        params = parse_qs(qs)
+        if 'token' in params:
+            token = params['token'][0]
+
+    if not token:
+        # Reject connection? Or allow Guests?
+        # For now, we allow guests but log it. 
+        # Ideal architecture: Reject or mark as Guest.
+        print(f"Client connected (Guest): {sid}")
+        return True # Accepted as Guest
+        
+    user_data = auth_utils.verify_token(token)
+    if not user_data:
+        print(f"Invalid Token for SID: {sid}")
+        return False # Reject connection
+        
+    # Success! Store in memory for instant access
+    connected_users[sid] = user_data
+    print(f"Authorized {user_data.get('email')} (SID: {sid})")
+    return True
 
 @sio.event
 def disconnect(sid):
     print(f"Client disconnected: {sid}")
+    # Cleanup auth memory
+    if sid in connected_users:
+        del connected_users[sid]
     # TODO: Handle player disconnection from game (auto-play or pause)
 
 @sio.event
@@ -50,7 +85,17 @@ def join_room(sid, data):
         return {'success': False, 'error': 'Room not found'}
     
     # Check if already joined? (Simplified: Just add)
-    player = game.add_player(sid, player_name)
+    # RESERVED SEAT LOGIC (For Replay Forks)
+    reserved = next((p for p in game.players if p.id == "RESERVED_FOR_USER"), None)
+    if reserved:
+         logger.info(f"User {sid} claiming RESERVED seat in room {room_id}")
+         reserved.id = sid
+         reserved.name = player_name
+         # Update avatar if needed? keep original?
+         player = reserved
+    else:
+        player = game.add_player(sid, player_name)
+        
     if not player:
         return {'success': False, 'error': 'Room full'}
         
@@ -83,6 +128,9 @@ def join_room(sid, data):
              handle_bot_turn(game, room_id)
 
     # Return game state (Must be AFTER start_game to get correct Dealer/Phase)
+    # SAVE GAME STATE (Persist Player Join)
+    room_manager.save_game(game)
+
     response = {
         'success': True,
         'gameState': game.get_game_state(),
@@ -124,6 +172,8 @@ def game_action(sid, data):
              result = {'success': False, 'error': 'PROFESSOR_INTERVENTION', 'intervention': intervention}
              game.pause_timer()
              game.increment_blunder(player.index)
+             # Must save state because pause_timer / increment_blunder modified it
+             room_manager.save_game(game) 
         else:
              result = game.play_card(player.index, payload.get('cardIndex'), payload.get('metadata'))
     elif action == 'DECLARE_PROJECT':
@@ -170,11 +220,15 @@ def game_action(sid, data):
                  sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                  handle_bot_turn(game, room_id)
              result = {'success': True}
+             room_manager.save_game(game) # Save new match state
         else:
              result = {'success': False, 'error': 'Cannot start round, phase is ' + game.phase}
 
     
     if result.get('success'):
+        # PERSIST STATE TO REDIS
+        room_manager.save_game(game)
+        
         # Broadcast Update
         sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
         
@@ -194,11 +248,10 @@ def game_action(sid, data):
         
         # Check if game finished to trigger auto-restart
         if game.phase == "FINISHED":
+             save_match_snapshot(game, room_id)
              # Auto-restart logic is handled by client request or explicit timer
              pass
         
-    return result
-
     return result
 
 @sio.event
@@ -297,9 +350,15 @@ def bot_loop(game, room_id, recursion_depth=0):
              sio.start_background_task(handle_bot_speak, game, room_id, current_player, action, res)
 
              if game.phase == "FINISHED":
+                  logger.info(f"Bot terminated round in room {room_id}. Archiving.")
+                  save_match_snapshot(game, room_id)
                   # sio.start_background_task(auto_restart_round, game, room_id)
+                  room_manager.save_game(game) # Persist Finished State
                   pass
                   return
+             
+             # PERSIST BOT MOVE
+             room_manager.save_game(game)
 
              # Chain next turn
              sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
@@ -363,6 +422,7 @@ def handle_sawa_responses(game, room_id):
                     if res.get('success'):
                          # Emit update immediately so UI sees progress
                          sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                         room_manager.save_game(game) # Persist Sawa Response
                          
                          # If Refused -> Sawa ends -> Loop ends
                          if res.get('sawa_status') == 'REFUSED':
@@ -379,6 +439,51 @@ def handle_sawa_responses(game, room_id):
         import traceback
         traceback.print_exc()
 
+def save_match_snapshot(game, room_id):
+    """Helper to save match state to DB on round completion"""
+    
+    # DEBUG: Force log to file
+    def debug_log(msg):
+        try:
+            with open("logs/archive_debug.txt", "a") as f:
+                import datetime
+                f.write(f"{datetime.datetime.now()} - {msg}\n")
+        except: pass
+
+    try:
+        debug_log(f"Attempting to save snapshot for room {room_id}")
+        import json
+        from server.common import db
+        # Ensure imports
+        
+        human = next((p for p in game.players if not p.is_bot), None)
+        history_json = json.dumps(game.full_match_history, default=str)
+        debug_log(f"History Length: {len(game.full_match_history)}")
+        
+        # Check if table exists (lazy check)
+        if not hasattr(db, 'match_archive'):
+             logger.error("DB match_archive table missing. Cannot save.")
+             debug_log("ERROR: match_archive missing from db object")
+             debug_log(f"DB Tables: {getattr(db, 'tables', 'UNKNOWN')}")
+             return
+
+        db.match_archive.update_or_insert(
+            db.match_archive.game_id == room_id,
+            game_id=room_id,
+            user_email=human.id if human else 'bot_only',
+            history_json=history_json,
+            final_score_us=game.match_scores['us'],
+            final_score_them=game.match_scores['them']
+        )
+        db.commit()
+        logger.info(f"Match {room_id} snapshot archived to DB.")
+        debug_log("SUCCESS: Saved to DB")
+    except Exception as e:
+        logger.error(f"Snapshot Archive Failed: {e}")
+        debug_log(f"EXCEPTION: {e}")
+        import traceback
+        debug_log(traceback.format_exc())
+
 def handle_bot_turn(game, room_id):
     # Wrapper
     sio.start_background_task(bot_loop, game, room_id, 0)
@@ -392,10 +497,35 @@ def auto_restart_round(game, room_id):
 
         game.is_restarting = True
         sio.sleep(3.0) # Wait 3 seconds for score display
-        
+
+        # HELPER: Save to Archive
+        def save_to_archive():
+            try:
+                import json
+                from server.common import db
+                human = next((p for p in game.players if not p.is_bot), None)
+                history_json = json.dumps(game.full_match_history, default=str)
+                db.match_archive.update_or_insert(
+                    db.match_archive.game_id == room_id,
+                    game_id=room_id,
+                    user_email=human.id if human else 'bot_only',
+                    history_json=history_json,
+                    final_score_us=game.match_scores['us'],
+                    final_score_them=game.match_scores['them']
+                )
+                db.commit()
+                logger.info(f"Match {room_id} archived to DB successfully (Round End).")
+            except Exception as db_err:
+                logger.error(f"Failed to archive match to DB: {db_err}")
+
         print(f"Checking auto-restart for room {room_id}. Phase: {game.phase}")
+        
         if game.phase == "FINISHED":
              print(f"Auto-restarting round for room {room_id}. Current scores: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
+             
+             # Save Progress
+             save_to_archive()
+
              if game.start_game():
                   game.is_restarting = False # Reset flag
                   sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
@@ -404,6 +534,9 @@ def auto_restart_round(game, room_id):
              game.is_restarting = False
              print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
              
+             # Save Final
+             save_to_archive()
+
              # PERSIST LEGACY: Remember the match
              try:
                  human = next((p for p in game.players if not p.is_bot), None)
@@ -463,6 +596,7 @@ def add_bot(sid, data):
         return {'success': False, 'error': 'Room full'}
         
     player.is_bot = True 
+    room_manager.save_game(game) # Persist Bot Join
     
     sio.emit('player_joined', {'player': player.to_dict()}, room=room_id)
     
@@ -481,6 +615,7 @@ def check_start(sid, data):
     game = room_manager.get_game(room_id)
     if game and len(game.players) == 4:
          if game.start_game():
+             room_manager.save_game(game) # Persist Game Start
              sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
              handle_bot_turn(game, room_id)
 
@@ -515,6 +650,7 @@ def timer_background_task(room_manager_instance):
                 if res and res.get('success'):
                     # Timeout caused an action (Pass or AutoPlay)
                     # Broadcast update
+                    room_manager.save_game(game) # Persist Timeout Action
                     sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
                     
                     # Trigger Bot if next player is bot
@@ -523,6 +659,7 @@ def timer_background_task(room_manager_instance):
                     
                     # Check finish
                     if game.phase == "FINISHED":
+                         save_match_snapshot(game, room_id)
                          # sio.start_background_task(auto_restart_round, game, room_id)
                          pass
 
@@ -549,11 +686,14 @@ def handle_bot_speak(game, room_id, player, action, result):
              context += " I declared Akka (Highest Non-Trump). I command this suit!"
         
         # Add Game Context
-        if game.last_trick and game.last_trick.winner == player.position and action == 'PLAY':
-             context += " I won this trick."
+        if game.last_trick and action == 'PLAY':
+             winner = game.last_trick.get('winner') if isinstance(game.last_trick, dict) else getattr(game.last_trick, 'winner', None)
+             if winner == player.position:
+                 context += " I won this trick."
         
         if game.phase == "BIDDING":
-             context += f" Current Bid: {game.bid.type if game.bid else 'None'}."
+             bid_type = game.bid.get('type') if isinstance(game.bid, dict) else getattr(game.bid, 'type', 'None')
+             context += f" Current Bid: {bid_type or 'None'}."
 
         # Fetch Rivalry Context (Human Player)
         human = next((p for p in game.players if not p.is_bot), None)

@@ -117,6 +117,11 @@
 - **Akka & Projects**: Strict rules implemented and verified.
 - **Refactoring**: `game.py` logic split into `TrickManager` and `ProjectManager`. Shared constants adopted across Server and Bot.
 
+- **Replay Studio**:
+    - [x] Backend: Per-round snapshots (`initial_hands`) and Forking API (`controllers_replay.py`).
+    - [x] Database: Persistent `match_archive` table with auto-save.
+    - [x] Frontend: `ReplayPage.tsx` with scrubbing timeline and Open Hand view.
+    - [x] Verification: `test_archival.py` and structured logs.ion (Passed).
 - **Goal**: Verify Game Integrity and Scoring.
 - **Status**:
     - [x] **Verification**: Ran full backend simulation (Passed).
@@ -132,4 +137,10 @@
 - **Crash Fixes**:
     - **Recursion/Hooks**: Fixed Infinite Loop/Crash in `Table.tsx` caused by conditional hooks.
     - **WASM/ONNX**: Temporarily disabled client-side AI (`IntelligentBot`) to prevent `wasm streaming compile failed` crash.
+    - **Closed File / Split Brain**: Fixed Py4Web route registration issues via Explicit Binding pattern.
+- **Static Files**: Fixed 404 errors by correcting path logic in `controllers.py` and adding Vite Proxy support.
 - **Telemetry**: Implemented Remote Telemetry Logging to debug client-side issues without console access.
+- **[FIXED] Room Not Found**: Resolved binary vs text Redis client conflict (`decode_responses=True`) by introducing `redis_store` (binary) for `pickle` operations.
+- **[REOPENED] Replay Studio JSON Error**: User reports issue persists despite Proxy/Error-Handling fixes. Requires post-restart investigation. Suspect specific object serialization failure.
+
+

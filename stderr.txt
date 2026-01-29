@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\server\controllers.py", line 710, in safe_mount
+    f.write(f"DEBUG: Mounted {path} [{method}]\n")
+ValueError: I/O operation on closed file.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\server\main.py", line 89, in <module>
+    run()
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\server\main.py", line 61, in run
+    server.controllers.bind(wsgi_app)
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\server\controllers.py", line 726, in bind
+    safe_mount('/static/<filepath:path>', 'GET', serve_static)
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\server\controllers.py", line 712, in safe_mount
+    f.write(f"DEBUG: Failed to mount {path}: {e}\n")
+ValueError: I/O operation on closed file.

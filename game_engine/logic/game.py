@@ -43,6 +43,7 @@ class Game:
         self.declarations = {} # Map[PlayerPosition] -> List[ProjectDict]
         self.trick_1_declarations = {} # Temp buffer for current round declarations
         self.is_project_revealing = False # State for animation
+        self.initial_hands = {} # Snapshot of hands at start of round (for Replay)
 
         self.doubling_level = 1
         self.is_locked = False
@@ -375,6 +376,7 @@ class Game:
         self.declarations = {}
         self.trick_1_declarations = {}
         self.is_project_revealing = False
+        self.initial_hands = {}
 
         self.round_history = []  # Trick history for this round
         self.is_locked = False
@@ -588,6 +590,8 @@ class Game:
         for p in self.players:
              p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
              p.action_text = "" # Clear "PASS" or other bidding texts
+             # Capture Initial Hand for Replay
+             self.initial_hands[p.position] = [c.to_dict() for c in p.hand]
 
         self.phase = GamePhase.PLAYING.value
         # Play starts from person RIGHT of dealer? Or Bidder?
@@ -673,7 +677,8 @@ class Game:
                 'tricks': copy.deepcopy(self.round_history),
                 'dealerIndex': self.dealer_index, 
                 'floorCard': self.floor_card.to_dict() if self.floor_card else None,
-                'declarations': serialized_declarations
+                'declarations': serialized_declarations,
+                'initialHands': self.initial_hands
             }
             self.full_match_history.append(round_snapshot)
             self.full_match_history.append(round_snapshot)
@@ -688,6 +693,12 @@ class Game:
         if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
              log_event("GAME_END", self.room_id, details={"final_scores": self.match_scores.copy(), "winner": "us" if self.match_scores['us'] > self.match_scores['them'] else "them"})
              self.phase = GamePhase.GAMEOVER.value
+             # Archive Match
+             try:
+                 from server.services.archiver import archive_match
+                 archive_match(self)
+             except Exception as e:
+                 logger.error(f"Archive Trigger Failed: {e}")
         else:
              self.phase = GamePhase.FINISHED.value
              
@@ -898,3 +909,29 @@ class Game:
                       return self.play_card(player_index, i)
             
             return {"error": f"Auto-Play Failed completely: {e}"}
+
+    # --- PICKLE SUPPORT ---
+    def __getstate__(self):
+        """Custom pickle state to exclude non-pickleable or transient objects."""
+        state = self.__dict__.copy()
+        # TimerManager might be fine, but if it has locks (future), let's be safe.
+        # Actually timer is just floats.
+        # But let's check if there are any other issues.
+        # If we have threading.Lock or socket objects, remove them.
+        # For now, we assume simple state.
+        # However, to be extra safe against 'can't pickle local object' from closures:
+        
+        # We need to ensure we don't pickle anything that might fail.
+        # If 'room_manager' was attached, we'd remove it.
+        # 'logger' objects are not pickleable.
+        if 'logger' in state: del state['logger']
+        
+        return state
+
+    def __setstate__(self, state):
+        """Restore state and re-initialize transient objects."""
+        self.__dict__.update(state)
+        # Re-init logger if needed, though usually it's global
+        # Ensure timer is active if it was
+        if not hasattr(self, 'timer'):
+             self.timer = TimerManager(5)

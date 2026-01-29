@@ -48,8 +48,10 @@ redis_client = None
 try:
     import redis
     redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+    redis_store = redis.from_url(settings.REDIS_URL, decode_responses=False)
 except Exception as e:
     logger.error(f"Failed to initialize shared Redis client: {e}")
+    redis_store = None
 
 
 # #######################################################

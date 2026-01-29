@@ -1,26 +1,42 @@
 Write-Host "=== 🚀 Launching Full Baloot Game Stack (/WW) ===" -ForegroundColor Cyan
 
-# 1. Ensure Docker (and start if needed)
-Write-Host "`n[1/4] Checking Infrastructure..." -ForegroundColor Yellow
-& ./scripts/ensure_docker.ps1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "Wrapper: Docker failed to start. Exiting." -ForegroundColor Red
-    exit 1
-}
 
-# 2. Redis (Container)
-# 2. Redis (Container)
-$running = docker ps --filter "name=baloot-redis" --format "{{.Names}}"
-$exists = docker ps -a --filter "name=baloot-redis" --format "{{.Names}}"
 
-if ($running -match "baloot-redis") {
-    Write-Host "✅ Redis is already running." -ForegroundColor Green
-} elseif ($exists -match "baloot-redis") {
-    Write-Host "🔄 Redis exists but stopped. Starting..." -ForegroundColor Yellow
-    docker start baloot-redis
+# 2. Redis Strategy (Local -> Docker)
+$redis_running = Get-Process redis-server -ErrorAction SilentlyContinue
+
+if ($redis_running) {
+    Write-Host "✅ Local Redis is running (PID: $($redis_running.Id))." -ForegroundColor Green
 } else {
-    Write-Host "🚀 Starting Redis container..." -ForegroundColor Yellow
-    docker run --name baloot-redis -p 6379:6379 -d redis
+    Write-Host "⚠️ Local Redis not running. Checking for Docker..." -ForegroundColor Yellow
+    
+    # 1. Ensure Docker is running (Only if we need it)
+    & ./scripts/ensure_docker.ps1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Wrapper: Docker failed to start AND Local Redis is missing." -ForegroundColor Red
+        # Fallthrough to error message below...
+    }
+    
+    # Check Docker
+    $docker_running = docker ps --filter "name=baloot-redis" --format "{{.Names}}"
+    $docker_exists = docker ps -a --filter "name=baloot-redis" --format "{{.Names}}"
+    
+    if ($docker_running -match "baloot-redis") {
+        Write-Host "✅ Redis Container is running." -ForegroundColor Green
+    } elseif ($docker_exists -match "baloot-redis") {
+        Write-Host "🔄 Starting existing Redis Container..." -ForegroundColor Yellow
+        docker start baloot-redis
+    } else {
+        # Try to run container if docker is available
+        if (Get-Command docker -ErrorAction SilentlyContinue) {
+             Write-Host "🚀 Creating and Starting Redis Container..." -ForegroundColor Yellow
+             docker run --name baloot-redis -p 6379:6379 -d redis
+        } else {
+             Write-Host "❌ Redis not found (Local or Docker). Please install Redis or Docker." -ForegroundColor Red
+             # We don't exit here, might be running elsewhere? But huge risk.
+             Write-Host "   Continuing, but Game State persistence will fail." -ForegroundColor Red
+        }
+    }
 }
 
 # 3. AI Worker (Integrated into Game Server)
