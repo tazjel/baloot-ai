@@ -41,12 +41,23 @@ class BotAgent:
     def get_decision(self, game_state, player_index):
         try:
             # Determine Personality
-            p_name = game_state['players'][player_index].get('name', 'Bot')
+            # Determine Personality
+            p_data = game_state['players'][player_index]
+            p_name = p_data.get('name', 'Bot')
             profile = self.personality
             
-            if "Aggressive" in p_name: profile = PROFILES['Aggressive']
-            elif "Conservative" in p_name: profile = PROFILES['Conservative']
-            elif "Balanced" in p_name: profile = PROFILES['Balanced']
+            # Director Override
+            explicit_profile = p_data.get('profile')
+            if explicit_profile:
+                 if explicit_profile in PROFILES:
+                      profile = PROFILES[explicit_profile]
+                 elif explicit_profile == 'Balanced':
+                      profile = PROFILES['Balanced']
+            else:
+                # Fallback to Name Parsing
+                if "Aggressive" in p_name: profile = PROFILES['Aggressive']
+                elif "Conservative" in p_name: profile = PROFILES['Conservative']
+                elif "Balanced" in p_name: profile = PROFILES['Balanced']
             
             # Use Typed Context
             ctx = BotContext(game_state, player_index, personality=profile)

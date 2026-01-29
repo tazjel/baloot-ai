@@ -44,6 +44,7 @@ class Game:
         self.trick_1_declarations = {} # Temp buffer for current round declarations
         self.is_project_revealing = False # State for animation
         self.initial_hands = {} # Snapshot of hands at start of round (for Replay)
+        self.metadata = {} # For Time Lord/Ghost features (source_game_id, ghost_score, etc.)
 
         self.doubling_level = 1
         self.is_locked = False
@@ -144,9 +145,9 @@ class Game:
             'turnDuration': self.turn_duration,
             'serverTime': time.time(),
             
-            'qaydState': self.trick_manager.qayd_state if hasattr(self.trick_manager, 'qayd_state') else self.qayd_state,
             'akkaState': self.project_manager.akka_state if hasattr(self.project_manager, 'akka_state') else self.akka_state,
             'gameId': self.room_id,
+            'settings': getattr(self, 'settings', {}), # Expose Director Settings
             # OPTIMIZATION: Do not send full history on every tick. 
             # It should be fetched via a separate API call if needed.
             # 'fullMatchHistory': self.full_match_history 
@@ -863,6 +864,25 @@ class Game:
             'qayd': True
         }
         self.past_round_results.append(round_result)
+        
+        # Archiving for Replay
+        # Qayd ends the round abruptly, but we should still record it.
+        # However, we don't have tricks.
+        # We'll snapshot with empty tricks or whatever occurred.
+        # Logic similar to end_round but simpler.
+        round_snapshot = {
+                'roundNumber': len(self.past_round_results),
+                'bid': copy.deepcopy(self.bid),
+                'scores': copy.deepcopy(round_result),
+                'tricks': [], # No tricks played usually if Qayd happens early? Or insert self.round_history?
+                'dealerIndex': self.dealer_index, 
+                'floorCard': self.floor_card.to_dict() if self.floor_card else None,
+                'declarations': {}, # Usually checking cards triggers Qayd, declarations might not exist
+                'initialHands': self.initial_hands
+        }
+        # If Qayd happened during a trick, maybe we should save round_history?
+        # For now, empty tricks is safer than broken state.
+        self.full_match_history.append(round_snapshot)
         
         self.dealer_index = (self.dealer_index + 1) % 4
         

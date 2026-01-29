@@ -18,7 +18,11 @@ class Player:
         self.last_reasoning = ''
         self.is_bot = False
         self.avatar = avatar if avatar else f"https://picsum.photos/id/{64 + (index % 4)}/100/100"
-    
+        
+        # Director Configs (Bot Instructions)
+        self.strategy = 'heuristic' # default
+        self.profile = None # Explicit personality override
+
     @property
     def position(self):
         positions = ['Bottom', 'Right', 'Top', 'Left']
@@ -38,5 +42,8 @@ class Player:
             "actionText": self.action_text,
             "lastReasoning": self.last_reasoning,
             "isBot": self.is_bot, 
-            "isActive": (self.index == self.game.current_turn)
+            "isActive": (self.index == self.game.current_turn),
+            # Expose Configs
+            "strategy": getattr(self, 'strategy', 'heuristic'),
+            "profile": getattr(self, 'profile', None)
         }

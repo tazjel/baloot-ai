@@ -95,8 +95,9 @@ def fork_game():
     source_game_id = data.get('gameId') # could be int or string
     round_num = data.get('roundNum')  # 1-based index of round in history
     trick_index = data.get('trickIndex') # 0-based index of trick to stop AT (i.e. play tricks 0..trickIndex-1)
+    moves_in_trick = data.get('movesInTrick', 0) # Number of moves to play in the PARTIAL trick
 
-    log_event("REPLAY_FORK_REQUEST", str(source_game_id), details={"round": round_num, "trick": trick_index})
+    log_event("REPLAY_FORK_REQUEST", str(source_game_id), details={"round": round_num, "trick": trick_index, "moves": moves_in_trick})
 
     if not source_game_id or round_num is None or trick_index is None:
         log_error("REPLAY_FORK_ERROR", str(source_game_id), "Missing parameters for fork request")
@@ -112,7 +113,6 @@ def fork_game():
         history = source_game.full_match_history
     else:
         # DB Lookup
-        # DB Lookup - Use explicit query for safety
         safe_id = str(source_game_id).strip()
         log_event("REPLAY_FORK_DEBUG", "GLOBAL", details={"lookup_id": safe_id, "original_id": source_game_id})
         
@@ -139,89 +139,84 @@ def fork_game():
     snapshot = history[r_idx]
     
     # 2. Create NEW Game
-    new_room_id = f"replay_{source_game_id}_{round_num}_{trick_index}_{uuid.uuid4().hex[:8]}"
+    new_room_id = f"replay_{source_game_id}_{round_num}_{trick_index}_{moves_in_trick}_{uuid.uuid4().hex[:8]}"
     log_event("REPLAY_FORK_START", new_room_id, details={"source": source_game_id, "source_type": source_type, "round": round_num, "trick": trick_index})
     
     new_game = Game(new_room_id)
-    # FIX: Use save_game instead of property setter (which does nothing if Redis is on)
+    
+    # Time Lord / Ghost Metadata
+    # We want to know:
+    # 1. source_game_id
+    # 2. current_score_us (at moment of fork) -> To compare later? 
+    #    Actually better: We track 'forked_at_score_diff'.
+    #    But simplest: Store 'original_game_id'. Frontend can fetch original game details?
+    #    No, frontend wants "Ghost: +12".
+    #    So we need 'source_score_us' and 'source_score_them' AT THE END OF THIS GAME (Final).
+    #    If the game isn't finished, we can't show "Ghost of Past".
+    #    Wait, "Ghost of Past" implies comparing to what YOU did before.
+    #    If you replay a finished game, we know the final score.
+    #    Let's store 'original_final_scores' in metadata.
+    
+    original_final_scores = None
+    if source_game:
+        # If active game, maybe not final?
+        pass 
+    elif record:
+        # From DB
+        original_final_scores = {"us": record.final_score_us, "them": record.final_score_them}
+
+    new_game.metadata = {
+        "source_game_id": source_game_id,
+        "forked_at_round": round_num,
+        "forked_at_trick": trick_index,
+        "original_final_scores": original_final_scores
+    }
+
     room_manager.save_game(new_game)
     
     # 3. Hydrate State
     try:
         # A. Basic Setup
         new_game.players = [] # Reset default players if any
-        # We need to reconstruct players. 
-        # Strategy: Index 0 is YOU (Reserved). Others are Bots.
         
         # 0. Add You
         new_game.add_player("RESERVED_FOR_USER", "You (Forked)")
         
         # 1. Add Others (Indices 1, 2, 3)
         if source_game:
-             # Use original names/avatars 
              for i, p in enumerate(source_game.players):
                  if i == 0: continue # Skip original Bottom, we took it
-                 # Create Bot
                  bot_id = f"BOT_FORK_{i}_{uuid.uuid4().hex[:4]}"
                  bot_player = new_game.add_player(bot_id, f"{p.name} (Bot)", p.avatar)
                  if bot_player: bot_player.is_bot = True
         else:
-             # Fallback generic players
              for i in range(1, 4):
                  bot_id = f"BOT_FORK_{i}_{uuid.uuid4().hex[:4]}"
                  bot_player = new_game.add_player(bot_id, f"Player {i} (Bot)")
                  if bot_player: bot_player.is_bot = True
 
-        # B. Match State (Scores logic is complex because 'match_scores' in game tracks cumulative. 
-        # But the snapshot stores the state *at the end* of the round usually? 
-        # Wait, 'snapshot' is created at end_round.
-        # It contains 'scores' (Round Result) and we want the state AT THE START of this round.
-        # So we need the cumulative scores of all PREVIOUS rounds.
-        previous_rounds = history[:r_idx]
-        us_score = sum(r['scores']['us']['result'] for r in previous_rounds)
-        them_score = sum(r['scores']['them']['result'] for r in previous_rounds) # Logic check needed on 'scores' structure
-        
-        # Actually, let's just trust the snapshot if it had cumulative, but it tracks 'round result'.
-        # Recalculate:
-        new_game.match_scores = {"us": us_score, "them": them_score}
-        for pr in previous_rounds:
-             # Assuming pr['scores'] has the round total points.
-             # ScoringEngine usually returns raw points.
-             # Double check Game.end_round: 
-             # round_result, score_us, score_them = self.scoring_engine.calculate_final_scores()
-             # self.past_round_results.append(round_result)
-             # snapshot['scores'] = round_result
-             # So we need to sum up what was added to match_scores.
-             # This is slightly ambiguous without seeing 'round_result' structure.
-             # Let's assume for MVP we start at 0 or approximate.
-             # BETTER: new_game.match_scores = sum of previous.
-             pass
-             
-        # For simplicity in MVP, let's just carry over the raw 'match_scores' from the snapshot IF it had it, 
-        # but snapshot logic in Game.py didn't seemingly save 'match_scores' snapshot directly? 
-        # It saved 'scores': copy.deepcopy(round_result).
-        # We might need to fix Game.py to save 'match_scores_start' or similar. 
-        # OR: Just recalculate from history.
+        # B. Match State
+        # Minimal Logic for MVP - Recalculate match scores from previous rounds? 
+        # Or just trust snapshot if available?
+        # Let's assume snapshot doesn't have match_scores yet, so default to 0 for now.
+        # This will be fixed in v2.
         
         # C. Round State
         new_game.dealer_index = snapshot['dealerIndex']
-        new_game.floor_card = None # Already dealt
+        new_game.floor_card = None 
         new_game.bid = snapshot['bid']
-        new_game.game_mode = new_game.bid['type'] # e.g. 'SUN'
+        new_game.game_mode = new_game.bid['type']
         new_game.trump_suit = new_game.bid['suit']
-        new_game.doubling_level = 2 if new_game.bid['doubled'] else 1 # Simple approximation
+        new_game.doubling_level = 2 if new_game.bid['doubled'] else 1
         
         new_game.phase = GamePhase.PLAYING.value
         
         # D. Restore Hands
-        # snapshot['initialHands'] is Dict[Position, List[CardDict]]
         initial_hands = snapshot.get('initialHands')
         if not initial_hands:
              log_error("REPLAY_FORK_ERROR", new_room_id, "Snapshot missing initialHands data")
              return {"error": "Snapshot missing initialHands data (Cannot Replay)"}
-             
         
-        # Map Position -> Player Index
         pos_map = {p.position: p for p in new_game.players}
         
         for pos, cards_data in initial_hands.items():
@@ -231,70 +226,58 @@ def fork_game():
 
         # E. Replay Moves
         
-        # FIX: Initialize a dummy BiddingEngine so is_valid_move doesn't crash
-        # The contract is already set in new_game.bid
-        # We need an object that has .contract property matching new_game.bid
-        from game_engine.logic.bidding_engine import BiddingEngine
-        
-        # Better: create a partial BiddingEngine
-        be = BiddingEngine(new_game.dealer_index, new_game.floor_card, new_game.players, new_game.match_scores)
+        # FIX: Persist initial_hands so this forked game can itself be forked (Nested Replays)
+        new_game.initial_hands = initial_hands
 
-        # Hydrate contract from snapshot using the GLOBAL DummyContract class
+        from game_engine.logic.bidding_engine import BiddingEngine
+        be = BiddingEngine(new_game.dealer_index, new_game.floor_card, new_game.players, new_game.match_scores)
         be.contract = DummyContract(new_game.bid)
         new_game.bidding_engine = be
 
         target_trick_count = int(trick_index)
-        tricks_to_replay = snapshot['tricks'][:target_trick_count]
+        all_tricks = snapshot['tricks']
         
-        # We need to set 'current_turn' correctly before playing.
-        # Who starts? Bidder? No, depends on dealer.
-        # (Dealer + 1) % 4
+        # FULL Replay of previous tricks
+        tricks_to_replay = all_tricks[:target_trick_count]
+        
         new_game.current_turn = (new_game.dealer_index + 1) % 4
         
+        def replay_move(card_data, pos):
+             player = pos_map[pos]
+             c_rank = card_data['rank']
+             c_suit = card_data['suit']
+             
+             card_idx = -1
+             for idx, h_card in enumerate(player.hand):
+                 if h_card.rank == c_rank and h_card.suit == c_suit:
+                     card_idx = idx
+                     break
+             
+             if card_idx == -1:
+                 logger.warning(f"Replay Warning: Card {c_rank}{c_suit} not found in {pos} hand")
+                 return
+                 
+             new_game.play_card(player.index, card_idx)
+
+        # 1. Full Tricks
         for trick in tricks_to_replay:
-            # trick['cards'] is list of cards played in order.
-            # But wait, trick['cards'] in Game.py is list of Dicts with 'playedBy'?
-            # Let's verify Game.py serialization of round_history.
-            # 'currentRoundTricks' -> { 'cards': [c.to_dict()...], 'playedBy': ... }
-            # Actually Game.py: 
-            # 'cards': [c.to_dict()...]
-            # 'playedBy': t.get('playedBy') -> List[Pos]? No, let's check Game logic.
-            # Game.round_history is list of tricks.
-            # TrickManager.resolve_trick appends:
-            # { 'cards': [c...], 'playedBy': [pos...], 'winner': pos, 'points': int }
-            
             cards = trick['cards']
-            played_bys = trick.get('playedBy', []) # List of positions
-            
+            played_bys = trick.get('playedBy', [])
             for i, card_data in enumerate(cards):
-                # Find player
-                pos = played_bys[i]
-                player = pos_map[pos]
-                
-                # Find card index in hand
-                # Card equality might be tricky with objects vs dicts.
-                c_rank = card_data['rank']
-                c_suit = card_data['suit']
-                
-                card_idx = -1
-                for idx, h_card in enumerate(player.hand):
-                    if h_card.rank == c_rank and h_card.suit == c_suit:
-                        card_idx = idx
-                        break
-                
-                if card_idx == -1:
-                    log_error("REPLAY_FORK_ERROR", new_room_id, f"Replay Error: Card {c_rank}{c_suit} not found in {pos} hand during replay")
-                    # Force create? No, that breaks logic. 
-                    # If initial_hands were correct, it MUST be there.
-                    continue
-                    
-                # Play it
-                # We play directly to game engine to trigger side effects (table update, turn rotation)
-                # But we might want to suppress some events (logging?)
-                # For now, just call play_card.
-                new_game.play_card(player.index, card_idx)
-                
-        log_event("REPLAY_FORK_SUCCESS", new_room_id, details={"replayed_tricks": len(tricks_to_replay)})
+                replay_move(card_data, played_bys[i])
+
+        # 2. Partial Trick (The "Time Lord" moment)
+        if moves_in_trick > 0 and target_trick_count < len(all_tricks):
+             current_trick = all_tricks[target_trick_count]
+             partial_cards = current_trick['cards'][:moves_in_trick]
+             partial_players = current_trick.get('playedBy', [])[:moves_in_trick]
+             
+             logger.info(f"Replaying PARTIAL trick {target_trick_count}: {len(partial_cards)} moves")
+             
+             for i, card_data in enumerate(partial_cards):
+                  replay_move(card_data, partial_players[i])
+
+        log_event("REPLAY_FORK_SUCCESS", new_room_id, details={"replayed_tricks": len(tricks_to_replay), "partial_moves": moves_in_trick})
         return {"success": True, "newGameId": new_room_id} # Return 200 OK
     except Exception as e:
         log_error("REPLAY_FORK_ERROR", new_room_id, f"Fork Failed during hydration/replay: {e}")

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import CardVector from './CardVector';
-import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon } from 'lucide-react';
+import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
 import { ProfessorOverlay } from './overlays/ProfessorOverlay';
 import { useGameTension } from '../hooks/useGameTension';
 import { HeartbeatLayer } from './effects/HeartbeatLayer';
@@ -25,6 +25,7 @@ import HandFan from './HandFan';
 import PlayerAvatar from './table/PlayerAvatar';
 import ScoreBadge from './table/ScoreBadge';
 import ContractIndicator from './table/ContractIndicator';
+import { DirectorOverlay } from './DirectorOverlay'; // Commissioner
 import TurnTimer from './table/TurnTimer';
 
 interface TableProps {
@@ -78,7 +79,21 @@ export default function Table({
     // Project Reveal Persistence
     const [showProjects, setShowProjects] = useState(false);
     const [showProfessor, setShowProfessor] = useState(false);
+    const [showDirector, setShowDirector] = useState(false); // Commissioner
     const { tension, bpm } = useGameTension(gameState);
+
+    const handleDirectorUpdate = async (config: any) => {
+        try {
+            await fetch(`${window.location.origin}/react-py4web/game/director/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            // Ideally we should also optimistically update local state or wait for socket push
+        } catch (e) {
+            console.error("Director Update Failed", e);
+        }
+    };
 
     useEffect(() => {
         if (isProjectRevealing) {
@@ -428,6 +443,46 @@ export default function Table({
 
             {/* --- ZONE 1: HUD - Phase 1 UI Elements --- */}
             <ScoreBadge matchScores={matchScores} />
+
+            {/* Ghost of Baloot Past HUD */}
+            {gameState.metadata?.original_final_scores && (
+                <div className="absolute top-28 left-4 z-40 bg-black/60 backdrop-blur-md p-2 rounded-lg border border-purple-500/50 shadow-lg flex flex-col gap-1 animate-in slide-in-from-left duration-700">
+                    <div className="text-[10px] text-purple-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+                        Ghost of Past
+                    </div>
+                    {(() => {
+                        // Current Scores
+                        const curUs = matchScores.us;
+                        const curThem = matchScores.them;
+
+                        // Original Final Scores
+                        // If we are beating the FINAL score of the original game, that's impressive.
+                        // But usually we want to compare with "Where we were at this point".
+                        // Since we don't have the full history of the original game easily accessible here without heavy queries,
+                        // Let's just compare against the FINAL outcome.
+                        // "Can you beat the timeline?"
+
+                        const origUs = gameState.metadata.original_final_scores.us;
+                        const origThem = gameState.metadata.original_final_scores.them;
+
+                        const diffUs = curUs - origUs;
+
+                        return (
+                            <div className="flex flex-col">
+                                <span className="text-white text-xs font-medium">Original Final: {origUs} - {origThem}</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className={`text-sm font-bold ${diffUs >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {diffUs > 0 ? '+' : ''}{diffUs}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">vs Final</span>
+                                </div>
+                            </div>
+                        );
+                    })()}
+                </div>
+            )}
+
             <div className="absolute top-16 left-4 z-50">
                 <ContractIndicator bid={bid} players={players} doublingLevel={gameState.doublingLevel || 1} />
             </div>
@@ -450,6 +505,15 @@ export default function Table({
                 <ChartIcon size={18} />
             </button>
 
+            {/* Commissioner Button */}
+            <button
+                onClick={() => setShowDirector(true)}
+                className={`absolute top-4 left-56 z-50 p-1.5 rounded-full border transition-all shadow-lg ${showDirector ? 'bg-amber-600 border-amber-400 text-white' : 'bg-white/20 border-white/30 text-white hover:bg-white/40'}`}
+                title="Commissioner's Desk"
+            >
+                <Gavel size={18} />
+            </button>
+
             {/* Analytics Overlay */}
             {/* Overlays */}
             <HeartbeatLayer tension={tension} bpm={bpm} />
@@ -467,6 +531,13 @@ export default function Table({
                 showAnalytics={showAnalytics}
                 setShowAnalytics={setShowAnalytics}
             />
+            {showDirector && (
+                <DirectorOverlay
+                    gameState={gameState}
+                    onClose={() => setShowDirector(false)}
+                    onUpdate={handleDirectorUpdate}
+                />
+            )}
 
             {/* --- ZONE 2: ARENA (Fills remaining space) --- */}
             <div className="relative w-full flex-1 flex items-center justify-center perspective-1000 z-10 transition-all duration-500">

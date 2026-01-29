@@ -17,7 +17,9 @@ class CognitiveOptimizer:
         self.solver = MCTSSolver(neural_strategy=neural_strategy)
         self.use_inference = use_inference
         self.enabled = True
-        self.dataset_logger = DatasetLogger() # Auto-init logger
+        # YOLO Configuration: Only log highly confident moves (95%)
+        # Buffer 50 moves before writing to disk
+        self.dataset_logger = DatasetLogger(min_confidence=0.95, buffer_size=50)
 
     def get_decision(self, ctx: BotContext) -> dict:
         """

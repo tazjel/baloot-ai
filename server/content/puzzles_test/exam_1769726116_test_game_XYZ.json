@@ -1,0 +1,46 @@
+{
+    "id": "exam_1769726116_test_game_XYZ",
+    "title": "Professor's Exam: SUN Blunder",
+    "description": "You played 7S. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        "SUN",
+        "Blunder"
+    ],
+    "initial_state": {
+        "gameId": "test_game_XYZ",
+        "roundHistory": [],
+        "players": [
+            {
+                "name": "Me",
+                "index": 0,
+                "hand": [
+                    "S7",
+                    "HA"
+                ]
+            },
+            {
+                "name": "Right",
+                "index": 1,
+                "hand": []
+            },
+            {
+                "name": "Partner",
+                "index": 2,
+                "hand": []
+            },
+            {
+                "name": "Left",
+                "index": 3,
+                "hand": []
+            }
+        ]
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "AH"
+        ]
+    }
+}

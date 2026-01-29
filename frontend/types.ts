@@ -50,6 +50,10 @@ export interface Player {
   actionText?: string; // e.g. "Pass", "Sun" displayed briefly
   lastReasoning?: string; // AI Reasoning text
   index: number; // Player index (0-3)
+
+  // Director Configs
+  strategy?: 'heuristic' | 'mcts' | 'neural' | 'hybrid';
+  profile?: 'Aggressive' | 'Conservative' | 'Balanced';
 }
 
 export interface Bid {
@@ -217,5 +221,12 @@ export interface GameState {
   analytics?: {
     winProbability: { trick: number; us: number }[];
     blunders?: { [key: string]: number }; // Map "Bottom": count
+  };
+  metadata?: {
+    source_game_id?: string;
+    forked_at_round?: number;
+    forked_at_trick?: number;
+    original_final_scores?: { us: number; them: number };
+    [key: string]: any;
   };
 }

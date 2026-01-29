@@ -712,6 +712,84 @@ def get_puzzle_detail(puzzle_id):
         logger.error(f"Failed to fetch puzzle {puzzle_id}: {e}")
         return {"error": str(e)}
 
+@action('game/director/update', method=['POST', 'OPTIONS'])
+def update_director_config():
+    """
+    Updates the active game settings and player configs (Commissioner's Desk).
+    """
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    data = request.json
+    game_id = data.get('gameId')
+    settings = data.get('settings') # Dict of global settings (e.g. strictMode)
+    bot_configs = data.get('botConfigs') # Dict { playerIndex: { strategy, profile } }
+    
+    if not game_id:
+        response.status = 400
+        return {"error": "Missing gameId"}
+
+    try:
+        from server.room_manager import room_manager
+        game = room_manager.get_game(game_id)
+        if not game:
+            response.status = 404
+            return {"error": "Game not found"}
+            
+        logger.info(f"[DIRECTOR] Updating Game {game_id}")
+        
+        # 1. Update Global Settings
+        # GameSettings is a Pydantic model usually, or simple dict? 
+        # In types.ts it's interface. In game.py it uses settings dict usually or defaults.
+        # Let's inspect game.settings structure. 
+        # Ideally we update the existing object.
+        if settings:
+            logger.info(f"[DIRECTOR] Update Settings: {settings}")
+            if hasattr(game, 'settings'):
+                # Merge
+                for k, v in settings.items():
+                    # Sanitize Types if needed
+                    if hasattr(game.settings, k):
+                        setattr(game.settings, k, v)
+                    elif isinstance(game.settings, dict):
+                         game.settings[k] = v
+            else:
+                 # If game.settings doesn't exist, create it (legacy games)
+                 game.settings = settings
+                 
+        # 2. Update Bot Configs
+        if bot_configs:
+            logger.info(f"[DIRECTOR] Update Bots: {bot_configs}")
+            for idx_str, cfg in bot_configs.items():
+                idx = int(idx_str)
+                if 0 <= idx < len(game.players):
+                    p = game.players[idx]
+                    
+                    if 'strategy' in cfg:
+                        p.strategy = cfg['strategy'] # e.g. 'neural', 'mcts'
+                        
+                    if 'profile' in cfg:
+                        # Translate 'Aggressive' -> Personality dict? 
+                        # Or just store string and let Agent parse it?
+                        # Agent uses p.name usually. But we want override.
+                        # Let's check Agent logic. It uses p.strategy (we added that).
+                        # It parses p.name for personality. 
+                        # We should add p.profile attribute support to Agent.
+                        p.profile = cfg['profile'] # 'Aggressive', 'Conservative'
+
+        return {"success": True, "message": "Director Config Applied"}
+
+    except Exception as e:
+        logger.error(f"Director Update Failed: {e}")
+        import traceback
+        traceback.print_exc()
+        response.status = 500
+        return {"error": str(e)}
+
 # --- Explicit Binding for Custom Runner ---
 from py4web.core import bottle
 
@@ -796,6 +874,10 @@ def bind(app):
         
         safe_mount('/puzzles/<puzzle_id>', 'GET', get_puzzle_detail)
         safe_mount('/puzzles/<puzzle_id>', 'OPTIONS', get_puzzle_detail)
+
+        # 6. Director / Commissioner
+        safe_mount('/game/director/update', 'POST', update_director_config)
+        safe_mount('/game/director/update', 'OPTIONS', update_director_config)
 
         # 5. Index / Catch-All
         # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.

@@ -207,21 +207,27 @@ const ReplayPage: React.FC<ReplayPageProps> = ({ gameId, onBack, onFork, onLoadR
     const handleFork = async () => {
         // Calculate trick/round from step
         const trickIdx = Math.floor(playbackStep / 5);
+        const movesInTrick = playbackStep % 5;
+        
         try {
-            const res = await fetch('/replay/fork', {
+            const res = await fetch('/react-py4web/replay/fork', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     gameId,
                     roundNum: roundIdx + 1,
-                    trickIndex: trickIdx
+                    trickIndex: trickIdx,
+                    movesInTrick: movesInTrick
                 })
             });
             const data = await res.json();
-            if (data.success) onFork(data.newGameId);
-            else alert("Fork Failed: " + data.error);
-        } catch (e) {
-            alert("Fork Error: " + e);
+            if (data.success) {
+                onFork(data.newGameId);
+            } else {
+                alert("Fork Failed: " + data.error);
+            }
+        } catch (e: any) {
+            alert("Fork Error: " + e.message);
         }
     };
 

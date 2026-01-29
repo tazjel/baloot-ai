@@ -108,17 +108,30 @@ class Professor:
             
             if not blunder_type:
                 return None
-                
-            # 5. Construct Message
+            
+            # [NEW] Generate Puzzle for Blunders
             best_card = player.hand[best_move_idx]
             
+            if blunder_type == "BLUNDER":
+                try:
+                    # Lazy init to avoid circular deps if any
+                    from ai_worker.learning.puzzle_generator import PuzzleGenerator
+                    pgen = PuzzleGenerator()
+                    pgen.create_from_blunder(ctx, human_card, best_card, analysis)
+                except Exception as e:
+                    logger.error(f"Professor failed to generate puzzle: {e}")
+
+            # 5. Construct Message
             # Safety Check: Is the "Better Card" actually legal?
             if hasattr(game, 'is_valid_move') and not game.is_valid_move(best_card, player.hand):
                  logger.critical(f"PROFESSOR FATAL: Suggested ILLEGAL MOVE {best_card} as better option! Aborting intervention.")
                  return None
 
             intro = random.choice(self.responses[blunder_type])
-            reason = f"Playing {best_card} is calculated to be +{int(diff*100)}% better."
+            percentage = int(diff * 100)
+            reason = f"Playing {best_card} is {percentage}% better."
+            
+            # ... rest of code (Candidate extraction) ...
             
             # 4b. Extract Candidate Moves (Holographic Thought)
             candidates = []
@@ -151,7 +164,7 @@ class Professor:
                 "better_card": best_card.to_dict(),
                 "reason": reason,
                 "diff": diff,
-                "candidates": candidates  # Ghost Cards
+                "candidates": candidates
             }
             logger.info(f"Professor: Triggering Intervention: {intervention}")
             return intervention
