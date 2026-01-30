@@ -100,6 +100,82 @@ def signup():
     response.status = 201
     return {"message": "User registered successfully", "email": email, "firstName": first_name, "lastName": last_name, "user_id": user_id}
 
+# --- Visionary Studio Endpoints ---
+@action('api/visionary/ingest', method=['POST', 'OPTIONS'])
+def visionary_ingest():
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    try:
+        from server.settings import UPLOAD_FOLDER
+        from game_engine.visionary.visionary import DatasetGenerator
+        
+        # 1. Handle File Upload or URL
+        file_storage = request.files.get('file')
+        url = request.forms.get('url') # User might send URL
+        
+        ingest_dir = os.path.join(UPLOAD_FOLDER, 'ingest')
+        os.makedirs(ingest_dir, exist_ok=True)
+        
+        target_path = None
+        
+        if file_storage:
+            filename = file_storage.filename or "uploaded_video.mp4"
+            target_path = os.path.join(ingest_dir, filename)
+            file_storage.save(target_path)
+            logger.info(f"[VISIONARY] Saved uploaded file to {target_path}")
+            
+        elif url:
+            import yt_dlp
+            logger.info(f"[VISIONARY] Downloading from URL: {url}")
+            
+            ydl_opts = {
+                'format': 'best[ext=mp4]/best',
+                'outtmpl': os.path.join(ingest_dir, '%(title)s.%(ext)s'),
+                'noplaylist': True,
+                'quiet': True
+            }
+            
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    # Get the filename of the downloaded video
+                    # prepare_filename returns the filename as per the template
+                    filename = ydl.prepare_filename(info)
+                    target_path = filename
+                    logger.info(f"[VISIONARY] Downloaded video to {target_path}")
+            except Exception as dl_err:
+                logger.error(f"[VISIONARY] yt-dlp failed: {dl_err}")
+                return {"status": "error", "message": f"Download failed: {str(dl_err)}"}
+            
+        else:
+             response.status = 400
+             return {"error": "No file or URL provided"}
+             
+        if not target_path or not os.path.exists(target_path):
+             return {"status": "error", "message": "File processing failed or file not found"}
+
+        # 2. Trigger Processing (Sync for now, Async later)
+        # Ideally this should be a background task (Redis Queue)
+        # For now, we will just extract frames to dataset/images
+        
+        dataset_gen = DatasetGenerator(output_dir=os.path.join(UPLOAD_FOLDER, 'dataset'))
+        # Using a slightly larger interval for downloaded videos to avoid too many frames
+        dataset_gen.process_video_for_training(target_path, interval=1.0) 
+        
+        return {"status": "success", "message": "Video processed. Frames extracted to dataset/images.", "path": os.path.basename(target_path)}
+
+    except Exception as e:
+        logger.error(f"Visionary Ingest Failed: {e}")
+        import traceback
+        traceback.print_exc()
+        response.status = 500
+        return {"error": str(e)}
+
 
 @action('signin', method=['POST'])
 def signin():

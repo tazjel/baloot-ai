@@ -20,6 +20,7 @@ import MultiplayerLobby from './components/MultiplayerLobby';
 import { AIAnalysisPanel } from './components/AIAnalysisPanel';
 import GameLayout from './components/GameLayout';
 import AIStudio from './components/AIStudio'; // Added
+import { VisionaryStudio } from './components/VisionaryStudio';
 
 import { useGameState } from './hooks/useGameState';
 import { soundManager } from './services/SoundManager';
@@ -240,7 +241,7 @@ const App: React.FC = () => {
   };
 
   // --- CONTENT RENDER ---
-  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD' | 'REPLAY'>('LOBBY');
+  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD' | 'REPLAY' | 'VISIONARY'>('LOBBY');
   const [selectedPuzzleId, setSelectedPuzzleId] = useState<string | null>(null);
   const [replayGameId, setReplayGameId] = useState<string | null>(null);
   const [errorObj, setErrorObj] = useState<string | null>(null);
@@ -364,8 +365,11 @@ const App: React.FC = () => {
           setReplayGameId(""); // Start empty to show list
           setCurrentView('REPLAY');
         }}
+        onVisionary={() => setCurrentView('VISIONARY')}
       />
     );
+  } else if (currentView === 'VISIONARY') {
+    content = <VisionaryStudio onBack={() => setCurrentView('LOBBY')} />;
   } else if (currentView === 'REPLAY') {
     content = (
       <ReplayPage
@@ -451,7 +455,6 @@ const App: React.FC = () => {
               cardSkin={equippedItems.card}
               onSawa={handleSawa}
               onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
-              isSendingAction={isSendingAction}
               isSendingAction={isSendingAction}
               isPaused={!!profIntervention}
               // Mind Map Props (Lifted)
@@ -609,6 +612,6 @@ const App: React.FC = () => {
   }
 
   return <GameLayout className={currentView === 'AI_STUDIO' ? 'md:w-[1200px] md:max-w-[95vw]' : ''}>{content}</GameLayout>;
-};
+}
 
 export default App;

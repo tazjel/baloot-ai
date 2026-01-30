@@ -8,6 +8,7 @@ interface LobbyProps {
     onAIStudio: () => void;
     onAIClassroom: () => void;
     onReplay: () => void;
+    onVisionary?: () => void;
 }
 
 const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, onAIClassroom, onReplay }) => {
@@ -18,7 +19,7 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
         console.log("Lobby: Start Game Button Clicked");
         // @ts-ignore
         import('../utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Button Clicked', { turnDuration, strictMode }));
-        onStartGame({ turnDuration, strictMode });
+        onStartGame({ turnDuration, strictMode, soundEnabled: true, gameSpeed: 'NORMAL' });
     };
 
     return (
@@ -140,6 +141,16 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                     >
                         <Brain size={20} />
                         <span>الفصل الدراسي (تدريب)</span>
+                    </button>
+
+                    {/* Visionary Studio Button */}
+                    <button
+                        // @ts-ignore
+                        onClick={() => props.onVisionary && props.onVisionary()}
+                        className="w-full py-3 bg-[#CDA434]/10 border border-[#CDA434]/30 hover:bg-[#CDA434]/20 text-[#CDA434] font-bold rounded-full transition-all flex items-center justify-center gap-2 touch-target mt-3"
+                    >
+                        <span className="text-xl">👁️</span>
+                        <span>Visionary Studio (Ingest)</span>
                     </button>
 
                 </div>
