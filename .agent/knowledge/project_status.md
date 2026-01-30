@@ -143,4 +143,11 @@
 - **[FIXED] Room Not Found**: Resolved binary vs text Redis client conflict (`decode_responses=True`) by introducing `redis_store` (binary) for `pickle` operations.
 - **[REOPENED] Replay Studio JSON Error**: User reports issue persists despite Proxy/Error-Handling fixes. Requires post-restart investigation. Suspect specific object serialization failure.
 
+### Visionary Studio (AI Perception)
+- [x] **Pipeline**: Video ingestion -> Frame Extraction (Streaming) -> Auto-Labeling (YOLO-World).
+- [ ] **Training**: YOLOv8 Nano model (Pending dataset completion).
+- [x] **Integration**: `VisionaryProcessor` class structure implemented in `game_engine`.
+- [x] **UI Design**: Validated high-fidelity designs for Dashboard and Verification via Google Stitch (Project ID: `10251805862264409722`).
+
+
 

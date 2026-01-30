@@ -53,3 +53,16 @@
   ```
 - **Vite Proxy**: Frontend Dev Server (5173) needs explicit proxy rules for `/static` to handle assets outside the SPA route.
 
+## Visionary Studio AI (Session 2026-01-30)
+- **Resolution Trap**: Training YOLO on full 1080p frames (resized to 640px) causes small cards to vanish. **Always train on ROIs (Crops)** that match the inference pipeline (e.g., Hand/Floor crops).
+- **Auto-Labeling Config**: When using YOLO-World for auto-labeling full frames, use `imgsz=1280` and `conf=0.05` to ensure small objects are detected.
+- **Data Pipeline**:
+  1. `generate_roi_dataset.py` -> Extracts & Crops.
+  2. `auto_label.py` -> Labels the crops.
+  3. `train_visionary_yolo.py` -> Trains on the labeled crops.
+
+## Stitch MCP Integration (Session 2026-01-31)
+- **API Key & Refresh**: Stitch MCP works best with `X-Goog-Api-Key` instead of OAuth tokens in some contexts. After updating `mcp_config.json`, a **window reload/refresh** is often required for the IDE to re-handshake with the MCP server.
+- **Projects**: Stitch Project IDs are persistent. Always document them (like in `visionary_studio.md`) since `list_projects` might fail if auth is flaky.
+
+

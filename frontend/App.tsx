@@ -441,177 +441,183 @@ const App: React.FC = () => {
   } else {
     // GAME VIEW
     content = (
-      <ErrorBoundary>
-        <div className="flex h-full w-full overflow-hidden bg-black font-tajawal text-white relative" dir="rtl">
-          <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
-            <Table
-              gameState={gameState}
-              onPlayerAction={handlePlayerActionWithProfessor}
-              onChallenge={handleChallenge}
-              onAddBot={addBot}
-              onDebugAction={handleDebugAction}
-              isCuttingDeck={isCuttingDeck}
-              tableSkin={equippedItems.table}
-              cardSkin={equippedItems.card}
-              onSawa={handleSawa}
-              onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
-              isSendingAction={isSendingAction}
-              isPaused={!!profIntervention}
-              // Mind Map Props (Lifted)
-              showMindMap={showMindMap}
-              setShowMindMap={setShowMindMap}
-            />
+      <div className="flex h-full w-full overflow-hidden bg-black font-tajawal text-white relative" dir="rtl">
+        <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
+          <Table
+            gameState={gameState}
+            onPlayerAction={handlePlayerActionWithProfessor}
+            onChallenge={handleChallenge}
+            onAddBot={addBot}
+            onDebugAction={handleDebugAction}
+            isCuttingDeck={isCuttingDeck}
+            tableSkin={equippedItems.table}
+            cardSkin={equippedItems.card}
+            onSawa={handleSawa}
+            onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
+            isSendingAction={isSendingAction}
+            isPaused={!!profIntervention}
+            // Mind Map Props (Lifted)
+            showMindMap={showMindMap}
+            setShowMindMap={setShowMindMap}
+          />
 
-            {/* AI Report Button (Only visible if game is active) */}
-            {gameState.phase === GamePhase.Playing && (
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                className="absolute top-20 left-4 z-50 bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all"
-                title="Report Bad Bot Move"
-              >
-                ⚠️
-              </button>
-            )}
-
-            {/* Report Modal */}
-            {isReportModalOpen && (
-              <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
-                <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md text-right border border-slate-700" dir="rtl">
-                  <h2 className="text-xl font-bold text-yellow-500 mb-4">تصحيح حركة البوت</h2>
-
-                  <div className="mb-4">
-                    <label className="block text-slate-300 mb-2">الحركة الصحيحة</label>
-                    <input
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                      placeholder="مثال: A S"
-                      value={reportCorrectMove}
-                      onChange={e => setReportCorrectMove(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-slate-300 mb-2">السبب</label>
-                    <textarea
-                      className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white h-24"
-                      placeholder="لماذا كان قرار البوت خاطئاً؟"
-                      value={reportReason}
-                      onChange={e => setReportReason(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setIsReportModalOpen(false)}
-                      className="px-4 py-2 text-slate-400 hover:text-white"
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await submitTrainingData({
-                          contextHash: `live - ${Date.now()} `,
-                          gameState: JSON.stringify(gameState), // Capture current state
-                          badMove: "Unknown (User Reported)", // Ideally track last move
-                          correctMove: reportCorrectMove,
-                          reason: reportReason
-                        });
-                        addSystemMessage("شكراً! تم حفظ التصحيح.");
-                        setIsReportModalOpen(false);
-                        setReportReason("");
-                        setReportCorrectMove("");
-                      }}
-                      className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold"
-                    >
-                      حفظ
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-
-
-
-          {/* Settings Button */}
-          <button
-            onClick={() => setIsSettingsOpen(true)}
-            className="absolute top-4 right-4 z-[60] bg-black/40 hover:bg-black/60 p-2 rounded-full text-white/50 hover:text-white transition-all backdrop-blur-sm border border-white/10"
-          >
-            <Settings size={20} />
-          </button>
-
-          {/* Settings and Store buttons removed per user request - RESTORED SETTINGS */}
-
-          {/* Emote Menu (rendered by ActionBar button click) */}
-          {isEmoteMenuOpen && gameState.phase === GamePhase.Playing && (
-            <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[150]">
-              <EmoteMenu onSelectEmote={handleSendEmote} onSelectThrowable={handleThrowItem} onClose={() => setIsEmoteMenuOpen(false)} />
-            </div>
+          {/* AI Report Button (Only visible if game is active) */}
+          {gameState.phase === GamePhase.Playing && (
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="absolute top-20 left-4 z-50 bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all"
+              title="Report Bad Bot Move"
+            >
+              ⚠️
+            </button>
           )}
 
-          {flyingItems.map(item => (
-            <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}% `, top: `${item.startY}% `, '--end-x': `${item.endX}% `, '--end-y': `${item.endY}% ` } as any}>
-              {item.type === 'slipper' ? '🩴' : item.type === 'tomato' ? '🍅' : item.type === 'flower' ? '🌹' : '🥚'}
+          {/* Report Modal */}
+          {isReportModalOpen && (
+            <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
+              <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md text-right border border-slate-700" dir="rtl">
+                <h2 className="text-xl font-bold text-yellow-500 mb-4">تصحيح حركة البوت</h2>
+
+                <div className="mb-4">
+                  <label className="block text-slate-300 mb-2">الحركة الصحيحة</label>
+                  <input
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
+                    placeholder="مثال: A S"
+                    value={reportCorrectMove}
+                    onChange={e => setReportCorrectMove(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <label className="block text-slate-300 mb-2">السبب</label>
+                  <textarea
+                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white h-24"
+                    placeholder="لماذا كان قرار البوت خاطئاً؟"
+                    value={reportReason}
+                    onChange={e => setReportReason(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsReportModalOpen(false)}
+                    className="px-4 py-2 text-slate-400 hover:text-white"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await submitTrainingData({
+                        contextHash: `live - ${Date.now()} `,
+                        gameState: JSON.stringify(gameState), // Capture current state
+                        badMove: "Unknown (User Reported)", // Ideally track last move
+                        correctMove: reportCorrectMove,
+                        reason: reportReason
+                      });
+                      addSystemMessage("شكراً! تم حفظ التصحيح.");
+                      setIsReportModalOpen(false);
+                      setReportReason("");
+                      setReportCorrectMove("");
+                    }}
+                    className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold"
+                  >
+                    حفظ
+                  </button>
+                </div>
+              </div>
             </div>
-          ))}
-
-          {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
-          {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
-          {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
-          {isSettingsOpen && <SettingsModal
-            settings={gameState.settings}
-            equippedItems={equippedItems}
-            onUpdate={(s) => updateSettings(s)}
-            onEquip={handleEquip}
-            onClose={() => setIsSettingsOpen(false)}
-          />}
-          {levelUpData && <LevelUpModal newLevel={levelUpData.newLevel} rewards={levelUpData.rewards} onClose={() => setLevelUpData(null)} />}
-          {gameState.phase === GamePhase.GameOver && <VictoryModal scores={gameState.matchScores} onHome={() => { setCurrentView('LOBBY'); startNewRound(); }} onRematch={() => startNewRound()} onReview={() => setShowReviewModal(true)} />}
-
-          {/* Match Review Modal */}
-          <MatchReviewModal
-            isOpen={showReviewModal}
-            onClose={() => setShowReviewModal(false)}
-            fullMatchHistory={gameState.fullMatchHistory || []}
-            players={gameState.players}
-          />
-
-          {/* Variant Selection Modal (Open/Closed) */}
-          <VariantSelectionModal
-            phase={gameState.phase}
-            isMyTurn={gameState.players.find(p => p.position === PlayerPosition.Bottom)?.isActive || false}
-            onSelect={(variant) => handlePlayerAction('VARIANT_SELECTED', { variant })}
-          />
-
-
-          {/* Round Results Modal */}
-          <RoundResultsModal
-            result={roundResultToShow}
-            bidderTeam={gameState.bid?.bidder === PlayerPosition.Bottom || gameState.bid?.bidder === PlayerPosition.Top ? 'us' : gameState.bid?.bidder ? 'them' : null}
-            bidType={gameState.bid?.type || null}
-
-            isOpen={!!roundResultToShow}
-            onClose={() => {
-              setRoundResultToShow(null);
-              // Trigger next round (Backend expects this now)
-              handlePlayerAction('NEXT_ROUND', {});
-            }}
-            onReview={() => setShowReviewModal(true)}
-          />
-
-          {/* New Left-Side Analysis Panel */}
-          <AIAnalysisPanel
-            players={gameState.players}
-            gameId={gameState.gameId}
-            onOpenMindMap={() => setShowMindMap(true)}
-          />
+          )}
         </div>
-      </ErrorBoundary>
+
+
+
+
+        {/* Settings Button */}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="absolute top-4 right-4 z-[60] bg-black/40 hover:bg-black/60 p-2 rounded-full text-white/50 hover:text-white transition-all backdrop-blur-sm border border-white/10"
+        >
+          <Settings size={20} />
+        </button>
+
+        {/* Settings and Store buttons removed per user request - RESTORED SETTINGS */}
+
+        {/* Emote Menu (rendered by ActionBar button click) */}
+        {isEmoteMenuOpen && gameState.phase === GamePhase.Playing && (
+          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[150]">
+            <EmoteMenu onSelectEmote={handleSendEmote} onSelectThrowable={handleThrowItem} onClose={() => setIsEmoteMenuOpen(false)} />
+          </div>
+        )}
+
+        {flyingItems.map(item => (
+          <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}% `, top: `${item.startY}% `, '--end-x': `${item.endX}% `, '--end-y': `${item.endY}% ` } as any}>
+            {item.type === 'slipper' ? '🩴' : item.type === 'tomato' ? '🍅' : item.type === 'flower' ? '🌹' : '🥚'}
+          </div>
+        ))}
+
+        {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
+        {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
+        {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
+        {isSettingsOpen && <SettingsModal
+          settings={gameState.settings}
+          equippedItems={equippedItems}
+          onUpdate={(s) => updateSettings(s)}
+          onEquip={handleEquip}
+          onClose={() => setIsSettingsOpen(false)}
+        />}
+        {levelUpData && <LevelUpModal newLevel={levelUpData.newLevel} rewards={levelUpData.rewards} onClose={() => setLevelUpData(null)} />}
+        {gameState.phase === GamePhase.GameOver && <VictoryModal scores={gameState.matchScores} onHome={() => { setCurrentView('LOBBY'); startNewRound(); }} onRematch={() => startNewRound()} onReview={() => setShowReviewModal(true)} />}
+
+        {/* Match Review Modal */}
+        <MatchReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          fullMatchHistory={gameState.fullMatchHistory || []}
+          players={gameState.players}
+        />
+
+        {/* Variant Selection Modal (Open/Closed) */}
+        <VariantSelectionModal
+          phase={gameState.phase}
+          isMyTurn={gameState.players.find(p => p.position === PlayerPosition.Bottom)?.isActive || false}
+          onSelect={(variant) => handlePlayerAction('VARIANT_SELECTED', { variant })}
+        />
+
+
+        {/* Round Results Modal */}
+        <RoundResultsModal
+          result={roundResultToShow}
+          bidderTeam={gameState.bid?.bidder === PlayerPosition.Bottom || gameState.bid?.bidder === PlayerPosition.Top ? 'us' : gameState.bid?.bidder ? 'them' : null}
+          bidType={gameState.bid?.type || null}
+
+          isOpen={!!roundResultToShow}
+          onClose={() => {
+            setRoundResultToShow(null);
+            // Trigger next round (Backend expects this now)
+            handlePlayerAction('NEXT_ROUND', {});
+          }}
+          onReview={() => setShowReviewModal(true)}
+        />
+
+        {/* New Left-Side Analysis Panel */}
+        <AIAnalysisPanel
+          players={gameState.players}
+          gameId={gameState.gameId}
+          onOpenMindMap={() => setShowMindMap(true)}
+        />
+      </div>
     );
   }
 
-  return <GameLayout className={currentView === 'AI_STUDIO' ? 'md:w-[1200px] md:max-w-[95vw]' : ''}>{content}</GameLayout>;
+  const isStudioMode = currentView === 'AI_STUDIO' || currentView === 'VISIONARY';
+
+  return (
+    <GameLayout variant={isStudioMode ? 'studio' : 'mobile'}>
+      <ErrorBoundary>
+        {content}
+      </ErrorBoundary>
+    </GameLayout>
+  );
 }
 
 export default App;

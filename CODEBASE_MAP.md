@@ -10,6 +10,17 @@
 - `strategies/`: Specific bidding and playing strategies.
 - `signals/`: Collaborative Signaling Framework (Manager, Definitions, Emitter/Detector).
 - `data/`: Training data and scout analysis results (formerly `backend/data`).
+- `visionary/`: (See `game_engine/visionary`)
+
+### `dataset/`
+**Purpose**: YOLOv8 Training Data.
+- `images/`: Training and Validation images (train/val).
+- `labels/`: YOLO-format labels (txt) (train/val).
+- `data.yaml`: YOLOv8 Configuration file.
+
+### `models/`
+**Purpose**: Trained ML Models.
+- `yolo_v8n_baloot.pt`: Fine-tuned YOLOv8 Nano model for card recognition.
 
 ### `game_engine/`
 **Purpose**: Core game logic independent of the web server.
@@ -18,8 +29,11 @@
     - `bidding_engine.py`: Handles the auction phase (Sun, Hokum, Gablak, etc.).
     - `trick_manager.py`: Handles trick resolution and validation.
     - `project_manager.py`: Handles declarations (Sira, Baloot, etc.).
+    - `project_manager.py`: Handles declarations (Sira, Baloot, etc.).
     - `scoring_engine.py`: Calculates scores at end of round.
 - `models/`: Data classes (Card, Deck, Constants).
+- `visionary/`: **Visionary Studio** Core.
+    - `visionary.py`: `VisionaryProcessor` (Frames), `CardRecognizer` (YOLO), `DatasetGenerator`.
 
 ### `server/`
 **Purpose**: Web server infrastructure (Socket.IO, Flask/PyDAL).
@@ -35,9 +49,10 @@
 - `legacy_patch.py`, `old_test_game_phases.py`: Archived scripts.
 
 ### `scripts/`
-Refactored into functional groups:
-- `verification/`: Integration tests and verify scripts (`verify_game_flow.py`, `verify_ai_client.py`).
-- `debugging/`: Tools for symptom analysis (`repro_crash.py`, `debug_screenshot.py`).
+Refactored intofunctional groups:
+- `verification/`: Integration tests (`verify_game_flow.py`, `verify_ai_client.py`).
+- `visionary/`: **Visionary Studio Tools** (`train_visionary_yolo.py`, `auto_label.py`, `generate_roi_dataset.py`, `test_visionary.py`).
+- `debugging/`: Tools for symptom analysis (`repro_crash.py`, `debug_screenshot.py`, `debug_yolo_prediction.py`).
 - Root: Workflow entry points (`run_nightly_scout.ps1`, `restart_server.ps1`).
 
 ### `frontend/`

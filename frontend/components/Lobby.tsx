@@ -11,7 +11,7 @@ interface LobbyProps {
     onVisionary?: () => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, onAIClassroom, onReplay }) => {
+const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, onAIClassroom, onReplay, onVisionary }) => {
     const [turnDuration, setTurnDuration] = useState<number>(3);
     const [strictMode, setStrictMode] = useState<boolean>(true);
 
@@ -146,7 +146,7 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                     {/* Visionary Studio Button */}
                     <button
                         // @ts-ignore
-                        onClick={() => props.onVisionary && props.onVisionary()}
+                        onClick={() => onVisionary && onVisionary()}
                         className="w-full py-3 bg-[#CDA434]/10 border border-[#CDA434]/30 hover:bg-[#CDA434]/20 text-[#CDA434] font-bold rounded-full transition-all flex items-center justify-center gap-2 touch-target mt-3"
                     >
                         <span className="text-xl">👁️</span>

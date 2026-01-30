@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
+import { VisionaryVerifier } from './VisionaryVerifier';
 
 interface VisionaryStudioProps {
     onBack: () => void;
 }
 
 export const VisionaryStudio: React.FC<VisionaryStudioProps> = ({ onBack }) => {
+    const [view, setView] = useState<'upload' | 'verifier'>('upload');
     const [isDragging, setIsDragging] = useState(false);
     const [uploadQueue, setUploadQueue] = useState<{ name: string, progress: number, status: 'pending' | 'processing' | 'done' | 'error' }[]>([]);
     const [selectedProfile, setSelectedProfile] = useState<'EXTERNAL_APP_WEB' | 'EXTERNAL_APP_ARCHIVE'>('EXTERNAL_APP_WEB');
@@ -86,61 +88,74 @@ export const VisionaryStudio: React.FC<VisionaryStudioProps> = ({ onBack }) => {
         }
     };
 
+    if (view === 'verifier') {
+        return <VisionaryVerifier onBack={() => setView('upload')} />;
+    }
+
     return (
-        <div className="flex flex-col h-full w-full bg-slate-900 text-white font-tajawal p-8">
+        <div className="flex flex-col h-full w-full bg-slate-900 text-white font-sans p-8" dir="ltr">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-4xl font-black text-[#CDA434] tracking-tighter flex items-center gap-3">
                         <span className="text-5xl">👁️</span> VISIONARY <span className="text-white font-light">STUDIO</span>
                     </h1>
-                    <p className="text-slate-400 mt-2">Ingest. Analyze. Learn. Steal Skills from Human Gameplay.</p>
-                </div>
-                <button onClick={onBack} className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
-                    Exit Studio
-                </button>
-            </div>
+                    <button onClick={onBack} className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                        Exit Studio
+                    </button>
+                </div >
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1">
-                {/* Left Panel: Configuration */}
-                <div className="bg-black/40 rounded-2xl p-6 border border-white/5">
-                    <h3 className="text-xl font-bold text-[#CDA434] mb-6">Target Profile</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1">
+                    {/* Left Panel Wrapper */}
+                    <div className="flex flex-col gap-8">
+                        {/* Configuration Card */}
+                        <div className="bg-black/40 rounded-2xl p-6 border border-white/5">
+                            <h3 className="text-xl font-bold text-[#CDA434] mb-6">Target Profile</h3>
 
-                    <div className="space-y-4">
-                        <div
-                            onClick={() => setSelectedProfile('EXTERNAL_APP_WEB')}
-                            className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_WEB' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                            <div className="space-y-4">
+                                <div
+                                    onClick={() => setSelectedProfile('EXTERNAL_APP_WEB')}
+                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_WEB' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                                >
+                                    <div className="font-bold mb-1">ExternalApp Web (Live)</div>
+                                    <div className="text-xs text-slate-400">Extracts POV Hand, Table, and Scores from standard desktop view.</div>
+                                </div>
+
+                                <div
+                                    onClick={() => setSelectedProfile('EXTERNAL_APP_ARCHIVE')}
+                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_ARCHIVE' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                                >
+                                    <div className="font-bold mb-1">ExternalApp Archive</div>
+                                    <div className="text-xs text-slate-400">Extracts from historic replay viewer (Timeline, Full Table).</div>
+                                </div>
+
+                                <div className="p-4 rounded-xl border border-white/5 bg-black/20 opacity-50 cursor-not-allowed">
+                                    <div className="font-bold mb-1">Real Life (Beta)</div>
+                                    <div className="text-xs text-slate-400">Computer Vision for physical card tables (Coming Soon).</div>
+                                </div>
+                            </div>
+
+                            <h3 className="text-xl font-bold text-[#CDA434] mt-8 mb-6">Output Settings</h3>
+                            <div className="flex items-center gap-3 text-sm text-slate-300">
+                                <input type="checkbox" checked readOnly className="rounded accent-[#CDA434]" />
+                                <span>Generate Replay JSON</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-slate-300 mt-2">
+                                <input type="checkbox" checked readOnly className="rounded accent-[#CDA434]" />
+                                <span>Run "The Professor" Audit</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm text-slate-300 mt-2">
+                                <input type="checkbox" className="rounded accent-[#CDA434]" />
+                                <span>Auto-Train "YOLO" Model</span>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => setView('verifier')}
+                            className="w-full py-4 bg-gradient-to-r from-[#CDA434] to-yellow-600 text-black font-black text-xl rounded-xl shadow-lg hover:shadow-[#CDA434]/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
                         >
-                            <div className="font-bold mb-1">ExternalApp Web (Live)</div>
-                            <div className="text-xs text-slate-400">Extracts POV Hand, Table, and Scores from standard desktop view.</div>
-                        </div>
-
-                        <div
-                            onClick={() => setSelectedProfile('EXTERNAL_APP_ARCHIVE')}
-                            className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_ARCHIVE' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
-                        >
-                            <div className="font-bold mb-1">ExternalApp Archive</div>
-                            <div className="text-xs text-slate-400">Extracts from historic replay viewer (Timeline, Full Table).</div>
-                        </div>
-
-                        <div className="p-4 rounded-xl border border-white/5 bg-black/20 opacity-50 cursor-not-allowed">
-                            <div className="font-bold mb-1">Real Life (Beta)</div>
-                            <div className="text-xs text-slate-400">Computer Vision for physical card tables (Coming Soon).</div>
-                        </div>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-[#CDA434] mt-8 mb-6">Output Settings</h3>
-                    <div className="flex items-center gap-3 text-sm text-slate-300">
-                        <input type="checkbox" checked readOnly className="rounded accent-[#CDA434]" />
-                        <span>Generate Replay JSON</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300 mt-2">
-                        <input type="checkbox" checked readOnly className="rounded accent-[#CDA434]" />
-                        <span>Run "The Professor" Audit</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-300 mt-2">
-                        <input type="checkbox" className="rounded accent-[#CDA434]" />
-                        <span>Auto-Train "YOLO" Model</span>
+                            <span>🛡️</span> VERIFY DATASET
+                        </button>
                     </div>
                 </div>
 
@@ -217,7 +232,7 @@ export const VisionaryStudio: React.FC<VisionaryStudioProps> = ({ onBack }) => {
                         )}
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };

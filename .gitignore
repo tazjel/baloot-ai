@@ -57,3 +57,13 @@ uploads/
 # Generated Data
 backend/data/
 .agent/knowledge/video_frames/
+
+# Visionary Studio (ML Artifacts)
+dataset/
+runs/
+*.pt
+*.cache
+debug_*.jpg
+roi_calibration_result.png
+*.mp4
+*.MOV

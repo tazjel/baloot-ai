@@ -27,21 +27,38 @@ class VisionaryProcessor:
         Coordinates are based on a normalized 1920x1080 reference canvas.
         """
         if profile_name == Profile.EXTERNAL_APP_WEB:
-            return {
-                # POV Hand (Bottom Center) - Approximate
-                "hand_card_1": ROI(600, 900, 100, 150, "hand_1"),
-                # ... other cards would be calculated relative to this or explicitly defined
-                
+            rois = {
                 # Center Table (The "Floor")
                 "floor": ROI(800, 400, 320, 240, "floor"),
                 
-                # Scores (Top Corners usually, or Side in Desktop)
+                # Scores
                 "score_us": ROI(100, 100, 200, 50, "score_us"),
                 "score_them": ROI(1620, 100, 200, 50, "score_them"),
                 
-                # Bid Info (Center or Sidebar)
+                # Bid Info
                 "bid_info": ROI(800, 300, 320, 80, "bid_info")
             }
+
+            # Parametrically define 8 hand cards
+            # Base position for card 1 (approximate, based on previous value 600)
+            # Assuming cards are overlapping or spaced. 
+            # If card 1 is at 600, let's assume a spacing of ~80-100px.
+            start_x = 550
+            y_pos = 900
+            card_w = 100
+            card_h = 150
+            spacing = 110 # Tunable parameter
+
+            for i in range(8):
+                idx = i + 1
+                rois[f"hand_card_{idx}"] = ROI(
+                    x=start_x + (i * spacing),
+                    y=y_pos,
+                    w=card_w,
+                    h=card_h,
+                    name=f"hand_{idx}"
+                )
+            return rois
         return {}
 
     def load_image(self, path: str) -> Optional[np.ndarray]:
@@ -70,9 +87,32 @@ class VisionaryProcessor:
             
         return extracted
 
-    def extract_frames_from_video(self, video_path: str, interval_seconds: float = 1.0) -> List[np.ndarray]:
+    def compute_dhash(self, image: np.ndarray, hash_size: int = 8) -> int:
         """
-        Extracts frames from a video file at a specified interval.
+        Computes a 'difference hash' for the image.
+        Robust against slight lighting changes and exact pixel noise.
+        """
+        # 1. Resize to (hash_size + 1, hash_size)
+        resized = cv2.resize(image, (hash_size + 1, hash_size))
+        # 2. Convert to grayscale
+        gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+        # 3. Compute differences between adjacent pixels
+        diff = gray[:, 1:] > gray[:, :-1]
+        # 4. Convert boolean array to int
+        return sum([2 ** i for (i, v) in enumerate(diff.flatten()) if v])
+
+    def are_images_similar(self, hash1: int, hash2: int, threshold: int = 5) -> bool:
+        """Returns True if Hamming distance between hashes is <= threshold."""
+        return bin(hash1 ^ hash2).count('1') <= threshold
+
+    def extract_frames_from_video(self, video_path: str, interval_seconds: float = 0.5, min_change_threshold: int = 5) -> List[np.ndarray]:
+        """
+        Extracts frames from a video file, skipping duplicates using dHash.
+        
+        Args:
+            video_path: Path to video.
+            interval_seconds: Minimum time between frames (lower = more candidates).
+            min_change_threshold: Hamming distance threshold. If diff <= this, frame is skipped.
         """
         if not os.path.exists(video_path):
             print(f"Error: Video file not found {video_path}")
@@ -84,25 +124,38 @@ class VisionaryProcessor:
             return []
 
         fps = cap.get(cv2.CAP_PROP_FPS)
-        if fps <= 0:
-            fps = 30 # Fallback
+        if fps <= 0: fps = 30
 
         frames = []
         frame_interval = int(fps * interval_seconds)
         
         count = 0
+        last_hash = None
+        duplicates_skipped = 0
+        
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
             
+            # Check interval first
             if count % frame_interval == 0:
-                frames.append(frame)
+                current_hash = self.compute_dhash(frame)
+                
+                is_duplicate = False
+                if last_hash is not None:
+                    if self.are_images_similar(last_hash, current_hash, min_change_threshold):
+                        is_duplicate = True
+                        duplicates_skipped += 1
+                
+                if not is_duplicate:
+                    frames.append(frame)
+                    last_hash = current_hash
             
             count += 1
             
         cap.release()
-        print(f"Extracted {len(frames)} frames from {video_path}")
+        print(f"Extracted {len(frames)} unique frames from {video_path} (Skipped {duplicates_skipped} duplicates)")
         return frames
 
     def debug_show_rois(self, image: np.ndarray, save_path: str = "debug_rois.png"):
@@ -133,16 +186,39 @@ class VisionaryProcessor:
         print(f"Saved ROI debug image to {save_path}")
 
 class CardRecognizer:
-    def __init__(self):
-        # Placeholder for YOLO model or Template Matcher
+    def __init__(self, model_path: str = "models/yolo_v8n_baloot.pt"):
+        self.model_path = model_path
         self.model = None
+        self._load_model()
 
-    def predict(self, roi_image: np.ndarray) -> List[str]:
+    def _load_model(self):
+        try:
+            from ultralytics import YOLO
+            if os.path.exists(self.model_path):
+                print(f"Loading CardRecognizer model from {self.model_path}")
+                self.model = YOLO(self.model_path)
+            else:
+                print(f"Warning: Model not found at {self.model_path}")
+        except ImportError:
+            print("Error: ultralytics not installed. Card recognition disabled.")
+
+    def predict(self, roi_image: np.ndarray, conf_threshold: float = 0.5) -> List[str]:
         """
         Returns a list of detected card codes (e.g. ['AS', 'KH', '7D'])
         """
-        # TODO: Implement actual recognition
-        return []
+        if self.model is None or roi_image is None:
+            return []
+
+        results = self.model.predict(roi_image, conf=conf_threshold, verbose=False)
+        cards = []
+        for result in results:
+            for box in result.boxes:
+                # Get class name
+                cls_id = int(box.cls[0])
+                label = self.model.names[cls_id]
+                cards.append(label)
+        
+        return list(set(cards)) # Return unique cards found
 
 class DatasetGenerator:
     def __init__(self, output_dir: str = "dataset"):
@@ -153,11 +229,12 @@ class DatasetGenerator:
         os.makedirs(self.labels_dir, exist_ok=True)
         self.processor = VisionaryProcessor()
 
-    def process_video_for_training(self, video_path: str, interval: float = 2.0):
+    def process_video_for_training(self, video_path: str, interval: float = 0.5):
         """
-        Extracts frames from video, crops valid play areas (Hand, Floor),
+        Extracts frames from video, crops valid play areas (Hand 1-8, Floor),
         and saves them for labeling.
         """
+        # Capture more frequently (0.5s) because deduplication will filter out the static ones
         frames = self.processor.extract_frames_from_video(video_path, interval)
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         
@@ -165,17 +242,15 @@ class DatasetGenerator:
         for i, frame in enumerate(frames):
             rois = self.processor.extract_rois(frame)
             
-            # We are primarily interested in the 'floor' and 'hand' for object detection training
-            # 'score' is usually OCR, but we can save it too.
-            
             for roi_name, roi_img in rois.items():
-                if roi_name in ["floor", "hand_1"]: # Focus on these for YOLO
+                # Capture 'floor' and ALL 'hand_card_X' rois
+                if roi_name == "floor" or roi_name.startswith("hand_card_"):
                     filename = f"{video_name}_{i:04d}_{roi_name}.jpg"
                     path = os.path.join(self.images_dir, filename)
                     cv2.imwrite(path, roi_img)
                     count += 1
                     
-        print(f"Generated {count} training images in {self.images_dir}")
+        print(f"Smart Generator Created {count} training images in {self.images_dir}")
 
 # Example Usage
 if __name__ == "__main__":
