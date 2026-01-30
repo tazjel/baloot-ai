@@ -901,6 +901,7 @@ class Game:
                 return {"error": "Hand empty"}
                 
             t0 = time.time()
+            from ai_worker.agent import bot_agent
             decision = bot_agent.get_decision(self.get_game_state(), player_index)
             dt = time.time() - t0
             logger.info(f"Auto-Play Decision Latency for {player.name}: {dt:.4f}s")

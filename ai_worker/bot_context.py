@@ -44,8 +44,10 @@ class BotContext:
         
         # Core Components
         from ai_worker.memory import CardMemory
+        from ai_worker.mind_client import mind_client
         self.memory = CardMemory()
         self.memory.populate_from_state(self.raw_state)
+        self.mind = mind_client # Use singleton
         
         # Play State
         self.played_cards = self.memory.played_cards # Delegate to robust memory
@@ -176,4 +178,14 @@ class BotContext:
              if is_legal:
                   legal_indices.append(i)
                   
+                  
         return legal_indices
+
+    def guess_hands(self):
+        """
+        Uses the MindReader AI to predict opponent hands based on game history.
+        Returns: { player_id: { card_idx: probability } }
+        """
+        if self.mind and self.mind.active:
+             return self.mind.infer_hands(self.raw_state)
+        return None

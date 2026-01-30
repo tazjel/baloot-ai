@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CardModel, Suit, Rank } from '../types';
 import CardVector from '../components/CardVector';
+import MultiverseTree from '../components/MultiverseTree';
 // getAssetPath removed as unused
 
 // Reuse existing UI components where possible, or simplified versions
@@ -26,6 +27,7 @@ const ReplayPage: React.FC<ReplayPageProps> = ({ gameId, onBack, onFork, onLoadR
     // Saved Replays List
     const [savedReplays, setSavedReplays] = useState<any[]>([]);
     const [showSidebar, setShowSidebar] = useState(false); // Default hidden for full immersion
+    const [showGenealogy, setShowGenealogy] = useState(false);
 
     // Fetch Saved List
     // Fetch Saved List
@@ -208,7 +210,7 @@ const ReplayPage: React.FC<ReplayPageProps> = ({ gameId, onBack, onFork, onLoadR
         // Calculate trick/round from step
         const trickIdx = Math.floor(playbackStep / 5);
         const movesInTrick = playbackStep % 5;
-        
+
         try {
             const res = await fetch('/react-py4web/replay/fork', {
                 method: 'POST',
@@ -298,23 +300,26 @@ const ReplayPage: React.FC<ReplayPageProps> = ({ gameId, onBack, onFork, onLoadR
                 ) : (
                     <>
                         {/* Header Overlay */}
-                        <div className="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none bg-gradient-to-b from-black/80 to-transparent h-32">
+                        <div className="absolute top-0 left-0 right-0 z-50 p-4 md:p-6 flex flex-col md:flex-row justify-between items-start pointer-events-none bg-gradient-to-b from-black/80 to-transparent h-auto md:h-32 gap-4">
                             <div className="pointer-events-auto">
-                                <h1 className="text-4xl font-black text-[#CDA434] drop-shadow-[0_2px_10px_rgba(205,164,52,0.5)] font-mono tracking-tighter">REPLAY<span className="text-white">STUDIO</span></h1>
+                                <h1 className="text-2xl md:text-4xl font-black text-[#CDA434] drop-shadow-[0_2px_10px_rgba(205,164,52,0.5)] font-mono tracking-tighter">REPLAY<span className="text-white">STUDIO</span></h1>
                                 <div className="text-[10px] text-white/60 uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                                     Cinema Mode • {gameId.substring(0, 8)}
                                 </div>
                             </div>
-                            <div className="flex gap-3 pointer-events-auto pr-12"> {/* Padding Right to avoid overlap with Sidebar toggle */}
-                                <button onClick={onBack} className="px-5 py-2 bg-white/5 backdrop-blur-md rounded-lg hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-widest transition-all">
-                                    Exit
+                            <div className="flex gap-2 md:gap-3 pointer-events-auto w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide pr-0 md:pr-12">
+                                <button onClick={() => setShowGenealogy(true)} className="px-3 py-2 md:px-5 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/50 text-purple-300 rounded-lg text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap">
+                                    Tree 🌳
                                 </button>
                                 <button
                                     onClick={handleFork}
-                                    className="px-6 py-2 bg-[#CDA434] hover:bg-yellow-400 text-black rounded-lg font-bold shadow-[0_0_20px_rgba(205,164,52,0.3)] animate-pulse text-xs uppercase tracking-widest transition-transform hover:scale-105"
+                                    className="px-4 py-2 md:px-6 bg-[#CDA434] hover:bg-yellow-400 text-black rounded-lg font-bold shadow-[0_0_20px_rgba(205,164,52,0.3)] animate-pulse text-xs uppercase tracking-widest transition-transform hover:scale-105 whitespace-nowrap"
                                 >
-                                    Fork Now ⚡
+                                    Fork ⚡
+                                </button>
+                                <button onClick={onBack} className="px-3 py-2 md:px-5 bg-white/5 backdrop-blur-md rounded-lg hover:bg-white/10 border border-white/10 text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap">
+                                    Exit
                                 </button>
                             </div>
                         </div>
@@ -516,6 +521,26 @@ const ReplayPage: React.FC<ReplayPageProps> = ({ gameId, onBack, onFork, onLoadR
                     </>
                 )}
             </div>
+            {/* Genealogy Overlay */}
+            {showGenealogy && (
+                <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-10">
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowGenealogy(false)}
+                            className="absolute -top-4 -right-4 w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full text-white flex items-center justify-center shadow-lg z-10"
+                        >
+                            ✕
+                        </button>
+                        <MultiverseTree
+                            currentGameId={gameId}
+                            onSelectGame={(id) => {
+                                if (onLoadReplay) onLoadReplay(id);
+                                setShowGenealogy(false);
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

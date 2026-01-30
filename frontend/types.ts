@@ -50,6 +50,7 @@ export interface Player {
   actionText?: string; // e.g. "Pass", "Sun" displayed briefly
   lastReasoning?: string; // AI Reasoning text
   index: number; // Player index (0-3)
+  isBot?: boolean; // Added for AI identification
 
   // Director Configs
   strategy?: 'heuristic' | 'mcts' | 'neural' | 'hybrid';

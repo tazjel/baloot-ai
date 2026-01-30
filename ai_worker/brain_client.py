@@ -98,4 +98,28 @@ class BrainClient:
             # Cap stream length to prevent memory leaks
             self.redis_client.xadd("analytics:hand_finished", {'data': json.dumps(round_snapshot)}, maxlen=1000)
         except Exception as e:
+            self.redis_client.xadd("analytics:hand_finished", {'data': json.dumps(round_snapshot)}, maxlen=1000)
+        except Exception as e:
             logger.error(f"[BRAIN] Failed to capture data: {e}")
+
+    def publish_mind_map(self, game_id, player_index, probs):
+        """
+        Publish "Theory of Mind" probabilities to Redis for frontend visualization.
+        probs: { opponent_idx: [32 floats] }
+        """
+        if not self.redis_client: return
+        
+        try:
+             # Convert numpy to list/float
+             serializable_probs = {}
+             for k, v in probs.items():
+                 # v is numpy array usually
+                 if hasattr(v, 'tolist'):
+                     serializable_probs[k] = v.tolist()
+                 else:
+                     serializable_probs[k] = v
+                     
+             key = f"bot:mind_map:{game_id}:{player_index}"
+             self.redis_client.set(key, json.dumps(serializable_probs), ex=60) # 1 min TTL
+        except Exception as e:
+             logger.error(f"[BRAIN] Failed to publish mind map: {e}")

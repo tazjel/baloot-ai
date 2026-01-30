@@ -7,9 +7,10 @@ interface DirectorOverlayProps {
     gameState: GameState;
     onClose: () => void;
     onUpdate: (config: any) => void;
+    onOpenMindMap: () => void;
 }
 
-export const DirectorOverlay: React.FC<DirectorOverlayProps> = ({ gameState, onClose, onUpdate }) => {
+export const DirectorOverlay: React.FC<DirectorOverlayProps> = ({ gameState, onClose, onUpdate, onOpenMindMap }) => {
     const [activeTab, setActiveTab] = useState<'rules' | 'bots'>('rules');
 
     // Local State for Changes
@@ -63,6 +64,16 @@ export const DirectorOverlay: React.FC<DirectorOverlayProps> = ({ gameState, onC
                         </div>
                         <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                             <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    {/* Quick Actions Bar */}
+                    <div className="bg-slate-900/80 p-3 border-b border-white/10 flex gap-3">
+                        <button
+                            onClick={onOpenMindMap}
+                            className="bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all"
+                        >
+                            <Brain className="w-4 h-4" /> Open Mind Map (3D)
                         </button>
                     </div>
 

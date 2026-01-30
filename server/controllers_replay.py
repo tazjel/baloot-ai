@@ -78,6 +78,84 @@ def get_archived_matches():
 
 
 
+
+# MULTIVERSE TREE (Genealogy)
+@action('replay/multiverse', method=['GET', 'OPTIONS'])
+@action.uses(db)
+def get_multiverse_tree():
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Content-Type'] = 'application/json'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    try:
+        # 1. Fetch all games (limit 100 for performance)
+        rows = db(db.match_archive).select(
+            db.match_archive.game_id,
+            db.match_archive.final_score_us,
+            db.match_archive.final_score_them,
+            db.match_archive.timestamp,
+            orderby=~db.match_archive.timestamp,
+            limitby=(0, 100)
+        )
+
+        nodes = []
+        seen_ids = set()
+        
+        # Helper to process node
+        def process_node(gid, score_us, score_them, ts, is_active=False):
+            if gid in seen_ids: return
+            seen_ids.add(gid)
+            
+            parent_id = None
+            if gid.startswith('replay_'):
+                parts = gid.split('_')
+                if len(parts) >= 6:
+                    suffix_len = 4
+                    parent_parts = parts[1:-suffix_len]
+                    parent_id = "_".join(parent_parts)
+
+            nodes.append({
+                "id": gid,
+                "parentId": parent_id,
+                "scoreUs": score_us,
+                "scoreThem": score_them,
+                "timestamp": str(ts),
+                "isFork": bool(parent_id),
+                "isActive": is_active
+            })
+
+        # A. Archived Games
+        for r in rows:
+            process_node(r.game_id, r.final_score_us, r.final_score_them, r.timestamp)
+            
+        # B. Active Games (In-Memory)
+        try:
+            # Use .games property which aggregates Redis/Local
+            current_games = room_manager.games
+            
+            for gid, game in current_games.items():
+                if gid.startswith('replay_'):
+                     # Calculate ephemeral score
+                     s_us = game.match_scores.get('us', 0)
+                     s_them = game.match_scores.get('them', 0)
+                     # active games fallback to created_at if timestamp missing
+                     ts = getattr(game, 'created_at', '0')
+                     process_node(gid, s_us, s_them, ts, is_active=True)
+                     
+        except Exception as active_err:
+            logger.warning(f"Multiverse: Failed to fetch active games: {active_err}")
+
+        return json.dumps({"nodes": nodes})
+
+    except Exception as e:
+        log_error("MULTIVERSE_ERROR", "GLOBAL", str(e))
+        return json.dumps({"error": str(e), "nodes": []})
+
+
 # FORK
 @action('replay/fork', method=['POST', 'OPTIONS'])
 def fork_game():
@@ -314,5 +392,9 @@ def bind(app_instance):
         # Fork
         safe_mount('/replay/fork', 'POST', fork_game)
         safe_mount('/replay/fork', 'OPTIONS', fork_game)
+        
+        # Multiverse
+        safe_mount('/replay/multiverse', 'GET', get_multiverse_tree)
+        safe_mount('/replay/multiverse', 'OPTIONS', get_multiverse_tree)
         
         setattr(app_instance, '_replay_routes_mounted', True)

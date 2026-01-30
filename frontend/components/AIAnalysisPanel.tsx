@@ -6,9 +6,10 @@ import { analyzeMatch } from '../services/trainingService';
 interface AIAnalysisPanelProps {
     players: Player[];
     gameId?: string;
+    onOpenMindMap?: () => void;
 }
 
-export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = ({ players, gameId }) => {
+export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = ({ players, gameId, onOpenMindMap }) => {
     const [isOpen, setIsOpen] = useState(true); // Default open
     const [thoughts, setThoughts] = useState<Record<string, any>>({});
 
@@ -336,49 +337,94 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = ({ players, gameI
                 {view === 'analysis' && historyIndex === -1 && (
                     <div style={{ marginBottom: '20px' }}>
 
-                        {/* Deep Analysis Button */}
-                        <div style={{ marginBottom: '15px' }}>
-                            {!deepAnalysis ? (
+                        {/* Deep Analysis & Mind Map Buttons */}
+                        <div style={{ marginBottom: '15px', display: 'flex', gap: '10px' }}>
+                            <div style={{ flex: 1 }}>
+                                {!deepAnalysis ? (
+                                    <button
+                                        onClick={handleDeepAnalysis}
+                                        disabled={isAnalyzing}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            backgroundColor: '#7c3aed', // violet
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                                            fontWeight: 'bold',
+                                            opacity: isAnalyzing ? 0.7 : 1,
+                                            fontSize: '11px'
+                                        }}
+                                    >
+                                        {isAnalyzing ? 'Analyzing...' : '🧠 Deep Analysis'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setDeepAnalysis(null)}
+                                        style={{
+                                            width: '100%',
+                                            padding: '10px',
+                                            backgroundColor: '#4c1d95',
+                                            color: '#ddd',
+                                            border: '1px solid #7c3aed',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontWeight: 'bold',
+                                            fontSize: '11px'
+                                        }}
+                                    >
+                                        Close Analysis
+                                    </button>
+                                )}
+                            </div>
+
+                            {onOpenMindMap && (
                                 <button
-                                    onClick={handleDeepAnalysis}
-                                    disabled={isAnalyzing}
+                                    onClick={onOpenMindMap}
                                     style={{
-                                        width: '100%',
+                                        flex: 1,
                                         padding: '10px',
-                                        backgroundColor: '#7c3aed', // violet
-                                        color: 'white',
-                                        border: 'none',
+                                        backgroundColor: 'rgba(205, 164, 52, 0.2)', // Gold/Amber transparent
+                                        color: '#CDA434',
+                                        border: '1px solid #CDA434',
                                         borderRadius: '4px',
-                                        cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                                        cursor: 'pointer',
                                         fontWeight: 'bold',
-                                        opacity: isAnalyzing ? 0.7 : 1
+                                        fontSize: '11px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '5px'
                                     }}
                                 >
-                                    {isAnalyzing ? 'Analyzing Match...' : '🧠 Perform Deep Analysis'}
+                                    <span>🏙️</span> 3D Mind
                                 </button>
-                            ) : (
-                                <div style={{
-                                    backgroundColor: '#2e1065',
-                                    border: '1px solid #8b5cf6',
-                                    borderRadius: '4px',
-                                    padding: '10px',
-                                    marginBottom: '10px'
-                                }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                                        <strong style={{ color: '#a78bfa' }}>Match Analysis</strong>
-                                        <button onClick={() => setDeepAnalysis(null)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}>×</button>
-                                    </div>
-                                    <p style={{ color: '#ddd', fontSize: '11px', marginBottom: '10px' }}>{deepAnalysis.summary}</p>
-
-                                    {deepAnalysis.moments?.map((m: any, idx: number) => (
-                                        <div key={idx} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed #5b21b6' }}>
-                                            <div style={{ color: '#c4b5fd', fontWeight: 'bold' }}>R{m.round} T{m.trick}: {m.action}</div>
-                                            <div style={{ color: '#fff', fontSize: '11px' }}>{m.critique}</div>
-                                        </div>
-                                    ))}
-                                </div>
                             )}
                         </div>
+
+                        {deepAnalysis && (
+                            <div style={{
+                                backgroundColor: '#2e1065',
+                                border: '1px solid #8b5cf6',
+                                borderRadius: '4px',
+                                padding: '10px',
+                                marginBottom: '10px'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                    <strong style={{ color: '#a78bfa' }}>Match Analysis</strong>
+                                    <button onClick={() => setDeepAnalysis(null)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer' }}>×</button>
+                                </div>
+                                <p style={{ color: '#ddd', fontSize: '11px', marginBottom: '10px' }}>{deepAnalysis.summary}</p>
+
+                                {deepAnalysis.moments?.map((m: any, idx: number) => (
+                                    <div key={idx} style={{ marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px dashed #5b21b6' }}>
+                                        <div style={{ color: '#c4b5fd', fontWeight: 'bold' }}>R{m.round} T{m.trick}: {m.action}</div>
+                                        <div style={{ color: '#fff', fontSize: '11px' }}>{m.critique}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         <h4 style={{ color: '#888', marginBottom: '10px', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '1px' }}>Current State Reasoning</h4>
 
@@ -431,7 +477,7 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = ({ players, gameI
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

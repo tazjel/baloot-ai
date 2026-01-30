@@ -67,6 +67,17 @@ class BotAgent:
             if sawa_resp := self.referee.check_sawa(ctx, game_state):
                  return sawa_resp
             
+            # Pub Sub: Theory of Mind (if active)
+            # Only run occasionally or every move? Every move is fine for now on GPU/fast CPU.
+            if ctx.phase == 'PLAYING':
+                 try:
+                     guesses = ctx.guess_hands()
+                     if guesses:
+                         gid = game_state.get('gameId', 'unknown')
+                         self.brain.publish_mind_map(gid, player_index, guesses)
+                 except Exception as me:
+                     pass # Don't block game for metrics
+
             # 1.2 Qayd Claim
             if qayd_claim := self.referee.check_qayd(ctx, game_state):
                  return qayd_claim

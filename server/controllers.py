@@ -790,6 +790,45 @@ def update_director_config():
         response.status = 500
         return {"error": str(e)}
 
+@action('api/mind/inference/<game_id>', method=['GET', 'OPTIONS'])
+def get_mind_inference(game_id):
+    """
+    Fetch "Theory of Mind" probabilities for 3D visualization.
+    """
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+
+    if request.method == 'OPTIONS':
+        return ""
+
+    try:
+        if not redis_client:
+             return {"mind_map": {}}
+
+        r = redis_client
+        
+        # Scan for mind maps: bot:mind_map:{game_id}:{player_index}
+        pattern = f"bot:mind_map:{game_id}:*"
+        keys = r.keys(pattern)
+        
+        mind_map = {}
+        if keys:
+            values = r.mget(keys)
+            for k, v in zip(keys, values):
+                try:
+                    idx = int(k.split(':')[-1])
+                    if v:
+                         mind_map[idx] = json.loads(v)
+                except:
+                    pass
+                    
+        return {"mind_map": mind_map}
+
+    except Exception as e:
+        logger.error(f"Failed to fetch mind map: {e}")
+        return {"mind_map": {}}
+
 # --- Explicit Binding for Custom Runner ---
 from py4web.core import bottle
 
@@ -878,6 +917,10 @@ def bind(app):
         # 6. Director / Commissioner
         safe_mount('/game/director/update', 'POST', update_director_config)
         safe_mount('/game/director/update', 'OPTIONS', update_director_config)
+
+        # 7. Mind Map (3D)
+        safe_mount('/api/mind/inference/<game_id>', 'GET', get_mind_inference)
+        safe_mount('/api/mind/inference/<game_id>', 'OPTIONS', get_mind_inference)
 
         # 5. Index / Catch-All
         # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.

@@ -27,6 +27,7 @@ import ScoreBadge from './table/ScoreBadge';
 import ContractIndicator from './table/ContractIndicator';
 import { DirectorOverlay } from './DirectorOverlay'; // Commissioner
 import TurnTimer from './table/TurnTimer';
+import MindMapOverlay from './overlays/MindMapOverlay';
 
 interface TableProps {
     gameState: GameState;
@@ -40,7 +41,11 @@ interface TableProps {
     onSawa?: () => void;
     onEmoteClick?: () => void;
     isSendingAction?: boolean;
+
     isPaused?: boolean;
+    // Mind Map Props (Lifted)
+    showMindMap?: boolean;
+    setShowMindMap?: (show: boolean) => void;
 }
 
 // Helper to map name/avatar to personality
@@ -63,8 +68,11 @@ export default function Table({
     cardSkin = 'card_default',
     onSawa,
     onEmoteClick,
+
     isSendingAction = false,
-    isPaused = false
+    isPaused = false,
+    showMindMap: propShowMindMap,
+    setShowMindMap: propSetShowMindMap
 }: TableProps) {
     // --- HOOKS ---
     const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
@@ -79,7 +87,14 @@ export default function Table({
     // Project Reveal Persistence
     const [showProjects, setShowProjects] = useState(false);
     const [showProfessor, setShowProfessor] = useState(false);
+
     const [showDirector, setShowDirector] = useState(false); // Commissioner
+
+    // Use Prop if available, else local state (fallback)
+    const [localShowMindMap, setLocalShowMindMap] = useState(false);
+    const showMindMap = propShowMindMap !== undefined ? propShowMindMap : localShowMindMap;
+    const setShowMindMap = propSetShowMindMap || setLocalShowMindMap;
+
     const { tension, bpm } = useGameTension(gameState);
 
     const handleDirectorUpdate = async (config: any) => {
@@ -536,8 +551,19 @@ export default function Table({
                     gameState={gameState}
                     onClose={() => setShowDirector(false)}
                     onUpdate={handleDirectorUpdate}
+                    onOpenMindMap={() => {
+                        setShowDirector(false);
+                        setShowMindMap(true); // Switch to Mind Map
+                    }}
                 />
             )}
+
+            <MindMapOverlay
+                gameId={gameState.gameId || (gameState as any).roomId}
+                players={gameState.players}
+                isOpen={showMindMap}
+                onClose={() => setShowMindMap(false)}
+            />
 
             {/* --- ZONE 2: ARENA (Fills remaining space) --- */}
             <div className="relative w-full flex-1 flex items-center justify-center perspective-1000 z-10 transition-all duration-500">

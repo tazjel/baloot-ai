@@ -71,6 +71,7 @@ const App: React.FC = () => {
   const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
   const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Settings UI
+  const [showMindMap, setShowMindMap] = useState(false); // Mind Map State (Lifted)
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
 
   // Dispute UI
@@ -451,7 +452,11 @@ const App: React.FC = () => {
               onSawa={handleSawa}
               onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
               isSendingAction={isSendingAction}
+              isSendingAction={isSendingAction}
               isPaused={!!profIntervention}
+              // Mind Map Props (Lifted)
+              showMindMap={showMindMap}
+              setShowMindMap={setShowMindMap}
             />
 
             {/* AI Report Button (Only visible if game is active) */}
@@ -593,7 +598,11 @@ const App: React.FC = () => {
           />
 
           {/* New Left-Side Analysis Panel */}
-          <AIAnalysisPanel players={gameState.players} gameId={gameState.gameId} />
+          <AIAnalysisPanel
+            players={gameState.players}
+            gameId={gameState.gameId}
+            onOpenMindMap={() => setShowMindMap(true)}
+          />
         </div>
       </ErrorBoundary>
     );
