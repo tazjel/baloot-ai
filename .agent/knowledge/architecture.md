@@ -52,6 +52,28 @@ The application follows a **Client-Server** architecture using **WebSockets** fo
 3. **Broadcast**: `game_update` event emitted with **Full Game State**.
 4. **Client Update**: Frontend receives new state -> Re-renders `Table` and components.
 
+## 3. AI Worker ("The Brain")
+**Entry Point:** `ai_worker/worker.py`
+**Communication:** Redis (Pub/Sub + Task Queues)
+
+### Key Components
+- **Bot Agent (`ai_worker/agent.py`)**:
+    - **Cognitive Optimizer**: Switches between `Heuristic`, `Neural` (Zero-Shot), and `Hybrid` (MCTS) modes.
+    - **MCTS Solver (`mcts.py`)**: Monte Carlo Tree Search for high-stakes decision making.
+    - **Memory Hall**: Long-term storage of game patterns and partner signals.
+- **Collaborative Signaling**:
+    - **Signal Manager**: Detects and Interprets signals (e.g., "Low Card = Opposite Color").
+    - **Emitter**: Decides when to signal partner.
+
+## 4. Visionary Studio (Perception)
+**Entry Point:** `game_engine/visionary/visionary.py`
+
+### Key Components
+- **`VisionaryProcessor`**: Ingests video frames.
+- **`CardRecognizer`**: Uses `YOLOv8-Nano` to detect cards (Rank/Suit) in real-time.
+- **`DatasetGenerator`**: Pipeline to extract ROI (Heads-Up Display) crops for training.
+
 ## Testing Architecture
 - **CLI Runner**: `cli_test_runner.py` bypasses the network layer to test `Game` logic directly.
 - **Scenarios**: `test_scenarios.py` defines scripted game flows for automated validation.
+- **Bot Lab**: `bot_lab/ask_bot.py` for isolating AI decision logic.

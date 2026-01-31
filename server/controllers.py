@@ -33,6 +33,7 @@ from server.common import db, logger, redis_client
 import server.auth_utils as auth_utils
 from ai_worker.llm_client import GeminiClient
 from server.room_manager import room_manager
+from server.serializers import serialize
 
 def token_required(f):
     def decorated(*args, **kwargs):
@@ -740,7 +741,7 @@ def get_ai_thoughts(game_id):
                 except:
                     pass
                     
-        return {"thoughts": make_serializable(thoughts)}
+        return {"thoughts": serialize(thoughts)}
 
     except Exception as e:
         logger.error(f"Failed to fetch thoughts: {e}")
@@ -774,7 +775,7 @@ def get_match_history(game_id):
             response.status = 404
             return {"error": "Game not found"}
             
-        return {"history": make_serializable(game.full_match_history)}
+        return {"history": serialize(game.full_match_history)}
     except Exception as e:
         logger.error(f"Error in get_match_history: {e}")
         import traceback
@@ -782,30 +783,6 @@ def get_match_history(game_id):
         response.status = 500
         return {"error": f"Internal Error: {str(e)}"}
 
-def make_serializable(obj):
-    """
-    Recursively converts objects to JSON-serializable formats.
-    Handles Enums, Objects with to_dict, and datetimes.
-    """
-    from enum import Enum
-    import datetime
-    
-    if isinstance(obj, dict):
-        return {k: make_serializable(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [make_serializable(v) for v in obj]
-    elif isinstance(obj, tuple):
-        return [make_serializable(v) for v in obj]
-    elif isinstance(obj, Enum):
-        return obj.value
-    elif hasattr(obj, 'to_dict'):
-        return make_serializable(obj.to_dict())
-    elif isinstance(obj, (datetime.datetime, datetime.date)):
-        return str(obj)
-    elif isinstance(obj, (str, int, float, bool, type(None))):
-        return obj
-    else:
-        return str(obj)
 
 
 @action('puzzles', method=['GET', 'OPTIONS'])

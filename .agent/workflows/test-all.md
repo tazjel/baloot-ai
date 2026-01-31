@@ -6,7 +6,7 @@ This workflow runs the full suite of backend simulation scenarios and frontend u
 
 1. Run Backend Scenarios
 ```bash
-python run_test_suite.py
+python scripts/run_test_suite.py
 ```
 
 2. Run Frontend Unit Tests

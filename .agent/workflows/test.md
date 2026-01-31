@@ -8,20 +8,20 @@ This workflow runs the CLI-based test runner to verify game logic.
    Runs a complete simulated game from start to finish.
    // turbo
    ```powershell
-   python cli_test_runner.py --scenario full_game --verbose
+   python scripts/cli_test_runner.py --scenario full_game --verbose
    ```
 
 2. **Run Interactive Mode**
    Start the interactive CLI where you control one player against bots.
    // turbo
    ```powershell
-   python cli_test_runner.py --interactive
+   python scripts/cli_test_runner.py --interactive
    ```
 
 3. **Run Stress Test**
    Run 10 quick games to check for crashes.
    // turbo
-   python cli_test_runner.py --scenario stress_test --games 10 --quiet
+   python scripts/cli_test_runner.py --scenario stress_test --games 10 --quiet
    ```
 
 4. **Run Verified Bot Scenarios**

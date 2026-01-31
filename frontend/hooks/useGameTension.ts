@@ -14,6 +14,8 @@ export const useGameTension = (gameState: GameState | null) => {
         let level: TensionLevel = 'low';
         let newBpm = 0;
 
+        if (!gameState.matchScores) return;
+
         const scoreUs = gameState.matchScores.us;
         const scoreThem = gameState.matchScores.them;
         const maxScore = Math.max(scoreUs, scoreThem);

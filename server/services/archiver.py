@@ -3,6 +3,8 @@ from server.logging_utils import log_event, log_error
 import json
 import datetime
 
+from server.serializers import serialize
+
 def archive_match(game_instance):
     """
     Saves the full match history of a completed game to the database.
@@ -20,7 +22,8 @@ def archive_match(game_instance):
         
         # Serialize history
         # Ensure deep serialization if objects exist (though Game.end_round usually handles to_dict)
-        history_json = json.dumps(game_instance.full_match_history, default=str)
+        data = serialize(game_instance.full_match_history)
+        history_json = json.dumps(data)
         
         db.match_archive.insert(
             game_id=game_instance.room_id,

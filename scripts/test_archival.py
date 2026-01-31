@@ -28,11 +28,12 @@ def test_archival():
     game.match_scores['us'] = 152
     game.match_scores['them'] = 100
     
-    # Inject dummy history so archiver has something to save
+    # Inject dummy history with Complex Objects (Card) to test Serializer
+    from game_engine.models.card import Card
     game.full_match_history = [{
         'round': 1, 
         'scores': {'us': 20, 'them': 0},
-        'tricks': [],
+        'tricks': [{'cards': [Card('S', '7'), Card('H', 'K')]}], # Complex Objects!
         'initialHands': {} 
     }]
     

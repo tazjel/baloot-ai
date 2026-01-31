@@ -62,6 +62,10 @@
 - [x] **Frontend**: Speech Bubbles and TTS integration.
 - [x] **Personalities**: Distinct voices and biases for AI agents.
 
+### Phase 9: Server & Stability Refactor (COMPLETED)
+- [x] **Replay Serialization**: Fixed persistent JSON errors by implementing robust `serializers.py` capable of handling complex Game Objects.
+- [x] **Server Runner**: Decoupled `py4web` monkey-patching and app creation into a clean Factory Pattern (`application.py`), stabilizing `main.py` entry point.
+
 ## ✅ Completed Milestones
 - **Data Flywheel**: The loop (Log -> Scout -> Train -> Redis -> Bot) is fully operational.
 - **Voice Interaction**: Bots now trash talk and react to gameplay.
