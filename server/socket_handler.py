@@ -181,7 +181,7 @@ def game_action(sid, data):
     elif action == 'DOUBLE':
         result = game.handle_double(player.index)
     elif action == 'SAWA' or action == 'SAWA_CLAIM':
-        # Result of Sawa (Sawa) request
+        # Result of Sawa request
         if hasattr(game, 'handle_sawa'):
              result = game.handle_sawa(player.index)
         else:
@@ -193,7 +193,15 @@ def game_action(sid, data):
              result = {'success': False, 'error': 'Sawa Response not implemented'}
 
     elif action == 'QAYD':
-        result = game.handle_qayd(player.index, payload.get('reason'))
+         # Legacy Qayd (Simple Claim) - Deprecated or used for simple reporting
+         result = game.handle_qayd(player.index, payload.get('reason'))
+    
+    # --- FORENSIC (VAR) ACTIONS ---
+    elif action == 'QAYD_TRIGGER':
+         result = game.handle_qayd_trigger(player.index)
+         
+    elif action == 'QAYD_ACCUSATION':
+         result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
     elif action == 'AKKA':
         result = game.handle_akka(player.index)
     elif action == 'UPDATE_SETTINGS':

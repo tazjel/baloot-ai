@@ -63,7 +63,7 @@ Projects are declared during **Trick 1**.
 ## 4. Special Mechanics
 - **Akka (Hokum)**: A player can claim "Akka" if they hold the highest remaining card in a non-trump suit.
     - *Constraints*: Hokum only, Non-Trump suit, Card cannot be an Ace.
-- **Sawa (Sawa)**: A player claims they can win *all* remaining tricks.
+- **Sawa**: A player claims they can win *all* remaining tricks.
     - *Refusal*: Opponents can refuse *only* if they hold a "Master Card" (Guaranteed Winner) in any suit.
     - *Acceptance*: If accepted, round ends immediately, claimer takes remaining points.
     - *Bot Logic*: Bot will Refuse if it holds any Master Card (Ace in Sun, or highest remaining Trump in Hokum). Otherwise, it Accepts.

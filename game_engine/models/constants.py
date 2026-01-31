@@ -19,6 +19,7 @@ class GamePhase(Enum):
     GAMEOVER = 'GAMEOVER'
     DOUBLING = 'DOUBLING'
     VARIANT_SELECTION = 'VARIANT_SELECTION'
+    CHALLENGE = 'CHALLENGE'
 
 class BiddingPhase(Enum):
     ROUND_1 = "ROUND_1"

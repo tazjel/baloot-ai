@@ -47,7 +47,7 @@ python cli_test_runner.py --scenario full_game --log-file test_output.log --debu
 - **project_four**: Test four-of-a-kind project declaration
 - **project_sequence**: Test sequence project declaration
 - **project_baloot**: Test Baloot (K+Q of trump) project
-- **sawa_test**: Test Sawa (Sawa) functionality
+- **sawa_test**: Test Sawa functionality
 - **double_test**: Test game doubling
 - **stress_test**: Run 10 consecutive games
 - **edge_all_pass**: Test edge case where all players pass

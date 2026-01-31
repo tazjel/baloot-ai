@@ -359,9 +359,9 @@ class TrickManager:
              
         self.game.reset_timer()
 
-    # --- SAWA (SAWA) LOGIC ---
+    # --- SAWA LOGIC ---
     def handle_sawa(self, player_index):
-        """Player claims they can win all remaining tricks (Sawa/Sawa)"""
+        """Player claims they can win all remaining tricks (Sawa)"""
         if player_index != self.game.current_turn:
              return {"error": "Not your turn"}
         

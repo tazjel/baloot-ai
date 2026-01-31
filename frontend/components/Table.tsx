@@ -4,6 +4,7 @@ import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import CardVector from './CardVector';
 import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
 import { ProfessorOverlay } from './overlays/ProfessorOverlay';
+import { ForensicOverlay } from './overlays/ForensicOverlay';
 import { useGameTension } from '../hooks/useGameTension';
 import { HeartbeatLayer } from './effects/HeartbeatLayer';
 import ProjectSelectionModal from './ProjectSelectionModal';
@@ -38,7 +39,7 @@ interface TableProps {
     isCuttingDeck?: boolean;
     tableSkin?: string;
     cardSkin?: string;
-    onSawa?: () => void;
+    onFastForward?: () => void;
     onEmoteClick?: () => void;
     isSendingAction?: boolean;
 
@@ -66,7 +67,7 @@ export default function Table({
     isCuttingDeck = false,
     tableSkin = 'table_default',
     cardSkin = 'card_default',
-    onSawa,
+    onFastForward,
     onEmoteClick,
 
     isSendingAction = false,
@@ -96,6 +97,21 @@ export default function Table({
     const setShowMindMap = propSetShowMindMap || setLocalShowMindMap;
 
     const { tension, bpm } = useGameTension(gameState);
+
+    // --- Qayd / Forensic Logic ---
+    const handleAccusation = (crime: any, proof: any, type: string) => {
+        console.log('[Table] detailed: handleAccusation called', { crime, proof, type });
+        // @ts-ignore
+        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('FORENSIC', 'Accusation Submitted', { crime, proof, type }));
+        onPlayerAction('QAYD_ACCUSATION', { accusation: { crime_card: crime, proof_card: proof, violation_type: type } });
+    };
+
+    const handleQaydTrigger = () => {
+        console.log('[Table] detailed: handleQaydTrigger called');
+        // @ts-ignore
+        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('FORENSIC', 'Qayd Trigger Button Clicked'));
+        onPlayerAction('QAYD_TRIGGER');
+    };
 
     const handleDirectorUpdate = async (config: any) => {
         try {
@@ -471,13 +487,6 @@ export default function Table({
                         const curUs = matchScores.us;
                         const curThem = matchScores.them;
 
-                        // Original Final Scores
-                        // If we are beating the FINAL score of the original game, that's impressive.
-                        // But usually we want to compare with "Where we were at this point".
-                        // Since we don't have the full history of the original game easily accessible here without heavy queries,
-                        // Let's just compare against the FINAL outcome.
-                        // "Can you beat the timeline?"
-
                         const origUs = gameState.metadata.original_final_scores.us;
                         const origThem = gameState.metadata.original_final_scores.them;
 
@@ -533,19 +542,18 @@ export default function Table({
             {/* Overlays */}
             <HeartbeatLayer tension={tension} bpm={bpm} />
             <AnimatePresence>
+                {/* Fixed SawaModal Props */}
                 {gameState?.sawaState && gameState.sawaState.active && (
                     <SawaModal
-                        sawaState={gameState.sawaState}
-                        onResponse={handleSawaResponse}
-                        me={me}
+                        isOpen={gameState.sawaState.active}
+                        claimerName={players.find(p => p.position === gameState.sawaState?.claimer)?.name || 'Unknown Player'}
+                        onAccept={() => handleSawaResponse('ACCEPT')}
+                        onRefuse={() => handleSawaResponse('REFUSE')}
                     />
                 )}
             </AnimatePresence>
-            <ProfessorOverlay
-                gameState={gameState}
-                showAnalytics={showAnalytics}
-                setShowAnalytics={setShowAnalytics}
-            />
+            {/* TODO: Restore War Room / Professor Overlay logic */}
+            {/* <ProfessorOverlay intervention={null} onUndo={() => {}} onInsist={() => {}} /> */}
             {showDirector && (
                 <DirectorOverlay
                     gameState={gameState}
@@ -555,6 +563,26 @@ export default function Table({
                         setShowDirector(false);
                         setShowMindMap(true); // Switch to Mind Map
                     }}
+                />
+            )}
+
+            {/* Qayd Trigger Button (Floating) */}
+            {gameState.phase === GamePhase.Playing && !gameState.qaydState?.active && (
+                <button
+                    onClick={handleQaydTrigger}
+                    className="absolute bottom-32 right-4 z-50 bg-red-600 hover:bg-red-500 text-white font-bold p-3 rounded-full shadow-lg border-2 border-red-400/50 transition-all hover:scale-110 active:scale-95 group"
+                    title="CALL QAYD (Forensic Challenge)"
+                >
+                    <ShieldAlert size={24} className="group-hover:animate-pulse" />
+                </button>
+            )}
+
+            {/* Forensic Overlay */}
+            {gameState.qaydState?.active && (
+                <ForensicOverlay
+                    gameState={gameState}
+                    onAccusation={handleAccusation}
+                    onCancel={() => { }}
                 />
             )}
 
@@ -764,7 +792,7 @@ export default function Table({
                     isMyTurn={isMyTurn}
                     onCardClick={handleCardClick}
                     cardSkin={cardSkin}
-                    gameMode={gameState.gameMode || 'SUN'}
+                    gameMode={(gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN'}
                     trumpSuit={gameState.trumpSuit}
                     settings={settings}
                 />
@@ -797,26 +825,29 @@ export default function Table({
             />
 
             {/* Dealer Badge for Me */}
-            {
-                me.isDealer && (
-                    <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-lg border border-yellow-500 flex items-center gap-2 animate-in fade-in duration-700">
-                        <div className="w-5 h-5 bg-[var(--color-premium-gold-gold)] rounded-full flex items-center justify-center font-bold text-xs text-black">D</div>
-                        <span className="text-xs font-bold text-gray-800">أنت الموزع</span>
-                    </div>
-                )
-            }
+            {me.isDealer && (
+                <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-lg border border-yellow-500 flex items-center gap-2 animate-in fade-in duration-700">
+                    <div className="w-5 h-5 bg-[var(--color-premium-gold)] rounded-full flex items-center justify-center font-bold text-xs text-black">D</div>
+                    <span className="text-xs font-bold text-gray-800">أنت الموزع</span>
+                </div>
+            )}
 
             {/* Sending Indicator Overlay */}
-            {
-                isSendingAction && (
-                    <div className="absolute inset-0 bg-black/20 z-[1000] flex items-center justify-center pointer-events-none">
-                        <div className="bg-white/90 backdrop-blur text-black px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-pulse">
-                            <div className="w-5 h-5 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="font-bold">Sending...</span>
-                        </div>
+            {isSendingAction && (
+                <div className="absolute inset-0 bg-black/20 z-[1000] flex items-center justify-center pointer-events-none">
+                    <div className="bg-white/90 backdrop-blur text-black px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 animate-pulse">
+                        <div className="w-5 h-5 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="font-bold">Sending...</span>
+                        {/* Debug: Manual Unlock */}
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="ml-4 text-xs underline text-red-300 hover:text-white"
+                        >
+                            Stuck? Reload
+                        </button>
                     </div>
-                )
-            }
-        </div >
+                </div>
+            )}
+        </div>
     );
 };

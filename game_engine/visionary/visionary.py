@@ -13,11 +13,11 @@ class ROI:
     name: str
 
 class Profile:
-    EXTERNAL_APP_WEB = "EXTERNAL_APP_WEB"
-    EXTERNAL_APP_ARCHIVE = "EXTERNAL_APP_ARCHIVE"
+    COMPETITOR_WEB = "COMPETITOR_WEB"
+    COMPETITOR_ARCHIVE = "COMPETITOR_ARCHIVE"
 
 class VisionaryProcessor:
-    def __init__(self, profile_name: str = Profile.EXTERNAL_APP_WEB):
+    def __init__(self, profile_name: str = Profile.COMPETITOR_WEB):
         self.profile_name = profile_name
         self.rois = self._load_rois(profile_name)
 
@@ -26,7 +26,7 @@ class VisionaryProcessor:
         Defines Regions of Interest for supported layouts.
         Coordinates are based on a normalized 1920x1080 reference canvas.
         """
-        if profile_name == Profile.EXTERNAL_APP_WEB:
+        if profile_name == Profile.COMPETITOR_WEB:
             rois = {
                 # Center Table (The "Floor")
                 "floor": ROI(800, 400, 320, 240, "floor"),

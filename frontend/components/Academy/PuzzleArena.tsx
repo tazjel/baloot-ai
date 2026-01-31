@@ -153,7 +153,7 @@ const PuzzleArena: React.FC<PuzzleArenaProps> = ({ id, onBack }) => {
                     onAddBot={() => { }}
                     onDebugAction={() => { }}
                     isCuttingDeck={false}
-                    onSawa={() => { }}
+                    onFastForward={() => { }}
                     onEmoteClick={() => { }}
                 />
             )}

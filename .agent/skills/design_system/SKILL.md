@@ -30,13 +30,13 @@ Defined in `frontend/index.css`.
 ### Buttons
 **Standard Action Button**:
 ```tsx
-<button className="btn-premium-gold">
+<button className="btn-premium">
   Play Now
 </button>
 ```
 **Game Action Button** (Pass, Double, etc.):
 ```tsx
-<button className="btn-premium-gold-action bg-zinc-800 text-white hover:bg-zinc-700">
+<button className="btn-premium-action bg-zinc-800 text-white hover:bg-zinc-700">
   PASS
 </button>
 ```
@@ -44,7 +44,7 @@ Defined in `frontend/index.css`.
 ### Panels / Modals
 **Glass Panel** (Used for Modals, Sidebars):
 ```tsx
-<div className="glass-premium-gold p-6">
+<div className="glass-premium p-6">
   <h2 className="text-[#D4AF37] font-bold text-2xl mb-4">Settings</h2>
   {/* Content */}
 </div>
@@ -57,7 +57,7 @@ Defined in `frontend/index.css`.
 - **Winner Highlight**: `animate-bounce-subtle`
 
 ## Best Practices
-1.  **Always use Glassmorphism**: Avoid solid opaque backgrounds for overlays. Use `.glass-premium-gold`.
+1.  **Always use Glassmorphism**: Avoid solid opaque backgrounds for overlays. Use `.glass-premium`.
 2.  **Gold Accents**: Use Gold (`#D4AF37`) for critical feedback (Winner, High Score, Trumps).
 3.  **Arabic Support**: Use `font-sans` which maps to 'Cairo' to ensure Arabic text renders beautifully.
 4.  **Touch Targets**: Ensure buttons are at least `min-w-[48px] min-h-[48px]` for mobile.

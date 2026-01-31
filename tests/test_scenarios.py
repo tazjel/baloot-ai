@@ -184,12 +184,12 @@ class ProjectTestScenario(ScenarioBase):
 
 
 class SawaTestScenario(ScenarioBase):
-    """Test Sawa (Sawa) - claiming all remaining tricks"""
+    """Test Sawa (Continue) - claiming all remaining tricks"""
     
     def __init__(self):
         super().__init__(
             name="Sawa Test",
-            description="Test Sawa (Sawa) claim functionality"
+            description="Test Sawa (Continue) claim functionality"
         )
     
     def setup(self, game: Game) -> bool:

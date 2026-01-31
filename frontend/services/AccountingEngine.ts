@@ -87,7 +87,7 @@ export class AccountingEngine {
 
         /**
          * HOKUM CONVERSION: Points = Round(Abnat / 10) with 0.5 rounding DOWN
-         * - 15.5 → 15 (round half down per ExternalApp)
+         * - 15.5 → 15 (round half down per Standard Rules)
          * - 15.6 → 16
          * - Total pool: 162 Abnat → 16 Game Points
          */

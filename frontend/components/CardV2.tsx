@@ -47,7 +47,7 @@ const getRankSymbolAR = (rank: Rank): string => {
 };
 
 const getSuitColor = (suit: Suit): string => {
-    // ExternalApp Style: Rich Red vs Jet Black
+    // Classic Style: Rich Red vs Jet Black
     return (suit === Suit.Hearts || suit === Suit.Diamonds) ? '#D32F2F' : '#111111';
 };
 
@@ -65,7 +65,7 @@ const CardV2: React.FC<CardV2Props> = ({
     if (!card) return null;
 
     const suitColor = getSuitColor(card.suit);
-    const rankSymbol = getRankSymbolAR(card.rank); // Default to Arabic for ExternalApp feel
+    const rankSymbol = getRankSymbolAR(card.rank); // Default to Arabic for Classic feel
     const isCourtCard = [Rank.King, Rank.Queen, Rank.Jack].includes(card.rank);
 
     // Premium texture background (CSS only)

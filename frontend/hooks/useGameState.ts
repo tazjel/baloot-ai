@@ -550,8 +550,14 @@ export const useGameState = () => {
             } else if (action === 'QAYD') {
                 // Disptue / Challenge
                 socketService.sendAction(roomId, 'QAYD', payload, onComplete);
+            } else if (action === 'QAYD_TRIGGER' || action === 'QAYD_ACCUSATION') {
+                // Forensic Actions
+                socketService.sendAction(roomId, action, payload, onComplete);
             } else if (action === 'DOUBLE') {
                 console.warn("Doubling not fully implemented in Python yet.");
+                setIsSendingAction(false);
+            } else {
+                console.warn("Unhandled Server Action - Clearing Spinner:", action);
                 setIsSendingAction(false);
             }
             return;
@@ -616,9 +622,9 @@ export const useGameState = () => {
         return () => clearInterval(heartbeat);
     }, [gameState, isCuttingDeck, isBotThinking]);
 
-    // --- PHASE V: SAWA (FAST FORWARD) LOGIC ---
-    const handleSawa = useCallback(() => {
-        addSystemMessage("SAWA! (Fast Forwarding...)");
+    // --- PHASE V: FAST FORWARD LOGIC ---
+    const handleFastForward = useCallback(() => {
+        addSystemMessage(">>> (Fast Forwarding...)");
         setGameState(prev => ({ ...prev, isFastForwarding: true, settings: { ...prev.settings, turnDuration: 0.1 } }));
     }, [addSystemMessage]);
 
@@ -842,6 +848,6 @@ export const useGameState = () => {
             }
         },
         roomId, // Phase VII
-        handleSawa // Phase V
+        handleFastForward // Phase V
     };
 };

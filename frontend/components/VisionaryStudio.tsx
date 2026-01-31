@@ -9,7 +9,7 @@ export const VisionaryStudio: React.FC<VisionaryStudioProps> = ({ onBack }) => {
     const [view, setView] = useState<'upload' | 'verifier'>('upload');
     const [isDragging, setIsDragging] = useState(false);
     const [uploadQueue, setUploadQueue] = useState<{ name: string, progress: number, status: 'pending' | 'processing' | 'done' | 'error' }[]>([]);
-    const [selectedProfile, setSelectedProfile] = useState<'EXTERNAL_APP_WEB' | 'EXTERNAL_APP_ARCHIVE'>('EXTERNAL_APP_WEB');
+    const [selectedProfile, setSelectedProfile] = useState<'COMPETITOR_WEB' | 'COMPETITOR_ARCHIVE'>('COMPETITOR_WEB');
 
     const [urlInput, setUrlInput] = useState("");
     const [isFetchingUrl, setIsFetchingUrl] = useState(false);
@@ -114,18 +114,18 @@ export const VisionaryStudio: React.FC<VisionaryStudioProps> = ({ onBack }) => {
 
                             <div className="space-y-4">
                                 <div
-                                    onClick={() => setSelectedProfile('EXTERNAL_APP_WEB')}
-                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_WEB' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                                    onClick={() => setSelectedProfile('COMPETITOR_WEB')}
+                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'COMPETITOR_WEB' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                                 >
-                                    <div className="font-bold mb-1">ExternalApp Web (Live)</div>
+                                    <div className="font-bold mb-1">External Web (Live)</div>
                                     <div className="text-xs text-slate-400">Extracts POV Hand, Table, and Scores from standard desktop view.</div>
                                 </div>
 
                                 <div
-                                    onClick={() => setSelectedProfile('EXTERNAL_APP_ARCHIVE')}
-                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'EXTERNAL_APP_ARCHIVE' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
+                                    onClick={() => setSelectedProfile('COMPETITOR_ARCHIVE')}
+                                    className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedProfile === 'COMPETITOR_ARCHIVE' ? 'bg-[#CDA434]/10 border-[#CDA434]' : 'bg-white/5 border-transparent hover:bg-white/10'}`}
                                 >
-                                    <div className="font-bold mb-1">ExternalApp Archive</div>
+                                    <div className="font-bold mb-1">External Archive</div>
                                     <div className="text-xs text-slate-400">Extracts from historic replay viewer (Timeline, Full Table).</div>
                                 </div>
 

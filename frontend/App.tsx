@@ -62,7 +62,7 @@ const App: React.FC = () => {
     joinGame,
     addSystemMessage,
     addBot,
-    handleSawa, // Phase V
+    handleFastForward, // Phase V
     roomId, // Phase VII
     updateSettings,
     isSendingAction // Added
@@ -452,7 +452,7 @@ const App: React.FC = () => {
             isCuttingDeck={isCuttingDeck}
             tableSkin={equippedItems.table}
             cardSkin={equippedItems.card}
-            onSawa={handleSawa}
+            onFastForward={handleFastForward}
             onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
             isSendingAction={isSendingAction}
             isPaused={!!profIntervention}
