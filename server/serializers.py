@@ -3,6 +3,7 @@ import json
 import datetime
 from enum import Enum
 from typing import Any, Dict, List, Union
+from pydantic import BaseModel
 
 def serialize(obj: Any) -> Any:
     """
@@ -24,6 +25,10 @@ def serialize(obj: Any) -> Any:
     # primitive types that are natively JSON serializable
     if isinstance(obj, (str, int, float, bool)):
         return obj
+
+    # Pydantic Model handling
+    if isinstance(obj, BaseModel):
+        return obj.model_dump(mode='json', by_alias=True)
 
     # datetime handling
     if isinstance(obj, (datetime.date, datetime.datetime)):

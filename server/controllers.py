@@ -988,102 +988,109 @@ def bind(app):
     """
     import os
     
-    with open("logs/import_debug.txt", "a") as f:
-        f.write(f"DEBUG: Binding Main Controllers to App {id(app)}\n")
+    logger.debug(f"DEBUG: Binding Main Controllers to App {id(app)}")
         
-        # Idempotency Guard
-        if getattr(app, '_main_controllers_bound', False):
-            f.write("DEBUG: Main Controllers already bound. Skipping.\n")
-            return
-            
-        def safe_mount(path, method, callback):
-            try:
-                app.route(path, method=method, callback=callback)
-                f.write(f"DEBUG: Mounted {path} [{method}]\n")
-            except Exception as e:
-                f.write(f"DEBUG: Failed to mount {path}: {e}\n")
+    # Idempotency Guard
+    if getattr(app, '_main_controllers_bound', False):
+        logger.debug("DEBUG: Main Controllers already bound. Skipping.")
+        return
+        
+    def safe_mount(path, method, callback):
+        try:
+            app.route(path, method=method, callback=callback)
+            logger.debug(f"DEBUG: Mounted {path} [{method}]")
+        except Exception as e:
+            if "already registered" in str(e):
+                 logger.debug(f"DEBUG: Skipped duplicate mount {path}: {e}")
+            else:
+                 logger.error(f"DEBUG: Failed to mount {path}: {e}")
 
-        # 1. Static Files
-        # We need to serve /static/... from the actual static folder (Project Root/static)
-        SERVER_FOLDER = os.path.dirname(__file__)
-        PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
-        STATIC_FOLDER = os.path.join(PROJECT_ROOT, 'static')
+    # 1. Static Files
+    # We need to serve /static/... from the actual static folder (Project Root/static)
+    SERVER_FOLDER = os.path.dirname(__file__)
+    PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
+    STATIC_FOLDER = os.path.join(PROJECT_ROOT, 'static')
+    
+    logger.debug(f"DEBUG: Serving Static from {STATIC_FOLDER} (Exists? {os.path.exists(STATIC_FOLDER)})")
+    
+    def serve_static(filepath):
+        return bottle.static_file(filepath, root=STATIC_FOLDER)
         
-        f.write(f"DEBUG: Serving Static from {STATIC_FOLDER} (Exists? {os.path.exists(STATIC_FOLDER)})\n")
-        
-        def serve_static(filepath):
-            return bottle.static_file(filepath, root=STATIC_FOLDER)
-            
-        safe_mount('/static/<filepath:path>', 'GET', serve_static)
+    safe_mount('/static/<filepath:path>', 'GET', serve_static)
 
-        # 2. Auth & User
-        safe_mount('/user', 'GET', user)
-        safe_mount('/signup', 'POST', signup)
-        safe_mount('/signup', 'OPTIONS', signup)
-        safe_mount('/signin', 'POST', signin)
-        
-        # 3. Game & Score
-        safe_mount('/save_score', 'POST', save_score)
-        safe_mount('/leaderboard', 'GET', leaderboard)
-        
-        # 4. AI / Brain / Training
-        safe_mount('/training_data', 'GET', get_training_data)
-        safe_mount('/training_data', 'OPTIONS', get_training_data)
-        
-        safe_mount('/submit_training', 'POST', submit_training)
-        safe_mount('/submit_training', 'OPTIONS', submit_training)
-        
-        safe_mount('/brain/memory', 'GET', get_brain_memory)
-        safe_mount('/brain/memory', 'OPTIONS', get_brain_memory)
-        
-        safe_mount('/brain/memory/<context_hash>', 'DELETE', delete_brain_memory)
-        safe_mount('/brain/memory/<context_hash>', 'OPTIONS', delete_brain_memory)
-        
-        safe_mount('/analyze_screenshot', 'POST', analyze_screenshot)
-        safe_mount('/analyze_screenshot', 'OPTIONS', analyze_screenshot)
-        
-        safe_mount('/ask_strategy', 'POST', ask_strategy)
-        safe_mount('/ask_strategy', 'OPTIONS', ask_strategy)
-        
-        safe_mount('/generate_scenario', 'POST', generate_scenario)
-        safe_mount('/generate_scenario', 'OPTIONS', generate_scenario)
-        
-        safe_mount('/analyze_match', 'POST', analyze_match)
-        safe_mount('/analyze_match', 'OPTIONS', analyze_match)
-        
-        safe_mount('/ai_thoughts/<game_id>', 'GET', get_ai_thoughts)
-        safe_mount('/ai_thoughts/<game_id>', 'OPTIONS', get_ai_thoughts)
-        
-        safe_mount('/match_history/<game_id>', 'GET', get_match_history)
-        safe_mount('/match_history/<game_id>', 'OPTIONS', get_match_history)
-        
-        safe_mount('/puzzles', 'GET', get_puzzles)
-        safe_mount('/puzzles', 'OPTIONS', get_puzzles)
-        
-        safe_mount('/puzzles/<puzzle_id>', 'GET', get_puzzle_detail)
-        safe_mount('/puzzles/<puzzle_id>', 'OPTIONS', get_puzzle_detail)
+    # 2. Auth & User
+    safe_mount('/user', 'GET', user)
+    safe_mount('/signup', 'POST', signup)
+    safe_mount('/signup', 'OPTIONS', signup)
+    safe_mount('/signin', 'POST', signin)
+    
+    # 3. Game & Score
+    safe_mount('/save_score', 'POST', save_score)
+    safe_mount('/leaderboard', 'GET', leaderboard)
+    
+    # 4. AI / Brain / Training
+    safe_mount('/training_data', 'GET', get_training_data)
+    safe_mount('/training_data', 'OPTIONS', get_training_data)
+    
+    safe_mount('/submit_training', 'POST', submit_training)
+    safe_mount('/submit_training', 'OPTIONS', submit_training)
+    
+    safe_mount('/brain/memory', 'GET', get_brain_memory)
+    safe_mount('/brain/memory', 'OPTIONS', get_brain_memory)
+    
+    safe_mount('/brain/memory/<context_hash>', 'DELETE', delete_brain_memory)
+    safe_mount('/brain/memory/<context_hash>', 'OPTIONS', delete_brain_memory)
+    
+    safe_mount('/analyze_screenshot', 'POST', analyze_screenshot)
+    safe_mount('/analyze_screenshot', 'OPTIONS', analyze_screenshot)
+    
+    safe_mount('/ask_strategy', 'POST', ask_strategy)
+    safe_mount('/ask_strategy', 'OPTIONS', ask_strategy)
+    
+    safe_mount('/generate_scenario', 'POST', generate_scenario)
+    safe_mount('/generate_scenario', 'OPTIONS', generate_scenario)
+    
+    safe_mount('/analyze_match', 'POST', analyze_match)
+    safe_mount('/analyze_match', 'OPTIONS', analyze_match)
+    
+    safe_mount('/ai_thoughts/<game_id>', 'GET', get_ai_thoughts)
+    safe_mount('/ai_thoughts/<game_id>', 'OPTIONS', get_ai_thoughts)
+    
+    safe_mount('/match_history/<game_id>', 'GET', get_match_history)
+    safe_mount('/match_history/<game_id>', 'OPTIONS', get_match_history)
+    
+    safe_mount('/puzzles', 'GET', get_puzzles)
+    safe_mount('/puzzles', 'OPTIONS', get_puzzles)
+    
+    safe_mount('/puzzles/<puzzle_id>', 'GET', get_puzzle_detail)
+    safe_mount('/puzzles/<puzzle_id>', 'OPTIONS', get_puzzle_detail)
 
-        # 6. Director / Commissioner
-        safe_mount('/game/director/update', 'POST', update_director_config)
-        safe_mount('/game/director/update', 'OPTIONS', update_director_config)
+    # 6. Director / Commissioner
+    safe_mount('/game/director/update', 'POST', update_director_config)
+    safe_mount('/game/director/update', 'OPTIONS', update_director_config)
 
-        # 7. Mind Map (3D)
-        safe_mount('/api/mind/inference/<game_id>', 'GET', get_mind_inference)
-        safe_mount('/api/mind/inference/<game_id>', 'OPTIONS', get_mind_inference)
+    # 7. Mind Map (3D)
+    safe_mount('/api/mind/inference/<game_id>', 'GET', get_mind_inference)
+    safe_mount('/api/mind/inference/<game_id>', 'OPTIONS', get_mind_inference)
 
 
-        # Visionary Verification
+    # Visionary Verification
+    # Ensure these functions are imported or available if we mount them
+    # Assuming they are defined in scope as they were in the previous version
+    try:
         safe_mount('/api/visionary/dataset/image/<filename>', 'GET', get_dataset_image)
         safe_mount('/api/visionary/verify/next', 'GET', get_next_verification)
         safe_mount('/api/visionary/verify/submit', 'POST', submit_verification)
         safe_mount('/api/visionary/verify/submit', 'OPTIONS', submit_verification)
+    except NameError:
+        logger.warning("Visionary endpoints not found, skipping mount.")
 
-        # 5. Index / Catch-All
-        # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.
-        # Bottle matches longest prefix usually.
-        safe_mount('/', 'GET', catch_all)
-        safe_mount('/index', 'GET', catch_all)
-        safe_mount('/<path:path>', 'GET', catch_all) # Wildcard for SPA Routing
-        
-        setattr(app, '_main_controllers_bound', True)
+    # 5. Index / Catch-All
+    # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.
+    # Bottle matches longest prefix usually.
+    safe_mount('/', 'GET', catch_all)
+    safe_mount('/index', 'GET', catch_all)
+    safe_mount('/<path:path>', 'GET', catch_all) # Wildcard for SPA Routing
+    
+    setattr(app, '_main_controllers_bound', True)
 

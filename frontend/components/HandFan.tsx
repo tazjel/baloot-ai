@@ -30,7 +30,8 @@ const ELEVATION = {
     selected: 'bottom-12 sm:bottom-14'
 };
 
-const HandFan: React.FC<HandFanProps> = ({
+const HandFanComponent: React.FC<HandFanProps> = ({
+
     hand,
     selectedCardIndex,
     isMyTurn,
@@ -138,4 +139,19 @@ const HandFan: React.FC<HandFanProps> = ({
     );
 };
 
+const HandFan = React.memo(HandFanComponent, (prev, next) => {
+    // Custom comparison for performance
+    if (prev.isMyTurn !== next.isMyTurn) return false;
+    if (prev.selectedCardIndex !== next.selectedCardIndex) return false;
+    if (prev.hand.length !== next.hand.length) return false;
+
+    // Deep check card IDs if length is same (to detect played cards)
+    const prevIds = prev.hand.map(c => c.id).join(',');
+    const nextIds = next.hand.map(c => c.id).join(',');
+    if (prevIds !== nextIds) return false;
+
+    return true; // Props are effectively equal, skip render
+});
+
 export default HandFan;
+

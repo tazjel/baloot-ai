@@ -319,7 +319,7 @@ class Game:
         logger.info(f"Round Ended via Qayd. Winner: {winner_team}")
 
 
-    def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict] = None) -> Dict[str, Any]:
+    def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # Auto-dismiss project reveal if valid play is attempted
         if self.is_project_revealing:
              self.is_project_revealing = False
@@ -541,7 +541,7 @@ class Game:
     def resolve_declarations(self):
         return self.project_manager.resolve_declarations() 
 
-    def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Dict[str, Any]:
         try:
             if not self.bidding_engine:
                  return {"error": "Bidding Engine not initialized"}

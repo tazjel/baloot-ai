@@ -1,4 +1,4 @@
-from server.game_logic import Game
+from game_engine.logic.game import Game
 import uuid
 import pickle
 import logging
@@ -26,30 +26,28 @@ class RoomManager:
         return room_id
 
     def get_game(self, room_id):
+        # PID used for process isolation tracking
         pid = os.getpid()
         if not room_id: return None
         
-        # 1. Try Redis First
+        # 1. Try Redis (Primary Truth)
         try:
             if redis_store:
                 data = redis_store.get(f"game:{room_id}")
                 if data:
                     g = pickle.loads(data)
-                    logger.info(f"[PID:{pid}] Redis GET {room_id} -> Found")
+                    # Sync local cache just in case, but Redis is truth
+                    if self._instance: 
+                        self._instance._local_cache[room_id] = g
                     return g
-                else:
-                    logger.info(f"[PID:{pid}] Redis GET {room_id} -> MISS")
-            else:
-                 logger.info(f"[PID:{pid}] Redis GET {room_id} -> RedisStore is NONE")
         except Exception as e:
-            logger.error(f"[PID:{pid}] Error fetching game {room_id} from Redis: {e}")
+            logger.error(f"[PID:{pid}] Redis GET Error {room_id}: {e}")
         
-        # 2. Fallback to Local Memory (Vital for transient or failed-save scenarios)
+        # 2. Fallback to Local Memory (Only if Redis fails or is missing)
+        # In a generic/stateless fleet, this will likely be a MISS, which is correct.
         local = self._local_cache.get(room_id)
         if local:
-             logger.info(f"[PID:{pid}] Local GET {room_id} -> Found")
-        else:
-             logger.info(f"[PID:{pid}] Local GET {room_id} -> MISS")
+             logger.warning(f"[PID:{pid}] Serving Local Stale Game {room_id} (Redis Miss)")
         return local
 
     def save_game(self, game):

@@ -24,6 +24,18 @@ logger = logging.getLogger(__name__)
 # async_mode='gevent' is recommended for pywsgi
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
 import server.auth_utils as auth_utils
+from server.schemas.game import GameStateModel
+
+def broadcast_game_update(game, room_id):
+    """Helper to emit validated game state with fallback"""
+    try:
+        state_model = GameStateModel(**game.get_game_state())
+        sio.emit('game_update', {'gameState': state_model.model_dump(mode='json', by_alias=True)}, room=room_id)
+    except Exception as e:
+        logger.critical(f"SCHEMA VALIDATION FAILED for Room {room_id}: {e}")
+        # Fallback: Emit raw state so game doesn't freeze
+        sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+
 
 # Memory Storage for Authenticated Users (Handshake Auth)
 # sid -> {user_id, email, username, ...}
@@ -238,7 +250,7 @@ def game_action(sid, data):
         room_manager.save_game(game)
         
         # Broadcast Update
-        sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+        broadcast_game_update(game, room_id)
         
         # Trigger Bot Responses for Sawa
         if action == 'SAWA' or action == 'SAWA_CLAIM':
@@ -311,7 +323,7 @@ def bot_loop(game, room_id, recursion_depth=0):
         next_idx = game.current_turn
         if not game.players[next_idx].is_bot:
             # CRITICAL FIX: Ensure human client has latest state including any phase changes caused by previous bot
-            sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+            broadcast_game_update(game, room_id)
             return
 
         # Wait for animation/thinking (testing: 0.05 seconds for faster testing)
@@ -352,7 +364,7 @@ def bot_loop(game, room_id, recursion_depth=0):
                 res = game.play_card(current_idx, card_idx, metadata=metadata)
         
         if res.get('success'):
-             sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+             broadcast_game_update(game, room_id)
 
              # Trigger Voice
              sio.start_background_task(handle_bot_speak, game, room_id, current_player, action, res)
@@ -382,7 +394,7 @@ def bot_loop(game, room_id, recursion_depth=0):
                   fallback_res = game.auto_play_card(current_idx)
              
              if fallback_res.get('success'):
-                  sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                  broadcast_game_update(game, room_id)
                   if game.phase == "FINISHED":
                        # sio.start_background_task(auto_restart_round, game, room_id)
                        pass
@@ -394,7 +406,7 @@ def bot_loop(game, room_id, recursion_depth=0):
                   emergency_res = game.play_card(current_idx, 0)
                   if emergency_res.get('success'):
                        logger.info("Emergency Play Successful. Continuing Loop.")
-                       sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                       broadcast_game_update(game, room_id)
                        sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
                   else:
                        logger.critical(f"Bot Completely Stuck. Emergency Failed: {emergency_res}. Loop Exiting (Will resume on limit).")
@@ -429,7 +441,7 @@ def handle_sawa_responses(game, room_id):
                     res = game.handle_sawa_response(p.index, resp)
                     if res.get('success'):
                          # Emit update immediately so UI sees progress
-                         sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                         broadcast_game_update(game, room_id)
                          room_manager.save_game(game) # Persist Sawa Response
                          
                          # If Refused -> Sawa ends -> Loop ends
@@ -659,7 +671,7 @@ def timer_background_task(room_manager_instance):
                     # Timeout caused an action (Pass or AutoPlay)
                     # Broadcast update
                     room_manager.save_game(game) # Persist Timeout Action
-                    sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+                    broadcast_game_update(game, room_id)
                     
                     # Trigger Bot if next player is bot
                     # (Standard bot_loop handles logic, we just trigger it)

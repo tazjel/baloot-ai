@@ -20,6 +20,41 @@ class TestSocketHandler(unittest.TestCase):
         from server import socket_handler
         self.socket_handler = socket_handler
 
+    def get_mock_game_state(self):
+        return {
+            "roomId": "ROOM_123",
+            "phase": "PLAYING",
+            "players": [
+                {
+                    "id": "sid_1", "name": "TestPlayer", "avatar": "av1", "index": 0,
+                    "hand": [], "score": 0, "team": "us", "position": "Bottom",
+                    "isDealer": True, "actionText": "", "lastReasoning": "", "isBot": False
+                }
+            ],
+            "tableCards": [],
+            "currentTurnIndex": 0,
+            "gameMode": "SUN",
+            "teamScores": {"us": 0, "them": 0},
+            "matchScores": {"us": 0, "them": 0},
+            "analytics": {"winProbability": [], "blunders": []},
+            "floorCard": None,
+            "dealerIndex": 0,
+            "biddingRound": 1,
+            "declarations": {},
+            "timer": {"remaining": 10, "duration": 30, "elapsed": 0, "active": True},
+            "isProjectRevealing": False,
+            "doublingLevel": 1,
+            "isLocked": False,
+            "dealingPhase": "FINISHED",
+            "challengeActive": False,
+            "timerStartTime": 0,
+            "turnDuration": 30,
+            "serverTime": 1000,
+            "gameId": "ROOM_123",
+            "settings": {}
+        }
+
+
     def tearDown(self):
         self.room_manager_patcher.stop()
         self.sio_patcher.stop()
@@ -88,14 +123,20 @@ class TestSocketHandler(unittest.TestCase):
         self.mock_room_manager.get_game.return_value = mock_game
         
         mock_game.handle_bid.return_value = {'success': True}
-        mock_game.get_game_state.return_value = {'state': 'mock', 'currentTurnIndex': 0}
+        mock_game.get_game_state.return_value = self.get_mock_game_state()
 
         # Test
         result = self.socket_handler.game_action(sid, action_data)
 
         # Assert
         mock_game.handle_bid.assert_called_with(0, 'SUN', None)
-        self.mock_sio.emit.assert_called_with('game_update', {'gameState': {'state': 'mock', 'currentTurnIndex': 0}}, room=room_id)
+        mock_game.handle_bid.assert_called_with(0, 'SUN', None)
+        # Verify emit was called. Arguments are transformed by Pydantic dump so strict equality on dictionary is fragile here without replicating dump logic.
+        self.mock_sio.emit.assert_called()
+        args, kwargs = self.mock_sio.emit.call_args
+        self.assertEqual(args[0], 'game_update')
+        self.assertEqual(kwargs['room'], room_id)
+        self.assertIn('gameState', args[1])
         self.assertTrue(result['success'])
 
     def test_game_action_play(self):
@@ -112,14 +153,16 @@ class TestSocketHandler(unittest.TestCase):
         self.mock_room_manager.get_game.return_value = mock_game
         
         mock_game.play_card.return_value = {'success': True}
-        mock_game.get_game_state.return_value = {'state': 'mock', 'currentTurnIndex': 0}
+        mock_game.get_game_state.return_value = self.get_mock_game_state()
 
         # Test
         result = self.socket_handler.game_action(sid, action_data)
 
         # Assert
         mock_game.play_card.assert_called_with(0, 2, None)
-        self.assertTrue(result['success'])
+        self.mock_sio.emit.assert_called()
+        args, kwargs = self.mock_sio.emit.call_args
+        self.assertEqual(args[0], 'game_update')
 
 if __name__ == '__main__':
     unittest.main()

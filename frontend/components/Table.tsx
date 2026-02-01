@@ -136,6 +136,10 @@ export default function Table({
         }
     }, [isProjectRevealing]);
 
+    // Fix: Use Ref for players to avoid re-subscribing when players array reference changes
+    const playersRef = React.useRef(players);
+    useEffect(() => { playersRef.current = players; }, [players]);
+
     // Listen for Bot Speak Events
     useEffect(() => {
         // Subscribe
@@ -146,8 +150,9 @@ export default function Table({
             setPlayerSpeech(prev => ({ ...prev, [playerIndex]: text }));
 
             // 2. Play Audio
-            // Find player to get personality
-            const player = players.find(p => p.index === playerIndex);
+            // use ref to get latest players without re-running effect
+            const currentPlayers = playersRef.current;
+            const player = currentPlayers.find(p => p.index === playerIndex);
             const personality = player ? getPersonality(player) : 'BALANCED';
 
             // Speak!
@@ -168,7 +173,8 @@ export default function Table({
         return () => {
             if (cleanup) cleanup();
         };
-    }, [speak, players]);
+    }, [speak]); // Removed players dependency
+
 
     // Sync timer with Game Settings
     const turnDuration = settings?.turnDuration || 10;
