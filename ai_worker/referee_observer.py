@@ -15,9 +15,9 @@ class RefereeObserver:
         if ctx.phase == 'PLAYING' and ctx.table_cards:
             last_play_raw = game_state.get('tableCards', [])[-1]
             if isinstance(last_play_raw, dict) and (last_play_raw.get('metadata') or {}).get('is_illegal'):
-                logger.info(f"[REFEREE] {ctx.position} detected illegal move! Calling Qayd.")
+                logger.info(f"[REFEREE] {ctx.position} detected illegal move! Triggering Qayd Protocol.")
                 return {
-                    "action": "QAYD_CLAIM",
+                    "action": "QAYD_TRIGGER",  # Open the menu first
                     "reasoning": "Opponent played an illegal move (Flagged)."
                 }
         return None

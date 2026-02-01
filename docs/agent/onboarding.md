@@ -10,6 +10,19 @@ The project is a Multiplayer Baloot Game with an advanced "AI Studio" for traini
     *   **Builder Mode**: Manually create or edit game scenarios.
     *   **Training Mode**: Interactive logic puzzles for humans (Lichess-style).
     *   **Bidding Mode**: Batch generator for 5-card bidding scenarios.
+
+## 🔌 Power Skills (Scientific & Creative)
+We are a research lab. We value clean code and creative problem-solving. Use these power tools to enhance your workflow, but never let them limit your creativity.
+
+- **React Best Practices**: `.agent/skills/external/skills/react-best-practices`
+  *Master the art of modern React integration.*
+- **Python Pro**: `.agent/skills/external/skills/python-pro`
+  *Advanced Pythonic patterns for scientific computing.*
+- **Clean Code**: `.agent/skills/external/skills/clean-code`
+  *Keep our lab clean and efficient.*
+
+> **Tip**: See [.agent/skills/SKILLS_INDEX.md](file:///c:/Users/MiEXCITE/Projects/baloot-ai/.agent/skills/SKILLS_INDEX.md) for a complete map of our toolset.
+
     *   **Perception**: "Import from Video" and "Populate from Screenshot" using Gemini 1.5 Flash.
     *   **Data Flywheel**: Every saved scenario also saves the source image to `uploads/dataset/` for future YOLO training.
 

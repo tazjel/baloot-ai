@@ -23,8 +23,8 @@ from .forensic import ForensicReferee
 from server.logging_utils import log_event, log_error, logger
 
 class Game:
-    def __init__(self, room_id):
-        self.room_id = room_id
+    def __init__(self, room_id: str):
+        self.room_id: str = room_id
         self.players = [] # List[Player]
         self.deck = Deck()
         self.table_cards = []  # List of {"playerId": id, "card": Card, "playedBy": position}
@@ -85,7 +85,7 @@ class Game:
     def current_turn(self, value):
         self._current_turn = value
 
-    def get_game_state(self):
+    def get_game_state(self) -> Dict[str, Any]:
         return {
             "roomId": self.room_id,
             "phase": self.phase,
@@ -463,7 +463,7 @@ class Game:
         self.players.append(new_player)
         return new_player
 
-    def start_game(self):
+    def start_game(self) -> bool:
         if len(self.players) < 4:
             return False
         
@@ -540,6 +540,87 @@ class Game:
     # --- PROJECT LOGIC ---
     def resolve_declarations(self):
         return self.project_manager.resolve_declarations() 
+
+    def handle_qayd_trigger(self, player_index: int) -> dict:
+        """
+        Activates the Qayd (Forensic) mode, allowing players to investigate.
+        """
+        if self.phase != "PLAYING":
+            return {'success': False, 'error': 'Can only trigger Qayd during playing phase'}
+            
+        # Toggle Qayd State
+        self.qayd_state['active'] = True
+        self.qayd_state['reporter'] = player_index
+        
+        # Pause the game timer implicitly
+        self.timer_paused = True
+        
+        print(f"[GAME] Qayd Triggered by Player {player_index}")
+        return {'success': True, 'qaydState': self.qayd_state}
+
+    def handle_qayd_accusation(self, player_index: int, accusation: dict) -> dict:
+        """
+        Processes a Qayd accusation (Kammelna Style).
+        Violation = "Khasara" (Complete Loss of Round).
+        Reporter's Team gets FULL points for the round.
+        """
+        print(f"[GAME] Processing Qayd Accusation from Player {player_index}. Payload: {accusation}")
+        
+        reporter = self.players[player_index]
+        reporter_team = 'us' if player_index in [0, 2] else 'them'
+
+        opponent_team = 'them' if reporter_team == 'us' else 'us'
+        
+        # 1. Calculate Penalty Score (Max Possible for Round)
+        # SUN: 26 points + Projects. HOKUM: 152 points (Standard Abnat rule) or just round points.
+        # Kammelna usually awards the full round value.
+        
+        points = 26 if self.game_mode == 'SUN' else 16 
+        # Apply Doubling
+        points *= self.doubling_level
+        
+        # Add Project Points (if any declared)
+        project_points = self.project_manager.calculate_project_points()
+        total_projects = project_points['us'] + project_points['them'] # Winner takes all projects usually
+        
+        # Final Score for Reporter
+        round_score_reporter = points + total_projects
+        
+        print(f"[GAME] Qayd Verdict: {reporter_team} wins {round_score_reporter} pts. Opponent 0.")
+
+        # 2. Update Scores
+        self.team_scores[reporter_team] += round_score_reporter
+        self.team_scores[opponent_team] += 0 # Opponent gets 0 (Abnat/Khasara)
+        
+        # 3. Log Result
+        self.past_round_results.append({
+            'us': {'result': round_score_reporter if reporter_team == 'us' else 0, 'projects': [], 'aklat': 0, 'ardh': 0, 'mashaari': 0, 'abnat': 0},
+            'them': {'result': round_score_reporter if reporter_team == 'them' else 0, 'projects': [], 'aklat': 0, 'ardh': 0, 'mashaari': 0, 'abnat': 0},
+            'winner': reporter_team,
+            'gameMode': self.game_mode,
+            'doubling': self.doubling_level,
+            'reason': f"QAYD_VIOLATION: {accusation.get('violation_type', 'General')}"
+        })
+        
+        current_us_total = self.match_scores['us'] + (round_score_reporter if reporter_team == 'us' else 0)
+        current_them_total = self.match_scores['them'] + (round_score_reporter if reporter_team == 'them' else 0)
+        
+        self.match_scores['us'] = current_us_total
+        self.match_scores['them'] = current_them_total
+        
+        # 4. End Round
+        self.phase = "FINISHED"
+        self.qayd_state['active'] = False
+        self.timer_paused = False
+        
+        # Return success with state update to trigger UI Result Screen
+        return {
+            'success': True, 
+            'message': 'Violation Confirmed. Round Ended.',
+            'qaydState': self.qayd_state,
+            'phase': 'FINISHED',
+            'gameState': self.get_game_state()
+        }
 
     def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Dict[str, Any]:
         try:
@@ -971,7 +1052,10 @@ class Game:
         
     def check_timeout(self):
         """Called by background loop to check if current turn expired"""
-        if not self.timer.active or self.timer_paused:
+        # Allow timeout check if Challenge is active (for Sherlock Bot)
+        is_challenge = (self.phase == GamePhase.CHALLENGE.value) or (self.qayd_state.get('active'))
+        
+        if (not self.timer.active or self.timer_paused) and not is_challenge:
             return None
             
         # Don't check timeout in terminal phases
@@ -1004,6 +1088,20 @@ class Game:
             elif self.phase == GamePhase.PLAYING.value:
                 logger.info(f"Timeout Playing for Player {self.current_turn}. Auto-Play.")
                 res = self.auto_play_card(self.current_turn)
+
+            elif self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
+                 # During Challenge/Qayd, if it's the Reporter's turn (conceptually), trigger them.
+                 # Actually, current_turn might not be the reporter?
+                 # We should trigger the reporter regardless of turn index in this special state?
+                 # Or rely on reporter index being passed.
+                 reporter_pos = self.qayd_state.get('reporter')
+                 reporter_idx = next((p.index for p in self.players if p.position == reporter_pos), -1)
+                 
+                 if reporter_idx != -1:
+                      logger.info(f"Timeout/Action Cycle for Qayd Reporter {reporter_pos} ({reporter_idx}).")
+                      res = self.auto_play_card(reporter_idx)
+                 else:
+                      logger.warning("Qayd Active but reporter not found.")
             
             dur = time.time() - t_start
             logger.info(f"Timeout Action Completed in {dur:.4f}s")
@@ -1105,7 +1203,18 @@ class Game:
             logger.info(f"Auto-Play Decision Latency for {player.name}: {dt:.4f}s")
             
             card_idx = decision.get('cardIndex', 0)
+            action = decision.get('action', 'PLAY_CARD')
             
+            if action == 'QAYD_TRIGGER':
+                 logger.info(f"Auto-Play for {player.name}: Triggering Qayd Protocol (Sherlock)")
+                 return self.handle_qayd_trigger(player_index)
+                 
+            elif action == 'QAYD_ACCUSATION':
+                 logger.info(f"Auto-Play for {player.name}: Submitting Qayd Accusation")
+                 # Ensure we have payload
+                 payload = decision.get('accusation', {})
+                 return self.process_accusation(player_index, payload) # Use process_accusation for Challenge phase
+
             if card_idx < 0 or card_idx >= len(player.hand):
                 card_idx = 0 
                 

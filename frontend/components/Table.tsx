@@ -21,6 +21,7 @@ import { DevLogSidebar } from './DevLogSidebar';
 import { useVoice, VoicePersonality } from '../hooks/useVoice';
 import socketService from '../services/SocketService';
 import HandFan from './HandFan';
+import { getPlayedCardAnimation } from '../utils/animationUtils';
 
 // Imported modular components
 import PlayerAvatar from './table/PlayerAvatar';
@@ -335,12 +336,8 @@ export default function Table({
 
     // --- Validation Logic ---
     const isCardPlayable = (card: any) => {
+        // [TESTING] Always allow any card to be played
         if (phase !== GamePhase.Playing || !isMyTurn) return false;
-        if (!settings?.strictMode) return true;
-        if (tableCards.length === 0) return true;
-        const leadSuit = tableCards[0].card.suit;
-        const hasLeadSuit = me.hand.some(c => c.suit === leadSuit);
-        if (hasLeadSuit) return card.suit === leadSuit;
         return true;
     };
 
@@ -387,91 +384,7 @@ export default function Table({
         onPlayerAction('SAWA_RESPONSE', { response });
     };
 
-    // --- Helper: Get Relative Position for Played Cards ---
-    const getPlayedCardAnimation = (playerIndex: number, isLatest: boolean) => {
-        const myIndex = me?.index ?? 0;
-        const relativeIndex = (playerIndex - myIndex + 4) % 4; // 0=Me, 1=Right, 2=Partner, 3=Left
 
-        const cardWidth = window.innerWidth < 640 ? 60 : 85;
-        const cardHeight = window.innerWidth < 640 ? 84 : 118;
-        const offsetDistance = window.innerWidth < 640 ? 25 : 40; // Tighter
-
-        // 1. Determine Final Position (Target)
-        let targetX = 0;
-        let targetY = 0;
-        let rotation = 0;
-        let initialX = 0;
-        let initialY = 0;
-
-        const range = 500; // Throw distance
-
-        switch (relativeIndex) {
-            case 0: // Me (Bottom)
-                targetX = 0;
-                targetY = offsetDistance;
-                initialX = 0;
-                initialY = range; // Come from bottom
-                rotation = -2 + ((playerIndex * 7) % 5);
-                break;
-            case 1: // Right
-                targetX = offsetDistance * 1.5;
-                targetY = 0;
-                initialX = range; // Come from right
-                initialY = 0;
-                rotation = 85 + ((playerIndex * 7) % 5);
-                break;
-            case 2: // Partner (Top)
-                targetX = 0;
-                targetY = -offsetDistance;
-                initialX = 0;
-                initialY = -range; // Come from top
-                rotation = 180 + ((playerIndex * 7) % 5);
-                break;
-            case 3: // Left
-                targetX = -offsetDistance * 1.5;
-                targetY = 0;
-                initialX = -range; // Come from left
-                initialY = 0;
-                rotation = -85 + ((playerIndex * 7) % 5);
-                break;
-        }
-
-        // Z-Index Logic
-        const playOrder = gameState.tableCards.findIndex(c => (c as any).playedBy === players[playerIndex].position);
-        const zIndex = 40 + (playOrder >= 0 ? playOrder : 0);
-
-        // Telemetry for Verification
-        if (isLatest) {
-            // @ts-ignore
-            import('../utils/devLogger').then(({ devLogger }) => {
-                devLogger.log('VISUAL_DEBUG', `Card Animation Calculated`, {
-                    player: players[playerIndex].name,
-                    pos: players[playerIndex].position,
-                    relativeIdx: relativeIndex,
-                    target: { x: targetX, y: targetY },
-                    initial: { x: initialX, y: initialY }
-                });
-            });
-        }
-
-        return {
-            initial: { opacity: 0, x: initialX, y: initialY, scale: 0.8, rotate: rotation },
-            animate: { opacity: 1, x: targetX, y: targetY, scale: 1, rotate: rotation },
-            exit: { opacity: 0, scale: 0.5 },
-            style: {
-                position: 'absolute' as 'absolute',
-                top: '50%',
-                left: '50%',
-                width: `${cardWidth}px`,
-                height: `${cardHeight}px`,
-                marginTop: `-${cardHeight / 2}px`, // Center anchor
-                marginLeft: `-${cardWidth / 2}px`, // Center anchor
-                zIndex: zIndex,
-                boxShadow: '0 4px 6px rgba(0,0,0,0.3)'
-            },
-            animClass: isLatest ? 'animate-thump' : '' // Custom tailwind class for thump impact
-        };
-    };
 
     return (
         <div className="relative w-full h-full flex flex-col overflow-hidden select-none safe-area-top safe-area-bottom font-sans" style={{ background: '#F5F3EF' }}>
@@ -732,7 +645,13 @@ export default function Table({
                                 const playerObj = players.find(p => p && p.position === played?.playedBy);
                                 const pIdx = playerObj?.index ?? 0;
                                 const isLatest = idx === tableCards.length - 1;
-                                const { initial, animate, exit, style, animClass } = getPlayedCardAnimation(pIdx, isLatest);
+                                const { initial, animate, exit, style, animClass } = getPlayedCardAnimation({
+                                    playerIndex: pIdx,
+                                    isLatest,
+                                    myIndex: me?.index ?? 0,
+                                    players,
+                                    tableCards: gameState.tableCards
+                                });
 
                                 return (
                                     <motion.div key={`played-${idx}-${played.card.id}`}
@@ -756,7 +675,13 @@ export default function Table({
                                 if (!played || !played.card) return null; // Safety Check
                                 const playerObj = players.find(p => p && p.position === (played as any)?.playedBy);
                                 const pIdx = playerObj?.index ?? 0;
-                                const { style } = getPlayedCardAnimation(pIdx, false);
+                                const { style } = getPlayedCardAnimation({
+                                    playerIndex: pIdx,
+                                    isLatest: false,
+                                    myIndex: me?.index ?? 0,
+                                    players,
+                                    tableCards: gameState.tableCards
+                                });
 
                                 const winnerPos = gameState.lastTrick!.winner;
                                 const isPartnerWinner = winnerPos === players[2].position;

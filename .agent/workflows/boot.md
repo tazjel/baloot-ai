@@ -18,7 +18,7 @@ This workflow "boots up" the agent's context using the **"High Value, Low Token"
         - *Goal*: Understand the file structure without expensive directory listings.
 
 3.  **Load "Safety Rails"**:
-    - **Read** `.agent/knowledge/developer_tips.md` OR `development/troubleshooting.md`.
+    - **Read** `.agent/knowledge/developer_tips.md` OR `docs/agent/operations.md` (was AGENT_GUIDE).
         - *Goal*: Avoid known pitfalls (e.g., "Restart server after patching FastGame").
 
 4.  **Verification**:

@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
 import server.auth_utils as auth_utils
 from server.schemas.game import GameStateModel
+from server.rate_limiter import limiter
 
 def broadcast_game_update(game, room_id):
     """Helper to emit validated game state with fallback"""
@@ -84,6 +85,11 @@ def disconnect(sid):
 @sio.event
 def create_room(sid, data):
     print(f"create_room called by {sid}")
+    
+    # Rate Limit: 5 per minute per SID (or IP if available)
+    if not limiter.check_limit(f"create_room:{sid}", 5, 60):
+        return {'success': False, 'error': 'Rate limit exceeded. Please wait.'}
+
     room_id = room_manager.create_room()
     return {'success': True, 'roomId': room_id}
 
@@ -161,6 +167,10 @@ def game_action(sid, data):
     if not game:
         return {'success': False, 'error': 'Game not found'}
     
+    # Rate Limit: 20 per second per SID (Generous for gameplay, blocks flooding)
+    if not limiter.check_limit(f"game_action:{sid}", 20, 1):
+        return {'success': False, 'error': 'Too many actions'}
+    
     # Map actions
     # Find player index
     player = next((p for p in game.players if p.id == sid), None)
@@ -170,7 +180,10 @@ def game_action(sid, data):
     result = {'success': False}
     if action == 'BID':
         result = game.handle_bid(player.index, payload.get('action'), payload.get('suit'))
-    elif action == 'PLAY':
+    if action.startswith('QAYD'):
+        print(f"[SOCKET] QAYD ACTION RECEIVED: {action} from {player.name} ({player.index})")
+
+    if action == 'PLAY':
         # CHECK FOR PROFESSOR INTERVENTION (If Human Player)
         # Skip if explicitly bypassed (user clicked "I know what I'm doing")
         skip_professor = payload.get('skip_professor', False)

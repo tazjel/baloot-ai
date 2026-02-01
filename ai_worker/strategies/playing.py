@@ -44,10 +44,17 @@ class PlayingStrategy:
              decision = {"action": "PLAY", "cardIndex": 0, "reasoning": "Fallback"}
 
         # 2. Declarations (Projects) - Trick 1 only
-        # We need to access previous tricks from state to know if it's trick 1
+        self._calculate_projects(ctx, decision)
+        
+        # 3. FINAL LEGALITY CHECK (Guardrail)
+        self._validate_and_override_decision(ctx, decision)
+
+        return decision
+
+    def _calculate_projects(self, ctx: BotContext, decision: dict):
+        """Extracts project declaration logic (Clean Code: SRP)."""
         played_tricks = ctx.raw_state.get('currentRoundTricks', [])
         if len(played_tricks) == 0:
-             # Using existing util found in core engine
              # Local import to avoid circular dependency
              from game_engine.logic.utils import scan_hand_for_projects 
              projects = scan_hand_for_projects(ctx.hand, ctx.mode)
@@ -59,15 +66,15 @@ class PlayingStrategy:
                             sp['cards'] = [c.to_dict() if hasattr(c, 'to_dict') else c for c in sp['cards']]
                        serialized_projects.append(sp)
                   decision['declarations'] = serialized_projects
-        
-        # 3. FINAL LEGALITY CHECK (Guardrail)
+
+    def _validate_and_override_decision(self, ctx: BotContext, decision: dict):
+        """Ensures the chosen move is legal, overriding if necessary (Clean Code: Guardrails)."""
         if decision and decision.get('action') == 'PLAY':
              legal_indices = ctx.get_legal_moves()
              chosen_idx = decision.get('cardIndex')
              
              if chosen_idx not in legal_indices:
                   if not legal_indices:
-                       # Should not happen unless hand empty, handled elsewhere?
                        pass 
                   else:
                        import logging
@@ -75,12 +82,8 @@ class PlayingStrategy:
                        logger.warning(f"Bot {ctx.position} attempted ILLEGAL move: {ctx.hand[chosen_idx]}. Legal: {[ctx.hand[i] for i in legal_indices]}. OVERRIDING.")
                        
                        # Contextual Fallback
-                       # If we picked a card, but it's illegal, maybe we should pick the 'best' legal card?
-                       # Simple fallback: First legal index.
                        decision['cardIndex'] = legal_indices[0]
                        decision['reasoning'] += " (Legality Override)"
-
-        return decision
 
     def _play_sun_strategy(self, ctx: BotContext):
         if not ctx.table_cards:
@@ -96,6 +99,77 @@ class PlayingStrategy:
              return self._get_hokum_lead(ctx)
         else:
              return self._get_hokum_follow(ctx)
+
+    def _check_ashkal_signal(self, ctx: BotContext):
+        """
+        Check if the game is in Ashkal state and if we need to respond to a color request.
+        """
+        bid = ctx.raw_state.get('bid', {})
+        if not bid.get('isAshkal'):
+            return None
+
+        # Check if partner is the bidder
+        bidder_pos = bid.get('bidder')
+        # Use ctx.position based comparison or raw string?
+        # bid['bidder'] is usually a position string (propogated from server)
+        # ctx.position is my position.
+        # self._get_partner_pos helper returns partner string.
+        partner_pos = self._get_partner_pos(ctx.player_index)
+        
+        if bidder_pos != partner_pos:
+            return None # We only signal for partner's Ashkal
+
+        # Determine target color based on Round
+        round_num = bid.get('round', 1)
+        
+        # Floor card check
+        floor_suit = None
+        if ctx.floor_card:
+             floor_suit = ctx.floor_card.suit
+        elif ctx.raw_state.get('floorCard'):
+             floor_suit = ctx.raw_state['floorCard'].get('suit')
+             
+        if not floor_suit: return None 
+
+        colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
+        floor_color = colors.get(floor_suit)
+        
+        target_color = None
+        if round_num == 1:
+            target_color = floor_color # Same Color
+        else:
+            # Opposite Color
+            target_color = 'BLACK' if floor_color == 'RED' else 'RED'
+            
+        # Find valid suits for target color
+        target_suits = [s for s, c in colors.items() if c == target_color]
+        
+        # Look for best card in these suits
+        best_idx = -1
+        max_score = -100
+        
+        for i, c in enumerate(ctx.hand):
+            if c.suit in target_suits:
+                score = 0
+                if c.rank == 'A': score += 10
+                elif c.rank == '10': score += 8
+                elif c.rank == 'K': score += 6
+                elif c.rank == 'Q': score += 4
+                elif c.rank == 'J': score += 2
+                else: score += 0
+                
+                if score > max_score:
+                    max_score = score
+                    best_idx = i
+                    
+        if best_idx != -1:
+            return {
+                "action": "PLAY",
+                "cardIndex": best_idx,
+                "reasoning": f"Ashkal Response (Round {round_num}): Playing {target_color} for Partner"
+            }
+            
+        return None
 
     def _get_sun_lead(self, ctx: BotContext):
         # 0. Check for Collaborative Signals (New)

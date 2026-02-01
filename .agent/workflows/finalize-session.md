@@ -21,7 +21,7 @@ This workflow ensures the codebase is clean, documentation is up-to-date, tests 
     - **walkthrough.md**: Add a final "Verification Results" section summarizing the last stable state (e.g., "Server running, New Game fixed").
 
 4.  **Update Persistent Knowledge**:
-    - **.agent/knowledge/developer_tips.md**: Add any specific "Gotchas" found today (e.g., "Restart server after patching FastGame").
+    - **docs/agent/operations.md**: Add any specific "Common Pitfalls" found today.
     - **.agent/knowledge/project_status.md** (if exists): Update the "Current Phase" or "Recent Achievements".
     - **CODEBASE_MAP.md**: Update if any new directories were created (e.g., `ai_worker/professor.py`).
 

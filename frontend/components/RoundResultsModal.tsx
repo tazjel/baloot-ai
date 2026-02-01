@@ -42,9 +42,18 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
     const bidTypeMap: Record<string, string> = { 'SUN': 'صن', 'HOKUM': 'حكم', 'ASHKAL': 'أشكال' };
     const bidLabel = bidType ? bidTypeMap[bidType] || bidType : '-';
 
+
     const bidderLabel = bidderTeam === 'us' ? 'فريقنا' : bidderTeam === 'them' ? 'فريقهم' : '-';
-    const stateLabel = isBidderWinner ? 'ربحانة' : 'خسرانة';
-    const stateColor = isBidderWinner ? 'text-green-600' : 'text-red-600';
+
+    // Custom label for Qayd/Violation
+    let stateLabel = isBidderWinner ? 'ربحانة' : 'خسرانة';
+    if (result.reason && result.reason.includes('QAYD')) {
+        stateLabel = 'صحة القيد'; // Valid Qayd
+    }
+
+    const stateColor = (result.reason && result.reason.includes('QAYD'))
+        ? 'text-amber-600'
+        : (isBidderWinner ? 'text-green-600' : 'text-red-600');
 
     // Helper to format projects for display
     // Example: "20 سرا"

@@ -78,7 +78,60 @@ class BotAgent:
                  except Exception as me:
                      pass # Don't block game for metrics
 
-            # 1.2 Qayd Claim
+            # 1.2 Qayd Claim (Sherlock Logic)
+            qayd_state = game_state.get('qaydState')
+            if qayd_state and qayd_state.get('active'):
+                # Sherlock Bot Logic: If I am the reporter, investigate and accuse.
+                reporter_pos = qayd_state.get('reporter')
+                print(f"[SHERLOCK] Qayd Active. Reporter: {reporter_pos}, Me: {ctx.position}")
+                
+                # Check if I am the reporter (by position name comparison)
+                # ctx.position is 'Bottom', 'Right', etc.
+                if reporter_pos == ctx.position:
+                     logger.info("[SHERLOCK] I am the reporter. Investigation starting...")
+                     # 1. Brief Pause (simulating reaction time)
+                     time.sleep(2) 
+                     
+                     # 2. Find the Crime
+                     # We look for the last card played that has 'is_illegal' metadata
+                     table_cards = game_state.get('tableCards', [])
+                     full_history = game_state.get('fullMatchHistory', []) # Or we iterate recent tricks if needed
+                     
+                     # Simple approach: Check active table cards first
+                     crime_card = None
+                     proof_card = None
+                     violation_type = 'REVOKE'
+                     
+                     # Look at current table
+                     if table_cards:
+                         for tc in reversed(table_cards):
+                             if (tc.get('metadata') or {}).get('is_illegal'):
+                                 crime_card = tc['card']
+                                 # Proof is usually the first card of the trick (the lead)
+                                 if table_cards:
+                                     proof_card = table_cards[0]['card']
+                                 break
+                     
+                     if not crime_card:
+                         logger.warning("[SHERLOCK] Could not find illegal card in table cards. Checking history...")
+                         # Fallback logic if trick was swept (unlikely for immediate Qayd trigger)
+                         pass
+
+                     if crime_card:
+                        logger.info(f"[SHERLOCK] Crime Solved! {crime_card} is illegal. Accusing...")
+                        return {
+                            "action": "QAYD_ACCUSATION",
+                            "accusation": {
+                                "crime_card": crime_card,
+                                "proof_card": proof_card or crime_card,
+                                "violation_type": "REVOKE" # Default for now
+                            }
+                        }
+                     else:
+                        logger.error("[SHERLOCK] False Alarm? Cancelling.")
+                        return {"action": "QAYD_CANCEL"} # Should ideally cancel
+
+            # Legacy/Backup Check
             if qayd_claim := self.referee.check_qayd(ctx, game_state):
                  return qayd_claim
 

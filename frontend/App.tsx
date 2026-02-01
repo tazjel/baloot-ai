@@ -5,7 +5,7 @@ import Table from './components/Table';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
 import { ProfessorOverlay } from './components/overlays/ProfessorOverlay';
-import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
+import { GameState, GamePhase, PlayerPosition, Suit, RoundResult, ProfessorIntervention } from './types';
 import DisputeModal from './components/DisputeModal';
 import SettingsModal from './components/SettingsModal';
 import VictoryModal from './components/VictoryModal';
@@ -100,7 +100,7 @@ const App: React.FC = () => {
   const [reportCorrectMove, setReportCorrectMove] = useState("");
 
   // Professor Mode State
-  const [profIntervention, setProfIntervention] = useState<any>(null);
+  const [profIntervention, setProfIntervention] = useState<ProfessorIntervention | null>(null);
   const [pendingPlay, setPendingPlay] = useState<{ cardIndex: number, metadata?: any } | null>(null);
 
   useEffect(() => {
@@ -295,7 +295,6 @@ const App: React.FC = () => {
       <Lobby
         onStartGame={(settings) => {
           console.log("App: onStartGame triggered");
-          // @ts-ignore
           import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Start Game Clicked', settings));
 
           handleDebugAction('TOGGLE_DEBUG', { enable: settings.isDebug });
@@ -314,7 +313,6 @@ const App: React.FC = () => {
 
           // 1. Create Room (Hidden)
           socketService.createRoom((res) => {
-            // @ts-ignore
             import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Create Room Response', res));
 
             if (res.success) {
@@ -323,7 +321,6 @@ const App: React.FC = () => {
               const myName = userProfile.firstName || 'Me';
 
               socketService.joinRoom(rid, myName, (joinRes) => {
-                // @ts-ignore
                 import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Join Room Response', joinRes));
 
                 if (joinRes.success) {
@@ -333,13 +330,11 @@ const App: React.FC = () => {
                     updateSettings(settings);
                     setCurrentView('GAME');
 
-                    // @ts-ignore
                     import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Transitioning to GAME view'));
 
                   } catch (e) {
                     console.error("Join Game Error:", e);
                     setErrorObj("Join Error: " + e);
-                    // @ts-ignore
                     import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Join Exception', { error: e.toString() }));
                   }
 
@@ -347,13 +342,11 @@ const App: React.FC = () => {
                   // (See socket_handler.py:join_room which adds 3 bots for first player)
                 } else {
                   setErrorObj("Failed to join single player room: " + joinRes.error);
-                  // @ts-ignore
                   import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Join Room Failed', joinRes));
                 }
               });
             } else {
               setErrorObj("Failed to create single player room: " + res.error);
-              // @ts-ignore
               import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Create Room Failed', res));
             }
           });
@@ -387,20 +380,17 @@ const App: React.FC = () => {
           // Join the forked game as a player
           const myName = userProfile.firstName || 'Me';
 
-          // @ts-ignore
           import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Attempt Start', { newId }));
 
           socketService.joinRoom(newId, myName, (joinRes) => {
             if (joinRes.success) {
               joinGame(newId, joinRes.yourIndex as number, joinRes.gameState as GameState);
               setCurrentView('GAME');
-              // @ts-ignore
               import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Joined Successfully', joinRes));
             } else {
               const msg = "Failed to join forked game: " + joinRes.error;
               setErrorObj(msg);
               alert(msg); // Force user visibility
-              // @ts-ignore
               import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Join Error', joinRes));
             }
           });
@@ -550,7 +540,7 @@ const App: React.FC = () => {
         )}
 
         {flyingItems.map(item => (
-          <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}% `, top: `${item.startY}% `, '--end-x': `${item.endX}% `, '--end-y': `${item.endY}% ` } as any}>
+          <div key={item.id} className="fixed z-[9999] pointer-events-none text-4xl animate-fly-throwable" style={{ left: `${item.startX}% `, top: `${item.startY}% `, '--end-x': `${item.endX}% `, '--end-y': `${item.endY}% ` } as React.CSSProperties & { [key: string]: string | number }}>
             {item.type === 'slipper' ? '🩴' : item.type === 'tomato' ? '🍅' : item.type === 'flower' ? '🌹' : '🥚'}
           </div>
         ))}

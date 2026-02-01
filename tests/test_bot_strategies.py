@@ -32,7 +32,13 @@ class TestBotStrategies(unittest.TestCase):
             'floorCard': {'rank': '7', 'suit': '♥'}, # Heart Floor
             'roundHistory': [],
             'matchScores': {'us': 0, 'them': 0},
-            'biddingPhase': phase
+            'biddingPhase': phase,
+            'players': [
+                {'position': 'Bottom', 'team': 'us', 'hand': [], 'name': 'Me'},
+                {'position': 'Right', 'team': 'them', 'hand': [], 'name': 'Bot1'},
+                {'position': 'Top', 'team': 'us', 'hand': [], 'name': 'Partner'},
+                {'position': 'Left', 'team': 'them', 'hand': [], 'name': 'Bot2'}
+            ]
         }
         if raw_state_extras:
             raw_state.update(raw_state_extras)
@@ -48,6 +54,8 @@ class TestBotStrategies(unittest.TestCase):
                 self.player_index = 0
                 self.dealer_index = 0 # I am dealer?
                 self.position = 'Bottom'
+                self.team = 'us'
+                self.memory = None # Mock Memory
                 self.personality = BALANCED
                 self.floor_card = MockCard(raw['floorCard']['rank'], raw['floorCard']['suit']) if raw.get('floorCard') else None
                 # Check Dealer logic

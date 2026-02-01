@@ -1,6 +1,7 @@
 from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, BiddingPhase, BidType
 from ai_worker.personality import PersonalityProfile, BALANCED
+import functools
 
 class BotContext:
     """Typed wrapper for game state to simplify bot logic."""
@@ -136,8 +137,21 @@ class BotContext:
         """
         from game_engine.logic.validation import is_move_legal
         
+        
+    @functools.cached_property
+    def players_team_map(self) -> dict[str, str]:
+        """Performance: Cache team map to avoid repeated list comprehensions in MCTS."""
+        return {p['position']: p['team'] for p in self.raw_state['players']}
+
+    def get_legal_moves(self):
+        """
+        Returns a list of indices of legal cards to play from hand.
+        Uses shared validation logic.
+        """
+        from game_engine.logic.validation import is_move_legal
+        
         legal_indices = []
-        players_team_map = {p['position']: p['team'] for p in self.raw_state['players']}
+        players_team_map = self.players_team_map
         table_cards = self.raw_state.get('tableCards', [])
         
         # Parse table cards to match what validator expects (dicts of Card/playedBy)

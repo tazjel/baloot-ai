@@ -25,7 +25,9 @@ Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
 
 Write-Host "Starting Game Server..."
-$serverProcess = Start-Process powershell -ArgumentList "-Command", "python -m server.main" -PassThru -WindowStyle Hidden
+$logFile = Join-Path (Get-Location) "server_debug.log"
+Write-Host "Logging to: $logFile"
+$serverProcess = Start-Process powershell -ArgumentList "-Command", "python -u -m server.main" -RedirectStandardOutput $logFile -RedirectStandardError $logFile -PassThru -WindowStyle Hidden
 
 Write-Host "Starting Frontend (Vite)..."
 Set-Location "frontend"

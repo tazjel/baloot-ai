@@ -105,6 +105,7 @@ export interface RoundResult {
   bidder?: string;
   gameMode?: 'SUN' | 'HOKUM';
   doubling?: number;
+  reason?: string;
 }
 
 
@@ -158,9 +159,20 @@ export interface DeclaredProject {
   score?: number; // Added score for round result display
 }
 
+export interface ProfessorIntervention {
+  type: string;
+  message: string;
+  suggestion?: {
+    action: string;
+    cardIndex?: number;
+    reasoning?: string;
+  };
+  confidence: number;
+}
+
 export interface QaydState {
   active: boolean;
-  reporter: PlayerPosition | null;
+  reporter: number | null;
   reason: string | null;
   target_play: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata };
 }

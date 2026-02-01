@@ -240,4 +240,21 @@ class ProjectManager:
              
         except Exception as e:
              logger.error(f"Error in handle_akka: {e}")
-             return {"error": str(e)} 
+
+    def calculate_project_points(self) -> Dict[str, int]:
+        """
+        Calculates total points for active declarations for each team.
+        """
+        points = {'us': 0, 'them': 0}
+        
+        for pos, projects in self.game.declarations.items():
+            # Find team
+            p = next((p for p in self.game.players if p.position == pos), None)
+            if not p: continue
+            
+            team = p.team # 'us' or 'them'
+            
+            for proj in projects:
+                points[team] += proj.get('score', 0)
+                
+        return points 

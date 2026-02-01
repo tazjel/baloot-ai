@@ -40,7 +40,7 @@
 ### 3. Frontend Persistence & State
 **Symptom**: User settings (skins, volume) reset on refresh.
 **Fix**: Check `App.tsx` -> `useGameState` effect hooks. We use `localStorage` for visual preferences.
-**Reference**: See [FRONTEND_GUIDE](FRONTEND_GUIDE.md) for the state management model.
+**Reference**: See [FRONTEND_GUIDE](../FRONTEND_GUIDE.md) for the state management model.
 
 ## 📂 File Map
 | Path | Purpose |
