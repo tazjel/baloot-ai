@@ -4,43 +4,36 @@
 
 ## Last Updated
 - **Tool**: Antigravity
-- **Time**: 2026-02-02 19:58
-- **Session Duration**: ~30 min
+- **Time**: 2026-02-02 22:30
+- **Session Duration**: ~10 min
 
 ## What Was Done
-- ✅ Reviewed uncommitted changes from prior Claude Desktop session (70 files)
-- ✅ Committed all work: Qayd refactor, Bot Orchestrator, Sherlock Protocol
-- ✅ Updated `/boot` workflow to v2 with Git sync check
-- ✅ Created handoff system (`/handoff` workflow + template)
-- ✅ Pushed 2 commits to GitHub (`8b8b54d`, `9558b9b`)
+- ✅ **Major codebase cleanup** - Reclaimed ~710MB disk space
+  - Deleted 28 log files (~225MB)
+  - Deleted duplicate YOLO models (`yolov8l-worldv2.pt`, `yolov8n.pt`) (~100MB)
+  - Deleted training video `dataset/Project.mp4` (~357MB)
+  - Deleted `matches/`, `candidates/`, `scripts/debugging/` (old test data)
+  - Deleted empty/cache dirs: `archive/`, `baloot_ai_studio/`, `static/`, `.service/`
 
 ## Files Modified This Session
-- `.agent/workflows/boot.md` - Updated to v2 (Git sync + handoff reading)
-- `.agent/workflows/handoff.md` [NEW] - Handoff workflow
-- `.agent/knowledge/handoff.md` [NEW] - This file
+- **DELETED**: `logs/*` (28 files), `yolov8*.pt` (2 files), `dataset/`, `matches/`, `candidates/`, `scripts/debugging/`, `.service/`, `archive/`, `baloot_ai_studio/`, `static/`, `verify_fix.py`, `verify_optimization.py`
 
 ## Current State
-- ✅ All changes committed and pushed
-- ✅ Repo is clean (`git status` shows no changes)
-- ✅ `/boot` v2 and `/handoff` ready to use
-- ❓ Game stack NOT running (was not started this session)
-- ❓ Qayd flow NOT tested live yet
+- ✅ Codebase cleaned (24→14 root dirs)
+- ⚠️ Changes NOT committed (deletions only)
+- ❓ Game stack NOT running
 
 ## Next Steps
-1. Run `/boot` to start next session
-2. Start game stack (`/start` or `/WW`)
-3. Run `/major-test` to verify Qayd stability
-4. Test Sherlock Bot Protocol manually:
-   - Play an illegal card (e.g., don't follow suit)
-   - Verify bot triggers Qayd accusation
+1. Run `git add -A && git commit -m "chore: Major codebase cleanup"` if you want to commit
+2. Run `/boot` to start next session
+3. Continue with Qayd testing from prior session
 
 ## Open Questions
 - None
 
 ## Gotchas for Next Session
-- Claude Desktop and Antigravity don't share conversation history
-- Use `/boot` to check for uncommitted changes before working
-- Use `/handoff` before ending session to preserve context
+- `logs/` folder is now empty - new logs will be created on next server start
+- Training data deleted - if needed, must be regenerated
 
 ---
 

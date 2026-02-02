@@ -1,2 +1,0 @@
-[PID:14428] Local SAVE debug_1769720098
-[PID:14428] Redis SAVE debug_1769720098 -> OK

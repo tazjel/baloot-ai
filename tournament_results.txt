@@ -1,2 +1,0 @@
-Neural: 0
-Heuristic: 0
