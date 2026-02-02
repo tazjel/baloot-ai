@@ -21,18 +21,19 @@ export const ForensicOverlay: React.FC<ForensicOverlayProps> = ({ gameState, onA
     const [selectedProof, setSelectedProof] = useState<{ card: CardType, source: string } | null>(null);
 
     // Auth Check
-    const myIndex = players[0]?.index;
-    const isReporter = qaydState?.reporter === myIndex;
+    const myPlayer = players.find(p => p.index === players[0]?.index); // players[0] is 'me' in rotated view
+    const isReporter = qaydState?.reporter === myPlayer?.position;
 
     // Debug logging
     React.useEffect(() => {
         console.log('[ForensicOverlay] Mounted', {
             active: qaydState?.active,
             reporter: qaydState?.reporter,
+            myPos: myPlayer?.position,
             isReporter,
             roundHistoryLikelyType: Array.isArray(roundHistory) && roundHistory.length > 0 ? (roundHistory[0] as any).cards ? 'TRICKS' : 'SCORES' : 'EMPTY'
         });
-    }, [qaydState, isReporter, roundHistory]);
+    }, [qaydState, isReporter, roundHistory, myPlayer]);
 
     if (!qaydState?.active) return null;
 
@@ -41,7 +42,7 @@ export const ForensicOverlay: React.FC<ForensicOverlayProps> = ({ gameState, onA
             <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center flex-col animate-in fade-in zoom-in duration-300">
                 <ShieldAlert className="w-20 h-20 text-yellow-500 animate-pulse mb-6 drop-shadow-glow" />
                 <h2 className="text-3xl font-bold text-white mb-2 tracking-wider">UNDER INVESTIGATION</h2>
-                <p className="text-gray-300 text-lg">Player <span className="text-yellow-400 font-bold">{players.find(p => p.index === qaydState.reporter)?.name || 'Unknown'}</span> has called a Qayd.</p>
+                <p className="text-gray-300 text-lg">Player <span className="text-yellow-400 font-bold">{players.find(p => p.position === qaydState.reporter)?.name || 'Unknown'}</span> has called a Qayd.</p>
                 <div className="mt-8 flex gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-bounce delay-0"></div>
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-bounce delay-100"></div>

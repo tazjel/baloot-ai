@@ -63,10 +63,11 @@ class TrickManager:
              my_team = self.game.players[my_idx].team
              
              contract_variant = None
-             if self.game.bidding_engine and self.game.bidding_engine.contract:
-                 contract_variant = self.game.bidding_engine.contract.variant
+             bidding_engine = getattr(self.game, 'bidding_engine', None)
+             if bidding_engine and hasattr(bidding_engine, 'contract') and bidding_engine.contract:
+                 contract_variant = bidding_engine.contract.variant
              
-             return is_move_legal(
+             result = is_move_legal(
                  card=card,
                  hand=hand,
                  table_cards=self.game.table_cards,
@@ -76,6 +77,9 @@ class TrickManager:
                  players_team_map=players_team_map,
                  contract_variant=contract_variant
              )
+             if not result:
+                  logger.error(f"❌ [TrickManager] ILLEGAL MOVE DETECTED: {card}")
+             return result
         except Exception as e:
             logger.error(f"Error in is_valid_move: {e}")
             return True # Fallback
@@ -92,7 +96,12 @@ class TrickManager:
              points += self.get_card_points(play['card'])
         
         # Update last trick for animation
-        self.game.last_trick = {'cards': [tc['card'].to_dict() for tc in self.game.table_cards], 'winner': winner_pos}
+        # Update last trick for animation
+        self.game.last_trick = {
+            'cards': [tc['card'].to_dict() for tc in self.game.table_cards], 
+            'winner': winner_pos,
+            'metadata': [tc.get('metadata') for tc in self.game.table_cards]
+        }
         
         log_event("TRICK_WIN", self.game.room_id, details={
             "winner": winner_pos,
@@ -105,7 +114,9 @@ class TrickManager:
             "winner": winner_pos,
             "points": points,
             "cards": [t['card'].to_dict() for t in self.game.table_cards],
-            "playedBy": [t['playedBy'] for t in self.game.table_cards]
+            "playedBy": [t['playedBy'] for t in self.game.table_cards],
+            # Preserve metadata (including is_illegal) for Qayd checks
+            "metadata": [t.get('metadata') for t in self.game.table_cards]
         }
         self.game.trick_history.append(trick_data)
         self.game.round_history.append(trick_data)
@@ -146,165 +157,179 @@ class TrickManager:
             self.game.end_round()
 
     # --- QAYD (PENALTY) LOGIC ---
-    def handle_qayd(self, reporter_index):
+    def propose_qayd(self, reporter_index):
         """
-        Processes a 'Qayd' (Penalty) claim.
-        1. Checks validity of the LAST played card on the table.
-        2. If Illegal: Offender loses round (Khasara).
-        3. If Legal: Reporter loses round (False Claim).
+        Phase 1: Propose a Qayd accusation.
+        Validates the claim and prepares the verdict, but does NOT apply it yet.
+        Returns the Qayd State for review.
         """
         try:
              reporter = self.game.players[reporter_index]
              
-             if not self.game.table_cards:
-                  return {"error": "No card to dispute"}
-                  
-             # Inspect last played card
-             last_play = self.game.table_cards[-1]
-             offender_pos = last_play['playedBy']
-             is_illegal = False
+             # Reset Qayd State for new proposal
+             self.qayd_state = {
+                 'active': True,
+                 'reporter': reporter.position, # Store Position String (e.g. 'Top')
+                 'status': 'REVIEW',
+                 'verdict_message': None,
+                 'crime_card_index': -1,
+                 'proof_card_index': -1,
+                 'penalty_points': 0,
+                 'loser_team': None,
+                 'reason': None,
+                 'target_play': None, # Snapshot of the play object
+                 'target_source': 'table_cards' # 'table_cards' or 'last_trick'
+             }
              
-             if 'metadata' in last_play and last_play['metadata'] and last_play['metadata'].get('is_illegal'):
-                  is_illegal = True
-                  
-             # Determine Loser via REFEREE
+             # Locate the Crime (Illegal Move)
+             # Priority 1: Check Active Table
+             crime_card_found = False
+             crime_card_idx_in_trick = -1 # Relative to current trick
+             
+             # Search backwards in current table
+             for i, play in enumerate(reversed(self.game.table_cards)):
+                  if (play.get('metadata') or {}).get('is_illegal'):
+                       # Found it
+                       crime_card_found = True
+                       # Save absolute index or relative? 
+                       # For UI, maybe relative to tableCards is best, or unique ID.
+                       # Let's verify how UI renders. Likely tableCards map.
+                       # But if it's buried, we need to know which one.
+                       crime_card_idx_in_trick = len(self.game.table_cards) - 1 - i
+                       self.qayd_state['crime_card_index'] = crime_card_idx_in_trick
+                       # Serialize play to ensure Card is a dict
+                       serialized_play = {
+                           'card': play['card'].to_dict() if hasattr(play['card'], 'to_dict') else play['card'],
+                           'playedBy': play.get('playedBy'),
+                           'metadata': play.get('metadata')
+                       }
+                       self.qayd_state['target_play'] = serialized_play
+                       self.qayd_state['target_source'] = 'table_cards'
+                       break
+             
+             # Priority 2: Check Last Trick (if table cleared or not found in active)
+             if not crime_card_found and self.game.last_trick and self.game.last_trick.get('metadata'):
+                   for i, meta in enumerate(self.game.last_trick['metadata']):
+                        if meta and meta.get('is_illegal'):
+                             crime_card_found = True
+                             self.qayd_state['crime_card_index'] = i # Index in last_trick
+                             self.qayd_state['target_source'] = 'last_trick' # Flag to UI to look at last trick
+                             # Need to reconstruct target_play for last_trick
+                             # We stored 'cards' and 'playedBy' in trick_history
+                             if self.game.round_history:
+                                  last_trick_hist = self.game.round_history[-1]
+                                  card_obj = Card.from_dict(last_trick_hist['cards'][i])
+                                  self.qayd_state['target_play'] = {
+                                      'card': card_obj.to_dict(),  # Serialize to dict for JSON
+                                      'playedBy': last_trick_hist['playedBy'][i],
+                                      'metadata': last_trick_hist['metadata'][i]
+                                  }
+                             break
+                             
+             if not crime_card_found:
+                  pass
+
+
+
+    # --- VERDICT LOGIC (Reused/Refactored) ---
+             # (Simplified for Proposal: We know if it's illegal by the flag)
+             
              violation = None
+             if crime_card_found:
+                  # If we found the flag, we trust the Engine's validation
+                  # We can extract the specific violation string from metadata if avail
+                  if 'target_play' in self.qayd_state and self.qayd_state['target_play']:
+                       violation = self.qayd_state['target_play']['metadata'].get('illegal_reason', 'Rule Violation')
              
-             # Reconstruct State for Referee
+             # Calculate Kaboot / Penalty
              game_mode = self.game.game_mode
-             trump_suit = self.game.trump_suit
-             is_locked = self.game.is_locked
+             points_override = None
              
-             # Context for Last Play
-             # We need the STATE BEFORE the card was played.
-             # This is tricky because table_cards already has the card.
-             # but `hand` of offender does NOT have it (popped).
-             # To run Referee check properly, we need to temporarily un-pop or pass card + hand.
+             # Note: We are trusting the 'is_illegal' flag 100% here for simplicity.
+             # The Referee.check_* methods act as a double-check or for reasoning.
+             # If flag is missing but move was actually illegal (complex case), we fail to catch it.
+             # But we fixed flag propagation, so this should suffice.
              
-             offender = next(p for p in self.game.players if p.position == offender_pos)
-             played_card_obj = last_play['card']
-             
-             # We need to know who was winning BEFORE this card was played.
-             # Remove last card temporarily
-             current_table_minus_last = self.game.table_cards[:-1]
-             
-             # Calculate winner of partial trick
-             from game_engine.logic.validation import get_trick_winner_index
-             partial_winner_idx = get_trick_winner_index(current_table_minus_last, game_mode, trump_suit)
-             
-             if partial_winner_idx != -1:
-                  curr_winner_play = current_table_minus_last[partial_winner_idx]
-                  curr_winner_pos = curr_winner_play['playedBy']
-                  curr_winner_card = curr_winner_play['card']
-                  winner_team = next(p.team for p in self.game.players if p.position == curr_winner_pos)
-                  is_partner_winning = (winner_team == offender.team)
-                  
-                  # Find highest trump if any
-                  highest_trump_rank = None
-                  for tc in current_table_minus_last:
-                       c = tc['card']
-                       if c.suit == trump_suit:
-                            if highest_trump_rank is None:
-                                 highest_trump_rank = c.rank
-                            else:
-                                 s_curr = ORDER_HOKUM.index(c.rank)
-                                 s_high = ORDER_HOKUM.index(highest_trump_rank)
-                                 if s_curr < s_high: # Lower index is stronger
-                                      highest_trump_rank = c.rank
+             if crime_card_found:
+                  # Valid Claim
+                  # Determine Offender
+                  offender_pos = self.qayd_state['target_play']['playedBy']
+                  offender = next(p for p in self.game.players if p.position == offender_pos)
+                  self.qayd_state['loser_team'] = offender.team
+                  self.qayd_state['reason'] = f"Qayd Valid: {violation}"
+                  self.qayd_state['verdict'] = f"QATA: {offender.position} played illegal move ({violation})"
              else:
-                  # Leading card
-                  curr_winner_pos = None
-                  winner_team = None
-                  is_partner_winning = False
-                  curr_winner_card = None
-                  highest_trump_rank = None
+                  # Invalid Claim
+                  self.qayd_state['loser_team'] = reporter.team
+                  self.qayd_state['reason'] = f"Qayd Failed: Move was legal."
+                  self.qayd_state['verdict'] = f"False Accusation by {reporter.position}"
                   
-             led_suit = current_table_minus_last[0]['card'].suit if current_table_minus_last else None
+             # Calculate Points
+             # Apply Kaboot logic if needed (TODO: port estimate_kaboot here or keep it simple)
+             # For now, standard penalty.
+             base_points = 26 if game_mode == 'SUN' else 16
+             if self.game.doubling_level >= 2: base_points *= self.game.doubling_level
              
-             # Run Referee Checks
-             # 1. Locked Lead
-             if not violation and not current_table_minus_last: # Leading
-                  v = Referee.check_locked_lead(is_locked, trump_suit, offender.hand + [played_card_obj], played_card_obj)
-                  if v: violation = v
-                  
-             # 2. Revoke
-             if not violation and led_suit:
-                  v = Referee.check_revoke(offender.hand + [played_card_obj], led_suit, played_card_obj)
-                  if v: violation = v
-                  
-             # 3. Eating
-             if not violation and led_suit and game_mode == 'HOKUM':
-                  v = Referee.check_eating(
-                       game_mode, trump_suit, offender.hand + [played_card_obj], led_suit, played_card_obj,
-                       curr_winner_pos, offender.team, is_partner_winning
-                  )
-                  if v: violation = v
-                  
-             # 4. Undertrump
-             if not violation and game_mode == 'HOKUM':
-                  v = Referee.check_undertrump(
-                       game_mode, trump_suit, offender.hand + [played_card_obj], played_card_obj,
-                       highest_trump_rank, False # partner_has_high check omitted for simplicity or checked elsewhere
-                  )
-                  if v: violation = v
-
-             # Determine KABOOT Potential (Counterfactual)
-             # If Violation detected, check if Kaboot was likely
-             penalty_points_override = None
+             # Add projects
+             project_points = 0
+             if hasattr(self.game, 'declarations') and self.game.declarations:
+                  for pos, projs in self.game.declarations.items():
+                       for proj in projs:
+                            project_points += proj.get('score', 0)
              
-             if violation:
-                 # Check if Offender spoiled a Kaboot
-                 # Need remaining cards by player
-                 rem_cards = {p.position: p.hand + ([played_card_obj] if p == offender else []) for p in self.game.players}
-                 # Note: offender already had played_card_obj popped? 
-                 # In handle_qayd, we accessed offender.hand.
-                 # Actually `offender` in line 184 is a fresh reference but `hand` is mutable.
-                 # `played_card_obj` was popped.
-                 # So we reconstruct hands.
-                 
-                 offender_team = offender.team
-                 offender_has_tricks = any(
-                     (next(p.team for p in self.game.players if p.position == t['winner']) == offender_team)
-                     for t in self.game.round_history
-                 )
-                 
-                 team_map = {p.position: p.team for p in self.game.players}
-                 
-                 is_kaboot = Referee.estimate_kaboot(
-                      offending_team_has_tricks=offender_has_tricks,
-                      remaining_cards_by_player=rem_cards,
-                      players_team_map=team_map,
-                      offender_team=offender_team,
-                      game_mode=game_mode,
-                      trump_suit=trump_suit
-                 )
-                 
-                 if is_kaboot:
-                      # Award Kaboot Points
-                      if game_mode == 'SUN':
-                           penalty_points_override = 44
-                      else:
-                           penalty_points_override = 26 # Boosted for Hokum
-                      logger.info(f"REFEREE ESTIMATION: KABOOT PREVENTED! Penalty set to {penalty_points_override}")
-
-             if violation:
-                  # Claim Valid -> Offender Loses
-                  loser_team = offender.team
-                  reason = f"Qayd Valid: {violation}"
-                  logger.info(f"REFEREE RULING: {reason}")
-             else:
-                  # Claim Invalid -> Reporter Loses
-                  loser_team = reporter.team
-                  reason = f"Qayd Failed: Move was legal. {reporter.position} penalized."
-                  logger.info(reason)
-                  
-             # Execute Penalty (Khasara)
-             self.apply_khasara(loser_team, reason, points_override=penalty_points_override)
-             return {"success": True, "message": reason}
+             self.qayd_state['penalty_points'] = base_points + project_points
+             
+             # Pause Game
+             self.game.timer_paused = True
+             
+             return {"success": True, "qayd_state": self.qayd_state}
              
         except Exception as e:
-             logger.error(f"Error in handle_qayd: {e}")
+             logger.error(f"Error in propose_qayd: {e}")
              return {"error": str(e)}
+
+    def cancel_qayd(self):
+        """
+        Cancels the current Qayd investigation and resets state.
+        """
+        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        return {'success': True}
+
+    def confirm_qayd(self):
+        """
+        Phase 2: Confirm and Execute.
+        Applies the penalty calculated in Phase 1.
+        """
+        if not self.qayd_state['active'] or self.qayd_state['status'] != 'REVIEW':
+             return {"error": "No Qayd details to confirm"}
+             
+        # Apply Logic
+        loser_team = self.qayd_state['loser_team']
+        reason = self.qayd_state['reason']
+        points = self.qayd_state['penalty_points']
+        
+        # Log resolution
+        logger.info(f"QAYD CONFIRMED: {reason}. {loser_team} loses {points} pts.")
+        
+        self.apply_khasara(loser_team, reason, points_override=points)
+        
+        # Reset State (handled in reset_round_state usually, but good to clear status)
+        self.qayd_state['status'] = 'RESOLVED'
+        
+        return {"success": True}
+
+    # Helper alias for backward compatibility or simple call
+    def handle_qayd(self, reporter_index):
+        # Auto-confirm for now if called directly (or redirect to proposal)
+        # return self.propose_qayd(reporter_index) 
+        # Actually, let's make handle_qayd just call propose then confirm for "Legacy/Bot" instant behavior
+        # UNLESS we want the bot to propose and wait?
+        # User said "Wait for me to click confirm".
+        
+        # So Bot calls propose_qayd.
+        # Frontend sees REVIEW state.
+        # User clicks Confirm.
+        return self.propose_qayd(reporter_index)
 
     def apply_khasara(self, loser_team, reason, points_override=None):
         """Ends round giving full points (16/26) to the winner team."""

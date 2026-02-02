@@ -90,9 +90,21 @@
 - **[FIXED] Auto-Play Freeze / Bot Lag**: Resolved by disabling client-side timer enforcement and implementing server-side emergency rescue in `bot_loop`.
 - **[FIXED] TypeError (reading 'us')**: Added safe defaults for `matchScores` in `Table.tsx`.
 - **[FIXED] Visual Feedback**: Added "Sending..." indicator to prevent double-actions.
-- **Qayd System**: Integrated Frontend to Backend. Logic pending further rule refinements if any.
+- **[FIXED] Qayd Freeze**: Resolved by fixing timeout guards, state serialization, and auto-confirmation. See `test_qayd_flow.py`.
 - **Bot Intelligence**: Improved (Phase 2 Heuristics Logic Implemented - Sira/Memory).
 - **Mobile Responsiveness**: Hand fan overlap issues were recently addressed but need monitoring on smaller screens.
+
+## Recent Fixes (2026-02-02)
+- **Qayd Freeze Fix**: Resolved game freeze during Qayd investigations:
+  - Added `@requires_unlocked` decorator to `check_timeout()` and `auto_play_card()`.
+  - Fixed state serialization to use `trick_manager.qayd_state` (was using wrong state object).
+  - Added auto-confirmation for Sherlock mode Qayd triggers.
+  - Serialized Card objects in `trick_manager.py` to prevent JSON errors.
+- **Prevention Strategies Implemented**:
+  - New `game_engine/utils/serialization.py` for JSON validation.
+  - Integration tests in `tests/test_qayd_flow.py`.
+  - Enhanced error handling in `bot_orchestrator.py`.
+- **MCP Config Fix**: Cleaned up `.gemini/antigravity/mcp_config.json`, removed non-existent packages.
 
 ## Recent Fixes
 - **Unified Scoring System (Abnat)**: Refactored backend scoring to use a raw "Abnat" system for all game modes, ensuring consistent calculation before game point conversion (Sun/Hokum formulas). Fixed Project values (e.g., 400 Project = 200 Abnat).

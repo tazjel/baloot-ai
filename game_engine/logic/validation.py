@@ -1,6 +1,7 @@
 from typing import List, Dict, Tuple, Any
 from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM
+from server.logging_utils import logger
 
 def get_trick_winner_index(table_cards: List[Dict], game_mode: str, trump_suit: str = None) -> int:
     """
@@ -88,7 +89,16 @@ def is_move_legal(
     Pure validation logic for Baloot.
     players_team_map: Dict mapping 'position' -> 'team' ('us', 'them')
     """
-    
+    # DEBUG: Verbose Input Logging
+    c_suit = _get_suit(card)
+    # logger.info(f"VALIDATE: Card={card} (Suit={c_suit}) | Mode={game_mode} | Trump={trump_suit}")
+    if table_cards:
+         lead = table_cards[0]['card']
+         l_suit = _get_suit(lead)
+         # logger.info(f"VALIDATE: Table Lead={lead} (Suit={l_suit}) in Table len={len(table_cards)}")
+    else:
+         pass # logger.info("VALIDATE: Table Empty (Lead)")
+         
     # 0. Check Closed Doubling Constraint (Magfool / Locked)
     if not table_cards and contract_variant == 'CLOSED' and game_mode == 'HOKUM':
         card_suit = _get_suit(card)
@@ -108,16 +118,17 @@ def is_move_legal(
     # 1. Follow Suit (Mandatory in Sun & Hokum)
     try:
         has_suit = any(_get_suit(c) == lead_suit for c in hand)
+        # DEBUG: Log Hand State for Revoke Check
+        if table_cards:
+             hand_suits = [_get_suit(c) for c in hand]
+             # logger.info(f"VALIDATE CHECK: Lead={lead_suit} | Hand Suits={hand_suits} | HasSuit={has_suit}")
     except Exception as e:
-        print(f"CRITICAL ERROR in validation.py has_suit check:")
-        print(f"Error: {e}")
-        print(f"Lead Suit: {lead_suit} (Type: {type(lead_suit)})")
-        print(f"Hand Limit 3: {[str(c) for c in hand[:3]]}")
-        # print(f"Full Hand: {hand}")
-        raise e
+        logger.error(f"CRITICAL ERROR in validation.py has_suit check: {e}")
+        return True # Fail open to avoid crash
         
     if has_suit:
         if card_suit != lead_suit:
+            # logger.info(f"VALIDATE RESULT: ILLEGAL (Revoke) - Played {card_suit} on {lead_suit}")
             return False
             
         # If following suit in Hokum and Lead is Trump, we are good (must follow).

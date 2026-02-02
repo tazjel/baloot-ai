@@ -3,6 +3,7 @@ import time
 import logging
 import traceback
 import copy
+from functools import wraps
 from typing import Dict, List, Optional, Any
 
 from game_engine.models.constants import SUITS, RANKS, POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM, ORDER_PROJECTS, GamePhase, BiddingPhase, BidType
@@ -14,6 +15,7 @@ from .timer_manager import TimerManager
 from .trick_manager import TrickManager
 from .project_manager import ProjectManager
 from .scoring_engine import ScoringEngine
+from .qayd_manager import QaydManager
 
 from .bidding_engine import BiddingEngine
 from .forensic import ForensicReferee
@@ -21,6 +23,20 @@ from .forensic import ForensicReferee
 
 # Configure Logging
 from server.logging_utils import log_event, log_error, logger
+
+
+def requires_unlocked(func):
+    """
+    Decorator to prevent execution when game is locked.
+    Returns None if game is locked, otherwise executes the function.
+    """
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if self.is_locked:
+            logger.info(f"[LOCK] {func.__name__} skipped - game is locked")
+            return None
+        return func(self, *args, **kwargs)
+    return wrapper
 
 class Game:
     def __init__(self, room_id: str):
@@ -63,7 +79,7 @@ class Game:
         self.turn_duration = 30 # Legacy / Read-only
         self.timer_active = True # Legacy
         self.last_timer_reset = 0
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.last_timer_reset = 0
         self.timer_paused = False # Flag for Professor or other pauses
         
         # Analytics
@@ -74,7 +90,9 @@ class Game:
         # Managers
         self.trick_manager = TrickManager(self)
         self.project_manager = ProjectManager(self)
+        self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
+        self.qayd_manager = QaydManager(self)
 
     @property
     def current_turn(self):
@@ -90,6 +108,7 @@ class Game:
             "roomId": self.room_id,
             "phase": self.phase,
             "biddingPhase": self.bidding_engine.phase.name if hasattr(self, 'bidding_engine') and self.bidding_engine else None,
+            "players": [p.to_dict() for p in self.players],
             "players": [p.to_dict() for p in self.players],
             "tableCards": [{"playerId": tc['playerId'], "card": tc['card'].to_dict(), "playedBy": tc['playedBy'], "metadata": tc.get('metadata')} for tc in self.table_cards],
             "currentTurnIndex": self.current_turn, # Frontend expects currentTurnIndex
@@ -144,7 +163,7 @@ class Game:
             ], 
             # 'trickHistory': self.trick_history,       # Full game debug - REMOVED for Optimization
             'sawaState': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else self.sawa_state,
-            'qaydState': self.qayd_state,
+            'qaydState': self.trick_manager.qayd_state if hasattr(self.trick_manager, 'qayd_state') else {},
             'challengeActive': (self.phase == GamePhase.CHALLENGE.value),
             
             # Timer Sync
@@ -199,124 +218,39 @@ class Game:
     def check_akka_eligibility(self, player_index):
         return self.project_manager.check_akka_eligibility(player_index)
 
+    # --- QAYD (FORENSIC) DELEGATION ---
+    # NOTE: handle_qayd_trigger is defined in the HANDLERS section below (line ~1087)
+    
+    def handle_qayd_accusation(self, player_index, accusation=None):
+        """
+        Called when a bot provides specific accusation details.
+        In the Forensic/Auto-Detect model, an accusation acts as a Confirmation of the found crime.
+        """
+        return self.qayd_manager.process_accusation(player_index, accusation) if accusation else self.handle_qayd_confirm()
+
+    def handle_qayd_confirm(self):
+        """Called when the user/bot confirms the verdict to apply penalty"""
+        logger.info(f"[QAYD] Confirming Qayd verdict...")
+        result = self.trick_manager.confirm_qayd()
+        if result.get('success'):
+             self.is_locked = False
+             logger.info(f"[QAYD] Game UNLOCKED after confirmation. is_locked={self.is_locked}")
+        return result
+    
+    
+    def handle_qayd_cancel(self):
+        """Called when Qayd is cancelled (False Alarm or User Cancel)"""
+        return self.qayd_manager.cancel_challenge()
+
+    def handle_qayd(self, player_index, reason=None):
+        """Legacy/Simple Qayd"""
+        return self.handle_qayd_trigger(player_index)
+
     def handle_akka(self, player_index):
         return self.project_manager.handle_akka(player_index)
 
     # --- QAYD (FORENSIC) LOGIC ---
-    def handle_qayd_trigger(self, player_index):
-        """Activates the Qayd (Forensic) Overlay for all players."""
-        if self.phase != GamePhase.PLAYING.value:
-             return {"error": "Can only trigger Qayd during playing phase"}
-        
-        reporter_pos = self.players[player_index].position
-        self.qayd_state = {
-            'active': True,
-            'reporter': reporter_pos,
-            'reason': 'MANUAL_TRIGGER',
-            'target_play': None,
-            'status': 'OPEN'
-        }
-        self.is_locked = True # Freeze the game
-        logger.info(f"QAYD TRIGGERED by {reporter_pos}. Game Locked.")
-        return {"success": True, "qaydState": self.qayd_state}
-
-    def handle_qayd_accusation(self, player_index, accusation_data):
-        """Processes a formal accusation from the Qayd Overlay."""
-        reporter_pos = self.players[player_index].position
-        logger.info(f"QAYD ACCUSATION from {reporter_pos}: {accusation_data}")
-        
-        # 1. Snapshot for Validation
-        # We need to construct a snapshot compatible with ForensicReferee
-        snapshot = {
-            'roundHistory': self.round_history, # List of Tricks
-            'gameMode': self.game_mode,
-            'trumpSuit': self.trump_suit
-        }
-        
-        crime_card = accusation_data['crime_card']
-        proof_card = accusation_data['proof_card']
-        violation_type = accusation_data['violation_type']
-        
-        # 2. Validate
-        result = ForensicReferee.validate_accusation(snapshot, crime_card, proof_card, violation_type)
-        
-        if result['success']:
-             if result['is_guilty']:
-                 # TRUE ACCUSATION: Reporter wins, Criminal loses
-                 logger.info(f"QAYD VERDICT: GUILTY. {result['reason']}")
-                 self.resolve_qayd_penalty(winner_pos=reporter_pos, reason=result['reason'])
-             else:
-                 # FALSE ACCUSATION: Reporter loses (Khasara), Accused wins
-                 logger.info(f"QAYD VERDICT: INNOCENT. {result['reason']}")
-                 # The 'Target' of the accusation wins. 
-                 # We infer target from crime_card['playedBy']
-                 target_pos = crime_card['playedBy']
-                 self.resolve_qayd_penalty(winner_pos=target_pos, reason=f"False Accusation: {result['reason']}")
-                 
-             return {
-                 "success": True, 
-                 "verdict": "GUILTY" if result['is_guilty'] else "INNOCENT",
-                 "reason": result['reason']
-             }
-        else:
-             return {"success": False, "error": result.get('error', 'Validation Failed')}
-
-    def resolve_qayd_penalty(self, winner_pos, reason):
-        """
-        Ends the round, awarding full points to the winner's team.
-        """
-        # 1. Identify Teams
-        winner_team = 'us' if winner_pos in ['Bottom', 'Top'] else 'them'
-        loser_team = 'them' if winner_team == 'us' else 'us'
-        
-        # 2. Calculate Points (Simplified for now: 26 or 16 + Projects)
-        # In Qayd/Khasara, winner usually gets EVERYTHING. 
-        # For simplicity, we give a standard "Round Win" + Bonus?
-        # Standard: 152 total match points. 
-        # Round: 26 (Hokum) or 16 (Sun) + Projects.
-        
-        base_points = 26 if self.game_mode == 'HOKUM' else 16
-        
-        # Add declared projects?
-        # If loser had projects, they are burned. Winner keeps theirs?
-        # Actually in Khasara, winner gets EVERYTHING including loser's projects.
-        # We'll just give a flat "Game Point" boost or full round score.
-        
-        # Update Scores
-        # We rely on finalize_round logic but override the result.
-        
-        # Hack: Force scores
-        self.team_scores[winner_team] += base_points * 10 # Raw points approx
-        # self.team_scores[loser_team] += 0
-        
-        # 3. Update Qayd State
-        self.qayd_state = {
-            'active': False,
-            'reporter': None,
-            'reason': None,
-            'status': 'RESOLVED',
-            'verdict': f"{winner_team.upper()} WINS ({reason})"
-        }
-        
-        self.is_locked = False # Unlock (though round is ending)
-        # We trigger the standard end-round flow but inject the Qayd result
-        # Since we modified scores manually, we just set phase to FINISHED
-        
-        score_breakdown = {
-            'us': {'totalRaw': self.team_scores['us'], 'gamePoints': 0}, # Todo: Calc game points
-            'them': {'totalRaw': self.team_scores['them'], 'gamePoints': 0}
-        }
-        
-        # Use existing scoring engine if possible, but for now manual override
-        self.past_round_results.append({
-            'winner': winner_team,
-            'reason': f"QAYD: {reason}",
-            'us': self.team_scores['us'],
-            'them': self.team_scores['them']
-        })
-        
-        self.phase = GamePhase.FINISHED.value
-        logger.info(f"Round Ended via Qayd. Winner: {winner_team}")
+    # --- END QAYD DELEGATION ---
 
 
     def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -335,12 +269,35 @@ class Game:
                 return {"error": "Not your turn"}
 
             player = self.players[player_index]
+
+            # --- CARD ID VALIDATION (Hand Sync Fix) ---
+            if metadata and 'cardId' in metadata:
+                card_id = metadata['cardId']
+                found_idx = -1
+                for idx, c in enumerate(player.hand):
+                    # Fallback if card doesn't have ID, but it should
+                    c_id = getattr(c, 'id', f"{c.rank}{c.suit}") 
+                    if c_id == card_id:
+                        found_idx = idx
+                        break
+                
+                if found_idx != -1:
+                    if found_idx != card_idx:
+                        logger.warning(f"Hand Sync Correction: Client sent idx {card_idx}, found card {card_id} at {found_idx}. Correcting.")
+                    card_idx = found_idx
+                else:
+                     logger.error(f"Card ID {card_id} not found in hand for {player.position}.")
+                     return {"error": "Card Not Found in Hand (ID Mismatch)"}
+
             if card_idx < 0 or card_idx >= len(player.hand):
                 return {"error": "Invalid card index"}
             
             card = player.hand[card_idx]
             
             # --- QAYD SYSTEM CHANGE: Allow illegal moves, but flag them ---
+            # DEBUG: Log Hand before Validation
+            logger.info(f"PLAY_CARD: Player {player.position} playing {card}. Hand: {[str(c) for c in player.hand]}")
+            
             is_valid = self.is_valid_move(card, player.hand)
             
             if not is_valid:
@@ -515,13 +472,15 @@ class Game:
         self.last_trick = None
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
         self.sawa_failed_khasara = False
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        self.sawa_failed_khasara = False
+        self.qayd_manager.reset()
         self.akka_state = None
         
         if hasattr(self, 'trick_manager'):
              self.trick_manager.sawa_state = self.sawa_state
-             self.trick_manager.qayd_state = self.qayd_state
-        if hasattr(self, 'project_manager'):
+             self.trick_manager.qayd_state = self.qayd_manager.state
+        if hasattr(self.project_manager, 'akka_state'):
              self.project_manager.akka_state = None
              
         self.reset_timer()
@@ -541,86 +500,6 @@ class Game:
     def resolve_declarations(self):
         return self.project_manager.resolve_declarations() 
 
-    def handle_qayd_trigger(self, player_index: int) -> dict:
-        """
-        Activates the Qayd (Forensic) mode, allowing players to investigate.
-        """
-        if self.phase != "PLAYING":
-            return {'success': False, 'error': 'Can only trigger Qayd during playing phase'}
-            
-        # Toggle Qayd State
-        self.qayd_state['active'] = True
-        self.qayd_state['reporter'] = player_index
-        
-        # Pause the game timer implicitly
-        self.timer_paused = True
-        
-        print(f"[GAME] Qayd Triggered by Player {player_index}")
-        return {'success': True, 'qaydState': self.qayd_state}
-
-    def handle_qayd_accusation(self, player_index: int, accusation: dict) -> dict:
-        """
-        Processes a Qayd accusation (Kammelna Style).
-        Violation = "Khasara" (Complete Loss of Round).
-        Reporter's Team gets FULL points for the round.
-        """
-        print(f"[GAME] Processing Qayd Accusation from Player {player_index}. Payload: {accusation}")
-        
-        reporter = self.players[player_index]
-        reporter_team = 'us' if player_index in [0, 2] else 'them'
-
-        opponent_team = 'them' if reporter_team == 'us' else 'us'
-        
-        # 1. Calculate Penalty Score (Max Possible for Round)
-        # SUN: 26 points + Projects. HOKUM: 152 points (Standard Abnat rule) or just round points.
-        # Kammelna usually awards the full round value.
-        
-        points = 26 if self.game_mode == 'SUN' else 16 
-        # Apply Doubling
-        points *= self.doubling_level
-        
-        # Add Project Points (if any declared)
-        project_points = self.project_manager.calculate_project_points()
-        total_projects = project_points['us'] + project_points['them'] # Winner takes all projects usually
-        
-        # Final Score for Reporter
-        round_score_reporter = points + total_projects
-        
-        print(f"[GAME] Qayd Verdict: {reporter_team} wins {round_score_reporter} pts. Opponent 0.")
-
-        # 2. Update Scores
-        self.team_scores[reporter_team] += round_score_reporter
-        self.team_scores[opponent_team] += 0 # Opponent gets 0 (Abnat/Khasara)
-        
-        # 3. Log Result
-        self.past_round_results.append({
-            'us': {'result': round_score_reporter if reporter_team == 'us' else 0, 'projects': [], 'aklat': 0, 'ardh': 0, 'mashaari': 0, 'abnat': 0},
-            'them': {'result': round_score_reporter if reporter_team == 'them' else 0, 'projects': [], 'aklat': 0, 'ardh': 0, 'mashaari': 0, 'abnat': 0},
-            'winner': reporter_team,
-            'gameMode': self.game_mode,
-            'doubling': self.doubling_level,
-            'reason': f"QAYD_VIOLATION: {accusation.get('violation_type', 'General')}"
-        })
-        
-        current_us_total = self.match_scores['us'] + (round_score_reporter if reporter_team == 'us' else 0)
-        current_them_total = self.match_scores['them'] + (round_score_reporter if reporter_team == 'them' else 0)
-        
-        self.match_scores['us'] = current_us_total
-        self.match_scores['them'] = current_them_total
-        
-        # 4. End Round
-        self.phase = "FINISHED"
-        self.qayd_state['active'] = False
-        self.timer_paused = False
-        
-        # Return success with state update to trigger UI Result Screen
-        return {
-            'success': True, 
-            'message': 'Violation Confirmed. Round Ended.',
-            'qaydState': self.qayd_state,
-            'phase': 'FINISHED',
-            'gameState': self.get_game_state()
-        }
 
     def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Dict[str, Any]:
         try:
@@ -851,70 +730,10 @@ class Game:
     
     # --- FORENSIC CHALLENGE ---
     def initiate_challenge(self, player_index):
-        if self.phase != GamePhase.PLAYING.value:
-             return {"error": "Can only challenge during Playing phase."}
-        
-        if self.qayd_state.get('active'):
-             return {"error": "Challenge already active."}
-             
-        self.phase = GamePhase.CHALLENGE.value
-        self.pause_timer()
-        
-        player = self.players[player_index]
-        self.qayd_state = {
-             'active': True,
-             'reporter': player.position,
-             'reason': None,
-             'status': 'INVESTIGATING'
-        }
-        
-        log_event("CHALLENGE_STARTED", self.room_id, details={'reporter': player.position})
-        return {"success": True}
+        return self.qayd_manager.initiate_challenge(player_index)
 
     def process_accusation(self, player_index, accusation_data):
-        if self.phase != GamePhase.CHALLENGE.value:
-             return {"error": "Not in Challenge phase."}
-             
-        player = self.players[player_index]
-        if player.position != self.qayd_state['reporter']:
-             return {"error": "Only the reporter can submit accusation."}
-             
-        from game_engine.logic.forensic import ForensicReferee
-        
-        gameState = self.get_game_state()
-        history = gameState['roundHistory']
-        
-        # Hydrate proper game mode/trump from internal if needed, but get_state has it.
-        # Call Referee
-        
-        verdict = ForensicReferee.validate_accusation(
-             game_snapshot=gameState,
-             crime_card=accusation_data['crime_card'],
-             proof_card=accusation_data['proof_card'],
-             violation_type=accusation_data['violation_type']
-        )
-        
-        logger.info(f"FORENSIC VERDICT: {verdict}")
-        
-        reason = verdict['reason']
-        
-        if verdict['is_guilty']:
-             # Offender Loses
-             offender_pos = accusation_data['crime_card']['playedBy']
-             offender = next(p for p in self.players if p.position == offender_pos)
-             
-             reason = f"Qayd PROVEN: {reason}"
-             
-             # Apply Khasara to Offender Team
-             points = verdict.get('penalty_score')
-             self.apply_khasara(offender.team, reason, points_override=points)
-             
-        else:
-             # Challenger Loses (False Accusation)
-             reason = f"Qayd FAILED: {reason}"
-             self.apply_khasara(player.team, reason)
-             
-        return verdict
+        return self.qayd_manager.process_accusation(player_index, accusation_data)
 
 
 
@@ -1050,6 +869,7 @@ class Game:
         self.timer.resume()
         logger.info(f"Timer Resumed for Room {self.room_id}")
         
+    @requires_unlocked
     def check_timeout(self):
         """Called by background loop to check if current turn expired"""
         # Allow timeout check if Challenge is active (for Sherlock Bot)
@@ -1065,6 +885,7 @@ class Game:
 
         if self.timer.is_expired():
             lag = self.timer.get_lag()
+            logger.info(f"[TIMEOUT] Timer expired. is_locked={self.is_locked}, phase={self.phase}")
             msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action..."
             logger.info(msg)
             with open("logs/timer_monitor.log", "a") as f:
@@ -1190,6 +1011,7 @@ class Game:
              
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
 
+    @requires_unlocked
     def auto_play_card(self, player_index):
         try:
             player = self.players[player_index]
@@ -1213,7 +1035,20 @@ class Game:
                  logger.info(f"Auto-Play for {player.name}: Submitting Qayd Accusation")
                  # Ensure we have payload
                  payload = decision.get('accusation', {})
-                 return self.process_accusation(player_index, payload) # Use process_accusation for Challenge phase
+                 
+                 # FIX: Check Phase to route correctly
+                 if self.phase == GamePhase.CHALLENGE.value:
+                      return self.process_accusation(player_index, payload)
+                 else:
+                      # In Live/Sherlock mode (PLAYING), Accusation = Confirm
+                      # because validation happens inside propose/confirm flow
+                      return self.handle_qayd_confirm()
+
+            elif action == 'WAIT':
+                 reason = decision.get('reason', 'Waiting')
+                 if reason != "Qayd Investigation in Progress":
+                      logger.info(f"Auto-Play for {player.name}: WAIT ({reason})")
+                 return {"success": True, "action": "WAIT", "message": reason}
 
             if card_idx < 0 or card_idx >= len(player.hand):
                 card_idx = 0 
@@ -1237,6 +1072,51 @@ class Game:
                       return self.play_card(player_index, i)
             
             return {"error": f"Auto-Play Failed completely: {e}"}
+
+    # --- HANDLERS (Restored / New) ---
+    def handle_akka(self, player_index):
+        """Delegate Akka to ProjectManager"""
+        if hasattr(self, 'project_manager'):
+             return self.project_manager.handle_akka(player_index)
+        return {'success': False, 'error': 'ProjectManager missing'}
+
+    def handle_qayd_trigger(self, player_index):
+        """Called when a player (or bot) triggers the Qayd investigation"""
+        if self.is_locked:
+            logger.warning(f"Qayd trigger rejected - game already locked")
+            return {'success': False, 'error': 'Game Locked'}
+        
+        logger.info(f"[QAYD] Player {player_index} triggering Qayd investigation")
+        # Delegate to TrickManager Phase 1
+        result = self.trick_manager.propose_qayd(player_index)
+        if result.get('success'):
+             self.is_locked = True
+             logger.info(f"[QAYD] Game LOCKED for investigation. is_locked={self.is_locked}")
+             self.phase = GamePhase.PLAYING.value
+             
+             # AUTO-CONFIRM in Sherlock Mode (crime already detected)
+             logger.info(f"[QAYD] Auto-confirming Qayd verdict in Sherlock mode...")
+             confirm_result = self.trick_manager.confirm_qayd()
+             if confirm_result.get('success'):
+                  self.is_locked = False
+                  logger.info(f"[QAYD] Game UNLOCKED after auto-confirmation. is_locked={self.is_locked}")
+             return confirm_result
+        else:
+             logger.error(f"[QAYD] propose_qayd FAILED: {result}")
+        return result
+
+    def handle_qayd_accusation(self, player_index, accusation=None):
+        """Alias for trigger"""
+        return self.handle_qayd_trigger(player_index)
+
+    def handle_qayd_confirm(self):
+        """Called to confirm verdict"""
+        logger.info(f"[QAYD] Confirming Qayd verdict (duplicate handler)...")
+        result = self.trick_manager.confirm_qayd()
+        if result.get('success'):
+             self.is_locked = False
+             logger.info(f"[QAYD] Game UNLOCKED after confirmation (duplicate). is_locked={self.is_locked}")
+        return result
 
     # --- PICKLE SUPPORT ---
     def __getstate__(self):

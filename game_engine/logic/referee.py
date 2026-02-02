@@ -19,7 +19,7 @@ class Referee:
             
         has_suit = any(c.suit == led_suit for c in hand)
         if has_suit:
-            return "REVOKE: Player holds Led Suit but played otherwise."
+            return "QATA: Player holds Led Suit but played otherwise."
         return None
 
     @staticmethod

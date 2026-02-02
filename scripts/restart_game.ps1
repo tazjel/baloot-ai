@@ -1,37 +1,41 @@
 $ErrorActionPreference = "SilentlyContinue"
 
-Write-Host "Stopping existing Game Server (Port 3005) and Frontend (Port 5173)..."
+Write-Host "=== 🔄 Restarting Baloot Game Environment ===" -ForegroundColor Cyan
 
-function Kill-Port ($port) {
-    $conns = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-    if ($conns) {
-        foreach ($conn in $conns) {
-            $pid_val = $conn.OwningProcess
-            if ($pid_val -gt 0) {
-               Write-Host "Killing Process ID $pid_val on port $port"
-               Stop-Process -Id $pid_val -Force -ErrorAction SilentlyContinue
-            }
-        }
-    }
+# 1. Cleanup
+& ./scripts/cleanup.ps1
+
+# 2. Launch Backend
+Write-Host "`n[2/3] Launching Backend..."
+$logFile = "logs/server_debug.log"
+$logFileErr = "logs/server_error.log"
+# Clear log files
+"" | Out-File $logFile -Encoding utf8
+"" | Out-File $logFileErr -Encoding utf8
+
+$pythonPath = (Get-Command "python" -ErrorAction SilentlyContinue).Source
+if (-not $pythonPath) {
+    Write-Host "❌ Python not found in PATH!" -ForegroundColor Red
+    exit 1
+}
+Write-Host "   ℹ️  Using Python: $pythonPath" -ForegroundColor Gray
+
+try {
+    # Using -u for unbuffered output
+    $serverProcess = Start-Process $pythonPath -ArgumentList "-u", "-m", "server.main" -RedirectStandardOutput $logFile -RedirectStandardError $logFileErr -PassThru -ErrorAction Stop
+    Write-Host "   ✅ Backend started (PID: $($serverProcess.Id))." -ForegroundColor Green
+} catch {
+    Write-Host "❌ Failed to launch backend process! Error: $_" -ForegroundColor Red
+    exit 1
 }
 
-Kill-Port 3005
-Kill-Port 5173
-
-# Fallback clean up by name just in case
-Stop-Process -Name "python" -Force -ErrorAction SilentlyContinue
-Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
-
-Start-Sleep -Seconds 2
-
-Write-Host "Starting Game Server..."
-$logFile = Join-Path (Get-Location) "server_debug.log"
-Write-Host "Logging to: $logFile"
-$serverProcess = Start-Process powershell -ArgumentList "-Command", "python -u -m server.main" -RedirectStandardOutput $logFile -RedirectStandardError $logFile -PassThru -WindowStyle Hidden
-
-Write-Host "Starting Frontend (Vite)..."
+# 3. Launch Frontend
+Write-Host "`n[3/3] Launching Frontend..."
 Set-Location "frontend"
-$frontendProcess = Start-Process powershell -ArgumentList "-Command", "npm run dev" -PassThru -WindowStyle Hidden
+# Run hidden or minimized? User usually wants to see errors. Hidden is good for restarts if main window persists.
+# But here we are restarting everything.
+$frontendProcess = Start-Process powershell -ArgumentList "-Command", "npm run dev" -PassThru -WindowStyle Minim
 Set-Location ..
+Write-Host "   ✅ Frontend started (PID: $($frontendProcess.Id))." -ForegroundColor Green
 
-Write-Host "Clean restart initiated. Processes are running in the background."
+Write-Host "`n🎉 Restart Complete! Game ready at http://localhost:5173" -ForegroundColor Cyan

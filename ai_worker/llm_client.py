@@ -12,7 +12,9 @@ if not os.environ.get("GEMINI_API_KEY"):
 
 # Configure API
 api_key = os.environ.get("GEMINI_API_KEY")
-if api_key:
+GEMINI_ENABLED = False # User requested disable
+
+if GEMINI_ENABLED and api_key:
     genai.configure(api_key=api_key)
 else:
     logger.warning("GEMINI_API_KEY not found in environment!")
@@ -20,11 +22,17 @@ else:
 class GeminiClient:
     def __init__(self, model_name="gemini-flash-latest"):
         self.model_name = model_name
-        self.model = genai.GenerativeModel(model_name)
+        if GEMINI_ENABLED:
+            self.model = genai.GenerativeModel(model_name)
+        else:
+            self.model = None
+            logger.info("GeminiClient initialized in DISABLED mode.")
         
     def analyze_image(self, image_bytes, mime_type="image/jpeg"):
         """Analyze an image byte stream."""
         try:
+            if not self.model: return None
+            
             prompt = "Analyze this screenshot of a Baloot game. Identify the cards on the table, the user's hand, the scores, and the current bid/trump. Return JSON."
             
             response = self.model.generate_content([
@@ -39,6 +47,8 @@ class GeminiClient:
     def analyze_video(self, video_path, mime_type="video/mp4"):
         """Analyze a video file."""
         try:
+            if not self.model: return None
+            
             # File API upload is required for video
             video_file = genai.upload_file(path=video_path)
             
@@ -60,6 +70,8 @@ class GeminiClient:
         examples: List of few-shot examples.
         """
         try:
+            if not self.model: return None
+            
             prompt_parts = []
             
             # System Prompt
@@ -94,6 +106,8 @@ class GeminiClient:
     def generate_scenario_from_text(self, text):
         """Generate a Baloot game scenario JSON from natural language."""
         try:
+            if not self.model: return None
+
             prompt = f"""Generate a valid Baloot Game State JSON from this description: "{text}".
             Include players, hands, table cards, bid, and trump.
             JSON:
@@ -107,6 +121,8 @@ class GeminiClient:
     def analyze_match_history(self, history):
         """Analyze a full match history."""
         try:
+            if not self.model: return None
+
             import json
             history_str = json.dumps(history[:50]) # Truncate to avoid token limits if huge
             

@@ -14,15 +14,22 @@ env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(dotenv_path=env_path)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_ENABLED = False # User requested disable
 
 class DialogueSystem:
     def __init__(self):
         self.logger = logging.getLogger("DialogueSystem")
         self.model = None
-        self._last_call_time = 0
+        self.logger = logging.getLogger("DialogueSystem")
+        self.model = None
+        # self._last_call_time = 0 # DEPRECATED: Using TokenBucket
         self._setup_model()
 
     def _setup_model(self):
+        if not GEMINI_ENABLED:
+             self.logger.warning("Gemini Integration DISABLED by configuration. Using fallback responses.")
+             return
+
         if not GEMINI_API_KEY:
             self.logger.warning("GEMINI_API_KEY not found. DialogueSystem disabled (fallback only).")
             return
@@ -46,10 +53,12 @@ class DialogueSystem:
         Generates a reaction line. Returns None if generation fails or is rate-limited.
         This method is BLOCKING and should be run in a thread.
         """
-        # Rate Limit: Don't spam Gemini more than once every 2 seconds globally (simple check)
-        # In a real system we'd rate limit per-bot.
-        if time.time() - self._last_call_time < 2.0:
-            return self._get_fallback_message(personality)
+        # Rate Limit: Use Token Bucket (Global)
+        from ai_worker.rate_limiter import global_gemini_limiter
+        
+        if not global_gemini_limiter.acquire(blocking=False):
+             self.logger.warning(f"Rate Limit Hit (Tokens exhausted). Using fallback for {player_name}.")
+             return self._get_fallback_message(personality)
 
         # 50% Chance to just use fallback/silence to avoid noise?
         # Let's say for "Trash Talk" feature verification, we want high frequency: 100%
@@ -60,7 +69,7 @@ class DialogueSystem:
         prompt = self._construct_prompt(player_name, personality, context, rivalry_summary)
 
         try:
-            self._last_call_time = time.time()
+            # self._last_call_time = time.time() # Managed by TokenBucket
             # Safety settings to allow banter
             safety_settings = [
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
@@ -89,7 +98,10 @@ class DialogueSystem:
                 return text
             return self._get_fallback_message(personality)
         except Exception as e:
-            self.logger.error(f"Gemini generation error: {e}")
+            if "429" in str(e):
+                 self.logger.error(f"Gemini QUOTA EXCEEDED (429). Check Billing/Plan. Fallback used.")
+            else:
+                 self.logger.error(f"Gemini generation error: {e}")
             return self._get_fallback_message(personality)
 
     def _construct_prompt(self, player_name: str, personality: PersonalityProfile, context: str, rivalry_summary: dict = None) -> str:

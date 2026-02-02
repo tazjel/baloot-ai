@@ -5,6 +5,7 @@ import CardVector from './CardVector';
 import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
 import { ProfessorOverlay } from './overlays/ProfessorOverlay';
 import { ForensicOverlay } from './overlays/ForensicOverlay';
+import { QaydOverlay } from './overlays/QaydOverlay';
 import { useGameTension } from '../hooks/useGameTension';
 import { HeartbeatLayer } from './effects/HeartbeatLayer';
 import ProjectSelectionModal from './ProjectSelectionModal';
@@ -24,6 +25,7 @@ import HandFan from './HandFan';
 import { getPlayedCardAnimation } from '../utils/animationUtils';
 
 // Imported modular components
+import { useGameRules } from '../hooks/useGameRules';
 import PlayerAvatar from './table/PlayerAvatar';
 import ScoreBadge from './table/ScoreBadge';
 import ContractIndicator from './table/ContractIndicator';
@@ -222,11 +224,8 @@ export default function Table({
     const partner = players[2];
     const leftPlayer = players[3];
 
-    // Sorted Hand for Display
-    const sortedHand = React.useMemo(() => {
-        if (!me?.hand) return [];
-        return sortHand(me.hand, (gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN', gameState.trumpSuit);
-    }, [me?.hand, gameState.gameMode, gameState.trumpSuit]);
+    // --- Game Rules Hook ---
+    const { availableProjects, isCardPlayable, sortedHand } = useGameRules(gameState, me);
 
     // Calculate Card Groups for Elevation (Alternating Up/Down)
     const cardGroups = React.useMemo(() => {
@@ -244,68 +243,6 @@ export default function Table({
         });
         return groups;
     }, [sortedHand]);
-
-    // --- Hand Scanning for Projects (Trick 1) ---
-    const [availableProjects, setAvailableProjects] = useState<string[]>([]);
-
-    const scanHandJS = (hand: any[], mode: string) => {
-        if (!hand) return [];
-        const types = new Set<string>();
-        const validCards = hand.filter(c => c && (c.rank || (c.card && c.card.rank))); // Filter valid
-        const ranks = validCards.map((c: any) => c.card ? c.card.rank : c.rank);
-        const rankCounts: Record<string, number> = {};
-        ranks.forEach((r: string) => { if (r) rankCounts[r] = (rankCounts[r] || 0) + 1 });
-
-        // 4 of a Kind
-        for (const [r, count] of Object.entries(rankCounts)) {
-            if (count === 4) {
-                if (r === 'A' && mode === 'SUN') types.add('FOUR_HUNDRED');
-                else if (['K', 'Q', 'J', '10', 'A'].includes(r)) types.add('HUNDRED');
-            }
-        }
-
-        // Sequences
-        const suits = ['♠', '♥', '♦', '♣'];
-        const order = ['A', 'K', 'Q', 'J', '10', '9', '8', '7'];
-
-        suits.forEach(s => {
-            const suitCards = validCards.filter((c: any) => c.card ? c.card.suit === s : c.suit === s); // Frontend Card object structure check
-            // Helper to safe get rank
-            const getRank = (c: any) => c.card ? c.card.rank : c.rank;
-
-            // Sort
-            suitCards.sort((a: any, b: any) => order.indexOf(getRank(a)) - order.indexOf(getRank(b)));
-
-            let currentSeq = 1;
-            for (let i = 0; i < suitCards.length - 1; i++) {
-                const idx1 = order.indexOf(getRank(suitCards[i]));
-                const idx2 = order.indexOf(getRank(suitCards[i + 1]));
-
-                if (idx2 === idx1 + 1) {
-                    currentSeq++;
-                } else {
-                    if (currentSeq >= 5) types.add('HUNDRED');
-                    else if (currentSeq === 4) types.add('FIFTY');
-                    else if (currentSeq === 3) types.add('SIRA');
-                    currentSeq = 1;
-                }
-            }
-            if (currentSeq >= 5) types.add('HUNDRED');
-            else if (currentSeq === 4) types.add('FIFTY');
-            else if (currentSeq === 3) types.add('SIRA');
-        });
-
-        return Array.from(types);
-    };
-
-    useEffect(() => {
-        if (phase === GamePhase.Playing && currentTurnIndex === 0 && me && me.hand && me.hand.length === 8) {
-            const projs = scanHandJS(me.hand, gameState?.gameMode || 'SUN');
-            setAvailableProjects(projs);
-        } else {
-            setAvailableProjects([]);
-        }
-    }, [me?.hand, phase, currentTurnIndex, gameState?.gameMode]);
 
     const [dealPhase, setDealPhase] = useState<'IDLE' | 'DEAL_1' | 'DEAL_2' | 'FLOOR' | 'DONE'>('IDLE');
 
@@ -329,17 +266,11 @@ export default function Table({
 
     // --- LOADING CHECKS (Render Content or Loading) ---
     if (!gameState || !gameState.players || gameState.players.length < 4 || !me || !rightPlayer || !partner || !leftPlayer) {
+        // @ts-ignore
         return <div className="w-full h-full flex items-center justify-center text-black">Loading Game Table...</div>;
     }
 
     const isMyTurn = currentTurnIndex === me.index;
-
-    // --- Validation Logic ---
-    const isCardPlayable = (card: any) => {
-        // [TESTING] Always allow any card to be played
-        if (phase !== GamePhase.Playing || !isMyTurn) return false;
-        return true;
-    };
 
     const handleCardClick = (idx: number) => {
         // Raw Click Log
@@ -349,8 +280,10 @@ export default function Table({
         if (phase === GamePhase.Playing && isMyTurn) {
             if (selectedCardIndex === idx) {
                 // Double Click -> Play Normal
-                if (isCardPlayable(me.hand[idx])) {
-                    onPlayerAction('PLAY', { cardIndex: idx });
+                const card = me.hand[idx];
+                if (isCardPlayable(card)) {
+                    // Send cardId for robust validation
+                    onPlayerAction('PLAY', { cardIndex: idx, cardId: card.id });
                     setSelectedCardIndex(null);
                 }
             } else {
@@ -369,8 +302,14 @@ export default function Table({
 
     const handleAkkaPlay = () => {
         if (selectedCardIndex !== null) {
+            const card = me.hand[selectedCardIndex];
             soundManager.playAkkaSound();
-            onPlayerAction('PLAY', { cardIndex: selectedCardIndex, metadata: { akka: true } });
+            // Include cardId here too
+            onPlayerAction('PLAY', {
+                cardIndex: selectedCardIndex,
+                cardId: card?.id,
+                metadata: { akka: true }
+            });
             setSelectedCardIndex(null);
         }
     }
@@ -464,7 +403,7 @@ export default function Table({
                 {/* Fixed SawaModal Props */}
                 {gameState?.sawaState && gameState.sawaState.active && (
                     <SawaModal
-                        isOpen={gameState.sawaState.active}
+                        isOpen={gameState.sawaState.active || false}
                         claimerName={players.find(p => p.position === gameState.sawaState?.claimer)?.name || 'Unknown Player'}
                         onAccept={() => handleSawaResponse('ACCEPT')}
                         onRefuse={() => handleSawaResponse('REFUSE')}
@@ -508,7 +447,7 @@ export default function Table({
             <MindMapOverlay
                 gameId={gameState.gameId || (gameState as any).roomId}
                 players={gameState.players}
-                isOpen={showMindMap}
+                isOpen={showMindMap || false}
                 onClose={() => setShowMindMap(false)}
             />
 

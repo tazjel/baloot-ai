@@ -11,5 +11,10 @@ class Card:
     def to_dict(self):
         return {"suit": self.suit, "rank": self.rank, "id": self.id, "value": 0}
 
+    @classmethod
+    def from_dict(cls, data):
+        if not data: return None
+        return cls(data.get('suit'), data.get('rank'), id=data.get('id'))
+
     def __repr__(self):
         return f"{self.rank}{self.suit}"

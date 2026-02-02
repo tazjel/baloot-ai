@@ -175,6 +175,8 @@ export interface QaydState {
   reporter: number | null;
   reason: string | null;
   target_play: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata };
+  status?: 'REVIEW' | 'RESOLVED';
+  verdict?: string;
 }
 
 export interface GameState {

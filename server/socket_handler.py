@@ -20,6 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import Orchestrator
+import server.bot_orchestrator as bot_orchestrator
+
 # Create a Socket.IO server
 # async_mode='gevent' is recommended for pywsgi
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
@@ -29,13 +32,7 @@ from server.rate_limiter import limiter
 
 def broadcast_game_update(game, room_id):
     """Helper to emit validated game state with fallback"""
-    try:
-        state_model = GameStateModel(**game.get_game_state())
-        sio.emit('game_update', {'gameState': state_model.model_dump(mode='json', by_alias=True)}, room=room_id)
-    except Exception as e:
-        logger.critical(f"SCHEMA VALIDATION FAILED for Room {room_id}: {e}")
-        # Fallback: Emit raw state so game doesn't freeze
-        sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
+    bot_orchestrator.broadcast_game_update(sio, game, room_id)
 
 
 # Memory Storage for Authenticated Users (Handshake Auth)
@@ -116,7 +113,15 @@ def join_room(sid, data):
         
     if not player:
         return {'success': False, 'error': 'Room full'}
-        
+
+    # CRITICAL FIX: If a human joins, ensure they are NOT marked as a bot
+    # This recovers the seat if it was previously occupied by a bot or persisted as such
+    if player.is_bot:
+         logger.warning(f"User {sid} reclaiming Bot Seat {player.index} ({player.name})")
+         player.is_bot = False
+         player.id = sid # Update SID in case it differed
+         room_manager.save_game(game)
+
     sio.enter_room(sid, room_id)
     
     # For testing: Auto-add 3 bots when first player joins
@@ -200,7 +205,12 @@ def game_action(sid, data):
              # Must save state because pause_timer / increment_blunder modified it
              room_manager.save_game(game) 
         else:
-             result = game.play_card(player.index, payload.get('cardIndex'), payload.get('metadata'))
+            metadata = payload.get('metadata', {})
+            # Inject cardId into metadata for robust validation
+            if 'cardId' in payload:
+                metadata['cardId'] = payload['cardId']
+                
+            result = game.play_card(player.index, payload.get('cardIndex'), metadata=metadata)
     elif action == 'DECLARE_PROJECT':
         result = game.handle_declare_project(player.index, payload.get('type'))
     elif action == 'DOUBLE':
@@ -227,6 +237,8 @@ def game_action(sid, data):
          
     elif action == 'QAYD_ACCUSATION':
          result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
+    elif action == 'QAYD_CONFIRM':
+         result = game.handle_qayd_confirm()
     elif action == 'AKKA':
         result = game.handle_akka(player.index)
     elif action == 'UPDATE_SETTINGS':
@@ -256,7 +268,6 @@ def game_action(sid, data):
              room_manager.save_game(game) # Save new match state
         else:
              result = {'success': False, 'error': 'Cannot start round, phase is ' + game.phase}
-
     
     if result.get('success'):
         # PERSIST STATE TO REDIS
@@ -267,15 +278,19 @@ def game_action(sid, data):
         
         # Trigger Bot Responses for Sawa
         if action == 'SAWA' or action == 'SAWA_CLAIM':
-             sio.start_background_task(handle_sawa_responses, game, room_id)
+             sio.start_background_task(bot_orchestrator.handle_sawa_responses, sio, game, room_id)
         
+        # --- SHERLOCK WATCHDOG --- 
+        sio.start_background_task(bot_orchestrator.run_sherlock_scan, sio, game, room_id)
+        # -------------------------
+
         # Trigger Bot Loop (Background)
         st = game.get_game_state()
         cur_turn_export = st['currentTurnIndex']
         # with open('logs/server_manual.log', 'a') as f:
         #      f.write(f"{time.time()} Game Action Success. Turn: {game.current_turn} Exported: {cur_turn_export} ID: {id(game)}\n")
         try:
-             sio.start_background_task(bot_loop, game, room_id)
+             sio.start_background_task(bot_orchestrator.bot_loop, sio, game, room_id)
         except Exception as e:
              logger.error(f"Failed to start bot task: {e}")
         
@@ -286,6 +301,8 @@ def game_action(sid, data):
              pass
         
     return result
+
+# run_sherlock_scan moved to bot_orchestrator
 
 @sio.event
 def client_log(sid, data):
@@ -305,172 +322,9 @@ def client_log(sid, data):
     except Exception as e:
         print(f"Error logging client message: {e}")
 
-def bot_loop(game, room_id, recursion_depth=0):
-    """Background task to handle consecutive bot turns"""
-    """Background task to handle consecutive bot turns"""
-    # Debug logging removed for performance
+# bot_loop moved to bot_orchestrator
 
-    try:
-        # Safety break for infinite loops
-        if recursion_depth > 500:
-             logger.warning(f"Bot Loop Safety Break (Depth {recursion_depth})")
-             return
-        
-        # Validate game state
-        if not game or not game.players:
-            logger.error("Invalid game state in bot_loop")
-            return
-            
-        # Check game is in valid playing state
-        # Check game is in valid playing state
-        if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION"]:
-            return
-        
-        # Ensure current_turn is valid
-        if game.current_turn < 0 or game.current_turn >= len(game.players):
-            logger.error(f"Invalid current_turn: {game.current_turn}")
-            return
-        
-        # Check if next player is bot
-        # Check if next player is bot
-        next_idx = game.current_turn
-        if not game.players[next_idx].is_bot:
-            # CRITICAL FIX: Ensure human client has latest state including any phase changes caused by previous bot
-            broadcast_game_update(game, room_id)
-            return
-
-        # Wait for animation/thinking (testing: 0.05 seconds for faster testing)
-        sio.sleep(0.05) 
-        
-        # Double-check phase hasn't changed
-        if game.phase == "FINISHED":
-            return
-            
-        current_idx = game.current_turn
-        current_player = game.players[current_idx]
-        
-        if not current_player.is_bot:
-            return
-            
-        # print(f"Bot Turn: {current_player.name} ({current_player.position})")
-        
-        decision = bot_agent.get_decision(game.get_game_state(), current_idx)
-        # print(f"Bot Decision: {decision}")
-        
-        action = decision.get('action')
-        reasoning = decision.get('reasoning')
-        res = {'success': False}
-        
-        if action == 'AKKA':
-             res = game.handle_akka(current_idx)
-
-        elif game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
-                action = action.upper() if action else "PASS"
-                suit = decision.get('suit')
-                res = game.handle_bid(current_idx, action, suit, reasoning=reasoning)
-                
-        elif game.phase == "PLAYING":
-                card_idx = decision.get('cardIndex', 0)
-                metadata = {}
-                if reasoning: metadata['reasoning'] = reasoning
-                if decision.get('declarations'): metadata['declarations'] = decision['declarations']
-                res = game.play_card(current_idx, card_idx, metadata=metadata)
-        
-        if res.get('success'):
-             broadcast_game_update(game, room_id)
-
-             # Trigger Voice
-             sio.start_background_task(handle_bot_speak, game, room_id, current_player, action, res)
-
-             if game.phase == "FINISHED":
-                  logger.info(f"Bot terminated round in room {room_id}. Archiving.")
-                  save_match_snapshot(game, room_id)
-                  # sio.start_background_task(auto_restart_round, game, room_id)
-                  room_manager.save_game(game) # Persist Finished State
-                  pass
-                  return
-             
-             # PERSIST BOT MOVE
-             room_manager.save_game(game)
-
-             # Chain next turn
-             sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
-        else:
-             logger.error(f"Bot Action Failed: {res}. Attempting Fallback PASS.")
-             
-             # Fallback: Try PASS if Bidding, or Random Play if Playing
-             fallback_res = {'success': False}
-             if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
-                  fallback_res = game.handle_bid(current_idx, "PASS")
-             elif game.phase == "PLAYING":
-                  # Play first valid card
-                  fallback_res = game.auto_play_card(current_idx)
-             
-             if fallback_res.get('success'):
-                  broadcast_game_update(game, room_id)
-                  if game.phase == "FINISHED":
-                       # sio.start_background_task(auto_restart_round, game, room_id)
-                       pass
-                       return
-                  sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
-             else:
-                  logger.error(f"Bot Fallback Failed too: {fallback_res}. Attempting Emergency Play (Index 0).")
-                  # Emergency Rescue: Just try playing index 0 blindly
-                  emergency_res = game.play_card(current_idx, 0)
-                  if emergency_res.get('success'):
-                       logger.info("Emergency Play Successful. Continuing Loop.")
-                       broadcast_game_update(game, room_id)
-                       sio.start_background_task(bot_loop, game, room_id, recursion_depth + 1)
-                  else:
-                       logger.critical(f"Bot Completely Stuck. Emergency Failed: {emergency_res}. Loop Exiting (Will resume on limit).")
-                       return
-            
-    except Exception as e:
-        logger.error(f"Critical Bot Loop Error: {e}")
-        return
-
-def handle_sawa_responses(game, room_id):
-    """Trigger all bots to respond to a Sawa claim"""
-    logger.info(f"Starting Sawa Responses for Room {room_id}")
-    try:
-        sio.sleep(0.5) # Reaction delay
-        
-        if not game.sawa_state['active']: 
-             logger.info("Sawa not active, aborting response handler.")
-             return
-
-        # Find bots that need to respond
-        for p in game.players:
-            if p.is_bot:
-                logger.info(f"Checking Bot {p.name} for Sawa response...")
-                # Check if this bot is on the opposing team (or just needs to respond)
-                decision = bot_agent.get_decision(game.get_game_state(), p.index)
-                
-                if decision and decision.get('action') == 'SAWA_RESPONSE':
-                    resp = decision.get('response')
-                    logger.info(f"Bot {p.name} responding to Sawa: {resp}")
-                    
-                    # Apply response
-                    res = game.handle_sawa_response(p.index, resp)
-                    if res.get('success'):
-                         # Emit update immediately so UI sees progress
-                         broadcast_game_update(game, room_id)
-                         room_manager.save_game(game) # Persist Sawa Response
-                         
-                         # If Refused -> Sawa ends -> Loop ends
-                         if res.get('sawa_status') == 'REFUSED':
-                              logger.info("Sawa REFUSED by bot. Ending loop.")
-                              break
-                         if res.get('sawa_status') == 'ACCEPTED':
-                              # All accepted?
-                              pass
-                else:
-                    logger.info(f"Bot {p.name} did not return SAWA_RESPONSE. Decision: {decision}")
-
-    except Exception as e:
-        logger.error(f"Error in handle_sawa_responses: {e}")
-        import traceback
-        traceback.print_exc()
+# handle_sawa_responses moved to bot_orchestrator
 
 def save_match_snapshot(game, room_id):
     """Helper to save match state to DB on round completion"""
@@ -519,7 +373,7 @@ def save_match_snapshot(game, room_id):
 
 def handle_bot_turn(game, room_id):
     # Wrapper
-    sio.start_background_task(bot_loop, game, room_id, 0)
+    sio.start_background_task(bot_orchestrator.bot_loop, sio, game, room_id, 0)
 
 def auto_restart_round(game, room_id):
     """Wait for 3 seconds then start next round if match is not over"""
@@ -746,5 +600,3 @@ def handle_bot_speak(game, room_id, player, action, result):
             
     except Exception as e:
         logger.error(f"Error in handle_bot_speak: {e}")
-
-

@@ -159,7 +159,7 @@ class TestSocketHandler(unittest.TestCase):
         result = self.socket_handler.game_action(sid, action_data)
 
         # Assert
-        mock_game.play_card.assert_called_with(0, 2, None)
+        mock_game.play_card.assert_called_with(0, 2, metadata={})
         self.mock_sio.emit.assert_called()
         args, kwargs = self.mock_sio.emit.call_args
         self.assertEqual(args[0], 'game_update')

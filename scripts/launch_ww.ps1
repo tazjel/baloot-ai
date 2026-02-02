@@ -1,6 +1,8 @@
 Write-Host "=== 🚀 Launching Full Baloot Game Stack (/WW) ===" -ForegroundColor Cyan
 
-
+# 1. Cleanup First
+Write-Host "invoking cleanup..." -ForegroundColor Gray
+& ./scripts/cleanup.ps1
 
 # 2. Redis Strategy (Local -> Docker)
 $redis_running = Get-Process redis-server -ErrorAction SilentlyContinue
@@ -39,18 +41,17 @@ if ($redis_running) {
     }
 }
 
-# 3. AI Worker (Integrated into Game Server)
-# (Skip independent launch)
-
-# 4. Start Game Server (SocketIO)
+# 3. Start Game Server (SocketIO)
 Write-Host "`n[3/4] Starting Game Server..." -ForegroundColor Yellow
+# Clear Log
+"" | Out-File "logs/server_debug.log" -Encoding utf8
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "python -m server.main"
 
-# 5. Start Frontend (Vite)
+# 4. Start Frontend (Vite)
 Write-Host "`n[4/4] Starting Frontend..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev"
 
-Write-Host "`n✅ All services initiated! Check the 3 new windows." -ForegroundColor Green
-Write-Host "   Game URL: http://localhost:5173 (usually)" -ForegroundColor Cyan
+Write-Host "`n✅ All services initiated! Check the 2 new windows." -ForegroundColor Green
+Write-Host "   Game URL: http://localhost:5173" -ForegroundColor Cyan
 Write-Host "   Main window will close in 5 seconds..." -ForegroundColor Gray
 Start-Sleep -Seconds 5

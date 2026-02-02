@@ -32,8 +32,8 @@ class TimerState(BaseModel):
     active: bool
 
 class AnalyticsModel(BaseModel):
-    winProbability: List[float] = []
-    blunders: List[Any] = []
+    winProbability: List[Union[float, Dict[str, Any]]] = []
+    blunders: Union[List[Any], Dict[str, int]] = {}
 
 class GameStateModel(BaseModel):
     roomId: str
@@ -56,7 +56,7 @@ class GameStateModel(BaseModel):
     isProjectRevealing: bool
     doublingLevel: int
     isLocked: bool
-    dealingPhase: str
+    dealingPhase: Union[str, int]
     lastTrick: Optional[Any] = None
     roundHistory: List[Any] = []
     currentRoundTricks: List[Any] = []

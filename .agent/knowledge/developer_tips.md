@@ -65,4 +65,14 @@
 - **API Key & Refresh**: Stitch MCP works best with `X-Goog-Api-Key` instead of OAuth tokens in some contexts. After updating `mcp_config.json`, a **window reload/refresh** is often required for the IDE to re-handshake with the MCP server.
 - **Projects**: Stitch Project IDs are persistent. Always document them (like in `visionary_studio.md`) since `list_projects` might fail if auth is flaky.
 
+## Qayd Freeze Debugging (Session 2026-02-02)
+- **Lock State Management**: When adding features that lock the game (e.g., Qayd investigations), ensure ALL timeout/auto-play paths respect `game.is_locked`. Use the `@requires_unlocked` decorator in `game.py`.
+- **State Serialization**: Always serialize Card objects to dicts before storing in state that will be JSON-serialized. Use `card.to_dict()` or the new `game_engine/utils/serialization.py` helpers.
+- **Dual State Bug**: Beware of multiple state objects for the same feature. The Qayd freeze was caused by `qayd_manager.state` vs `trick_manager.qayd_state` - only one was being updated.
+- **Auto-Confirmation**: For Sherlock mode (bot-detected rule violations), implement auto-confirmation to prevent freeze waiting for manual input that bots can't provide.
+- **Testing**: New integration tests in `tests/test_qayd_flow.py` cover the Qayd flow. Run them when modifying Qayd/lock logic.
+
+## MCP Configuration (Session 2026-02-02)
+- **Package Availability**: Before adding MCP servers to `mcp_config.json`, verify the npm package exists. `@modelcontextprotocol/server-git` does NOT exist (404).
+- **Working Servers**: `stitch` (URL-based) and `filesystem` work reliably. Remove problematic servers to avoid blocking all MCP tools.
 

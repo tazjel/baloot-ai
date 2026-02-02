@@ -273,10 +273,10 @@ const App: React.FC = () => {
   // Phase VII: Listen for Qayd Updates
   useEffect(() => {
     if (gameState.qaydState?.active) {
-      setIsDisputeModalOpen(false); // Force close modal if open
+      setIsDisputeModalOpen(true); // Open the Modal (Tribunal)
       addSystemMessage(`Dispute Raised by ${gameState.qaydState.reporter} !Reason: ${gameState.qaydState.reason} `);
     }
-  }, [gameState.qaydState, addSystemMessage]);
+  }, [gameState.qaydState?.active, gameState.qaydState?.status, addSystemMessage]);
 
   if (errorObj) {
     return (
@@ -546,7 +546,24 @@ const App: React.FC = () => {
         ))}
 
         {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
-        {isDisputeModalOpen && <DisputeModal players={gameState.players} onConfirm={handleDisputeConfirm} onCancel={closeDispute} verdict={disputeVerdict} />}
+        {isDisputeModalOpen && (
+          <DisputeModal
+            players={gameState.players}
+            onConfirm={handleDisputeConfirm}
+            onCancel={closeDispute}
+            verdict={disputeVerdict}
+            qaydState={gameState.qaydState}
+            onResolve={() => {
+              // If resolved, we should clear the state locally or trigger server to clear
+              // Usually backend clears it on NEXT_ROUND, but if we want to close modal:
+              setIsDisputeModalOpen(false);
+              // If we need to advance round:
+              if (gameState.qaydState?.status === 'RESOLVED') {
+                handlePlayerAction('NEXT_ROUND', {});
+              }
+            }}
+          />
+        )}
         {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
         {isSettingsOpen && <SettingsModal
           settings={gameState.settings}
