@@ -27,6 +27,9 @@ This workflow "boots up" the agent's context using the **"High Value, Low Token"
 
 - **Read** `.agent/knowledge/developer_tips.md`.
   - *Goal*: Avoid known pitfalls (e.g., "Restart server after patching FastGame").
+- **Read** `.agent/knowledge/handoff.md` (if exists).
+  - *Goal*: Get context from Claude Desktop or previous Antigravity session.
+  - If recent (< 24 hours): Summarize key points to user.
 - **Read** `task.md` (if exists in `<appDataDir>/brain/<conversation-id>/`).
   - *Goal*: Identify the active task and next steps from prior session.
 - **Read** `CODEBASE_MAP.md` (only if task involves navigating unfamiliar code).
