@@ -21,10 +21,10 @@ export default defineConfig(({ mode }) => {
           bypass: (req) => {
             // Bypass proxy for the app's static assets and index.html
             // The app is served at /react-py4web/static/build/
-            if (req.url.startsWith('/react-py4web/static/build/') ||
+            if (req.url && (req.url.startsWith('/react-py4web/static/build/') ||
               req.url.includes('/src/') ||
               req.url.includes('/@vite/') ||
-              req.url.includes('/node_modules/')) {
+              req.url.includes('/node_modules/'))) {
               return req.url;
             }
           },
@@ -64,7 +64,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
       }
     },
     test: {

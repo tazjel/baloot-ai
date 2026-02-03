@@ -93,9 +93,15 @@ class Game:
         self.trick_manager = TrickManager(self)
         self.challenge_phase = ChallengePhase(self) # Refactored Handler
         self.project_manager = ProjectManager(self)
-        self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
         self.qayd_manager = QaydManager(self)
+
+        # Initialize Phases Map
+        self.phases = {
+            GamePhase.BIDDING.value: BiddingPhase(self),
+            GamePhase.PLAYING.value: PlayingPhase(self),
+            GamePhase.CHALLENGE.value: self.challenge_phase,
+        }
 
     @property
     def current_turn(self):
@@ -261,161 +267,23 @@ class Game:
     # --- END QAYD DELEGATION ---
 
 
+    @requires_unlocked
     def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        # Auto-dismiss project reveal if valid play is attempted
-        if self.is_project_revealing:
-             self.is_project_revealing = False
-             
-        try:
-            if self.phase != GamePhase.PLAYING.value:
-                return {"error": "Not playing phase"}
-            
-            if self.is_locked:
-                 return {"error": "Game is Locked (Forensic Investigation or Animation)"}
+        """
+        Delegates card play to PlayingPhase.
+        """
+        if self.phase != GamePhase.PLAYING.value:
+            return {'success': False, 'error': f"Not in PLAYING phase. Current: {self.phase}"}
 
-            if player_index != self.current_turn:
-                return {"error": "Not your turn"}
-
-            player = self.players[player_index]
-
-            # --- CARD ID VALIDATION (Hand Sync Fix) ---
-            if metadata and 'cardId' in metadata:
-                card_id = metadata['cardId']
-                found_idx = -1
-                for idx, c in enumerate(player.hand):
-                    # Fallback if card doesn't have ID, but it should
-                    c_id = getattr(c, 'id', f"{c.rank}{c.suit}") 
-                    if c_id == card_id:
-                        found_idx = idx
-                        break
-                
-                if found_idx != -1:
-                    if found_idx != card_idx:
-                        logger.warning(f"Hand Sync Correction: Client sent idx {card_idx}, found card {card_id} at {found_idx}. Correcting.")
-                    card_idx = found_idx
-                else:
-                     logger.error(f"Card ID {card_id} not found in hand for {player.position}.")
-                     return {"error": "Card Not Found in Hand (ID Mismatch)"}
-
-            if card_idx < 0 or card_idx >= len(player.hand):
-                return {"error": "Invalid card index"}
+        # Check if PlayingPhase exists
+        if GamePhase.PLAYING.value not in self.phases:
+             self.phases = {
+                GamePhase.BIDDING.value: BiddingPhase(self),
+                GamePhase.PLAYING.value: PlayingPhase(self),
+                GamePhase.CHALLENGE.value: self.challenge_phase,
+             }
             
-            card = player.hand[card_idx]
-            
-            # --- QAYD SYSTEM: STRICT MODE & LIAR'S PROTOCOL ---
-            # DEBUG: Log Hand before Validation
-            logger.info(f"PLAY_CARD: Player {player.position} playing {card}. Hand: {[str(c) for c in player.hand]}")
-            
-            is_valid = self.is_valid_move(card, player.hand)
-            
-            if not is_valid:
-                 if self.strictMode:
-                      # STRICT MODE ON: Reject illegal move
-                      logger.warning(f"🚫 [STRICT] Illegal Move Blocked: {card} by {player.position}")
-                      return {"error": "Illegal Move (Strict Mode)"}
-                 else:
-                      # STRICT MODE OFF: Allow illegal move (Liar's Protocol)
-                      # Flag as illegal but ALLOW play
-                      if not metadata: metadata = {}
-                      metadata['is_illegal'] = True
-                      logger.info(f"🤥 [LIAR] Illegal Move Allowed: {card} by {player.position}. Flagging for Qayd.")
-                      
-                      # Optional: Record specific reason?
-                      metadata['illegal_reason'] = "Rule Violation"
-
-            # -------------------------------------------------------------
-            
-            # Metadata Validation (Akka) BEFORE pop
-            # If we pop first, check_akka_eligibility won't see the card.
-            if metadata and metadata.get('akka'):
-                  eligible_suits = self.check_akka_eligibility(player_index)
-                  if card.suit not in eligible_suits:
-                       return {"error": "Invalid Akka Claim"}
-                  
-                  # Valid Akka
-                  self.akka_state = {
-                      'claimer': player.position,
-                      'suit': card.suit,
-                      'timestamp': time.time()
-                  }
-            
-            # DECLARATION STORAGE (Bot or Human)
-            if float(self.bidding_round) >= 1: # Always true in Playing
-                 if metadata and metadata.get('declarations'):
-                      # Only allowed during Trick 1
-                      if len(self.round_history) == 0:
-                           self.trick_1_declarations[player.position] = metadata['declarations']
-
-            player.hand.pop(card_idx)
-            
-            # Add to table with metadata
-            play_data = {"playerId": player.id, "card": card, "playedBy": player.position}
-            if metadata:
-                 play_data['metadata'] = metadata
-                 if 'reasoning' in metadata:
-                      player.last_reasoning = metadata['reasoning']
-            else:
-                 player.last_reasoning = '' # Clear if no reasoning provided manually
-            
-            self.table_cards.append(play_data)
-            
-            log_event("CARD_PLAYED", self.room_id, player_index, details={
-                "card": str(card), 
-                "playedBy": player.position,
-                "metadata": metadata
-            })
-            
-            # BALOOT PROJECT CHECKS (Hokum Only)
-            # Rule: Declare 'Baloot' (20 pts) when playing the SECOND card of the pair (K or Q of Trump).
-            if self.game_mode == 'HOKUM' and card.suit == self.trump_suit and card.rank in ['K', 'Q']:
-                counterpart_rank = 'Q' if card.rank == 'K' else 'K'
-                has_played_counterpart = False
-                
-                # Check previous tricks in this round
-                for trick in self.round_history:
-                    # History structure: {'cards': [...], 'playedBy': [...]}
-                    for i, card_dict in enumerate(trick['cards']):
-                         played_by = trick['playedBy'][i]
-                         if played_by == player.position:
-                            # Handle both object and dict variations
-                            c_rank = card_dict.get('rank')
-                            c_suit = card_dict.get('suit')
-                            
-                            if c_rank == counterpart_rank and c_suit == self.trump_suit:
-                                has_played_counterpart = True
-                                break
-                    if has_played_counterpart: break
-                
-                if has_played_counterpart:
-                    # Found it! Declare Baloot.
-                    logger.info(f"BALOOT DECLARED by {player.position} (Played {card} after {counterpart_rank})")
-                    if player.position not in self.declarations:
-                        self.declarations[player.position] = []
-                    
-                    # Add Baloot Project
-                    self.declarations[player.position].append({
-                        'type': 'BALOOT',
-                        'rank': 'K', # Baloot is usually ranked by K
-                        'score': 20,
-                        'suit': self.trump_suit,
-                        'cards': [c for c in player.hand if False] # No cards "hold" the project anymore, it's historical
-                    })
-                    
-                    # Trigger Animation check
-                    self.is_project_revealing = True
-
-            if len(self.table_cards) == 4:
-                self.resolve_trick()
-                return {"success": True}
-            else:
-                self.current_turn = (self.current_turn + 1) % 4
-                
-                self.reset_timer()
-                return {"success": True}
-        
-        except Exception as e:
-            logger.error(f"Error in play_card: {e}")
-            return {"error": f"Internal Error: {str(e)}"}
+        return self.phases[GamePhase.PLAYING.value].play_card(player_index, card_idx, metadata)
 
 
     def add_player(self, id, name, avatar=None):
@@ -515,134 +383,24 @@ class Game:
         return self.project_manager.resolve_declarations() 
 
 
+    @requires_unlocked
     def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Dict[str, Any]:
-        try:
-            if not self.bidding_engine:
-                 return {"error": "Bidding Engine not initialized"}
-                 
-            # Proxy to Bidding Engine
-            variant = None
-            if action in ["DOUBLE", "TRIPLE", "FOUR", "GAHWA"] or (action=="HOKUM" and suit in ['OPEN', 'CLOSED']): 
-                 if suit in ['OPEN', 'CLOSED']:
-                      variant = suit
-                      suit = None
-            
-            res = self.bidding_engine.process_bid(player_index, action, suit, variant)
-            
-            if res.get('error'):
-                 return res
-
-            # Handle REDEAL (Kawesh)
-            if res.get("action") == "REDEAL":
-                 msg = "Pre-Bid Kawesh: Same Dealer"
-                 if res.get("rotate_dealer"):
-                      self.dealer_index = (self.dealer_index + 1) % 4
-                      msg = "Post-Bid Kawesh: Dealer Rotation (Dealer Changed)"
-                 
-                 logger.info(f"Kawesh Accepted. {msg}")
-                 
-                 # RESET
-                 self.reset_round_state()
-                 self.deal_initial_cards()
-                 self.phase = GamePhase.BIDDING.value
-                 
-                 # Re-Initialize Engine with potentially NEW Dealer
-                 self.bidding_engine = BiddingEngine(
-                      dealer_index=self.dealer_index, 
-                      floor_card=self.floor_card, 
-                      players=self.players,
-                      match_scores=self.match_scores
-                 )
-                 self.current_turn = self.bidding_engine.current_turn
-                 self.reset_timer()
-                 
-                 return {"success": True, "message": msg, "action": "REDEAL"}
-                 
-            # Update Game State from Engine
-            player = self.players[player_index]
-            player.action_text = action
-            if reasoning: player.last_reasoning = reasoning
-            
-            log_event("BID_PLACED", self.room_id, player_index, details={
-                "action": action, 
-                "suit": suit, 
-                "variant": variant,
-                "contract": self.bidding_engine.contract.type.value if self.bidding_engine.contract.type else None
-            })
-            # Sync Bid State (for Bot/UI awareness)
-            self._sync_bid_state()
-            
-            # Sync Current Turn
-            self.current_turn = self.bidding_engine.get_current_actor() if self.phase == GamePhase.BIDDING.value else self._current_turn
-            
-            # Sync Round (for Frontend/Bot)
-            if self.bidding_engine.phase == BiddingPhase.ROUND_2:
-                  self.bidding_round = 2
-            else:
-                 self.bidding_round = 1 
-
-            # Check for Phase Changes
-            if self.bidding_engine.phase == BiddingPhase.DOUBLING:
-                self.phase = GamePhase.DOUBLING.value
-                log_event("PHASE_CHANGE", self.room_id, details={"from": "BIDDING", "to": "DOUBLING"})
-                
-                # Sync Game Mode immediately for complete_deal sorting and logic
-                c = self.bidding_engine.contract
-                if c.type:
-                    self.game_mode = c.type.value
-                    self.trump_suit = c.suit
-
-                # Distribute remaining cards once contract is secured
-                self.complete_deal(c.bidder_idx)
-                
-            elif self.bidding_engine.phase == BiddingPhase.VARIANT_SELECTION:
-                self.phase = GamePhase.VARIANT_SELECTION.value
-                
-            elif self.bidding_engine.phase == BiddingPhase.FINISHED:
-                c = self.bidding_engine.contract
-                
-                # Handle Pass Out (No Contract)
-                if not c.type:
-                    logger.info("Pass Out (No Contract). Redealing and Rotating Dealer.")
-                    self.dealer_index = (self.dealer_index + 1) % 4
-                    self.reset_round_state()
-                    self.deal_initial_cards()
-                    self.phase = GamePhase.BIDDING.value
-                    self.bidding_engine = BiddingEngine(
-                        dealer_index=self.dealer_index, 
-                        floor_card=self.floor_card, 
-                        players=self.players,
-                        match_scores=self.match_scores
-                    )
-                    self.current_turn = self.bidding_engine.current_turn
-                    self.reset_timer()
-                    return {"success": True, "action": "REDEAL", "reason": "PASS_OUT"}
-
-                # Ensure cards are dealt (if Doubling was skipped)
-                if len(self.players[c.bidder_idx].hand) == 5:
-                    self.complete_deal(c.bidder_idx)
-
-                # Game Start!
-                self.game_mode = c.type.value
-                self.trump_suit = c.suit
-                self.doubling_level = c.level 
-                self.complete_deal(c.bidder_idx)
-
-            # Sync Bid State again at the end of every successful bid action
-            self._sync_bid_state()
-
-            if self.bidding_engine.phase == BiddingPhase.GABLAK_WINDOW:
-                if res.get("status") == "GABLAK_TRIGGERED":
-                    self.reset_timer(self.bidding_engine.GABLAK_DURATION)
-            else:
-                self.reset_timer()
-                
-            return res
-
-        except Exception as e:
-            logger.error(f"Error handling bid: {e}")
-            traceback.print_exc()
-            return {"error": str(e)}
+        """
+        Delegates bid handling to BiddingPhase.
+        """
+        if self.phase != GamePhase.BIDDING.value:
+             return {'success': False, 'error': f"Not in BIDDING phase. Current: {self.phase}"}
+             
+        # Check if BiddingPhase exists
+        if GamePhase.BIDDING.value not in self.phases:
+             # Fallback if phases map logic fails or during reload
+             self.phases = {
+                GamePhase.BIDDING.value: BiddingPhase(self),
+                GamePhase.PLAYING.value: PlayingPhase(self),
+                GamePhase.CHALLENGE.value: self.challenge_phase,
+             }
+             
+        return self.phases[GamePhase.BIDDING.value].handle_bid(player_index, action, suit, reasoning)
 
     def handle_double(self, player_index):
         try:
