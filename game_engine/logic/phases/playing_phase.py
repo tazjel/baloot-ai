@@ -71,5 +71,6 @@ class PlayingPhase:
         else:
             # Next player
              self.game.current_player_index = (player_index + 1) % 4
+             self.game.reset_timer()
              
         return {'success': True, 'card': played_card, 'table': self.game._get_table_state()}

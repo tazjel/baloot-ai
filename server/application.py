@@ -18,6 +18,12 @@ def create_app():
     # 2. Apply Patches
     apply_py4web_patches()
 
+    # 2.5 Clear Stale Games (Dev Mode)
+    try:
+        room_manager.clear_all_games()
+    except Exception as e:
+        print(f"Warning: Failed to clear games: {e}")
+
     # 3. Import Controllers (Register Routes)
     # Patches must be applied BEFORE imports
     try:

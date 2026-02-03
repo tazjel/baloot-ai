@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 # Import Orchestrator
 import server.bot_orchestrator as bot_orchestrator
 
+print(f"DEBUG: Loading socket_handler.py as {__name__} | ID: {id(bot_orchestrator)}")
+
 # Create a Socket.IO server
 # async_mode='gevent' is recommended for pywsgi
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins='*')
@@ -509,8 +511,32 @@ def check_start(sid, data):
              sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
              handle_bot_turn(game, room_id)
 
+TIMER_TASK_STARTED = False
+
 def timer_background_task(room_manager_instance):
     """Background task to check for timeouts in all active games"""
+    global TIMER_TASK_STARTED
+    import os, threading, sys
+    debug_msg = f"PID: {os.getpid()} | Thread: {threading.get_ident()} | Module: {__name__} | Flag Addr: {id(TIMER_TASK_STARTED)} | Value: {TIMER_TASK_STARTED}\n"
+    
+    # Check for duplicate modules
+    sock_modules = [k for k in sys.modules.keys() if 'socket_handler' in k]
+    debug_msg += f"Loaded Socket Handlers: {sock_modules}\n"
+    
+    with open("logs/singleton_debug.log", "a") as f:
+        f.write(f"{time.time()} PRE-CHECK: {debug_msg}")
+
+    if TIMER_TASK_STARTED:
+        logger.warning(f"Timer Background Task ALREADY RUNNING. Skipping. {debug_msg}")
+        with open("logs/singleton_debug.log", "a") as f:
+            f.write(f"{time.time()} SKIPPED: {debug_msg}")
+        return
+
+    TIMER_TASK_STARTED = True
+    
+    with open("logs/singleton_debug.log", "a") as f:
+        f.write(f"{time.time()} STARTED: {debug_msg}")
+
     last_heartbeat = time.time()
     logger.info("Timer Background Task Started")
     

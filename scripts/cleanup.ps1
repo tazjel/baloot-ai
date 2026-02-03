@@ -47,6 +47,16 @@ Kill-Port 5173 # Frontend
 Kill-By-Command "server.main"
 Kill-By-Command "vite"
 
+# 2.5 Kill by Window Title (Close PowerShell Windows)
+$targets = @("Baloot Backend", "Baloot Frontend")
+foreach ($t in $targets) {
+    $wins = Get-Process | Where-Object { $_.MainWindowTitle -eq $t }
+    if ($wins) {
+        Write-Host "   🪟 Closing Window: $t" -ForegroundColor Yellow
+        Stop-Process -InputObject $wins -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # 3. Redis
 $redis = Get-Process redis-server -ErrorAction SilentlyContinue
 if ($redis) {

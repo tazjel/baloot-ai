@@ -24,13 +24,15 @@ class BiddingPhase:
         if self.game.phase != GamePhase.BIDDING.value:
             return {'success': False, 'error': f"Not in bidding phase (Current: {self.game.phase})"}
 
-        # Use the existing BiddingEngine
+        # DEBUG GHOST CODE
+        logger.warning(f"DEBUG: BiddingPhase File: {__file__}")
+        logger.warning(f"DEBUG: Engine: {self.game.bidding_engine}")
         try:
             result = self.game.bidding_engine.process_bid(
-                player_index=player_index,
+                player_idx=player_index,
                 action=action,
                 suit=suit,
-                proposed_project=None # Legacy arg
+                debug_check="please_fail_here" 
             )
         except Exception as e:
              logger.error(f"Error in BiddingEngine: {e}")
@@ -58,7 +60,9 @@ class BiddingPhase:
             else:
                  # Move to next turn
                  self.game.current_player_index = self.game.bidding_engine.current_player_index
+                 self.game.reset_timer()
                  
+        logger.info(f"BiddingPhase Handle Bid Result: {result}")
         return result
 
     def handle_double(self, player_index: int) -> Dict[str, Any]:

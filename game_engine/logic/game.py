@@ -16,6 +16,9 @@ from .phases.challenge_phase import ChallengePhase
 from .project_manager import ProjectManager
 from .scoring_engine import ScoringEngine
 from .qayd_manager import QaydManager
+from .trick_manager import TrickManager
+from .phases.bidding_phase import BiddingPhase as BiddingLogic
+from .phases.playing_phase import PlayingPhase as PlayingLogic
 
 from .bidding_engine import BiddingEngine
 from .forensic import ForensicReferee
@@ -98,8 +101,8 @@ class Game:
 
         # Initialize Phases Map
         self.phases = {
-            GamePhase.BIDDING.value: BiddingPhase(self),
-            GamePhase.PLAYING.value: PlayingPhase(self),
+            GamePhase.BIDDING.value: BiddingLogic(self),
+            GamePhase.PLAYING.value: PlayingLogic(self),
             GamePhase.CHALLENGE.value: self.challenge_phase,
         }
 
@@ -658,7 +661,7 @@ class Game:
         if self.timer.is_expired():
             lag = self.timer.get_lag()
             logger.info(f"[TIMEOUT] Timer expired. is_locked={self.is_locked}, phase={self.phase}")
-            msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action..."
+            msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action... | Room: {self.room_id} | GameObj: {id(self)}"
             logger.info(msg)
             with open("logs/timer_monitor.log", "a") as f:
                 f.write(f"{time.time()} {msg}\n")
@@ -697,10 +700,15 @@ class Game:
                       logger.warning("Qayd Active but reporter not found.")
             
             dur = time.time() - t_start
-            logger.info(f"Timeout Action Completed in {dur:.4f}s")
+            logger.info(f"Timeout Action Completed in {dur:.4f}s. Result: {res}")
              
-            # Reset timer is handled by the action methods usually, 
-            # but if action failed or returned None, we might need to stop loop?
+            # Fallback: If action was successful but timer wasn't reset (bug in phase handler), do it here.
+            # Also ensures socket_handler saves the game.
+            if res and res.get('success'):
+                 if self.timer.is_expired():
+                      logger.warning("Action successful but timer still expired. Forcing reset.")
+                      self.reset_timer()
+
             return res
                 
         return None
@@ -812,9 +820,9 @@ class Game:
                  if self.phase == GamePhase.CHALLENGE.value:
                       return self.process_accusation(player_index, payload)
                  else:
-                      # In Live/Sherlock mode (PLAYING), Accusation = Confirm
-                      # because validation happens inside propose/confirm flow
-                      return self.handle_qayd_confirm()
+                      # If not in Challenge Phase yet, treat Accusation as a Trigger first
+                      logger.info(f"Auto-Play: QAYD_ACCUSATION received in {self.phase}. Triggering Investigation first.")
+                      return self.handle_qayd_trigger(player_index)
 
             elif action == 'WAIT':
                  reason = decision.get('reason', 'Waiting')

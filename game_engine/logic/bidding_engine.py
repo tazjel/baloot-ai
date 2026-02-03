@@ -75,6 +75,19 @@ class BiddingEngine:
                   return self.priority_queue[self.gablak_current_prio]
         return self.current_turn
 
+    def is_bidding_complete(self):
+        """Check if the main auction is finished (Contract secured or All Pass)."""
+        # If we are in DOUBLING, VARIANT_SELECTION, or FINISHED, the auction (bidding) is done.
+        # Also need to handle "All Pass" scenario where phase is FINISHED but no contract.
+        return self.phase in [BiddingPhase.DOUBLING, BiddingPhase.VARIANT_SELECTION, BiddingPhase.FINISHED]
+
+    def get_winner(self):
+        """Return the winner of the bidding phase."""
+        if self.contract.type:
+             return {'player_index': self.contract.bidder_idx, 'contract': self.contract}
+        return None
+
+
     def process_bid(self, player_idx, action, suit=None, variant=None):
         logger.info(f"Process Bid: P{player_idx} wants {action} (Suit: {suit}, Phase: {self.phase.value})")
         

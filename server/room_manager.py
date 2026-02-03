@@ -76,6 +76,17 @@ class RoomManager:
             redis_store.delete(f"game:{room_id}")
             return True
         return False
+
+    def clear_all_games(self):
+        """Dev utility to clear all persisted games from Redis on startup."""
+        if not redis_store: return
+        try:
+            keys = redis_store.keys("game:*")
+            if keys:
+                redis_store.delete(*keys)
+                logger.warning(f"🧹 CLEARED {len(keys)} Zombie Games from Redis.")
+        except Exception as e:
+            logger.error(f"Failed to clear Redis games: {e}")
         
     @property
     def games(self):

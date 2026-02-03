@@ -77,7 +77,8 @@ if ($Headless) {
 } else {
     # Clear Log
     "" | Out-File "logs/server_debug.log" -Encoding utf8
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "python -m server.main"
+    $cmd = '$host.ui.RawUI.WindowTitle = ''Baloot Backend''; python -m server.main'
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
 }
 
 # 4. Start Frontend (Vite)
@@ -88,7 +89,8 @@ if ($Headless) {
     Write-Host "   Log -> $frontendLogOut" -ForegroundColor Gray
     Start-Process cmd -ArgumentList "/c", "cd frontend && npm run dev" -WindowStyle Hidden -RedirectStandardOutput $frontendLogOut -RedirectStandardError $frontendLogErr
 } else {
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev"
+    $cmd = '$host.ui.RawUI.WindowTitle = ''Baloot Frontend''; cd frontend; npm run dev'
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
 }
 
 Write-Host "`n✅ All services initiated!" -ForegroundColor Green
