@@ -113,6 +113,8 @@
 - **Frontend Animations**: We use `framer-motion` exclusively. Do not write complex CSS keyframes manually; use the `motion.div` wrapper component.
 - **Test Before Commit**: Due to complex imports, `pytest` is your best friend. Run `pytest tests/test_bidding_engine.py` (or relevant test) *before* marking a task complete.
 - **Engine State Sync in Tests**: When writing unit tests for stateful components like `BiddingEngine`, remember to manually sync `floor_card` and `phase` if you are injecting them directly into the engine instance, as the engine doesn't automatically pull from the parent `Game` object in isolated unit tests. See `tests/test_bidding_rules.py` for examples of advancing turns before testing priority-based actions like Ashkal.
+- **Ghost Processes**: If fixes to python files don't seem to work, the server might be running stale bytecode or a zombie process (PID) might be holding the port. Use `scripts/restart_game.ps1` (which hard-kills python processes) instead of just restarting via the terminal.
+- **Attribute Refactoring Failures**: When refactoring engine components (e.g. `BiddingEngine`), double-check that the delegating Phase class (e.g. `BiddingPhase`) uses the NEW attribute names. (Example: `current_turn` vs `current_player_index` caused a freeze loop).
 
 ### 6. Cognitive AI (The Oracle) 🧠
 - **Heuristic vs Oracle**: The bot uses a Hybrid Brain.

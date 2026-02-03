@@ -102,7 +102,7 @@ class QaydManager:
              
              # Apply Khasara to Offender Team
              points = verdict.get('penalty_score')
-             self.game.apply_khasara(offender.team, reason, points_override=points)
+             self.game.trick_manager.apply_khasara(offender.team, reason, points_override=points)
              self.state['status'] = 'RESOLVED'
              self.state['loser_team'] = offender.team
              
@@ -111,7 +111,7 @@ class QaydManager:
              reason = f"Qayd FAILED: {reason}"
              reason = f"Qayd FAILED: {reason}"
              # Logic fix: If accusation fails, applying Khasara to ACCUSER (player.team)
-             self.game.apply_khasara(player.team, reason)
+             self.game.trick_manager.apply_khasara(player.team, reason)
              self.state['status'] = 'RESOLVED'
              self.state['loser_team'] = player.team
              

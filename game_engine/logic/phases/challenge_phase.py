@@ -59,8 +59,12 @@ class ChallengePhase:
         logger.info(f"[QAYD] confirm_qayd via ChallengePhase...")
         result = self.game.trick_manager.confirm_qayd()
         
-        if result.get('success'):
+        if result.get('success') or result.get('error') == "No Qayd details to confirm":
             self.game.is_locked = False
-            logger.info(f"[QAYD] Challenge Handler: Game UNLOCKED after resolution")
+            logger.info(f"[QAYD] Challenge Handler: Game UNLOCKED after resolution (Success: {result.get('success')})")
+        
+        # Extra Safety: If state is not active, unlock
+        if not self.game.trick_manager.qayd_state.get('active'):
+             self.game.is_locked = False
             
         return result

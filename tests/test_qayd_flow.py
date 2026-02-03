@@ -50,7 +50,7 @@ def create_test_game_with_illegal_setup():
     
     # Start a trick with HEARTS lead
     game.table_cards = [{
-        'card': Card("HEARTS", "QUEEN").to_dict(),
+        'card': Card("HEARTS", "QUEEN"),
         'playedBy': 'Bottom',
         'metadata': {}
     }]
@@ -80,11 +80,17 @@ def test_qayd_flow_no_freeze():
     # Trigger Qayd (simulating bot detection)
     qayd_result = game.handle_qayd_trigger(1)  # Bot 1 triggers
     
-    # Verify Qayd was triggered and auto-confirmed
+    # Verify Qayd was triggered (Phase 1)
     assert qayd_result.get('success'), f"Qayd trigger failed: {qayd_result}"
+    assert game.is_locked, "Game should be locked after Qayd trigger"
+    assert game.phase == "CHALLENGE"
+
+    # Confirm Qayd (Phase 2)
+    confirm_result = game.handle_qayd_confirm()
+    assert confirm_result.get('success'), f"Qayd confirm failed: {confirm_result}"
     
-    # CRITICAL: Game should be unlocked after auto-confirm
-    assert not game.is_locked, "Game should be unlocked after Qayd auto-confirm"
+    # CRITICAL: Game should be unlocked after confirm
+    assert not game.is_locked, "Game should be unlocked after Qayd confirm"
     
     # Verify Qayd state shows resolution
     assert game.trick_manager.qayd_state.get('status') == 'RESOLVED', \
@@ -104,6 +110,9 @@ def test_qayd_state_serializable():
     
     # Trigger Qayd
     game.handle_qayd_trigger(1)
+    
+    # Confirm
+    game.handle_qayd_confirm()
     
     # Get qayd state directly (not full game state to avoid schema issues)
     qayd_state = game.trick_manager.qayd_state
@@ -131,6 +140,9 @@ def test_qayd_penalty_applied():
     
     # Trigger Qayd
     game.handle_qayd_trigger(1)
+    
+    # Confirm Qayd
+    game.handle_qayd_confirm()
     
     # Verify penalty was applied
     # Player 0 is on team 'us', so 'us' should have lost points

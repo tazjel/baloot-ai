@@ -1,7 +1,8 @@
 import logging
+import time
 from typing import Dict, Optional, Any
 
-from game_engine.logic.phases.challenge_phase import GamePhase
+from game_engine.models.constants import GamePhase
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,7 @@ class PlayingPhase:
              return {'success': False, 'error': f"Not in playing phase (Current: {self.game.phase})"}
         
         # 1. Validate turn
-        if player_index != self.game.current_player_index:
+        if player_index != self.game.current_turn:
              return {'success': False, 'error': 'Not your turn'}
         
         # 2. Get Card
@@ -33,44 +34,40 @@ class PlayingPhase:
         except Exception as e:
              return {'success': False, 'error': str(e)}
 
-        # 3. Check Qayd/Valid Move
-        # This logic is heavy. We use TrickManager for validation.
-        is_valid, reason = self.game.trick_manager.is_valid_move(
-            card, 
-            player.hand, 
-            player_index
-        )
+        # 3. Check Valid Move
+        is_legal = self.game.trick_manager.is_valid_move(card, player.hand)
         
-        if not is_valid:
-            # Check for Qayd trigger (Sherlock) if enabled...
-            # For now, just return error
-            return {'success': False, 'error': f"Invalid move: {reason}", 'code': 'INVALID_MOVE'}
+        # 4. Handle Illegal Moves (Strict vs Permissive)
+        if not is_legal:
+            if self.game.strictMode:
+                 return {'success': False, 'error': 'Invalid move (Strict Mode)', 'code': 'INVALID_MOVE'}
+            else:
+                 # Flag as illegal but proceed (for Qayd)
+                 logger.warning(f"Player {player_index} played ILLEGAL card: {card}")
+                 if not metadata: metadata = {}
+                 metadata['is_illegal'] = True
+                 metadata['illegal_reason'] = 'Rule Violation' # capture details if possible
 
-        # 4. Execute Play
-        # Remove card, add to table, log it
+        # 5. Execute Play
         played_card = player.hand.pop(card_idx)
+        
+        # Ensure metadata has cardId if provided (for frontend tracking)
+        if metadata is None: metadata = {}
+        
         self.game.table_cards.append({
-            'playerId': player.hand_id, # Frontend uses generic ID
+            'playerId': player.id, 
             'card': played_card,
-            'playedBy': player_index
+            'playedBy': player.position,
+            'metadata': metadata
         })
         
-        self.game.history.append({
-             'action': 'play_card',
-             'player': player_index,
-             'card': played_card.to_dict(),
-             'trick_number': self.game.trick_manager.current_trick_number
-        })
-        
-        # 5. Notify TrickManager
-        self.game.trick_manager.on_card_played(player_index, played_card)
-        
-        # 6. Check Trick End
+        # 6. Notify TrickManager / Resolve Trick
         if len(self.game.table_cards) == 4:
             self.game.resolve_trick()
         else:
             # Next player
-             self.game.current_player_index = (player_index + 1) % 4
+             self.game.current_turn = (player_index + 1) % 4
              self.game.reset_timer()
              
-        return {'success': True, 'card': played_card, 'table': self.game._get_table_state()}
+        return {'success': True, 'card': played_card.to_dict(), 'table': [tc['card'].to_dict() for tc in self.game.table_cards]}
+

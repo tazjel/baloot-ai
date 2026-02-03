@@ -24,15 +24,11 @@ class BiddingPhase:
         if self.game.phase != GamePhase.BIDDING.value:
             return {'success': False, 'error': f"Not in bidding phase (Current: {self.game.phase})"}
 
-        # DEBUG GHOST CODE
-        logger.warning(f"DEBUG: BiddingPhase File: {__file__}")
-        logger.warning(f"DEBUG: Engine: {self.game.bidding_engine}")
         try:
             result = self.game.bidding_engine.process_bid(
                 player_idx=player_index,
                 action=action,
-                suit=suit,
-                debug_check="please_fail_here" 
+                suit=suit
             )
         except Exception as e:
              logger.error(f"Error in BiddingEngine: {e}")
@@ -59,7 +55,7 @@ class BiddingPhase:
                    self.game.deal_initial_cards()
             else:
                  # Move to next turn
-                 self.game.current_player_index = self.game.bidding_engine.current_player_index
+                 self.game.current_turn = self.game.bidding_engine.current_turn
                  self.game.reset_timer()
                  
         logger.info(f"BiddingPhase Handle Bid Result: {result}")

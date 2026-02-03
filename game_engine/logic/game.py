@@ -1,4 +1,5 @@
 import random
+
 import time
 import logging
 import traceback
@@ -232,27 +233,38 @@ class Game:
         return self.project_manager.check_akka_eligibility(player_index)
 
     # --- QAYD (FORENSIC) DELEGATION ---
-    # NOTE: handle_qayd_trigger is defined in the HANDLERS section below (line ~1087)
-    
+    def handle_qayd_trigger(self, player_index):
+        # Delegate to ChallengePhase
+        return self.challenge_phase.trigger_investigation(player_index)
+
     def handle_qayd_accusation(self, player_index, accusation=None):
         """
-        Called when a bot provides specific accusation details.
-        In the Forensic/Auto-Detect model, an accusation acts as a Confirmation of the found crime.
+        Called when a bot/user provides specific accusation details.
         """
-        return self.qayd_manager.process_accusation(player_index, accusation) if accusation else self.handle_qayd_confirm()
+        # SPLIT-BRAIN FIX: Check which Manager is active
+        if self.trick_manager.qayd_state.get('active'):
+             logger.info(f"Routing Accusation to TrickManager (Confirming Proposal)")
+             return self.handle_qayd_confirm()
+
+        if accusation:
+            return self.qayd_manager.process_accusation(player_index, accusation)
+        return self.handle_qayd_confirm()
 
     def handle_qayd_confirm(self):
-        """Called when the user/bot confirms the verdict to apply penalty"""
-        logger.info(f"[QAYD] Confirming Qayd verdict...")
-        result = self.trick_manager.confirm_qayd()
-        if result.get('success'):
-             self.is_locked = False
-             logger.info(f"[QAYD] Game UNLOCKED after confirmation. is_locked={self.is_locked}")
-        return result
-    
+        """Called to confirm verdict"""
+        # Delegate to ChallengePhase (handles unlocking)
+        return self.challenge_phase.resolve_verdict()
     
     def handle_qayd_cancel(self):
-        """Called when Qayd is cancelled (False Alarm or User Cancel or Result Closed)"""
+        """Called when Qayd is cancelled/closed"""
+        # SPLIT-BRAIN FIX: Check TrickManager
+        if self.trick_manager.qayd_state.get('active'):
+             result = self.trick_manager.cancel_qayd()
+             if result.get('success'):
+                  self.is_locked = False
+                  logger.info(f"[QAYD] Game UNLOCKED after Cancel (TrickManager).")
+             return result
+
         result = self.qayd_manager.cancel_challenge()
         if result.get('success'):
              self.is_locked = False
@@ -264,9 +276,10 @@ class Game:
         return self.handle_qayd_trigger(player_index)
 
     def handle_akka(self, player_index):
-        return self.project_manager.handle_akka(player_index)
+        if hasattr(self, 'project_manager'):
+             return self.project_manager.handle_akka(player_index)
+        return {'success': False, 'error': 'ProjectManager missing'}
 
-    # --- QAYD (FORENSIC) LOGIC ---
     # --- END QAYD DELEGATION ---
 
 
@@ -465,13 +478,6 @@ class Game:
 
     def handle_declare_project(self, player_index, type):
         return self.project_manager.handle_declare_project(player_index, type)
-
-    # --- QAYD LOGIC DELEGATION ---
-    def handle_qayd(self, reporter_index):
-        return self.trick_manager.handle_qayd(reporter_index)
-
-    def apply_khasara(self, loser_team, reason):
-        return self.trick_manager.apply_khasara(loser_team, reason)
 
     # --- SAWA LOGIC DELEGATION ---
     def handle_sawa(self, player_index):
@@ -713,37 +719,6 @@ class Game:
                 
         return None
 
-    def handle_qayd(self, player_index, reason):
-        try:
-            reporter = self.players[player_index]
-            self.timer_active = False 
-            
-            logger.info(f"QAYD raised by {reporter.name} ({reporter.position}) for {reason}")
-            
-            self.qayd_state = {
-                'active': True, 
-                'reporter': reporter.position, 
-                'reason': reason,
-                'target_play': self.last_trick 
-            }
-            
-            is_valid_claim = False
-            
-            if reason == "FALSE_SAWA":
-                 if self.sawa_failed_khasara: is_valid_claim = True
-            
-            if is_valid_claim:
-                 offender_team = 'them' if reporter.team == 'us' else 'us'
-                 self.apply_qayd_penalty(offender_team, reporter.team)
-                 return {"success": True, "result": "VALID", "message": "Qayd Upheld - Penalty Applied"}
-            else:
-                 self.apply_qayd_penalty(reporter.team, 'them' if reporter.team == 'us' else 'us')
-                 return {"success": True, "result": "INVALID", "message": "False Alarm - Reporter Penalized"}
-                 
-        except Exception as e:
-            logger.error(f"Error in handle_qayd: {e}")
-            return {"error": str(e)}
-
     def apply_qayd_penalty(self, loser_team, winner_team):
         max_points = 26 if self.game_mode == 'SUN' else 16
         
@@ -854,26 +829,8 @@ class Game:
             return {"error": f"Auto-Play Failed completely: {e}"}
 
     # --- HANDLERS (Restored / New) ---
-    def handle_akka(self, player_index):
-        """Delegate Akka to ProjectManager"""
-        if hasattr(self, 'project_manager'):
-             return self.project_manager.handle_akka(player_index)
-        return {'success': False, 'error': 'ProjectManager missing'}
+    # (Moved to QAYD DELEGATION section above)
 
-    def handle_qayd_trigger(self, player_index):
-        # DELEGATED to ChallengePhase (Refactor Step 1)
-        return self.challenge_phase.trigger_investigation(player_index)
-        
-
-
-    def handle_qayd_accusation(self, player_index, accusation=None):
-        """Alias for trigger"""
-        return self.handle_qayd_trigger(player_index)
-
-    def handle_qayd_confirm(self):
-        """Called to confirm verdict"""
-        # DELEGATED to ChallengePhase (Refactor Step 1)
-        return self.challenge_phase.resolve_verdict()
 
     # --- PICKLE SUPPORT ---
     def __getstate__(self):
