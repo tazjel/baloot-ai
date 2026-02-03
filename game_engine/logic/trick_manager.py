@@ -9,6 +9,7 @@ class TrickManager:
         self.game = game
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
+        self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
 
     def get_card_points(self, card: Card) -> int:
         if self.game.game_mode == "SUN":
@@ -228,6 +229,19 @@ class TrickManager:
                              
              if not crime_card_found:
                   pass
+              
+             # CHECK IGNORED CRIMES
+             current_trick_idx = len(self.game.round_history)
+             if self.qayd_state.get('target_source') == 'last_trick':
+                  current_trick_idx -= 1
+                   
+             crime_sig = (current_trick_idx, self.qayd_state.get('crime_card_index'))
+              
+             if crime_sig in self.ignored_crimes:
+                  logger.info(f"[QAYD] Ignoring previously cancelled crime: {crime_sig}")
+                  return {"success": False, "error": "Crime ignored (Double Jeopardy)"}
+                   
+             self.qayd_state['crime_signature'] = crime_sig
 
 
 
@@ -291,7 +305,12 @@ class TrickManager:
     def cancel_qayd(self):
         """
         Cancels the current Qayd investigation and resets state.
+        Adds the current crime to ignore list to prevent loops.
         """
+        if self.qayd_state.get('crime_signature'):
+             self.ignored_crimes.add(self.qayd_state['crime_signature'])
+             logger.info(f"[QAYD] Added crime {self.qayd_state['crime_signature']} to ignore list.")
+             
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
         return {'success': True}
 
@@ -465,3 +484,4 @@ class TrickManager:
     def reset_state(self):
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.ignored_crimes = set()

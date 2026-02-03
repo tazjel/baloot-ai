@@ -11,38 +11,40 @@ class RefereeObserver:
     def check_qayd(self, ctx, game_state):
         """
         Check if the last move was illegal and claim Qayd if so.
+        DISABLED GOD MODE: Bots should not see 'is_illegal' metadata.
+        Rely on Sherlock (Memory) logic in BotAgent instead.
         """
         # 1. Scan Active Table (ALL Cards)
         # We must check ALL cards, not just the last one, as the bot might not be the immediate next player.
-        if ctx.phase == 'PLAYING' and game_state.get('tableCards'):
-            for i, play in enumerate(reversed(game_state['tableCards'])): # Check newest first
-                 is_illegal = (play.get('metadata') or {}).get('is_illegal')
-                 
-                 # Optional: Filter by team?
-                 # offender_pos = play.get('playedBy')
-                 # offender_team = ctx.players_team_map.get(offender_pos)
-                 # if offender_team != ctx.team and is_illegal: ...
-                 
-                 if is_illegal:
-                      logger.info(f"[REFEREE] {ctx.position} detected illegal move by {play.get('playedBy')}! Triggering Qayd.")
-                      return {
-                          "action": "QAYD_TRIGGER",
-                          "reasoning": f"Illegal move found in table history (Index {-1-i})."
-                      }
+        # if ctx.phase == 'PLAYING' and game_state.get('tableCards'):
+        #     for i, play in enumerate(reversed(game_state['tableCards'])): # Check newest first
+        #          is_illegal = (play.get('metadata') or {}).get('is_illegal')
+        #          
+        #          # Optional: Filter by team?
+        #          # offender_pos = play.get('playedBy')
+        #          # offender_team = ctx.players_team_map.get(offender_pos)
+        #          # if offender_team != ctx.team and is_illegal: ...
+        #          
+        #          if is_illegal:
+        #               logger.info(f"[REFEREE] {ctx.position} detected illegal move by {play.get('playedBy')}! Triggering Qayd.")
+        #               return {
+        #                   "action": "QAYD_TRIGGER",
+        #                   "reasoning": f"Illegal move found in table history (Index {-1-i})."
+        #               }
                 
         # 2. Check Last Trick (if table cleared OR if we suspect missed crime)
         # Usually if table is cleared, we check last trick.
-        if ctx.phase == 'PLAYING' and not game_state.get('tableCards'):
-             last_trick = game_state.get('lastTrick')
-             if last_trick and last_trick.get('metadata'):
-                  # Scan Last Trick Metadata
-                  for i, meta in enumerate(last_trick['metadata']):
-                       if meta and meta.get('is_illegal'):
-                            logger.info(f"[REFEREE] {ctx.position} detected illegal move in LAST TRICK! Triggering Qayd.")
-                            return {
-                                "action": "QAYD_TRIGGER",
-                                "reasoning": "Opponent played an illegal move (Flagged in Last Trick)."
-                            }
+        # if ctx.phase == 'PLAYING' and not game_state.get('tableCards'):
+        #      last_trick = game_state.get('lastTrick')
+        #      if last_trick and last_trick.get('metadata'):
+        #           # Scan Last Trick Metadata
+        #           for i, meta in enumerate(last_trick['metadata']):
+        #                if meta and meta.get('is_illegal'):
+        #                     logger.info(f"[REFEREE] {ctx.position} detected illegal move in LAST TRICK! Triggering Qayd.")
+        #                     return {
+        #                         "action": "QAYD_TRIGGER",
+        #                         "reasoning": "Opponent played an illegal move (Flagged in Last Trick)."
+        #                     }
         return None
 
     def check_sawa(self, ctx, game_state):

@@ -64,13 +64,29 @@ class CardMemory:
         for trick in history:
             led_suit = None
             if trick.get('cards'):
-                 led_suit = trick['cards'][0]['suit']
+                 # Need to handle if cards are objects or dicts
+                 first_card = trick['cards'][0]
+                 # first_card might be wrapper dict {card: {suit, rank}, playedBy: ...} or just {suit, rank}
+                 # Standardize access
+                 c_dict = first_card if 'rank' in first_card else first_card.get('card', {})
+                 led_suit = c_dict.get('suit')
                  
-            for c_data in trick.get('cards', []):
-                 rank = c_data['rank']
-                 suit = c_data['suit']
-                 player_pos = c_data.get('playedBy') # Position 'Bottom', etc.
+            involved_players = trick.get('playedBy', []) # Parallel list
                  
+            for i, c_data in enumerate(trick.get('cards', [])):
+                 # Normalize card data
+                 c_inner = c_data if 'rank' in c_data else c_data.get('card', {})
+                 rank = c_inner.get('rank')
+                 suit = c_inner.get('suit')
+                 
+                 # Robust Player Position Extraction
+                 player_pos = c_data.get('playedBy')
+                 if not player_pos and i < len(involved_players):
+                      player_pos = involved_players[i]
+                 
+                 if not player_pos or not rank or not suit:
+                      continue
+
                  # Mark Played
                  self.mark_played(f"{rank}{suit}")
                  
@@ -78,22 +94,19 @@ class CardMemory:
                  if led_suit and suit != led_suit:
                       # Player failed to follow suit -> VOID in led_suit
                       self.mark_void(player_pos, led_suit)
+                      logger.info(f"[MEMORY] Inferring VOID: Player {player_pos} has no {led_suit} (Played {suit} on {led_suit})")
                       
                       # Track Discard for Signaling History
-                      # structure: { player_pos: [ { card: {rank, suit}, trick_idx: i } ] }
                       if player_pos not in self.discards: self.discards[player_pos] = []
                       self.discards[player_pos].append({
                           'rank': rank,
                           'suit': suit,
-                          'trick_idx': history.index(trick) # Naive index
+                          'trick_idx': history.index(trick)
                       })
                       
-                      # Hokum Constraint: If failed to follow suit, AND failed to Trump (when enemy winning?)
-                      # In Baloot, you MUST play trump if you can't follow lead.
-                      # So if they played non-trump on a non-trump lead... they are void in Trump too?
-                      # Only if: Mode is Hokum, Lead was Non-Trump, and they played Non-Trump.
                       if mode == 'HOKUM' and led_suit != trump and suit != trump:
                            self.mark_void(player_pos, trump)
+                           logger.info(f"[MEMORY] Inferring VOID: Player {player_pos} has no {trump} (Failed to cut {led_suit})")
 
     def mark_void(self, player_ref, suit):
         # player_ref can be int index or string position

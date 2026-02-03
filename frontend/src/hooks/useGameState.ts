@@ -514,7 +514,7 @@ export const useGameState = () => {
     };
 
     const handlePlayerAction = (action: string, payload?: any) => {
-        if (isSendingAction) return; // Block duplicates
+        if (isSendingAction && action !== 'QAYD_CANCEL' && action !== 'QAYD_CONFIRM') return; // Block duplicates, but allow Qayd Escape Hatch
 
         // @ts-ignore
         import('../utils/devLogger').then(({ devLogger }) => devLogger.log('HOOK', 'Player Action Triggered', { action, payload }));

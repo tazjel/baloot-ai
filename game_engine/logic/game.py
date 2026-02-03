@@ -650,7 +650,7 @@ class Game:
         self.timer.resume()
         logger.info(f"Timer Resumed for Room {self.room_id}")
         
-    @requires_unlocked
+    # @requires_unlocked - REMOVED to fix Deadlock Loop during Challenge
     def check_timeout(self):
         """Called by background loop to check if current turn expired"""
         # Allow timeout check if Challenge is active (for Sherlock Bot)
@@ -703,17 +703,20 @@ class Game:
                       logger.info(f"Timeout/Action Cycle for Qayd Reporter {reporter_pos} ({reporter_idx}).")
                       res = self.auto_play_card(reporter_idx)
                  else:
-                      logger.warning("Qayd Active but reporter not found.")
+                      logger.warning("Qayd Active but reporter not found. ZOMBIE STATE DETECTED. Auto-cancelling.")
+                      self.handle_qayd_cancel()
+                      res = {'success': True, 'action': 'ZOMBIE_REPAIR'}
             
             dur = time.time() - t_start
             logger.info(f"Timeout Action Completed in {dur:.4f}s. Result: {res}")
              
             # Fallback: If action was successful but timer wasn't reset (bug in phase handler), do it here.
-            # Also ensures socket_handler saves the game.
-            if res and res.get('success'):
-                 if self.timer.is_expired():
-                      logger.warning("Action successful but timer still expired. Forcing reset.")
-                      self.reset_timer()
+            # ROBUS FIX: Force reset timer ALWAYS if it's still expired, to prevent infinite loops.
+            if self.timer.is_expired():
+                 logger.warning(f"Timer still expired after action (Success: {res.get('success') if res else 'None'}). Forcing reset.")
+                 with open("logs/timer_monitor.log", "a") as f:
+                     f.write(f"{time.time()} FORCE_RESET. Result: {res}\n")
+                 self.reset_timer()
 
             return res
                 
@@ -766,7 +769,7 @@ class Game:
              
         self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
 
-    @requires_unlocked
+    # @requires_unlocked - REMOVED to allow System/Bot to act during Lock (e.g. Qayd)
     def auto_play_card(self, player_index):
         try:
             player = self.players[player_index]
@@ -801,7 +804,15 @@ class Game:
 
             elif action == 'WAIT':
                  reason = decision.get('reason', 'Waiting')
-                 if reason != "Qayd Investigation in Progress":
+                 
+                 # FIX: Phantom Qayd Detection (Loop Breaker)
+                 # Use substring match to be robust against variations
+                 if "Qayd Investigation" in reason and self.phase == GamePhase.PLAYING.value:
+                      logger.warning(f"PHANTOM QAYD DETECTED (Reason: {reason}) during Auto-Play. Force-clearing state to RESUME GAME.")
+                      self.handle_qayd_cancel() 
+                      return {"success": True, "action": "PHANTOM_REPAIR"}
+
+                 if "Qayd Investigation" not in reason:
                       logger.info(f"Auto-Play for {player.name}: WAIT ({reason})")
                  return {"success": True, "action": "WAIT", "message": reason}
 
@@ -827,6 +838,34 @@ class Game:
                       return self.play_card(player_index, i)
             
             return {"error": f"Auto-Play Failed completely: {e}"}
+
+
+    def handle_qayd_cancel(self):
+        """
+        Handles the cancellation of a Qayd investigation (e.g. by User or Timer).
+        Ensures the game is UNLOCKED and resumes.
+        """
+        logger.info(f"[QAYD] handle_qayd_cancel called.")
+        
+        # 1. Reset Qayd State
+        if hasattr(self, 'trick_manager'):
+            self.trick_manager.cancel_qayd()
+            self.qayd_state = self.trick_manager.qayd_state
+        else:
+            self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+            
+        # 2. Unlock Game
+        self.is_locked = False
+        
+        # 3. Resume Playing Phase if needed
+        if self.phase == GamePhase.CHALLENGE.value:
+            self.phase = GamePhase.PLAYING.value
+            logger.info("[QAYD] Phase reverted to PLAYING.")
+            
+        # 4. Resume Timer
+        self.timer_paused = False
+        
+        return {'success': True}
 
     # --- HANDLERS (Restored / New) ---
     # (Moved to QAYD DELEGATION section above)

@@ -79,7 +79,7 @@ const MAIN_MENU_OPTIONS: { type: QaydMainOption; label: string; labelAr: string 
   { type: 'WRONG_AKKA', label: 'Wrong Akka', labelAr: 'أكة خاطئة' },
 ];
 
-const TIMER_SECONDS = 60;
+const TIMER_SECONDS = 5;
 
 // =============================================================================
 // COMPONENT
@@ -91,6 +91,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   isClosedDouble = false,
   onAccusation,
   onCancel,
+  onConfirm,
   result,
 }) => {
   // State
@@ -111,6 +112,15 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     trickNumber: idx + 1,
   }));
 
+  // Add current active trick (Table Cards)
+  if (gameState.tableCards && gameState.tableCards.length > 0) {
+    tricks.push({
+      cards: gameState.tableCards as any, // Cast to match TrickPlay structure if needed
+      trickNumber: tricks.length + 1,
+      winner: undefined
+    });
+  }
+
   // Timer countdown
   useEffect(() => {
     if (step === 'RESULT') return;
@@ -118,7 +128,16 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          onCancel();
+          // TIMEOUT LOGIC
+          // If status is REVIEW (e.g. Bot proposed), we auto-confirm the verdict.
+          const status = gameState.qaydState?.status;
+          if (status === 'REVIEW' && onConfirm) {
+              console.log('[QaydOverlay] Timeout in REVIEW mode -> Auto-Confirming Verdict.');
+              onConfirm();
+          } else {
+              console.log('[QaydOverlay] Timeout in Selection mode -> Cancelling.');
+              onCancel();
+          }
           return 0;
         }
         return prev - 1;
@@ -126,7 +145,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [step, onCancel]);
+  }, [step, onCancel, onConfirm, gameState.qaydState]); // Added dep
 
   // Update step when result arrives
   useEffect(() => {
@@ -233,7 +252,23 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   // NOTE: renderMainMenu also needs styling update to match Stitch (Tabs/Buttons)
   // ...
 
-  const renderMainMenu = () => (
+  const renderMainMenu = () => {
+    const reporterPos = gameState.qaydState?.reporter;
+    const isReporter = reporterPos && gameState.players[0]?.position === reporterPos;
+
+    if (!isReporter) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+           <div className="animate-pulse bg-amber-500/20 p-4 rounded-full mb-4">
+              <Gavel size={48} className="text-amber-500" />
+           </div>
+           <h3 className="text-xl text-white font-bold font-tajawal mb-2">جاري التحقق...</h3>
+           <p className="text-gray-400 font-tajawal">يقوم {gameState.players.find(p => p.position === reporterPos)?.name} بمراجعة اللعب</p>
+        </div>
+      );
+    }
+
+    return (
     <div className="p-6 flex flex-col items-center gap-4">
       <h3 className="text-lg text-gray-300 font-tajawal mb-2">اختر نوع المخالفة</h3>
       <div className="flex gap-3 flex-wrap justify-center">
@@ -252,7 +287,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
         ))}
       </div>
     </div>
-  );
+  )};
 
   const renderViolationButtons = () => (
     <div className="px-6 py-4 bg-[#404040] flex flex-wrap justify-center flex-row-reverse gap-3">
@@ -464,7 +499,14 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
         <div className="flex items-center gap-4">
              {/* Name */}
              <div className="flex items-center gap-4 bg-[#333333] px-4 py-2 rounded-lg">
-                <span className="text-white font-bold font-tajawal">{gameState.players[0]?.name || 'أنت'}</span>
+                <span className="text-white font-bold font-tajawal">
+                  {(() => {
+                    const reporterPos = gameState.qaydState?.reporter;
+                    if (!reporterPos) return 'أنت';
+                    const reporter = gameState.players.find(p => p.position === reporterPos);
+                    return reporter ? reporter.name : 'أنت';
+                  })()}
+                </span>
                 {/* Crown Icon */}
                  <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
                     <span className="text-black text-[10px]">👑</span>
@@ -474,10 +516,10 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
 
              {/* Circular Timer (Small Yellow/Black) */}
              <div className="relative w-10 h-10 flex items-center justify-center">
-                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#333333]" strokeWidth="3" />
-                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-400" strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - (timeLeft/60)*100} />
-                 </svg>
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                   <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#333333]" strokeWidth="3" />
+                   <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-400" strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - (timeLeft/60)*100} />
+                </svg>
                  <span className="absolute text-white font-bold font-mono text-xs">{timeLeft}</span>
              </div>
         </div>

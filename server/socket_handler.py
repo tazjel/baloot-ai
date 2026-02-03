@@ -581,6 +581,10 @@ def timer_background_task(room_manager_instance):
 
         except Exception as e:
             logger.error(f"Error in timer_background_task: {e}")
+            import traceback
+            with open("logs/crash.log", "a") as f:
+                f.write(f"\n{time.time()} CRASH: {e}\n")
+                f.write(traceback.format_exc())
             sio.sleep(5.0) # Backoff on error
 
 def handle_bot_speak(game, room_id, player, action, result):

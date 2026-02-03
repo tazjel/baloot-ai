@@ -3,12 +3,7 @@ import enum
 
 logger = logging.getLogger(__name__)
 
-class GamePhase(enum.Enum):
-    WAITING = 'WAITING'
-    BIDDING = 'BIDDING'
-    PLAYING = 'PLAYING'
-    CHALLENGE = 'CHALLENGE'
-    GAMEOVER = 'GAMEOVER'
+from game_engine.models.constants import GamePhase
 
 class ChallengePhase:
     """

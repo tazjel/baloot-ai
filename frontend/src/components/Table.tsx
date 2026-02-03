@@ -459,6 +459,10 @@ export default function Table({
                         console.log('[Table] detailed: QAYD_CANCEL clicked');
                         onPlayerAction('QAYD_CANCEL');
                     }}
+                    onConfirm={() => {
+                        console.log('[Table] detailed: QAYD_CONFIRM triggered');
+                        onPlayerAction('QAYD_CONFIRM');
+                    }}
                     result={gameState.qaydState?.active && gameState.qaydState.status === 'RESOLVED' ? (() => {
                         const state = gameState.qaydState!;
                         const accusedPos = state.target_play?.playedBy;
