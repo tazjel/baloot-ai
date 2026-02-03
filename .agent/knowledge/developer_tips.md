@@ -76,3 +76,9 @@
 - **Package Availability**: Before adding MCP servers to `mcp_config.json`, verify the npm package exists. `@modelcontextprotocol/server-git` does NOT exist (404).
 - **Working Servers**: `stitch` (URL-based) and `filesystem` work reliably. Remove problematic servers to avoid blocking all MCP tools.
 
+## Launch Logic & Agent Efficiency (Session 2026-02-02)
+- **Headless Mode Pattern**: When launching servers for verification, ALWAYS use `-Headless` (if available) or redirect stdout/stderr to files. Capturing 200MB of log output in the agent's context window destroys token budget.
+- **The "Missing Static" Crash**: Python servers (bottle/py4web) serving `index.html` must handle the *absence* of the build directory gracefully. Use `os.path.isfile()` checks and return 404 instead of crashing with `FileNotFoundError` or `ValueError: I/O operation on closed file`.
+- **Readiness Probes**: Do NOT ping the root URL (`/`) for health checks if it serves a static file that might not exist. Create and use a dedicated minimal `/health` endpoint that returns a simple string ("OK").
+- **Agent Directory Hygiene**: Keep `.agent/knowledge` lean. Large rulebooks (40KB+) should be moved to the Agent's Brain (artifacts) or Knowledge Base (KIs) to prevent them being loaded into every single session context. Use pointers in `.agent` to reference them.
+

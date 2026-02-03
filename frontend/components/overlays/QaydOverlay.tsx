@@ -36,6 +36,7 @@ interface QaydResult {
   violationType: string;
   accusedPlayer: string;
   penaltyPoints?: number;
+  isGuilty?: boolean;
 }
 
 // =============================================================================
@@ -206,27 +207,31 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     }
 
     return (
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-800/90 rounded-t-2xl">
-        <div className="flex items-center gap-3">
-          {/* Timer */}
-          <div className="flex items-center gap-1 bg-yellow-500/20 px-3 py-1 rounded-full">
-            <Clock size={16} className="text-yellow-400" />
-            <span className="text-yellow-400 font-bold font-mono">{timeLeft}</span>
-          </div>
+      <div className="flex items-center justify-between px-6 py-4 bg-[#404040] border-b border-[#555555]">
+        {/* Left: Simple Title or Empty */}
+         <div className="text-white/50 text-xs font-tajawal">
+            Forensic Challenge
+         </div>
+
+        {/* Center: Instruction */}
+        <div className="flex-1 text-center">
+             {step === 'SELECT_CARD' && (
+                <span className={`text-base ${instructionColor} font-tajawal`}>
+                اختر الورقة التي <span className="font-bold">{instructionAr}</span>
+                </span>
+            )}
         </div>
 
-        {/* Title */}
-        <div className="flex items-center gap-2 text-right">
-          {step === 'SELECT_CARD' && (
-            <span className={`text-sm ${instructionColor}`}>
-              أختر الورقة التي <span className="font-bold">{instructionAr}</span>
-            </span>
-          )}
-          <span className="text-gray-300 font-bold font-tajawal">{titleAr}</span>
+        {/* Right: Main Title - "نوع القيد" or similar */}
+        <div className="text-right">
+             <span className="text-white font-medium font-tajawal text-lg">{titleAr}</span>
         </div>
       </div>
     );
   };
+  
+  // NOTE: renderMainMenu also needs styling update to match Stitch (Tabs/Buttons)
+  // ...
 
   const renderMainMenu = () => (
     <div className="p-6 flex flex-col items-center gap-4">
@@ -238,10 +243,11 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => handleMainOptionSelect(opt.type)}
-            className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-4 rounded-xl font-bold transition-colors min-w-[140px]"
+            className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/50 text-white px-6 py-5 rounded-2xl transition-all min-w-[140px] flex flex-col items-center gap-2"
           >
-            <span className="block text-sm text-gray-400">{opt.label}</span>
-            <span className="block text-lg font-tajawal">{opt.labelAr}</span>
+            <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 rounded-2xl transition-all" />
+            <span className="text-2xl font-black font-tajawal group-hover:text-amber-400 transition-colors">{opt.labelAr}</span>
+            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-sans">{opt.label}</span>
           </motion.button>
         ))}
       </div>
@@ -249,95 +255,73 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   );
 
   const renderViolationButtons = () => (
-    <div className="px-4 py-3 bg-gray-800/50 flex flex-wrap justify-center gap-2">
+    <div className="px-6 py-4 bg-[#404040] flex flex-wrap justify-center flex-row-reverse gap-3">
       {filteredViolations.map((v) => (
         <motion.button
           key={v.type}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => handleViolationSelect(v.type as ViolationType)}
-          className={`px-4 py-2 rounded-lg font-bold transition-all ${
+          className={`px-6 py-2 rounded-xl font-bold font-tajawal text-sm transition-all shadow-md ${
             selectedViolation === v.type
-              ? 'bg-amber-500 text-black shadow-lg'
-              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              ? 'bg-[#E0E0E0] text-black shadow-inner'
+              : 'bg-[#555555] text-gray-300 hover:bg-[#666666]'
           }`}
         >
-          <span className="block text-xs text-gray-400">{v.label}</span>
-          <span className="block font-tajawal">{v.labelAr}</span>
+          {v.labelAr}
         </motion.button>
       ))}
     </div>
   );
 
   const renderTrickHistory = () => (
-    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-2">
       {tricks.length === 0 ? (
         <div className="text-center text-gray-500 py-8">
           <Gavel size={48} className="mx-auto mb-2 opacity-50" />
           <p className="font-tajawal">لا توجد أكلات للمراجعة</p>
-          <p className="text-sm">No tricks to review</p>
         </div>
       ) : (
         tricks.map((trick) => (
-          <motion.div
+          <div
             key={trick.trickNumber}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gray-800/60 rounded-xl p-3 border border-gray-700"
+            className="bg-[#404040] rounded-xl p-3 shadow-sm border border-[#555555]"
           >
             {/* Trick Header */}
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500">Trick {trick.trickNumber}</span>
-              <span className="text-sm font-tajawal text-gray-400">
+            <div className="flex justify-between items-center mb-3 px-2 border-b border-[#555555] pb-2">
+               {/* Left: Empty or Winner */}
+               <span></span>
+              <span className="text-sm font-bold font-tajawal text-white">
                 الأكلة {trick.trickNumber}
               </span>
             </div>
 
             {/* Cards */}
-            <div className="flex justify-center gap-2 flex-wrap">
+            <div className="flex justify-center gap-2">
               {trick.cards.map((play, idx) => {
                 const isSelected =
                   selectedCard?.card.id === play.card.id &&
                   selectedCard?.trickNumber === trick.trickNumber;
 
                 return (
-                  <motion.div
+                  <div
                     key={`${trick.trickNumber}-${idx}`}
-                    whileHover={{ scale: 1.1, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
                     onClick={() =>
                       step === 'SELECT_CARD' &&
                       handleCardSelect(play.card, trick.trickNumber, play.playedBy)
                     }
-                    className={`relative cursor-pointer transition-all ${
-                      isSelected ? 'ring-4 ring-pink-500 ring-offset-2 ring-offset-gray-900 rounded-lg' : ''
+                    className={`relative cursor-pointer transition-transform hover:scale-105 ${
+                      isSelected ? 'ring-4 ring-yellow-400 rounded-md z-10' : ''
                     }`}
                   >
                     {/* Card */}
-                    <div className="w-16 h-24">
-                      <CardVector card={play.card} className="w-full h-full rounded-lg shadow-md" />
+                    <div className="w-14 h-20">
+                      <CardVector card={play.card} className="w-full h-full rounded shadow-md" />
                     </div>
-
-                    {/* Player Label */}
-                    <div className="absolute -bottom-5 left-0 right-0 text-center">
-                      <span className="text-[10px] text-gray-500 truncate block">
-                        {play.playedBy}
-                      </span>
-                    </div>
-
-                    {/* Selection Highlight */}
-                    {isSelected && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="absolute inset-0 bg-pink-500/30 rounded-lg pointer-events-none"
-                      />
-                    )}
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
-          </motion.div>
+          </div>
         ))
       )}
     </div>
@@ -346,57 +330,65 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   const renderResult = () => {
     if (!result) return null;
 
-    const isSuccess = result.success;
+    const isSuccess = result.isGuilty !== undefined ? result.isGuilty : result.success;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="p-6 flex flex-col items-center gap-4"
-      >
+      <div className="flex-1 flex flex-col items-center justify-start p-6 gap-4 overflow-y-auto">
         {/* Result Banner */}
         <div
-          className={`w-full py-4 px-6 rounded-xl flex items-center justify-center gap-3 ${
-            isSuccess ? 'bg-green-500' : 'bg-red-500'
+          className={`w-full py-4 px-6 rounded-xl flex items-center justify-between shadow-md ${
+            isSuccess 
+              ? 'bg-[#4CAF50]' 
+              : 'bg-[#F44336]'
           }`}
         >
-          {isSuccess ? (
-            <CheckCircle size={32} className="text-white" />
-          ) : (
-            <XCircle size={32} className="text-white" />
-          )}
-          <div className="text-center">
-            <span className="text-white font-bold text-lg block">
-              نتيجة القيد: {isSuccess ? 'صحيح' : 'خطأ'}
+          {/* Icon */}
+          <div className="bg-white/20 p-2 rounded-full">
+              {isSuccess ? <CheckCircle className="text-white" size={32} /> : <XCircle className="text-white" size={32} />}
+          </div>
+
+          {/* Text */}
+          <div className="text-right">
+            <span className="text-white font-bold font-tajawal text-xl block">
+              {isSuccess ? 'تم كشف الغش' : 'اتهام خاطئ'}
             </span>
-            <span className="text-white/80 text-sm">
-              Result: {isSuccess ? 'CORRECT' : 'INCORRECT'}
+            <span className="text-white/80 font-tajawal text-sm">
+              {isSuccess ? 'تم تسجيل القيد بنجاح' : 'لم يتم العثور على مخالفة'}
             </span>
           </div>
         </div>
 
-        {/* Violation Type */}
-        <div className="bg-gray-700 px-4 py-2 rounded-lg">
-          <span className="text-gray-400 text-sm">نوع القيد: </span>
-          <span className="text-white font-bold">{result.violationType}</span>
+        {/* Details Block */}
+        <div className="w-full bg-[#404040] rounded-xl p-4 border border-[#555555] flex flex-col gap-3">
+             {/* Violation Type */}
+            <div className="flex justify-between items-center border-b border-[#555555] pb-3">
+              <span className="text-gray-400 font-tajawal text-sm">نوع المخالفة</span>
+              <span className="text-white font-bold font-tajawal">{result.violationType}</span>
+            </div>
+
+            {/* Accused Player */}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 font-tajawal text-sm">المتهم</span>
+              <span className="text-yellow-400 font-bold font-tajawal">{result.accusedPlayer}</span>
+            </div>
+            
+            {/* Penalty Info (if applicable) */}
+            {result.penaltyPoints && (
+                <div className="flex justify-between items-center border-t border-[#555555] pt-3 mt-1">
+                  <span className="text-gray-400 font-tajawal text-sm">النقاط</span>
+                  <span className="text-red-400 font-bold font-tajawal">-{result.penaltyPoints}</span>
+                </div>
+            )}
         </div>
 
-        {/* Accused Player */}
-        <div className="text-gray-400">
-          <span>المتهم: </span>
-          <span className="text-yellow-400 font-bold">{result.accusedPlayer}</span>
-        </div>
-
-        {/* Close Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        {/* Close Button (Large) */}
+        <button
           onClick={onCancel}
-          className="mt-4 bg-gray-600 hover:bg-gray-500 text-white px-8 py-3 rounded-xl font-bold"
+          className="w-full mt-auto bg-[#888888] hover:bg-[#999999] text-[#333333] border border-[#666666] px-8 py-3 rounded-lg font-bold font-tajawal text-lg transition-all shadow-lg"
         >
           إغلاق
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
     );
   };
 
@@ -404,43 +396,41 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     if (step === 'RESULT') return null;
 
     return (
-      <div className="px-4 py-3 bg-gray-800/90 rounded-b-2xl flex justify-between items-center">
-        {/* Left: Accuser Info */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500 text-sm">المقيد:</span>
-          <span className="text-yellow-400 font-bold font-tajawal">
-            {gameState.players[0]?.name || 'أنت'}
-          </span>
-        </div>
+      <div className="px-6 py-4 bg-[#404040] rounded-b-[20px] flex justify-between items-center">
+        {/* Left: Submit Button (If Card Selected) */}
+         <div className="flex-1 flex justify-start">
+             {/* If MAIN MENU, show nothing or close */}
+             {step === 'SELECT_CARD' && selectedCard && (
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleConfirm}
+                    className="px-8 py-2 bg-[#888888] hover:bg-[#999999] text-[#333333] font-bold font-tajawal rounded-lg shadow-lg"
+                >
+                    قيدها
+                </motion.button>
+             )}
+         </div>
 
-        {/* Right: Action Buttons */}
-        <div className="flex gap-2">
-          {step !== 'MAIN_MENU' && (
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
-            >
-              رجوع
-            </button>
-          )}
+        {/* Center/Right: Caller Info + Timer */}
+        <div className="flex items-center gap-4">
+             {/* Name */}
+             <div className="flex items-center gap-4 bg-[#333333] px-4 py-2 rounded-lg">
+                <span className="text-white font-bold font-tajawal">{gameState.players[0]?.name || 'أنت'}</span>
+                {/* Crown Icon */}
+                 <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
+                    <span className="text-black text-[10px]">👑</span>
+                 </div>
+                <span className="text-gray-400 text-sm font-tajawal">:المقيد</span>
+             </div>
 
-          {step === 'SELECT_CARD' && selectedCard && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleConfirm}
-              className="px-6 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg transition-colors"
-            >
-              قيدها
-            </motion.button>
-          )}
-
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg transition-colors"
-          >
-            إغلاق
-          </button>
+             {/* Circular Timer (Small Yellow/Black) */}
+             <div className="relative w-10 h-10 flex items-center justify-center">
+                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-[#333333]" strokeWidth="3" />
+                    <circle cx="18" cy="18" r="16" fill="none" className="stroke-yellow-400" strokeWidth="3" strokeDasharray="100" strokeDashoffset={100 - (timeLeft/60)*100} />
+                 </svg>
+                 <span className="absolute text-white font-bold font-mono text-xs">{timeLeft}</span>
+             </div>
         </div>
       </div>
     );
@@ -459,10 +449,10 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
         className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
       >
         <motion.div
-          initial={{ scale: 0.9, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          exit={{ scale: 0.9, y: 20 }}
-          className="bg-gray-900 w-full max-w-2xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-700"
+          initial={{ scale: 0.9, y: 20, opacity: 0 }}
+          animate={{ scale: 1, y: 0, opacity: 1 }}
+          exit={{ scale: 0.9, y: 20, opacity: 0 }}
+          className="bg-[#404040] w-full max-w-2xl max-h-[85vh] rounded-[20px] shadow-2xl flex flex-col overflow-hidden text-right"
         >
           {/* Header */}
           {renderHeader()}
@@ -471,12 +461,11 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
           {(step === 'SELECT_VIOLATION' || step === 'SELECT_CARD') && renderViolationButtons()}
 
           {/* Content Area */}
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-hidden flex flex-col bg-[#333333] m-2 rounded-xl">
             {step === 'MAIN_MENU' && renderMainMenu()}
             {step === 'SELECT_VIOLATION' && (
               <div className="p-6 text-center text-gray-400">
                 <p className="font-tajawal">اختر نوع المخالفة من الأعلى</p>
-                <p className="text-sm">Select violation type above</p>
               </div>
             )}
             {step === 'SELECT_CARD' && renderTrickHistory()}

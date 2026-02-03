@@ -187,6 +187,7 @@ def game_action(sid, data):
         result = game.handle_bid(player.index, payload.get('action'), payload.get('suit'))
     if action.startswith('QAYD'):
         print(f"[SOCKET] QAYD ACTION RECEIVED: {action} from {player.name} ({player.index})")
+        logger.info(f"[SOCKET] QAYD ACTION RECEIVED: {action}")
 
     if action == 'PLAY':
         # CHECK FOR PROFESSOR INTERVENTION (If Human Player)
@@ -239,6 +240,8 @@ def game_action(sid, data):
          result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
     elif action == 'QAYD_CONFIRM':
          result = game.handle_qayd_confirm()
+    elif action == 'QAYD_CANCEL':
+         result = game.handle_qayd_cancel()
     elif action == 'AKKA':
         result = game.handle_akka(player.index)
     elif action == 'UPDATE_SETTINGS':

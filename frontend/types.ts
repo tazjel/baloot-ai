@@ -172,11 +172,12 @@ export interface ProfessorIntervention {
 
 export interface QaydState {
   active: boolean;
-  reporter: number | null;
+  reporter: PlayerPosition | null; // Backend uses Position string
   reason: string | null;
   target_play: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata };
   status?: 'REVIEW' | 'RESOLVED';
   verdict?: string;
+  loser_team?: 'us' | 'them'; // Added
 }
 
 export interface GameState {

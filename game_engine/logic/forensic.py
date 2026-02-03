@@ -47,15 +47,51 @@ class ForensicReferee:
         game_mode = game_snapshot['gameMode']
         trump_suit = game_snapshot['trumpSuit']
         
-        # Convert dicts to Objects for Referee
-        crime_card_obj = Card(crime_card['suit'], crime_card['rank'])
-        proof_card_obj = Card(proof_card['suit'], proof_card['rank'])
+        # Reconstruct "Virtual Hand" at the moment of the crime
+        # Ideally, we rewind state. But for simple verification, we check if they HAD the card.
+        # Check if proof_card exists in the snapshot hand?
+        # ACTUALLY: We need the FULL HAND of the suspect to verify Revoke/Eat.
+        # The 'proof_card' logic was "If I show you this card, it proves I could have played it".
+        # But for "omniscient" Qayd, we check the ENTIRE hand.
+        
+        virtual_hand_objs = []
+        
+        # Identify Suspect
+        suspect_pos = crime_card.get('playedBy')
+        suspect_player = next((p for p in game_snapshot['players'] if p['position'] == suspect_pos), None)
+        
+        if not suspect_player:
+             # Fallback if playedBy missing?
+             return {'is_guilty': False, 'reason': "Suspect not found in snapshot."}
+             
+        # New Logic: Use Suspect's Actual Remaining Hand + The Card They Played (Crime Card)
+        # Wait, crime card was played, so it's NOT in 'hand' anymore (it's in 'tableCards' or 'lastTrick').
+        # But for 'check_revoke', we need the hand AS IT WAS before the play.
+        # So we take 'hand' from snapshot (remaining) AND add the 'crime_card' back?
+        # Game Snapshot is TAKEN AT TIME OF ACCUSATION (After play).
+        # So 'hand' does NOT have 'crime_card'.
+        # We must ADD 'crime_card' back to 'hand' to simulate the state BEFORE the play?
+        # No, 'check_revoke' takes 'hand' containing OTHER cards.
+        # Rule: "Must follow suit if possessed". 
+        # If I played 'Spades' (crime), did I have 'Hearts' (led)?
+        # I check the 'remaining hand'. If 'remaining hand' has Hearts, then Guilty.
+        # So 'virtual_hand' should be the 'remaining hand' from the snapshot.
+        
+        current_hand_dicts = suspect_player.get('hand', [])
+        virtual_hand_objs = [Card(c['suit'], c['rank']) for c in current_hand_dicts]
+        
+        # Legacy Support: If proof_card provided, ensure it's in the hand? 
+        # If UI sends null, we just trust the snapshot hand.
+        
+        # Create Crime Card Object
+        crime_card_obj = Card(crime_card['card']['suit'], crime_card['card']['rank'])
+
         
         # Virtual Hand: The suspect held the proof card.
         # Referee checks if "hand" had options.
-        virtual_hand = [proof_card_obj]
+        virtual_hand = [Card(proof_card['suit'], proof_card['rank'])] if proof_card else virtual_hand_objs
         
-        if led_suit and crime_card_obj.suit != led_suit and proof_card_obj.suit == led_suit:
+        if led_suit and crime_card_obj.suit != led_suit and (proof_card and virtual_hand[0].suit == led_suit):
              # If violation is REVOKE, we need to ensure they actually revoked.
              # The check below handles logic, but we must verify card ownership order.
              # Check if proof was played BEFORE crime?
@@ -71,14 +107,20 @@ class ForensicReferee:
         penalty = 0
 
         # --- DELEGATE TO REFEREE ---
-        if violation_type == 'REVOKE':
+        # Map UI aliases to internal logic
+        mapped_violation = violation_type
+        if violation_type == 'TRUMP_IN_CLOSED': mapped_violation = 'LOCKED_LEAD'
+        elif violation_type == 'NO_TRUMP': mapped_violation = 'EAT'
+        elif violation_type == 'NO_OVERTRUMP': mapped_violation = 'UNDERTRUMP'
+
+        if mapped_violation == 'REVOKE':
             if led_suit:
                  error_reason = Referee.check_revoke(virtual_hand, led_suit, crime_card_obj)
                  penalty = 26 if game_mode == 'HOKUM' else 16
             else:
                  error_reason = "No led suit to revoke." if not led_suit else None
 
-        elif violation_type == 'EAT':
+        elif mapped_violation == 'EAT':
              # Context for Eating
              if game_mode == 'HOKUM' and led_suit and led_suit != trump_suit:
                   winner_idx = ForensicReferee.get_partial_winner(cards_before, game_mode, trump_suit)
@@ -102,7 +144,7 @@ class ForensicReferee:
                   # But we call it anyway to see.
                   pass 
 
-        elif violation_type == 'UNDERTRUMP':
+        elif mapped_violation == 'UNDERTRUMP':
              # Context
              highest_trump = None
              for cp in cards_before:
@@ -121,7 +163,7 @@ class ForensicReferee:
                                                      highest_trump, False) # is_partner irrelevant for UT usually? or logic handles it
              penalty = 26
 
-        elif violation_type == 'LOCKED_LEAD':
+        elif mapped_violation == 'LOCKED_LEAD':
              is_locked = game_snapshot.get('isLocked', False) or game_snapshot.get('gameMode') == 'SUN' # Wait, Locked is Doubled.
              # check_locked_lead(is_locked, ...)
              # Need to know if game was locked.

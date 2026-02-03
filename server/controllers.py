@@ -344,9 +344,15 @@ def leaderboard():
     return {"leaderboard": [p.as_dict() for p in top_players]}
 
 
+@action('health')
+def health_check():
+    return "OK"
+
+
 @action('index')
-def catch_all(path=None):
+def catch_all_v2(path=None):
     print("default page being served")
+    print(f"DEBUG: catch_all_v2 ENTERED. File: {__file__}", flush=True)
     # Construct an absolute path to the React index.html file.
     SERVER_FOLDER = os.path.dirname(__file__)
     PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
@@ -357,10 +363,11 @@ def catch_all(path=None):
         # Handle the error appropriately (e.g., return a 404 page)
         return f'File not found: {file_path}', 404
 
-    with open(file_path, 'rb') as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        print(f"DEBUG: catch_all_v2 serving index.html type={type(content)}", flush=True)
         response.headers['Content-Type'] = 'text/html'
-        return f.read()
-        
+        return [content]
 
 
 @action('training_data', method=['GET', 'OPTIONS'])
@@ -1183,9 +1190,10 @@ def bind(app):
     # 5. Index / Catch-All
     # This must be LAST/LOW PRIORITY usually, or ensure specific routes match first.
     # Bottle matches longest prefix usually.
-    safe_mount('/', 'GET', catch_all)
-    safe_mount('/index', 'GET', catch_all)
-    safe_mount('/<path:path>', 'GET', catch_all) # Wildcard for SPA Routing
+    safe_mount('/health', 'GET', health_check)
+    safe_mount('/', 'GET', catch_all_v2)
+    safe_mount('/index', 'GET', catch_all_v2)
+    safe_mount('/<path:path>', 'GET', catch_all_v2) # Wildcard for SPA Routing
     
     setattr(app, '_main_controllers_bound', True)
 

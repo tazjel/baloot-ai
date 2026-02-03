@@ -239,8 +239,12 @@ class Game:
     
     
     def handle_qayd_cancel(self):
-        """Called when Qayd is cancelled (False Alarm or User Cancel)"""
-        return self.qayd_manager.cancel_challenge()
+        """Called when Qayd is cancelled (False Alarm or User Cancel or Result Closed)"""
+        result = self.qayd_manager.cancel_challenge()
+        if result.get('success'):
+             self.is_locked = False
+             logger.info(f"[QAYD] Game UNLOCKED after cancel/close. is_locked={self.is_locked}")
+        return result
 
     def handle_qayd(self, player_index, reason=None):
         """Legacy/Simple Qayd"""

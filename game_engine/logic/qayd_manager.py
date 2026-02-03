@@ -109,22 +109,50 @@ class QaydManager:
         else:
              # Challenger Loses (False Accusation)
              reason = f"Qayd FAILED: {reason}"
+             reason = f"Qayd FAILED: {reason}"
+             # Logic fix: If accusation fails, applying Khasara to ACCUSER (player.team)
              self.game.apply_khasara(player.team, reason)
              self.state['status'] = 'RESOLVED'
              self.state['loser_team'] = player.team
              
+             self.state['status'] = 'RESOLVED'
+             self.state['loser_team'] = player.team
+             
+        # Enrich verdict for Frontend
+        verdict['isGuilty'] = verdict['is_guilty']
+        verdict['violationType'] = accusation_data['violation_type']
+        verdict['accusedPlayer'] = accusation_data['crime_card']['playedBy']
+        
         return verdict
         
     def cancel_challenge(self) -> Dict[str, Any]:
-        """Cancels changes and resumes game"""
-        if not self.state['active']:
+        """Cancels changes and resumes game. Handles 'Close' action."""
+        logger.info(f"QaydManager.cancel_challenge called. Active: {self.state['active']}, Status: {self.state['status']}")
+        
+        # DEADLOCK FIX: If status is RESOLVED, we allow closing even if active is accidentally False
+        # This ensures the user is never stuck looking at a Result screen
+        if not self.state['active'] and self.state['status'] != 'RESOLVED':
              return {"error": "No active challenge"}
+             
+        # Capture status before clearing
+        was_resolved = (self.state['status'] == 'RESOLVED')
              
         self.state['active'] = False
         self.state['status'] = 'NONE'
         self.state['reporter'] = None
         
         # Resume Game
-        self.game.phase = GamePhase.PLAYING.value
+        # Only set phase to PLAYING if we haven't already finished the round
+        if not was_resolved:
+             self.game.phase = GamePhase.PLAYING.value
+             logger.info("Qayd Cancelled (False Alarm/User Cancel) -> Game Phase PLAYING")
+        else:
+             logger.info("Qayd Closed (Result Viewed) -> Game Phase preserved (FINISHED/GAMEOVER)")
+             
         self.game.timer_paused = False
+        
+        # Force unlocking game (handled by caller usually, but good to be safe)
+        if hasattr(self.game, 'is_locked'):
+             self.game.is_locked = False
+             
         return {"success": True}
