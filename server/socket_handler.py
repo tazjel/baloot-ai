@@ -244,6 +244,8 @@ def game_action(sid, data):
          result = game.handle_qayd_confirm()
     elif action == 'QAYD_CANCEL':
          result = game.handle_qayd_cancel()
+         if result.get('trigger_next_round'):
+              sio.start_background_task(auto_restart_round, game, room_id)
     elif action == 'AKKA':
         result = game.handle_akka(player.index)
     elif action == 'UPDATE_SETTINGS':

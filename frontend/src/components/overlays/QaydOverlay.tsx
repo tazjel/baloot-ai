@@ -51,9 +51,11 @@ interface QaydOverlayProps {
     violationType: ViolationType,
     accusedCard: CardModel,
     trickNumber: number,
-    accusedPlayer: PlayerPosition
+    accusedPlayer: PlayerPosition,
+    proofCard?: CardModel  // New: proof card for Kammelna-style two-card accusation
   ) => void;
   onCancel: () => void;
+  onConfirm?: () => void; // New: for confirming pre-proposed accusations
   result?: QaydResult | null; // When result comes back from server
 }
 
@@ -79,7 +81,7 @@ const MAIN_MENU_OPTIONS: { type: QaydMainOption; label: string; labelAr: string 
   { type: 'WRONG_AKKA', label: 'Wrong Akka', labelAr: 'أكة خاطئة' },
 ];
 
-const TIMER_SECONDS = 5;
+const TIMER_SECONDS = 60;
 
 // =============================================================================
 // COMPONENT
@@ -98,11 +100,23 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   const [step, setStep] = useState<QaydStep>(result ? 'RESULT' : 'MAIN_MENU');
   const [mainOption, setMainOption] = useState<QaydMainOption | null>(null);
   const [selectedViolation, setSelectedViolation] = useState<ViolationType | null>(null);
-  const [selectedCard, setSelectedCard] = useState<{
+  
+  // Two-card selection for proof-based Qayd (Kammelna-style)
+  const [selectedCrimeCard, setSelectedCrimeCard] = useState<{
     card: CardModel;
     trickNumber: number;
     playedBy: PlayerPosition;
   } | null>(null);
+  const [selectedProofCard, setSelectedProofCard] = useState<{
+    card: CardModel;
+    trickNumber: number;
+    playedBy: PlayerPosition;
+  } | null>(null);
+  const [selectionMode, setSelectionMode] = useState<'crime' | 'proof'>('crime');
+  
+  // Legacy compatibility: selectedCard maps to selectedCrimeCard
+  const selectedCard = selectedCrimeCard;
+  
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
 
   // Get tricks from game state
@@ -120,6 +134,19 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
       winner: undefined
     });
   }
+
+  // Set timer duration: 60s for Human, 5s for AI/Others
+  useEffect(() => {
+    const reporterPos = gameState.qaydState?.reporter;
+    // Check if local player (index 0) is the reporter
+    const isLocalUserReporter = reporterPos && gameState.players[0]?.position === reporterPos;
+    
+    if (isLocalUserReporter) {
+        setTimeLeft(60);
+    } else {
+        setTimeLeft(5);
+    }
+  }, [gameState.qaydState?.reporter]);
 
   // Timer countdown
   useEffect(() => {
@@ -151,8 +178,14 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   useEffect(() => {
     if (result) {
       setStep('RESULT');
+      
+      // Auto-close result after 3 seconds (Kammelna style)
+      const timer = setTimeout(() => {
+          if (onCancel) onCancel();
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [result]);
+  }, [result, onCancel]);
 
   // Get violations based on game mode
   const violations = isHokum ? HOKUM_VIOLATIONS : SUN_VIOLATIONS;
@@ -177,28 +210,55 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
 
   const handleViolationSelect = (violation: ViolationType) => {
     setSelectedViolation(violation);
+    setSelectionMode('crime'); // Start with crime selection
     setStep('SELECT_CARD');
   };
 
   const handleCardSelect = (card: CardModel, trickNumber: number, playedBy: PlayerPosition) => {
-    setSelectedCard({ card, trickNumber, playedBy });
+    if (selectionMode === 'crime') {
+      // Selecting the crime card (the illegal play)
+      setSelectedCrimeCard({ card, trickNumber, playedBy });
+      setSelectionMode('proof'); // Now select proof
+    } else {
+      // Selecting the proof card (the card that proves the crime)
+      setSelectedProofCard({ card, trickNumber, playedBy });
+    }
   };
 
   const handleConfirm = () => {
-    if (selectedViolation && selectedCard) {
+    if (selectedViolation && selectedCrimeCard && selectedProofCard) {
+      // Two-card accusation (Kammelna-style)
       onAccusation(
         selectedViolation,
-        selectedCard.card,
-        selectedCard.trickNumber,
-        selectedCard.playedBy
+        selectedCrimeCard.card,
+        selectedCrimeCard.trickNumber,
+        selectedCrimeCard.playedBy,
+        selectedProofCard.card // Pass proof card to parent
+      );
+    } else if (selectedViolation && selectedCrimeCard) {
+      // Legacy single-card accusation
+      onAccusation(
+        selectedViolation,
+        selectedCrimeCard.card,
+        selectedCrimeCard.trickNumber,
+        selectedCrimeCard.playedBy
       );
     }
   };
 
   const handleBack = () => {
     if (step === 'SELECT_CARD') {
-      setSelectedCard(null);
-      setStep('SELECT_VIOLATION');
+      if (selectionMode === 'proof' && selectedCrimeCard) {
+        // Go back from proof to crime selection
+        setSelectedProofCard(null);
+        setSelectionMode('crime');
+      } else {
+        // Go back to violation selection
+        setSelectedCrimeCard(null);
+        setSelectedProofCard(null);
+        setSelectionMode('crime');
+        setStep('SELECT_VIOLATION');
+      }
     } else if (step === 'SELECT_VIOLATION') {
       setSelectedViolation(null);
       setMainOption(null);
@@ -216,12 +276,16 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     let instructionColor = 'text-white';
 
     if (step === 'SELECT_CARD') {
-      if (selectedCard) {
-        instructionAr = 'كشفت الغش';
-        instructionColor = 'text-green-400';
-      } else {
+      if (selectionMode === 'crime') {
+        // Step 1: Select the crime card
         instructionAr = 'تم الغش بها';
         instructionColor = 'text-red-400';
+        // titleAr remains 'نوع القيد'
+      } else if (selectionMode === 'proof') {
+        // Step 2: Select the proof card
+        instructionAr = 'كشفت الغش';
+        instructionColor = 'text-green-400';
+        // titleAr remains 'نوع القيد'
       }
     }
 
@@ -334,9 +398,22 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
             <div className="flex justify-center gap-2">
               {trick.cards.map((play, idx) => {
                 if (!play || !play.card) return null; // Safety check
-                const isSelected =
-                  selectedCard?.card.id === play.card.id &&
-                  selectedCard?.trickNumber === trick.trickNumber;
+                
+                // Two-card selection: Check if this card is crime or proof
+                const isCrimeCard =
+                  selectedCrimeCard?.card.id === play.card.id &&
+                  selectedCrimeCard?.trickNumber === trick.trickNumber;
+                const isProofCard =
+                  selectedProofCard?.card.id === play.card.id &&
+                  selectedProofCard?.trickNumber === trick.trickNumber;
+                
+                // Determine ring color based on selection type
+                let ringClass = '';
+                if (isCrimeCard) {
+                  ringClass = 'ring-4 ring-red-500 rounded-md z-10'; // Crime = Red
+                } else if (isProofCard) {
+                  ringClass = 'ring-4 ring-green-500 rounded-md z-10'; // Proof = Green
+                }
 
                 return (
                   <div
@@ -345,14 +422,23 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
                       step === 'SELECT_CARD' &&
                       handleCardSelect(play.card, trick.trickNumber, play.playedBy)
                     }
-                    className={`relative cursor-pointer transition-transform hover:scale-105 ${
-                      isSelected ? 'ring-4 ring-yellow-400 rounded-md z-10' : ''
-                    }`}
+                    className={`relative cursor-pointer transition-transform hover:scale-105 ${ringClass}`}
                   >
                     {/* Card */}
                     <div className="w-14 h-20">
                       <CardVector card={play.card} className="w-full h-full rounded shadow-md" />
                     </div>
+                    {/* Label badge for selected cards */}
+                    {isCrimeCard && (
+                      <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                        الجريمة
+                      </div>
+                    )}
+                    {isProofCard && (
+                      <div className="absolute -top-2 -right-2 bg-green-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                        الدليل
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -394,7 +480,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
           {/* Text */}
           <div className="text-right">
             <span className="text-white font-bold font-tajawal text-xl block">
-              {isSuccess ? 'تم كشف الغش' : 'اتهام خاطئ'}
+              {isSuccess ? 'نتيجة القيد: صحيح' : 'نتيجة القيد: خطأ'}
             </span>
             <span className="text-white/80 font-tajawal text-sm">
               {isSuccess ? 'تم تسجيل القيد بنجاح' : 'لم يتم العثور على مخالفة'}
@@ -446,14 +532,44 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
         <div className="w-full bg-[#404040] rounded-xl p-4 border border-[#555555] flex flex-col gap-3">
              {/* Violation Type */}
             <div className="flex justify-between items-center border-b border-[#555555] pb-3">
-              <span className="text-gray-400 font-tajawal text-sm">نوع المخالفة</span>
-              <span className="text-white font-bold font-tajawal">{result.violationType}</span>
+              <span className="text-gray-400 font-tajawal text-sm">نوع القيد</span>
+              <span className="text-white font-bold font-tajawal">
+                  {(() => {
+                      const v = violations.find(v => v.type === result.violationType);
+                      return v ? v.labelAr : result.violationType;
+                  })()}
+              </span>
             </div>
 
-            {/* Accused Player */}
-            <div className="flex justify-between items-center">
+            {/* Accused Player (The Cheater) */}
+            <div className="flex justify-between items-center border-b border-[#555555] pb-3">
               <span className="text-gray-400 font-tajawal text-sm">المتهم</span>
-              <span className="text-yellow-400 font-bold font-tajawal">{result.accusedPlayer}</span>
+              <span className="text-yellow-400 font-bold font-tajawal">
+                  {(() => {
+                      const p = gameState.players.find(p => p.position === result.accusedPlayer);
+                      return p ? p.name : result.accusedPlayer;
+                  })()}
+              </span>
+            </div>
+
+            {/* Reporter (The Accuser) */}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400 font-tajawal text-sm">المقيد</span>
+              <div className="flex items-center gap-2">
+                 <span className="text-[10px]">👑</span>
+                 <span className="text-amber-400 font-bold font-tajawal">
+                  {(() => {
+                    // Try to find reporter name from game state if available
+                    // For now, if we don't have it in result, we might need to look it up or passed in
+                    const reporterPos = gameState.qaydState?.reporter;
+                    if (reporterPos) {
+                        const reporter = gameState.players.find(p => p.position === reporterPos);
+                        return reporter ? reporter.name : reporterPos;
+                    }
+                    return 'أنت'; // Fallback
+                  })()}
+                 </span>
+              </div>
             </div>
             
             {/* Penalty Info (if applicable) */}
@@ -479,19 +595,43 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   const renderFooter = () => {
     if (step === 'RESULT') return null;
 
+    // Determine if we can confirm (both cards selected)
+    const canConfirm = selectedCrimeCard && selectedProofCard;
+    
+    // Show progress indicator for two-card selection
+    const selectionProgress = selectedCrimeCard 
+      ? (selectedProofCard ? 'اختر قيدها للتأكيد' : 'اختر الدليل الآن')
+      : 'اختر الورقة الخاطئة';
+
     return (
       <div className="px-6 py-4 bg-[#404040] rounded-b-[20px] flex justify-between items-center">
-        {/* Left: Submit Button (If Card Selected) */}
-         <div className="flex-1 flex justify-start">
-             {/* If MAIN MENU, show nothing or close */}
-             {step === 'SELECT_CARD' && selectedCard && (
+        {/* Left: Submit Button or Progress */}
+         <div className="flex-1 flex justify-start items-center gap-3">
+             {/* Back button when in proof selection */}
+             {selectionMode === 'proof' && selectedCrimeCard && (
+               <motion.button
+                   whileTap={{ scale: 0.95 }}
+                   onClick={handleBack}
+                   className="px-4 py-2 bg-[#555555] hover:bg-[#666666] text-white text-sm font-tajawal rounded-lg"
+               >
+                   ← رجوع
+               </motion.button>
+             )}
+             
+             {/* Confirm button (only when both cards selected) */}
+             {step === 'SELECT_CARD' && canConfirm && (
                 <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={handleConfirm}
-                    className="px-8 py-2 bg-[#888888] hover:bg-[#999999] text-[#333333] font-bold font-tajawal rounded-lg shadow-lg"
+                    className="px-8 py-2 bg-amber-500 hover:bg-amber-600 text-black font-bold font-tajawal rounded-lg shadow-lg"
                 >
-                    قيدها
+                    قيدها ✓
                 </motion.button>
+             )}
+             
+             {/* Progress text */}
+             {step === 'SELECT_CARD' && !canConfirm && (
+               <span className="text-gray-400 text-sm font-tajawal">{selectionProgress}</span>
              )}
          </div>
 

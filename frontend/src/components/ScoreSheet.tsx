@@ -15,8 +15,8 @@ const ScoreSheet: React.FC<ScoreSheetProps> = ({ roundHistory, matchScores, curr
 
             {/* Header */}
             <div className="flex border-b-2 border-gray-400 bg-[#e6d595] p-2 text-center font-bold text-lg relative z-10">
-                <div className="w-1/2 border-l border-gray-400">لنا (Lana)</div>
                 <div className="w-1/2">لهم (Laham)</div>
+                <div className="w-1/2 border-l border-gray-400">لنا (Lana)</div>
             </div>
 
             {/* History Rows */}
@@ -37,33 +37,33 @@ const ScoreSheet: React.FC<ScoreSheetProps> = ({ roundHistory, matchScores, curr
                         </div>
 
                         {/* Penalty / Qayd Indicators */}
-                        {round.us.totalRaw === 0 && (
+                        {round.them.totalRaw === 0 && (
                             <div className="absolute left-1 top-1/2 -translate-y-1/2 text-red-600 text-xs font-black" title="Qayd / Shutout">❌</div>
                         )}
-                        {round.them.totalRaw === 0 && (
+                        {round.us.totalRaw === 0 && (
                             <div className="absolute right-1 top-1/2 -translate-y-1/2 text-red-600 text-xs font-black" title="Qayd / Shutout">❌</div>
                         )}
 
-                        <div className={`w-1/2 text-center border-l border-gray-300 font-bold ${round.winner === 'us' ? 'text-green-800' : ''}`}>
-                            {round.us.gamePoints}
-                        </div>
                         <div className={`w-1/2 text-center font-bold ${round.winner === 'them' ? 'text-red-800' : ''}`}>
                             {round.them.gamePoints}
+                        </div>
+                        <div className={`w-1/2 text-center border-l border-gray-300 font-bold ${round.winner === 'us' ? 'text-green-800' : ''}`}>
+                            {round.us.gamePoints}
                         </div>
                     </div>
                 ))}
 
                 {/* Current Round (In Progress) */}
                 <div className="flex text-lg text-gray-500 italic">
-                    <div className="w-1/2 text-center border-l border-gray-300">{currentRoundScore.us > 0 ? `+${currentRoundScore.us}` : '-'}</div>
                     <div className="w-1/2 text-center">{currentRoundScore.them > 0 ? `+${currentRoundScore.them}` : '-'}</div>
+                    <div className="w-1/2 text-center border-l border-gray-300">{currentRoundScore.us > 0 ? `+${currentRoundScore.us}` : '-'}</div>
                 </div>
             </div>
 
             {/* Total Footer */}
             <div className="flex border-t-2 border-gray-800 bg-[#e6d595] p-2 text-center font-black text-xl relative z-10">
-                <div className="w-1/2 border-l border-gray-800 text-blue-900">{matchScores.us}</div>
                 <div className="w-1/2 text-red-900">{matchScores.them}</div>
+                <div className="w-1/2 border-l border-gray-800 text-blue-900">{matchScores.us}</div>
             </div>
 
             {/* Sakkah Line Visualization (Optional - usually just a line across) */}

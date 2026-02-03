@@ -116,7 +116,7 @@ class ForensicReferee:
         if mapped_violation == 'REVOKE':
             if led_suit:
                  error_reason = Referee.check_revoke(virtual_hand, led_suit, crime_card_obj)
-                 penalty = 26 if game_mode == 'HOKUM' else 16
+                 penalty = 16 if game_mode == 'HOKUM' else 26
             else:
                  error_reason = "No led suit to revoke." if not led_suit else None
 
@@ -138,7 +138,7 @@ class ForensicReferee:
                   
                   error_reason = Referee.check_eating(game_mode, trump_suit, virtual_hand, led_suit, crime_card_obj,
                                                       current_winner_pos, None, is_partner_winning)
-                  penalty = 26
+                  penalty = 16
              else:
                   # If Referee wouldn't flag it (e.g. not Hokum), we shouldn't either.
                   # But we call it anyway to see.
@@ -161,7 +161,7 @@ class ForensicReferee:
                             
              error_reason = Referee.check_undertrump(game_mode, trump_suit, virtual_hand, crime_card_obj,
                                                      highest_trump, False) # is_partner irrelevant for UT usually? or logic handles it
-             penalty = 26
+             penalty = 16
 
         elif mapped_violation == 'LOCKED_LEAD':
              is_locked = game_snapshot.get('isLocked', False) or game_snapshot.get('gameMode') == 'SUN' # Wait, Locked is Doubled.

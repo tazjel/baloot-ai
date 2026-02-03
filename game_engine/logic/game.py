@@ -99,6 +99,9 @@ class Game:
         self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
         self.qayd_manager = QaydManager(self)
+        
+        # FIX: Alias Qayd State to TrickManager to prevent Split Brain
+        self.qayd_state = self.trick_manager.qayd_state
 
         # Initialize Phases Map
         self.phases = {
@@ -240,6 +243,8 @@ class Game:
     def handle_qayd_accusation(self, player_index, accusation=None):
         """
         Called when a bot/user provides specific accusation details.
+        
+        Supports proof-based accusations with explicit crime_card and proof_card.
         """
         # SPLIT-BRAIN FIX: Check which Manager is active
         if self.trick_manager.qayd_state.get('active'):
@@ -247,7 +252,25 @@ class Game:
              return self.handle_qayd_confirm()
 
         if accusation:
-            return self.qayd_manager.process_accusation(player_index, accusation)
+            # Proof-based accusation: extract crime/proof data
+            crime_card = accusation.get('crime_card')
+            proof_card = accusation.get('proof_card')
+            qayd_type = accusation.get('qayd_type', 'REVOKE')
+            
+            if crime_card and proof_card:
+                # Explicit accusation mode: pass to propose_qayd with data
+                logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}")
+                return self.trick_manager.propose_qayd(
+                    player_index,
+                    crime_card=crime_card,
+                    proof_card=proof_card,
+                    qayd_type=qayd_type,
+                    crime_trick_idx=accusation.get('crime_trick_idx'),
+                    proof_trick_idx=accusation.get('proof_trick_idx')
+                )
+            else:
+                # Legacy accusation format
+                return self.qayd_manager.process_accusation(player_index, accusation)
         return self.handle_qayd_confirm()
 
     def handle_qayd_confirm(self):
@@ -258,11 +281,17 @@ class Game:
     def handle_qayd_cancel(self):
         """Called when Qayd is cancelled/closed"""
         # SPLIT-BRAIN FIX: Check TrickManager
-        if self.trick_manager.qayd_state.get('active'):
+        if getattr(self, 'trick_manager', None) and self.trick_manager.qayd_state.get('active'):
              result = self.trick_manager.cancel_qayd()
              if result.get('success'):
                   self.is_locked = False
                   logger.info(f"[QAYD] Game UNLOCKED after Cancel (TrickManager).")
+                  
+                  # TRIGGER NEXT ROUND IF NEEDED
+                  if self.phase == GamePhase.FINISHED.value:
+                       logger.info(f"[QAYD] Phase is FINISHED. Signaling Auto-Restart.")
+                       result['trigger_next_round'] = True
+                       
              return result
 
         result = self.qayd_manager.cancel_challenge()
@@ -377,7 +406,15 @@ class Game:
         
         if hasattr(self, 'trick_manager'):
              self.trick_manager.sawa_state = self.sawa_state
-             self.trick_manager.qayd_state = self.qayd_manager.state
+             # CRITICAL FIX: Do NOT overwrite TrickManager's state with a new dict
+             # Instead, modify the existing one or sync carefully
+             # But here we are resetting everything.
+             # Ideally: self.trick_manager.reset_state() should handle it.
+             self.trick_manager.reset_state()
+             
+             # Re-link for safety, but they should be the same object if reset_state clears it in place
+             self.qayd_state = self.trick_manager.qayd_state
+             
         if hasattr(self.project_manager, 'akka_state'):
              self.project_manager.akka_state = None
              
@@ -635,8 +672,19 @@ class Game:
         self.timer.reset(duration)
         self.timer_paused = False # Unpause on reset
         
-        # Reset specific states
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        # SPLIT BRAIN FIX: 
+        # Only reset manual dict if TrickManager is NOT managing it.
+        # If TrickManager is present, ensure we are just syncing or modifying in place.
+        
+        if hasattr(self, 'trick_manager') and self.trick_manager.qayd_state is not None:
+             # We assume TrickManager handles its own reset via `trick_manager.reset_state()` 
+             # or we modify the shared dict in place if needed.
+             # Current pattern: end_round calls trick_manager.reset_state(), which sets active=False.
+             # So we don't need to do anything here if trick_manager exists.
+             pass
+        else:
+             # Fallback for legacy
+             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
 
     def pause_timer(self):
         """Pauses the turn timer (e.g. for Professor Intervention)"""

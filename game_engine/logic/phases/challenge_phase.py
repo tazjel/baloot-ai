@@ -37,9 +37,10 @@ class ChallengePhase:
             self.game.phase = GamePhase.CHALLENGE.value
             
             # 3. Initialize State
-            if not self.game.qayd_state:
-                self.game.qayd_state = {'active': True, 'reporter': player_index}
-            self.game.qayd_state['active'] = True
+            # REMOVED: Redundant state init (handled by Alias + TrickManager)
+            # if not self.game.qayd_state:
+            #    self.game.qayd_state = {'active': True, 'reporter': player_index}
+            # self.game.qayd_state['active'] = True
             
             logger.info(f"[QAYD] Challenge Handler: Game LOCKED & Phase set to CHALLENGE")
             return result

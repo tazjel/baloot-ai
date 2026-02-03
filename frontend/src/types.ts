@@ -87,6 +87,12 @@ export interface DetailedScore {
   abnat: number;
   result: number;
   projects: DeclaredProject[];
+  
+  // UI Helper Props (Optional)
+  rawCardPoints?: number;
+  projectPoints?: number;
+  totalRaw?: number;
+  gamePoints?: number;
 }
 
 export interface ScoreBreakdown {
@@ -99,6 +105,7 @@ export interface ScoreBreakdown {
 }
 
 export interface RoundResult {
+  roundNumber?: number; // Added
   us: DetailedScore;
   them: DetailedScore;
   winner: 'us' | 'them' | 'tie' | 'NONE';

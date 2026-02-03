@@ -1,0 +1,17 @@
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+  import cgi
+INFO:ai_worker.strategies.neural:Neural Strategy Loaded: C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\models\strategy_net_best.pth
+INFO:ai_worker.brain_client:[BRAIN] OFFLINE_MODE. Redis disabled.
+INFO:ai_worker.brain_client:[BRAIN] OFFLINE_MODE. Redis disabled.
+INFO:ai_worker.referee_observer:[REFEREE] Bottom detected illegal move by Right! Triggering Qayd.
+..
+----------------------------------------------------------------------
+Ran 2 tests in 2.149s
+
+OK
+
+--- Test 1: Referee Detection ---
+✅ RefereeObserver correctly returned QAYD_TRIGGER
+
+--- Test 2: Sherlock Accusation Logic ---
+✅ Sherlock Logic correctly returned QAYD_ACCUSATION

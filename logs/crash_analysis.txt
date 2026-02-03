@@ -1,0 +1,200 @@
+2026-02-03 18:22:48,726 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 18:22:48,728 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 18:22:48,728 - GameServer - WARNING - PHANTOM QAYD DETECTED (Reason: Qayd Investigation) during Auto-Play. Force-clearing state to RESUME GAME.
+2026-02-03 18:22:48,728 - GameServer - INFO - [QAYD] handle_qayd_cancel called.
+2026-02-03 18:22:48,729 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': True, 'action': 'PHANTOM_REPAIR'}
+2026-02-03 18:22:48,729 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 18:22:53,766 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 18:22:53,766 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0362s). Executing Action... | Room: cd13816c | GameObj: 2900336887328
+2026-02-03 18:22:53,767 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 18:22:53,771 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0036s
+2026-02-03 18:22:53,771 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 18:22:53,775 - GameServer - INFO - Timeout Action Completed in 0.0064s. Result: {'success': True, 'card': {'suit': '♥', 'rank': 'J', 'id': 'J♥', 'value': 0}, 'table': [{'suit': '♦', 'rank': '8', 'id': '8♦', 'value': 0}, {'suit': '♥', 'rank': 'J', 'id': 'J♥', 'value': 0}]}
+2026-02-03 18:22:55,332 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (5, -1)
+2026-02-03 18:22:56,891 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "cd13816c", "timestamp": 1770132176.891486, "details": {"winner": "Right", "points": 6, "trick_num": 6}}
+2026-02-03 18:22:59,462 - GameServer - INFO - Routing Accusation to TrickManager (Confirming Proposal)
+2026-02-03 18:22:59,462 - GameServer - INFO - QAYD CONFIRMED: Qayd Failed: Move was legal.. them loses 16 pts.
+2026-02-03 18:22:59,463 - GameServer - INFO - [EVENT] {"event": "ROUND_END_PENALTY", "game_id": "cd13816c", "timestamp": 1770132179.463076, "details": {"reason": "Qayd Failed: Move was legal.", "loser": "them", "scores": {"us": 16, "them": 0}}}
+2026-02-03 20:26:26,648 - GameServer - INFO - Game Started. Random Dealer Index: 1
+2026-02-03 20:26:26,649 - GameServer - ERROR - ❌ [TrickManager] ILLEGAL MOVE DETECTED: ACESPADES
+2026-02-03 20:26:26,649 - GameServer - INFO - QAYD CONFIRMED: Qayd Valid: Rule Violation. us loses 16 pts.
+2026-02-03 20:26:26,649 - GameServer - INFO - [EVENT] {"event": "ROUND_END_PENALTY", "game_id": "test_qayd_room", "timestamp": 1770139586.6497116, "details": {"reason": "Qayd Valid: Rule Violation", "loser": "us", "scores": {"us": 0, "them": 16}}}
+2026-02-03 20:26:26,663 - GameServer - INFO - Game Started. Random Dealer Index: 2
+2026-02-03 20:26:26,663 - GameServer - ERROR - ❌ [TrickManager] ILLEGAL MOVE DETECTED: ACESPADES
+2026-02-03 20:26:26,663 - GameServer - INFO - QAYD CONFIRMED: Qayd Valid: Rule Violation. us loses 16 pts.
+2026-02-03 20:26:26,663 - GameServer - INFO - [EVENT] {"event": "ROUND_END_PENALTY", "game_id": "test_qayd_room", "timestamp": 1770139586.6632712, "details": {"reason": "Qayd Valid: Rule Violation", "loser": "us", "scores": {"us": 0, "them": 16}}}
+2026-02-03 20:26:26,664 - GameServer - INFO - Game Started. Random Dealer Index: 3
+2026-02-03 20:26:26,664 - GameServer - ERROR - ❌ [TrickManager] ILLEGAL MOVE DETECTED: ACESPADES
+2026-02-03 20:26:26,664 - GameServer - INFO - QAYD CONFIRMED: Qayd Valid: Rule Violation. us loses 16 pts.
+2026-02-03 20:26:26,664 - GameServer - INFO - [EVENT] {"event": "ROUND_END_PENALTY", "game_id": "test_qayd_room", "timestamp": 1770139586.6642742, "details": {"reason": "Qayd Valid: Rule Violation", "loser": "us", "scores": {"us": 0, "them": 16}}}
+2026-02-03 20:26:26,665 - GameServer - INFO - Game Started. Random Dealer Index: 0
+2026-02-03 20:26:26,665 - GameServer - ERROR - ❌ [TrickManager] ILLEGAL MOVE DETECTED: ACESPADES
+2026-02-03 20:26:30,268 - GameServer - ERROR - Error in auto_play_card: 'playerId'
+2026-02-03 20:26:30,268 - GameServer - INFO - Auto-Play Fallback for Bot 1: Playing index 0 (10HEARTS)
+2026-02-03 20:26:30,268 - GameServer - INFO - [LOCK] play_card skipped - game is locked
+2026-02-03 20:34:08,806 - GameServer - INFO - Game Started. Random Dealer Index: 1
+2026-02-03 20:34:08,818 - GameServer - INFO - Game Started. Random Dealer Index: 0
+2026-02-03 20:34:18,650 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:18,651 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0891s). Executing Action... | Room: b7542c5d | GameObj: 2119370978656
+2026-02-03 20:34:18,652 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:18,654 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0025s
+2026-02-03 20:34:18,654 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:18,655 - GameServer - INFO - Timeout Action Completed in 0.0030s. Result: {'success': True, 'card': {'suit': '♥', 'rank': '8', 'id': '8♥', 'value': 0}, 'table': [{'suit': '♥', 'rank': '7', 'id': '7♥', 'value': 0}, {'suit': '♠', 'rank': '7', 'id': '7♠', 'value': 0}, {'suit': '♥', 'rank': '8', 'id': '8♥', 'value': 0}]}
+2026-02-03 20:34:20,171 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140060.1716797, "details": {"winner": "Right", "points": 3, "trick_num": 1}}
+2026-02-03 20:34:20,186 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:20,186 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.1029s). Executing Action... | Room: f9a6341f | GameObj: 2119360310944
+2026-02-03 20:34:20,187 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:20,189 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:34:20,190 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:20,190 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140060.1907413, "details": {"winner": "Bottom", "points": 10, "trick_num": 1}}
+2026-02-03 20:34:20,191 - GameServer - INFO - Timeout Action Completed in 0.0041s. Result: {'success': True, 'card': {'suit': '♥', 'rank': '9', 'id': '9♥', 'value': 0}, 'table': []}
+2026-02-03 20:34:29,737 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:29,737 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0013s). Executing Action... | Room: b7542c5d | GameObj: 2119360022480
+2026-02-03 20:34:29,738 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:29,742 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0036s
+2026-02-03 20:34:29,743 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:29,743 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140069.7434053, "details": {"winner": "Right", "points": 21, "trick_num": 2}}
+2026-02-03 20:34:29,743 - GameServer - INFO - Timeout Action Completed in 0.0058s. Result: {'success': True, 'card': {'suit': '♥', 'rank': '9', 'id': '9♥', 'value': 0}, 'table': []}
+2026-02-03 20:34:29,844 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140069.8444083, "details": {"winner": "Top", "points": 17, "trick_num": 2}}
+2026-02-03 20:34:37,979 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:37,981 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0909s). Executing Action... | Room: f9a6341f | GameObj: 2119358748272
+2026-02-03 20:34:37,981 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:37,984 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:34:37,984 - GameServer - INFO - Auto-Play for Me: Bot chose index 1
+2026-02-03 20:34:37,984 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': True, 'card': {'suit': '♠', 'rank': 'K', 'id': 'K♠', 'value': 0}, 'table': [{'suit': '♠', 'rank': '8', 'id': '8♠', 'value': 0}, {'suit': '♠', 'rank': 'Q', 'id': 'Q♠', 'value': 0}, {'suit': '♠', 'rank': 'K', 'id': 'K♠', 'value': 0}]}
+2026-02-03 20:34:39,313 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:39,314 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0066s). Executing Action... | Room: b7542c5d | GameObj: 2119382240864
+2026-02-03 20:34:39,315 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:39,319 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0031s
+2026-02-03 20:34:39,319 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:39,320 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140079.3204067, "details": {"winner": "Top", "points": 9, "trick_num": 3}}
+2026-02-03 20:34:39,320 - GameServer - INFO - Timeout Action Completed in 0.0052s. Result: {'success': True, 'card': {'suit': '♥', 'rank': 'J', 'id': 'J♥', 'value': 0}, 'table': []}
+2026-02-03 20:34:39,493 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140079.4936826, "details": {"winner": "Bottom", "points": 9, "trick_num": 3}}
+2026-02-03 20:34:44,550 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:44,551 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0565s). Executing Action... | Room: f9a6341f | GameObj: 2119371753376
+2026-02-03 20:34:44,551 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:44,554 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:34:44,554 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:44,554 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': True, 'card': {'suit': '♥', 'rank': '10', 'id': '10♥', 'value': 0}, 'table': [{'suit': '♥', 'rank': '10', 'id': '10♥', 'value': 0}]}
+2026-02-03 20:34:47,405 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:47,405 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0513s). Executing Action... | Room: b7542c5d | GameObj: 2119381245328
+2026-02-03 20:34:47,406 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:47,410 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0039s
+2026-02-03 20:34:47,411 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:47,412 - GameServer - INFO - Timeout Action Completed in 0.0050s. Result: {'success': True, 'card': {'suit': '♦', 'rank': '7', 'id': '7♦', 'value': 0}, 'table': [{'suit': '♥', 'rank': 'K', 'id': 'K♥', 'value': 0}, {'suit': '♦', 'rank': 'A', 'id': 'A♦', 'value': 0}, {'suit': '♦', 'rank': '7', 'id': '7♦', 'value': 0}]}
+2026-02-03 20:34:48,969 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140088.9698625, "details": {"winner": "Top", "points": 25, "trick_num": 4}}
+2026-02-03 20:34:49,199 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140089.1990402, "details": {"winner": "Bottom", "points": 10, "trick_num": 4}}
+2026-02-03 20:34:54,057 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:54,058 - GameServer - INFO - Timeout Triggered for Player 2 (Lag: 0.0880s). Executing Action... | Room: b7542c5d | GameObj: 2119380633984
+2026-02-03 20:34:54,059 - GameServer - INFO - Timeout Playing for Player 2. Auto-Play.
+2026-02-03 20:34:54,061 - GameServer - INFO - Auto-Play Decision Latency for Khalid (Bot): 0.0021s
+2026-02-03 20:34:54,062 - GameServer - INFO - Auto-Play for Khalid (Bot): Triggering Qayd Protocol (Sherlock)
+2026-02-03 20:34:54,062 - GameServer - INFO - Timeout Action Completed in 0.0026s. Result: {'success': True, 'qayd_state': {'active': True, 'reporter': 'Top', 'status': 'REVIEW', 'verdict_message': None, 'crime_card_index': -1, 'proof_card_index': -1, 'penalty_points': 16, 'loser_team': 'us', 'reason': 'Qayd Failed: Move was legal.', 'target_play': None, 'target_source': 'table_cards', 'crime_signature': (4, -1), 'verdict': 'False Accusation by Top'}}
+2026-02-03 20:34:54,062 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 20:34:54,212 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:34:54,213 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0138s). Executing Action... | Room: f9a6341f | GameObj: 2119360228064
+2026-02-03 20:34:54,213 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:34:54,216 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:34:54,217 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:34:54,217 - GameServer - INFO - Timeout Action Completed in 0.0041s. Result: {'success': True, 'card': {'suit': '♦', 'rank': '9', 'id': '9♦', 'value': 0}, 'table': [{'suit': '♦', 'rank': '9', 'id': '9♦', 'value': 0}]}
+2026-02-03 20:34:58,871 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140098.8718345, "details": {"winner": "Left", "points": 12, "trick_num": 5}}
+2026-02-03 20:34:59,067 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=True, phase=CHALLENGE
+2026-02-03 20:34:59,068 - GameServer - INFO - Timeout Triggered for Player 2 (Lag: 0.0048s). Executing Action... | Room: b7542c5d | GameObj: 2119360077728
+2026-02-03 20:34:59,069 - GameServer - WARNING - Qayd Active but reporter not found. ZOMBIE STATE DETECTED. Auto-cancelling.
+2026-02-03 20:34:59,070 - GameServer - INFO - [QAYD] handle_qayd_cancel called.
+2026-02-03 20:34:59,070 - GameServer - INFO - [QAYD] Added crime (4, -1) to ignore list.
+2026-02-03 20:34:59,070 - GameServer - INFO - [QAYD] Phase reverted to PLAYING.
+2026-02-03 20:34:59,070 - GameServer - INFO - Timeout Action Completed in 0.0010s. Result: {'success': True, 'action': 'ZOMBIE_REPAIR'}
+2026-02-03 20:34:59,071 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 20:35:00,630 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (4, -1)
+2026-02-03 20:35:03,198 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (4, -1)
+2026-02-03 20:35:05,438 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:05,439 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0183s). Executing Action... | Room: f9a6341f | GameObj: 2119385295872
+2026-02-03 20:35:05,440 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:05,442 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:35:05,442 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:35:05,443 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': True, 'card': {'suit': '♣', 'rank': '7', 'id': '7♣', 'value': 0}, 'table': [{'suit': '♦', 'rank': 'Q', 'id': 'Q♦', 'value': 0}, {'suit': '♣', 'rank': '7', 'id': '7♣', 'value': 0}]}
+2026-02-03 20:35:07,219 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:07,220 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0337s). Executing Action... | Room: b7542c5d | GameObj: 2119384064336
+2026-02-03 20:35:07,221 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:07,224 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0026s
+2026-02-03 20:35:07,225 - GameServer - WARNING - PHANTOM QAYD DETECTED (Reason: Qayd Investigation) during Auto-Play. Force-clearing state to RESUME GAME.
+2026-02-03 20:35:07,225 - GameServer - INFO - [QAYD] handle_qayd_cancel called.
+2026-02-03 20:35:07,225 - GameServer - INFO - Timeout Action Completed in 0.0047s. Result: {'success': True, 'action': 'PHANTOM_REPAIR'}
+2026-02-03 20:35:07,226 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 20:35:08,538 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140108.538449, "details": {"winner": "Left", "points": 8, "trick_num": 6}}
+2026-02-03 20:35:12,249 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:12,249 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0217s). Executing Action... | Room: b7542c5d | GameObj: 2119383010528
+2026-02-03 20:35:12,250 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:12,252 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:35:12,253 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:35:12,255 - GameServer - INFO - Timeout Action Completed in 0.0048s. Result: {'success': True, 'card': {'suit': '♦', 'rank': '8', 'id': '8♦', 'value': 0}, 'table': [{'suit': '♠', 'rank': 'A', 'id': 'A♠', 'value': 0}, {'suit': '♣', 'rank': '7', 'id': '7♣', 'value': 0}, {'suit': '♦', 'rank': '8', 'id': '8♦', 'value': 0}]}
+2026-02-03 20:35:13,584 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:13,585 - GameServer - INFO - Timeout Triggered for Player 3 (Lag: 0.0456s). Executing Action... | Room: f9a6341f | GameObj: 2119381135728
+2026-02-03 20:35:13,585 - GameServer - INFO - Timeout Playing for Player 3. Auto-Play.
+2026-02-03 20:35:13,586 - GameServer - INFO - Auto-Play Decision Latency for Abu Fahad (Bot): 0.0010s
+2026-02-03 20:35:13,587 - GameServer - INFO - Auto-Play for Abu Fahad (Bot): Bot chose index 0
+2026-02-03 20:35:13,587 - GameServer - INFO - Timeout Action Completed in 0.0020s. Result: {'success': True, 'card': {'suit': '♦', 'rank': 'A', 'id': 'A♦', 'value': 0}, 'table': [{'suit': '♦', 'rank': 'A', 'id': 'A♦', 'value': 0}]}
+2026-02-03 20:35:13,814 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (4, -1)
+2026-02-03 20:35:13,817 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140113.8172073, "details": {"winner": "Top", "points": 13, "trick_num": 5}}
+2026-02-03 20:35:18,656 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:18,656 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0684s). Executing Action... | Room: f9a6341f | GameObj: 2119380832800
+2026-02-03 20:35:18,657 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:18,658 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0015s
+2026-02-03 20:35:18,660 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:35:18,661 - GameServer - INFO - Timeout Action Completed in 0.0044s. Result: {'success': True, 'card': {'suit': '♣', 'rank': '8', 'id': '8♣', 'value': 0}, 'table': [{'suit': '♦', 'rank': 'A', 'id': 'A♦', 'value': 0}, {'suit': '♣', 'rank': '8', 'id': '8♣', 'value': 0}]}
+2026-02-03 20:35:20,455 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:20,456 - GameServer - INFO - Timeout Triggered for Player 3 (Lag: 0.0905s). Executing Action... | Room: b7542c5d | GameObj: 2119385407920
+2026-02-03 20:35:20,456 - GameServer - INFO - Timeout Playing for Player 3. Auto-Play.
+2026-02-03 20:35:20,457 - GameServer - INFO - Auto-Play Decision Latency for Abu Fahad (Bot): 0.0011s
+2026-02-03 20:35:20,457 - GameServer - WARNING - PHANTOM QAYD DETECTED (Reason: Qayd Investigation) during Auto-Play. Force-clearing state to RESUME GAME.
+2026-02-03 20:35:20,458 - GameServer - INFO - [QAYD] handle_qayd_cancel called.
+2026-02-03 20:35:20,459 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': True, 'action': 'PHANTOM_REPAIR'}
+2026-02-03 20:35:20,460 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 20:35:21,779 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140121.7793186, "details": {"winner": "Left", "points": 19, "trick_num": 7}}
+2026-02-03 20:35:25,471 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=True, phase=CHALLENGE
+2026-02-03 20:35:25,472 - GameServer - INFO - Timeout Triggered for Player 3 (Lag: 0.0094s). Executing Action... | Room: b7542c5d | GameObj: 2119385100128
+2026-02-03 20:35:25,473 - GameServer - WARNING - Qayd Active but reporter not found. ZOMBIE STATE DETECTED. Auto-cancelling.
+2026-02-03 20:35:25,474 - GameServer - INFO - [QAYD] handle_qayd_cancel called.
+2026-02-03 20:35:25,474 - GameServer - INFO - [QAYD] Added crime (5, -1) to ignore list.
+2026-02-03 20:35:25,474 - GameServer - INFO - [QAYD] Phase reverted to PLAYING.
+2026-02-03 20:35:25,474 - GameServer - INFO - Timeout Action Completed in 0.0011s. Result: {'success': True, 'action': 'ZOMBIE_REPAIR'}
+2026-02-03 20:35:25,475 - GameServer - WARNING - Timer still expired after action (Success: True). Forcing reset.
+2026-02-03 20:35:27,039 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (5, -1)
+2026-02-03 20:35:28,399 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:28,400 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0553s). Executing Action... | Room: f9a6341f | GameObj: 2119385929712
+2026-02-03 20:35:28,401 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:28,405 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0038s
+2026-02-03 20:35:28,407 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:35:28,409 - GameServer - INFO - Timeout Action Completed in 0.0077s. Result: {'success': True, 'card': {'suit': '♣', 'rank': 'A', 'id': 'A♣', 'value': 0}, 'table': [{'suit': '♣', 'rank': 'J', 'id': 'J♣', 'value': 0}, {'suit': '♣', 'rank': 'A', 'id': 'A♣', 'value': 0}]}
+2026-02-03 20:35:31,523 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "f9a6341f", "timestamp": 1770140131.5236385, "details": {"winner": "Bottom", "points": 35, "trick_num": 8}}
+2026-02-03 20:35:31,524 - GameServer - INFO - [EVENT] {"event": "ROUND_END", "game_id": "f9a6341f", "timestamp": 1770140131.5241523, "details": {"scores": {"us": 0, "them": 0}, "round_history_length": 8}}
+2026-02-03 20:35:32,055 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:32,055 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.0213s). Executing Action... | Room: b7542c5d | GameObj: 2119371318928
+2026-02-03 20:35:32,056 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:32,059 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0021s
+2026-02-03 20:35:32,061 - GameServer - INFO - Auto-Play for Me: Triggering Qayd Protocol (Sherlock)
+2026-02-03 20:35:32,063 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (5, -1)
+2026-02-03 20:35:32,064 - GameServer - INFO - Timeout Action Completed in 0.0081s. Result: {'success': False, 'error': 'Crime ignored (Double Jeopardy)'}
+2026-02-03 20:35:32,065 - GameServer - WARNING - Timer still expired after action (Success: False). Forcing reset.
+2026-02-03 20:35:32,184 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:32,184 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.1500s). Executing Action... | Room: b7542c5d | GameObj: 2119359032416
+2026-02-03 20:35:32,185 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:32,187 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0020s
+2026-02-03 20:35:32,188 - GameServer - INFO - Auto-Play for Me: Triggering Qayd Protocol (Sherlock)
+2026-02-03 20:35:32,188 - GameServer - INFO - [QAYD] Ignoring previously cancelled crime: (5, -1)
+2026-02-03 20:35:32,188 - GameServer - INFO - Timeout Action Completed in 0.0031s. Result: {'success': False, 'error': 'Crime ignored (Double Jeopardy)'}
+2026-02-03 20:35:32,189 - GameServer - WARNING - Timer still expired after action (Success: False). Forcing reset.
+2026-02-03 20:35:32,306 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:32,307 - GameServer - INFO - Timeout Triggered for Player 0 (Lag: 0.2726s). Executing Action... | Room: b7542c5d | GameObj: 2119385625088
+2026-02-03 20:35:32,307 - GameServer - INFO - Timeout Playing for Player 0. Auto-Play.
+2026-02-03 20:35:32,310 - GameServer - INFO - Auto-Play Decision Latency for Me: 0.0026s
+2026-02-03 20:35:32,311 - GameServer - INFO - Auto-Play for Me: Bot chose index 0
+2026-02-03 20:35:32,311 - GameServer - INFO - Timeout Action Completed in 0.0043s. Result: {'success': True, 'card': {'suit': '♦', 'rank': 'Q', 'id': 'Q♦', 'value': 0}, 'table': [{'suit': '♦', 'rank': '10', 'id': '10♦', 'value': 0}, {'suit': '♣', 'rank': '8', 'id': '8♣', 'value': 0}, {'suit': '♦', 'rank': 'Q', 'id': 'Q♦', 'value': 0}]}
+2026-02-03 20:35:33,873 - GameServer - INFO - [EVENT] {"event": "TRICK_WIN", "game_id": "b7542c5d", "timestamp": 1770140133.8738954, "details": {"winner": "Top", "points": 13, "trick_num": 6}}
+2026-02-03 20:35:38,986 - GameServer - INFO - [TIMEOUT] Timer expired. is_locked=False, phase=PLAYING
+2026-02-03 20:35:38,986 - GameServer - INFO - Timeout Triggered for Player 2 (Lag: 0.1117s). Executing Action... | Room: b7542c5d | GameObj: 2119387135824
+2026-02-03 20:35:38,987 - GameServer - INFO - Timeout Playing for Player 2. Auto-Play.
+2026-02-03 20:35:38,990 - GameServer - INFO - Auto-Play Decision Latency for Khalid (Bot): 0.0026s
+2026-02-03 20:35:38,991 - GameServer - INFO - Auto-Play for Khalid (Bot): Bot chose index 0
+2026-02-03 20:35:38,991 - GameServer - INFO - Timeout Action Completed in 0.0041s. Result: {'success': True, 'card': {'suit': '♣', 'rank': '10', 'id': '10♣', 'value': 0}, 'table': [{'suit': '♣', 'rank': '10', 'id': '10♣', 'value': 0}]}

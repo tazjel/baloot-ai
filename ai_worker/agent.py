@@ -274,8 +274,9 @@ class BotAgent:
                       # Not the reporter -> Wait
                       return {"action": "WAIT", "reason": "Qayd Investigation"}
 
-             # Legacy/Backup Check
-             if qayd_claim := self.referee.check_qayd(ctx, game_state):
+             # Legacy/Backup Check - Now uses proof-based detection via Memory
+             # Use ctx.memory (populated from current game state) not self.memory
+             if qayd_claim := self.referee.check_qayd(ctx, game_state, memory=ctx.memory):
                  return qayd_claim
 
              # 2. THE BRAIN: Check for Learned Moves (Redis)

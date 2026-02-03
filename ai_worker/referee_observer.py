@@ -8,43 +8,52 @@ class RefereeObserver:
     Enforces rules and handles mandatory responses (Sawa, Qayd).
     """
 
-    def check_qayd(self, ctx, game_state):
+    def check_qayd(self, ctx, game_state, memory=None):
         """
-        Check if the last move was illegal and claim Qayd if so.
-        DISABLED GOD MODE: Bots should not see 'is_illegal' metadata.
-        Rely on Sherlock (Memory) logic in BotAgent instead.
+        PROOF-BASED QAYD DETECTION (Kammelna-style)
+        
+        Instead of triggering immediately on 'is_illegal' flag,
+        we wait for PROOF: when the cheater later plays a card of the
+        suit they previously claimed not to have.
+        
+        Args:
+            ctx: Bot context with position, hand, etc.
+            memory: CardMemory instance for tracking suspected crimes
+            
+        Returns:
+            dict with 'action': 'QAYD_ACCUSATION' if proven crime found, else None
         """
-        # 1. Scan Active Table (ALL Cards)
-        # We must check ALL cards, not just the last one, as the bot might not be the immediate next player.
-        # if ctx.phase == 'PLAYING' and game_state.get('tableCards'):
-        #     for i, play in enumerate(reversed(game_state['tableCards'])): # Check newest first
-        #          is_illegal = (play.get('metadata') or {}).get('is_illegal')
-        #          
-        #          # Optional: Filter by team?
-        #          # offender_pos = play.get('playedBy')
-        #          # offender_team = ctx.players_team_map.get(offender_pos)
-        #          # if offender_team != ctx.team and is_illegal: ...
-        #          
-        #          if is_illegal:
-        #               logger.info(f"[REFEREE] {ctx.position} detected illegal move by {play.get('playedBy')}! Triggering Qayd.")
-        #               return {
-        #                   "action": "QAYD_TRIGGER",
-        #                   "reasoning": f"Illegal move found in table history (Index {-1-i})."
-        #               }
+        if ctx.phase != 'PLAYING' or not memory:
+            return None
+            
+        # Check if memory has any proven crimes from opponents
+        proven_crimes = memory.get_proven_crimes()
+        
+        for crime in proven_crimes:
+            offender_pos = crime['player']
+            
+            # Only accuse opponents (not teammate)
+            my_team = 'us' if ctx.position in ['Bottom', 'Top'] else 'them'
+            offender_team = 'us' if offender_pos in ['Bottom', 'Top'] else 'them'
+            
+            if my_team != offender_team:
+                # Found a proven crime by opponent!
+                logger.info(f"[SHERLOCK] {ctx.position} found PROVEN crime by {offender_pos}: revoked on {crime['void_suit']}")
                 
-        # 2. Check Last Trick (if table cleared OR if we suspect missed crime)
-        # Usually if table is cleared, we check last trick.
-        # if ctx.phase == 'PLAYING' and not game_state.get('tableCards'):
-        #      last_trick = game_state.get('lastTrick')
-        #      if last_trick and last_trick.get('metadata'):
-        #           # Scan Last Trick Metadata
-        #           for i, meta in enumerate(last_trick['metadata']):
-        #                if meta and meta.get('is_illegal'):
-        #                     logger.info(f"[REFEREE] {ctx.position} detected illegal move in LAST TRICK! Triggering Qayd.")
-        #                     return {
-        #                         "action": "QAYD_TRIGGER",
-        #                         "reasoning": "Opponent played an illegal move (Flagged in Last Trick)."
-        #                     }
+                return {
+                    "action": "QAYD_ACCUSATION",
+                    "qayd_type": "REVOKE",  # قاطع
+                    "crime": {
+                        "player": offender_pos,
+                        "crime_card": crime['crime_card'],
+                        "crime_trick_idx": crime['trick_idx'],
+                        "proof_card": crime.get('proof_card'),
+                        "proof_trick_idx": crime.get('proof_trick_idx'),
+                        "void_suit": crime['void_suit']
+                    },
+                    "reasoning": f"{offender_pos} revoked on {crime['void_suit']} in trick {crime['trick_idx']}, proven in trick {crime.get('proof_trick_idx')}"
+                }
+        
         return None
 
     def check_sawa(self, ctx, game_state):

@@ -30,6 +30,9 @@ class CardMemory:
         self.discards = {} # Player Ref -> List of Discard Events
         self.partners_aces = set() 
         self.turn_history = [] 
+        # Proof-Based Qayd: Track suspected crimes until proof is found
+        # Structure: [{'player': 'Right', 'trick_idx': 2, 'crime_card': {...}, 'void_suit': 'H'}, ...]
+        self.suspected_crimes = [] 
 
     def mark_played(self, card_str):
         self.played_cards.add(card_str)
@@ -90,6 +93,14 @@ class CardMemory:
                  # Mark Played
                  self.mark_played(f"{rank}{suit}")
                  
+                 # PROOF-BASED QAYD: Check if this play proves a suspected crime
+                 # If player is playing a suit they previously claimed void in -> PROOF!
+                 trick_idx = history.index(trick)
+                 proven_crime = self.check_for_proof(player_pos, suit, trick_idx)
+                 if proven_crime:
+                      # Store the proof card
+                      proven_crime['proof_card'] = {'rank': rank, 'suit': suit}
+                 
                  # Infer Voids
                  if led_suit and suit != led_suit:
                       # Player failed to follow suit -> VOID in led_suit
@@ -103,6 +114,16 @@ class CardMemory:
                           'suit': suit,
                           'trick_idx': history.index(trick)
                       })
+                      
+                      # PROOF-BASED QAYD: Record suspected crime
+                      # The crime card is what they played (wrong suit)
+                      # The void_suit is the suit they claimed not to have
+                      self.record_suspected_crime(
+                          player_pos=player_pos,
+                          trick_idx=history.index(trick),
+                          crime_card={'rank': rank, 'suit': suit},
+                          void_suit=led_suit
+                      )
                       
                       if mode == 'HOKUM' and led_suit != trump and suit != trump:
                            self.mark_void(player_pos, trump)
@@ -129,6 +150,48 @@ class CardMemory:
         if self.is_void(player_ref, suit):
              return f"Player {player_ref} played {suit} but previously showed VOID in {suit}."
         return None
+
+    # ========= PROOF-BASED QAYD METHODS =========
+    
+    def record_suspected_crime(self, player_pos, trick_idx, crime_card, void_suit):
+        """
+        Record a suspected revoke (player claimed void but might have lied).
+        This is tracked until proof is found.
+        """
+        suspect = {
+            'player': player_pos,
+            'trick_idx': trick_idx,
+            'crime_card': crime_card,  # The card they played (wrong suit)
+            'void_suit': void_suit,     # The suit they claimed not to have
+            'proven': False,
+            'proof_card': None,
+            'proof_trick_idx': None
+        }
+        self.suspected_crimes.append(suspect)
+        logger.info(f"[SHERLOCK] Recorded suspected crime: {player_pos} may have revoked on {void_suit} (played {crime_card})")
+        
+    def check_for_proof(self, player_pos, played_card_suit, current_trick_idx):
+        """
+        Check if a player just revealed proof of a previous crime.
+        If player previously claimed void in a suit, and now plays that suit -> PROOF FOUND!
+        Returns the proven crime dict or None.
+        """
+        for suspect in self.suspected_crimes:
+            if suspect['player'] == player_pos and suspect['void_suit'] == played_card_suit and not suspect['proven']:
+                # PROOF FOUND!
+                suspect['proven'] = True
+                suspect['proof_trick_idx'] = current_trick_idx
+                logger.info(f"[SHERLOCK] PROOF FOUND! {player_pos} played {played_card_suit} but claimed void in trick {suspect['trick_idx']}")
+                return suspect
+        return None
+    
+    def get_proven_crimes(self):
+        """Get all crimes that have been proven (have both crime card and proof card)."""
+        return [s for s in self.suspected_crimes if s['proven']]
+    
+    def get_unproven_suspects(self):
+        """Get suspected crimes that haven't been proven yet."""
+        return [s for s in self.suspected_crimes if not s['proven']]
 
     def is_master(self, rank, suit, mode, trump):
         """

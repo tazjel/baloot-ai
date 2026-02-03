@@ -78,14 +78,33 @@ def run_sherlock_scan(sio, game, room_id):
         for player in game.players:
             if player.is_bot:
                 decision = bot_agent.get_decision(state, player.index)
-                if decision.get('action') in ['QAYD_TRIGGER', 'QAYD_ACCUSATION']:
-                      logger.warning(f"[WATCHDOG] Bot {player.name} detected crime! INTERRUPTING.")
-                      
-                      res = game.handle_qayd_trigger(player.index)
-                      if res.get('success'):
-                           logger.info(f"Bot {player.name} successfully triggered Qayd via Watchdog.")
-                           broadcast_game_update(sio, game, room_id)
-                           return
+                if decision.get('action') == 'QAYD_ACCUSATION':
+                    logger.warning(f"[WATCHDOG] Bot {player.name} detected PROVEN crime! INTERRUPTING.")
+                    
+                    # Extract crime data from bot's decision
+                    crime_data = decision.get('crime', {})
+                    accusation = {
+                        'crime_card': crime_data.get('crime_card'),
+                        'proof_card': crime_data.get('proof_card'),
+                        'qayd_type': decision.get('qayd_type', 'REVOKE'),
+                        'crime_trick_idx': crime_data.get('crime_trick_idx'),
+                        'proof_trick_idx': crime_data.get('proof_trick_idx'),
+                        'offender': crime_data.get('player')  # The cheater's position
+                    }
+                    
+                    res = game.handle_qayd_accusation(player.index, accusation)
+                    if res.get('success'):
+                        logger.info(f"Bot {player.name} successfully triggered Qayd with proof via Watchdog.")
+                        broadcast_game_update(sio, game, room_id)
+                        return
+                elif decision.get('action') == 'QAYD_TRIGGER':
+                    # Legacy trigger without explicit proof
+                    logger.warning(f"[WATCHDOG] Bot {player.name} triggered Qayd (legacy). INTERRUPTING.")
+                    res = game.handle_qayd_trigger(player.index)
+                    if res.get('success'):
+                        logger.info(f"Bot {player.name} successfully triggered Qayd via Watchdog.")
+                        broadcast_game_update(sio, game, room_id)
+                        return
     except Exception as e:
         logger.error(f"Sherlock Watchdog Error: {e}")
 
@@ -161,7 +180,25 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
              res = game.handle_qayd_trigger(current_idx)
 
         elif action == 'QAYD_ACCUSATION':
-             res = game.handle_qayd_accusation(current_idx, decision.get('accusation'))
+             # Proof-based accusation: extract crime and proof data
+             crime_data = decision.get('crime', {})
+             accusation_data = decision.get('accusation', {})
+             
+             # Merge compatible formats (legacy 'accusation' vs new 'crime')
+             crime_card = crime_data.get('crime_card') or accusation_data.get('crime_card')
+             proof_card = crime_data.get('proof_card') or accusation_data.get('proof_card')
+             qayd_type = decision.get('qayd_type', 'REVOKE')
+             
+             res = game.handle_qayd_accusation(
+                 current_idx,
+                 {
+                     'crime_card': crime_card,
+                     'proof_card': proof_card,
+                     'qayd_type': qayd_type,
+                     'crime_trick_idx': crime_data.get('crime_trick_idx'),
+                     'proof_trick_idx': crime_data.get('proof_trick_idx')
+                 }
+             )
 
         elif action == 'QAYD_CANCEL':
              res = game.handle_qayd_cancel()

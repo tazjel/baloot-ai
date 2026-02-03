@@ -158,10 +158,22 @@ class TrickManager:
             self.game.end_round()
 
     # --- QAYD (PENALTY) LOGIC ---
-    def propose_qayd(self, reporter_index):
+    def propose_qayd(self, reporter_index, crime_card=None, proof_card=None, qayd_type='REVOKE', crime_trick_idx=None, proof_trick_idx=None):
         """
         Phase 1: Propose a Qayd accusation.
-        Validates the claim and prepares the verdict, but does NOT apply it yet.
+        
+        Supports two modes:
+        1. AUTO-DETECT: Find crime via is_illegal metadata (legacy)
+        2. EXPLICIT: Use provided crime_card and proof_card (Kammelna-style)
+        
+        Args:
+            reporter_index: Player index making the accusation
+            crime_card: dict {'suit': 'S', 'rank': '7'} - the illegal play
+            proof_card: dict {'suit': 'H', 'rank': '10'} - the card proving the crime
+            qayd_type: 'REVOKE', 'NO_TRUMP_CUT', 'NO_TRUMP_LEAD', 'NO_TRUMP_DOUBLE'
+            crime_trick_idx: Which trick the crime occurred in
+            proof_trick_idx: Which trick the proof appeared in
+            
         Returns the Qayd State for review.
         """
         try:
@@ -179,34 +191,89 @@ class TrickManager:
                  'loser_team': None,
                  'reason': None,
                  'target_play': None, # Snapshot of the play object
-                 'target_source': 'table_cards' # 'table_cards' or 'last_trick'
+                 'target_source': 'table_cards', # 'table_cards' or 'last_trick'
+                 'qayd_type': qayd_type,  # قاطع, ربع في الدبل, etc.
+                 'crime_card': crime_card,
+                 'proof_card': proof_card,
+                 'crime_trick_idx': crime_trick_idx,
+                 'proof_trick_idx': proof_trick_idx
              }
              
-             # Locate the Crime (Illegal Move)
-             # Priority 1: Check Active Table
              crime_card_found = False
-             crime_card_idx_in_trick = -1 # Relative to current trick
              
-             # Search backwards in current table
-             for i, play in enumerate(reversed(self.game.table_cards)):
-                  if (play.get('metadata') or {}).get('is_illegal'):
-                       # Found it
-                       crime_card_found = True
-                       # Save absolute index or relative? 
-                       # For UI, maybe relative to tableCards is best, or unique ID.
-                       # Let's verify how UI renders. Likely tableCards map.
-                       # But if it's buried, we need to know which one.
-                       crime_card_idx_in_trick = len(self.game.table_cards) - 1 - i
-                       self.qayd_state['crime_card_index'] = crime_card_idx_in_trick
-                       # Serialize play to ensure Card is a dict
-                       serialized_play = {
-                           'card': play['card'].to_dict() if hasattr(play['card'], 'to_dict') else play['card'],
-                           'playedBy': play.get('playedBy'),
-                           'metadata': play.get('metadata')
-                       }
-                       self.qayd_state['target_play'] = serialized_play
-                       self.qayd_state['target_source'] = 'table_cards'
-                       break
+             # === EXPLICIT ACCUSATION MODE (Kammelna-style) ===
+             if crime_card and proof_card:
+                 logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}, type={qayd_type}")
+                 
+                 # Validate: Was the crime card actually played?
+                 # Search round_history for the crime card
+                 crime_validated = False
+                 for trick_idx, trick in enumerate(self.game.round_history):
+                     for card_idx, card_dict in enumerate(trick['cards']):
+                         if card_dict['suit'] == crime_card['suit'] and card_dict['rank'] == crime_card['rank']:
+                             # Found the crime card in history
+                             player_pos = trick['playedBy'][card_idx]
+                             led_card = trick['cards'][0]
+                             led_suit = led_card['suit']
+                             
+                             # Check if this was actually a revoke (wrong suit)
+                             if card_dict['suit'] != led_suit:
+                                 crime_validated = True
+                                 self.qayd_state['crime_card_index'] = card_idx
+                                 self.qayd_state['crime_trick_idx'] = trick_idx
+                                 self.qayd_state['target_play'] = {
+                                     'card': card_dict,
+                                     'playedBy': player_pos,
+                                     'metadata': trick.get('metadata', [{}])[card_idx] if trick.get('metadata') else {}
+                                 }
+                                 self.qayd_state['target_source'] = 'round_history'
+                                 
+                                 # Check if proof_card proves the crime
+                                 # Proof: player later played the led_suit, proving they HAD it
+                                 proof_validated = False
+                                 for proof_t_idx, proof_trick in enumerate(self.game.round_history[trick_idx+1:], start=trick_idx+1):
+                                     for proof_c_idx, proof_c_dict in enumerate(proof_trick['cards']):
+                                         proof_player_pos = proof_trick['playedBy'][proof_c_idx]
+                                         if proof_player_pos == player_pos and proof_c_dict['suit'] == led_suit:
+                                             # Found proof!
+                                             proof_validated = True
+                                             self.qayd_state['proof_card_index'] = proof_c_idx
+                                             self.qayd_state['proof_trick_idx'] = proof_t_idx
+                                             break
+                                     if proof_validated:
+                                         break
+                                 
+                                 if proof_validated:
+                                     crime_card_found = True
+                                     logger.info(f"[QAYD] Explicit accusation VALIDATED: {player_pos} revoked on {led_suit}")
+                                 else:
+                                     logger.warning(f"[QAYD] Proof card not found in history for {player_pos}")
+                             break
+                     if crime_validated:
+                         break
+                         
+                 if not crime_card_found:
+                     logger.warning(f"[QAYD] Could not validate explicit accusation")
+                     # Fall through to auto-detection
+             
+             # === AUTO-DETECT MODE (Legacy: metadata search) ===
+             if not crime_card_found:
+                 # Priority 1: Check Active Table
+                 crime_card_idx_in_trick = -1
+                 
+                 for i, play in enumerate(reversed(self.game.table_cards)):
+                      if (play.get('metadata') or {}).get('is_illegal'):
+                           crime_card_found = True
+                           crime_card_idx_in_trick = len(self.game.table_cards) - 1 - i
+                           self.qayd_state['crime_card_index'] = crime_card_idx_in_trick
+                           serialized_play = {
+                               'card': play['card'].to_dict() if hasattr(play['card'], 'to_dict') else play['card'],
+                               'playedBy': play.get('playedBy'),
+                               'metadata': play.get('metadata')
+                           }
+                           self.qayd_state['target_play'] = serialized_play
+                           self.qayd_state['target_source'] = 'table_cards'
+                           break
              
              # Priority 2: Check Last Trick (if table cleared or not found in active)
              if not crime_card_found and self.game.last_trick and self.game.last_trick.get('metadata'):
@@ -292,6 +359,20 @@ class TrickManager:
                             project_points += proj.get('score', 0)
              
              self.qayd_state['penalty_points'] = base_points + project_points
+             
+             # FIX: Clear 'is_illegal' flag from source to prevent re-trigger loops
+             source = self.qayd_state.get('target_source')
+             crime_idx = self.qayd_state.get('crime_card_index', -1)
+             if source == 'table_cards' and crime_idx >= 0 and crime_idx < len(self.game.table_cards):
+                  if self.game.table_cards[crime_idx].get('metadata'):
+                       self.game.table_cards[crime_idx]['metadata']['is_illegal'] = False
+                       logger.info(f"[QAYD] Cleared is_illegal flag from table_cards[{crime_idx}]")
+             elif source == 'last_trick' and self.game.round_history and crime_idx >= 0:
+                  last_trick = self.game.round_history[-1]
+                  if last_trick.get('metadata') and crime_idx < len(last_trick['metadata']):
+                       if last_trick['metadata'][crime_idx]:
+                            last_trick['metadata'][crime_idx]['is_illegal'] = False
+                            logger.info(f"[QAYD] Cleared is_illegal flag from last_trick[{crime_idx}]")
              
              # Pause Game
              self.game.timer_paused = True
