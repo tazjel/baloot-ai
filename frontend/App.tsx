@@ -6,7 +6,7 @@ import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
 import { ProfessorOverlay } from './components/overlays/ProfessorOverlay';
 import { GameState, GamePhase, PlayerPosition, Suit, RoundResult, ProfessorIntervention } from './types';
-import DisputeModal from './components/DisputeModal';
+
 import SettingsModal from './components/SettingsModal';
 import VictoryModal from './components/VictoryModal';
 import LevelUpModal from './components/LevelUpModal';
@@ -75,9 +75,7 @@ const App: React.FC = () => {
   const [showMindMap, setShowMindMap] = useState(false); // Mind Map State (Lifted)
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
 
-  // Dispute UI
-  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
-  const [disputeVerdict, setDisputeVerdict] = useState<{ isGuilty: boolean; reason: string } | null>(null);
+
 
   // Round Results Modal - Standard Style
   const [roundResultToShow, setRoundResultToShow] = useState<RoundResult | null>(null);
@@ -140,10 +138,9 @@ const App: React.FC = () => {
     setTimeout(() => setFlyingItems(prev => prev.filter(i => i.id !== newItem.id)), 1000);
   };
 
-  // --- DISPUTE LOGIC (UI + Helper) ---
   const handleChallenge = () => {
-    setIsDisputeModalOpen(true);
-    setDisputeVerdict(null);
+    // Legacy Dispute Modal - Deprecated
+    // setIsDisputeModalOpen(true);
   };
 
   // --- PROFESSOR MODE HANDLERS ---
@@ -194,51 +191,7 @@ const App: React.FC = () => {
     handlePlayerAction(action, payload);
   };
 
-  const handleDisputeConfirm = (suspectPos: PlayerPosition) => {
-    // Phase VII Unification: If connected to server, send Qayd action
-    if (roomId) {
-      handlePlayerAction('QAYD', { reason: 'GENERAL_DISPUTE', suspect: suspectPos }); // Reason can be refined
-      setIsDisputeModalOpen(false); // Close immediately, await server response
-      return;
-    }
 
-    // LEGACY LOCAL LOGIC (For Offline/Dev)
-    const playedEntry = gameState.tableCards.find(tc => tc.playedBy === suspectPos);
-    if (!playedEntry) {
-      setDisputeVerdict({ isGuilty: false, reason: "Player hasn't played yet." });
-      return;
-    }
-    const cardsBeforeSuspect = [];
-    for (const tc of gameState.tableCards) {
-      if (tc.playedBy === suspectPos) break;
-      cardsBeforeSuspect.push(tc);
-    }
-    const player = gameState.players.find(p => p.position === suspectPos);
-    if (!player) return; // Should not happen
-
-    // Reconstruct hand (add back played card)
-    const reconstructedHand = [...player.hand, playedEntry.card];
-    let trumpSuit: Suit | null = null;
-    if (gameState.bid.type === 'HOKUM') trumpSuit = gameState.floorCard?.suit || Suit.Spades;
-
-    const invalidReason = getInvalidMoveReason(
-      playedEntry.card,
-      reconstructedHand,
-      cardsBeforeSuspect,
-      gameState.bid.type === 'SUN' ? 'SUN' : 'HOKUM',
-      trumpSuit,
-      gameState.isLocked
-    );
-    setDisputeVerdict({ isGuilty: !!invalidReason, reason: invalidReason || "Move was valid." });
-  };
-
-  const closeDispute = () => {
-    if (disputeVerdict?.isGuilty) {
-      startNewRound((gameState.dealerIndex + 1) % 4, gameState.matchScores);
-    }
-    setIsDisputeModalOpen(false);
-    setDisputeVerdict(null);
-  };
 
   // --- CONTENT RENDER ---
   const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD' | 'REPLAY' | 'VISIONARY'>('LOBBY');
@@ -270,13 +223,7 @@ const App: React.FC = () => {
     }
   }, [gameState.roundHistory.length, lastSeenRoundCount]);
 
-  // Phase VII: Listen for Qayd Updates
-  useEffect(() => {
-    if (gameState.qaydState?.active) {
-      setIsDisputeModalOpen(true); // Open the Modal (Tribunal)
-      addSystemMessage(`Dispute Raised by ${gameState.qaydState.reporter} !Reason: ${gameState.qaydState.reason} `);
-    }
-  }, [gameState.qaydState?.active, gameState.qaydState?.status, addSystemMessage]);
+
 
   if (errorObj) {
     return (
@@ -546,24 +493,7 @@ const App: React.FC = () => {
         ))}
 
         {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
-        {isDisputeModalOpen && (
-          <DisputeModal
-            players={gameState.players}
-            onConfirm={handleDisputeConfirm}
-            onCancel={closeDispute}
-            verdict={disputeVerdict}
-            qaydState={gameState.qaydState}
-            onResolve={() => {
-              // If resolved, we should clear the state locally or trigger server to clear
-              // Usually backend clears it on NEXT_ROUND, but if we want to close modal:
-              setIsDisputeModalOpen(false);
-              // If we need to advance round:
-              if (gameState.qaydState?.status === 'RESOLVED') {
-                handlePlayerAction('NEXT_ROUND', {});
-              }
-            }}
-          />
-        )}
+
         {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
         {isSettingsOpen && <SettingsModal
           settings={gameState.settings}

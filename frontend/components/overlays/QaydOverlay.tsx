@@ -298,6 +298,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
             {/* Cards */}
             <div className="flex justify-center gap-2">
               {trick.cards.map((play, idx) => {
+                if (!play || !play.card) return null; // Safety check
                 const isSelected =
                   selectedCard?.card.id === play.card.id &&
                   selectedCard?.trickNumber === trick.trickNumber;
@@ -332,6 +333,14 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
 
     const isSuccess = result.isGuilty !== undefined ? result.isGuilty : result.success;
 
+    // "Smoking Gun" Data
+    // Assuming 'proofCard' and 'crimeCard' might be passed in result extras or we need to type QaydResult better.
+    // For now, let's assume result might carry 'evidence' object. 
+    // Types update: interface QaydResult { ..., evidence?: { crimeCard: CardModel, proofCard: CardModel } }
+    
+    // Fallback if no specific card data (legacy support)
+    const evidence = (result as any).evidence;
+
     return (
       <div className="flex-1 flex flex-col items-center justify-start p-6 gap-4 overflow-y-auto">
         {/* Result Banner */}
@@ -357,6 +366,46 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
             </span>
           </div>
         </div>
+
+        {/* SMOKING GUN: Side-by-Side Comparison */}
+        {isSuccess && evidence && (
+             <div className="w-full bg-black/40 rounded-xl p-4 border border-[#555555] flex flex-col gap-3">
+                 <h4 className="text-center text-amber-500 font-bold font-tajawal mb-2 tracking-widest text-xs uppercase">
+                     الأدلة الجنائية (The Smoking Gun)
+                 </h4>
+                 
+                 <div className="flex justify-center items-center gap-8">
+                      {/* The Lie */}
+                      <div className="flex flex-col items-center gap-2">
+                           <div className="relative">
+                               <div className="w-16 h-24 rotate-[-5deg] grayscale opacity-70">
+                                   <CardVector card={evidence.crimeCard} className="w-full h-full rounded shadow-lg" />
+                               </div>
+                               <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                   كان معه
+                               </div>
+                           </div>
+                           <span className="text-xs text-red-300 font-bold font-tajawal mt-1">الجريمة</span>
+                      </div>
+
+                      {/* VS */}
+                      <span className="text-white/20 font-black text-xl">VS</span>
+
+                      {/* The Truth */}
+                      <div className="flex flex-col items-center gap-2">
+                           <div className="relative">
+                               <div className="w-16 h-24 rotate-[5deg] scale-110 z-10 shadow-[0_0_15px_rgba(255,215,0,0.3)]">
+                                   <CardVector card={evidence.proofCard} className="w-full h-full rounded shadow-lg border-2 border-amber-400" />
+                               </div>
+                               <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                   ولعب
+                               </div>
+                           </div>
+                           <span className="text-xs text-green-300 font-bold font-tajawal mt-1">الدليل</span>
+                      </div>
+                 </div>
+             </div>
+        )}
 
         {/* Details Block */}
         <div className="w-full bg-[#404040] rounded-xl p-4 border border-[#555555] flex flex-col gap-3">

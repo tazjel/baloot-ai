@@ -100,3 +100,9 @@
 2026-02-03 02:13:37.952015 - Attempting to save snapshot for room 390e8838
 2026-02-03 02:13:37.952547 - History Length: 1
 2026-02-03 02:13:37.976374 - SUCCESS: Saved to DB
+2026-02-03 12:02:26.355744 - Attempting to save snapshot for room 46628d40
+2026-02-03 12:02:26.357557 - History Length: 0
+2026-02-03 12:02:26.387819 - SUCCESS: Saved to DB
+2026-02-03 12:02:39.241473 - Attempting to save snapshot for room 46628d40
+2026-02-03 12:02:39.242054 - History Length: 1
+2026-02-03 12:02:39.260744 - SUCCESS: Saved to DB

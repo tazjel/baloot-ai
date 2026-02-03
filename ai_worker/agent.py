@@ -83,25 +83,108 @@ class BotAgent:
                   except Exception as me:
                       pass # Don't block game for metrics
 
-             # 1.15 SHERLOCK TRIGGER (The Watchdog)
-             # If valid game phase and NO Qayd active, check for illegal moves to catch them.
+             # 1.15 SHERLOCK TRIGGER (Organic, Team-Aware, & Memory-Based)
+             # If valid game phase and NO Qayd active, check for visual contradictions (The "Second Card" Trigger).
              if ctx.phase == 'PLAYING' and not (game_state.get('qaydState') or {}).get('active'):
-                 # Check Table Cards
+                 from game_engine.models.card import Card
+                 
+                 # Helper to check a card play for contractions
+                 def check_for_crime(card_dict, played_by_pos, source="Table"):
+                      # 1. Team Loyalty Check (Omerta)
+                      # If offender is my partner, I see nothing.
+                      offender_team = ctx.players_team_map.get(played_by_pos)
+                      my_team = ctx.team
+                      
+                      if offender_team == my_team:
+                           # "I saw nothing." - The Partner
+                           return None
+                           
+                      # 2. Rival Aggression (Check Memory)
+                      c_obj = Card(card_dict['suit'], card_dict['rank'])
+                      contradiction = ctx.memory.check_contradiction(played_by_pos, c_obj)
+                      
+                      if contradiction:
+                           logger.info(f"[SHERLOCK] 🕵️‍♂️ {ctx.position} Caught {played_by_pos}! {contradiction} (Source: {source})")
+                           return "QAYD_TRIGGER"
+                      return None
+
+                 # A. Check Current Table (Live Detection)
                  table_cards = game_state.get('tableCards', [])
                  for tc in table_cards:
-                     if (tc.get('metadata') or {}).get('is_illegal'):
-                         # Found one!
-                         offender_pos = tc.get('playedBy')
-                         logger.warning(f"[SHERLOCK] Detected illegal move by {offender_pos} in Current Trick. TRIGGERING QAYD!")
-                         return {"action": "QAYD_TRIGGER"}
+                     action = check_for_crime(tc['card'], tc['playedBy'], "Current Trick")
+                     if action: return {"action": action}
                  
-                 # Check Last Trick (Crucial for 4th player cheats)
+                 # B. Check Last Trick (Post-Mortem Detection)
+                 # Crucial for catching the 4th player who plays illegal, then trick clears immediately.
                  last_trick = game_state.get('lastTrick')
-                 if last_trick and last_trick.get('metadata'):
-                      for meta in last_trick['metadata']:
-                           if meta and meta.get('is_illegal'):
-                                logger.warning(f"[SHERLOCK] Detected illegal move in Last Trick. TRIGGERING QAYD!")
-                                return {"action": "QAYD_TRIGGER"}
+                 if last_trick and last_trick.get('cards'):
+                      # last_trick cards are dicts or objects? game.py says serialized to dicts.
+                      # structure: {'cards': [{'rank':.., 'suit':.., 'playedBy': ..}], ...}
+                      # WAIT: game.py serialization: 'cards': [{**c, 'card': c['card'].to_dict()}...] or just list of cards?
+                      # game.py line 155 in get_game_state uses {**c, 'card': ...} format for roundHistory/currentRoundTricks.
+                      # BUT last_trick (line 145) is assigned self.last_trick.
+                      # In resolve_trick (trick_manager.py line 100): 
+                      # 'cards': [tc['card'].to_dict() for tc in self.game.table_cards]
+                      # 'metadata': ...
+                      # But wait, where is 'playedBy' in last_trick['cards']?
+                      # trick_manager.py line 100 doesn't seem to zip playedBy into the cards list!
+                      # It stores `winner` pos.
+                      
+                      # Ah, trick_manager.py line 113 `trick_data` stores `cards` and `playedBy` as parallel lists for history.
+                      # But `self.game.last_trick` (line 100) might only store cards?
+                      # Let's check `trick_manager.py` again.
+                      
+                      # Re-reading trick_manager.py from context:
+                      # 100: self.game.last_trick = {
+                      # 101:     'cards': [tc['card'].to_dict() for tc in self.game.table_cards], 
+                      # 102:     'winner': winner_pos,
+                      # 103:     'metadata': ...
+                      # 104: }
+                      # It does NOT store playedBy per card! This is a flaw for Sherlock checking last trick if he needs position.
+                      # However, we can reconstruct order. Trick starts at `(winner_index_of_prev_trick)`.
+                      # But easier: Use `game_state['roundHistory'][-1]` (the last completed trick) which HAS playedBy data.
+                      pass
+
+                 # C. Robust Last Trick Check using Round History
+                 round_history = game_state.get('roundHistory', []) # past_round_results? No.
+                 # game.py get_game_state mapping: 'roundHistory': self.past_round_results 
+                 # WAIT. 'roundHistory' in get_game_state maps to SCORING history (past rounds).
+                 # 'currentRoundTricks' (line 150) maps to self.round_history (current round tricks).
+                 
+                 current_tricks = game_state.get('currentRoundTricks', [])
+                 if current_tricks:
+                      last_completed_trick = current_tricks[-1]
+                      # Format: {'cards': [{'rank':.., 'suit':.., 'playedBy':..}], ...}
+                      # See game.py line 156-160 serialization.
+                      
+                      for i, c_data in enumerate(last_completed_trick.get('cards', [])):
+                           # c_data might be wrapper?
+                           # game.py line 156: {**c, 'card': c['card'].to_dict()} ...
+                           # OR c.to_dict().
+                           # If it's from trick_history append (trick_manager line 116), it's just card dict.
+                           # trick_manager line 116: "cards": [t['card'].to_dict()...], "playedBy": [...]
+                           # game.py line 150 serializes `self.round_history` which contains these dicts.
+                           
+                           # The serialization in game.py line 150 is complex conditional.
+                           # Let's assume standard structure: If we can get card and playedBy, we are good.
+                           
+                           card_dict = c_data if 'rank' in c_data else c_data.get('card')
+                           p_pos = c_data.get('playedBy') # Might be in c_data if zipped, OR in parallel list?
+                           
+                           # trick_manager line 117 uses parallel list `playedBy`.
+                           # game.py 160: 'playedBy': t.get('playedBy')
+                           
+                           # So `last_completed_trick['playedBy']` is a list of positions.
+                           # `last_completed_trick['cards']` is list of card dicts.
+                           
+                           involved_players = last_completed_trick.get('playedBy', [])
+                           cards = last_completed_trick.get('cards', [])
+                           
+                           if i < len(involved_players) and i < len(cards):
+                                p_pos = involved_players[i]
+                                card_dict = cards[i]
+                                action = check_for_crime(card_dict, p_pos, "Last Trick")
+                                if action: return {"action": action}
 
              # 1.2 Qayd Claim (Sherlock Logic)
              qayd_state = game_state.get('qaydState')
@@ -255,6 +338,36 @@ class BotAgent:
                   if neural_move:
                        return neural_move
  
+             # 4.5. DESPERATION CHEATING (The Liar)
+             # If losing badly and Strict Mode is OFF, consider lying.
+             strict_mode = game_state.get('strictMode', False)
+             if ctx.phase == 'PLAYING' and not strict_mode:
+                  # Check Score Differential
+                  scores = game_state.get('matchScores', {'us': 0, 'them': 0})
+                  my_score = scores.get(ctx.team, 0)
+                  their_score = scores.get('them' if ctx.team == 'us' else 'us', 0)
+                  
+                  is_losing_badly = (their_score - my_score) > 20 # Low threshold for testing
+                  
+                  if is_losing_badly:
+                       # Look for a Cheat
+                       # Simple Heuristic: If I have a Master Card (Ace/Trump) that is ILLEGAL, play it.
+                       legal_indices = ctx.get_legal_moves()
+                       
+                       for i, card in enumerate(ctx.hand):
+                            if i not in legal_indices:
+                                 # This is an illegal card. Is it good?
+                                 # If it's an Ace or Trump, maybe it wins?
+                                 # Only cheat if it's worth it (Master Card).
+                                 is_master = ctx.is_master_card(card)
+                                 if is_master:
+                                      logger.info(f"😈 [DIRTY] Desperation! {ctx.position} is losing and chooses to LIE with {card}.")
+                                      return {
+                                          "action": "PLAY", 
+                                          "cardIndex": i, 
+                                          "reasoning": "Desperation Cheat (Lying with Master Card)"
+                                      }
+
              # 5. STRATEGY DISPATCH (MCTS + Heuristics)
              if ctx.phase in ['BIDDING', 'DOUBLING']:
                  return self.bidding_strategy.get_decision(ctx)

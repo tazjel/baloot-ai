@@ -12,7 +12,7 @@ from game_engine.models.deck import Deck
 from game_engine.models.player import Player
 from game_engine.logic.utils import sort_hand, scan_hand_for_projects, add_sequence_project, compare_projects, get_project_rank_order
 from .timer_manager import TimerManager
-from .trick_manager import TrickManager
+from .phases.challenge_phase import ChallengePhase
 from .project_manager import ProjectManager
 from .scoring_engine import ScoringEngine
 from .qayd_manager import QaydManager
@@ -72,6 +72,8 @@ class Game:
         self.akka_state = None # {claimer: pos, suits: [], timestamp: float}
         self.full_match_history = [] # Archives full round data: [{roundNum, tricks[], scores, bid...}]
         
+        # Configuration
+        self.strictMode = False # Default: False (Liar's Protocol Enabled)
         
         # Temporal Logic
         self.timer = TimerManager(5)
@@ -89,6 +91,7 @@ class Game:
         
         # Managers
         self.trick_manager = TrickManager(self)
+        self.challenge_phase = ChallengePhase(self) # Refactored Handler
         self.project_manager = ProjectManager(self)
         self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
@@ -141,6 +144,7 @@ class Game:
 
             'doublingLevel': self.doubling_level,
             'isLocked': self.is_locked,
+            'strictMode': self.strictMode,
             'dealingPhase': self.dealing_phase,
             'lastTrick': self.last_trick,
             'roundHistory': self.past_round_results,  # SCORING history (Required by Frontend)
@@ -298,20 +302,26 @@ class Game:
             
             card = player.hand[card_idx]
             
-            # --- QAYD SYSTEM CHANGE: Allow illegal moves, but flag them ---
+            # --- QAYD SYSTEM: STRICT MODE & LIAR'S PROTOCOL ---
             # DEBUG: Log Hand before Validation
             logger.info(f"PLAY_CARD: Player {player.position} playing {card}. Hand: {[str(c) for c in player.hand]}")
             
             is_valid = self.is_valid_move(card, player.hand)
             
             if not is_valid:
-                 # Flag as illegal but ALLOW play
-                 if not metadata: metadata = {}
-                 metadata['is_illegal'] = True
-                 logger.info(f"ILLEGAL MOVE DETECTED by {player.position}: {card}. Flagging for Qayd.")
-                 
-                 # Optional: Record specific reason?
-                 metadata['illegal_reason'] = "Rule Violation"
+                 if self.strictMode:
+                      # STRICT MODE ON: Reject illegal move
+                      logger.warning(f"🚫 [STRICT] Illegal Move Blocked: {card} by {player.position}")
+                      return {"error": "Illegal Move (Strict Mode)"}
+                 else:
+                      # STRICT MODE OFF: Allow illegal move (Liar's Protocol)
+                      # Flag as illegal but ALLOW play
+                      if not metadata: metadata = {}
+                      metadata['is_illegal'] = True
+                      logger.info(f"🤥 [LIAR] Illegal Move Allowed: {card} by {player.position}. Flagging for Qayd.")
+                      
+                      # Optional: Record specific reason?
+                      metadata['illegal_reason'] = "Rule Violation"
 
             # -------------------------------------------------------------
             
@@ -1085,29 +1095,10 @@ class Game:
         return {'success': False, 'error': 'ProjectManager missing'}
 
     def handle_qayd_trigger(self, player_index):
-        """Called when a player (or bot) triggers the Qayd investigation"""
-        if self.is_locked:
-            logger.warning(f"Qayd trigger rejected - game already locked")
-            return {'success': False, 'error': 'Game Locked'}
+        # DELEGATED to ChallengePhase (Refactor Step 1)
+        return self.challenge_phase.trigger_investigation(player_index)
         
-        logger.info(f"[QAYD] Player {player_index} triggering Qayd investigation")
-        # Delegate to TrickManager Phase 1
-        result = self.trick_manager.propose_qayd(player_index)
-        if result.get('success'):
-             self.is_locked = True
-             logger.info(f"[QAYD] Game LOCKED for investigation. is_locked={self.is_locked}")
-             self.phase = GamePhase.PLAYING.value
-             
-             # AUTO-CONFIRM in Sherlock Mode (crime already detected)
-             logger.info(f"[QAYD] Auto-confirming Qayd verdict in Sherlock mode...")
-             confirm_result = self.trick_manager.confirm_qayd()
-             if confirm_result.get('success'):
-                  self.is_locked = False
-                  logger.info(f"[QAYD] Game UNLOCKED after auto-confirmation. is_locked={self.is_locked}")
-             return confirm_result
-        else:
-             logger.error(f"[QAYD] propose_qayd FAILED: {result}")
-        return result
+
 
     def handle_qayd_accusation(self, player_index, accusation=None):
         """Alias for trigger"""
@@ -1115,12 +1106,8 @@ class Game:
 
     def handle_qayd_confirm(self):
         """Called to confirm verdict"""
-        logger.info(f"[QAYD] Confirming Qayd verdict (duplicate handler)...")
-        result = self.trick_manager.confirm_qayd()
-        if result.get('success'):
-             self.is_locked = False
-             logger.info(f"[QAYD] Game UNLOCKED after confirmation (duplicate). is_locked={self.is_locked}")
-        return result
+        # DELEGATED to ChallengePhase (Refactor Step 1)
+        return self.challenge_phase.resolve_verdict()
 
     # --- PICKLE SUPPORT ---
     def __getstate__(self):

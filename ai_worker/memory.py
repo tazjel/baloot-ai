@@ -106,6 +106,17 @@ class CardMemory:
     def get_remaining_trumps(self, trump_suit):
         return [c for c in self.get_remaining_in_suit(trump_suit)]
 
+    def check_contradiction(self, player_ref, card_obj):
+        """
+        Sherlock's Magnifying Glass:
+        Checks if playing 'card_obj' contradicts previously known voids.
+        Returns a Reason string if contradictory, else None.
+        """
+        suit = card_obj.suit
+        if self.is_void(player_ref, suit):
+             return f"Player {player_ref} played {suit} but previously showed VOID in {suit}."
+        return None
+
     def is_master(self, rank, suit, mode, trump):
         """
         Check if a card is the highest remaining in its suit.
