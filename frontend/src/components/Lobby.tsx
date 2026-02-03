@@ -43,9 +43,9 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                     <p className="text-gray-500 mb-6 sm:mb-8 text-sm sm:text-base">إعدادات الجلسة</p>
 
                     {/* Timer Settings */}
-                    <div className="w-full mb-5 sm:mb-6">
+                    <div className="w-full mb-5 sm:mb-6" role="group" aria-label="Turn duration">
                         <div className="flex items-center gap-2 mb-2 sm:mb-3 text-gray-700">
-                            <Clock size={18} className="text-blue-500" />
+                            <Clock size={18} className="text-blue-500" aria-hidden="true" />
                             <span className="font-bold text-sm sm:text-base">وقت اللعب (ثواني)</span>
                         </div>
                         <div className="grid grid-cols-4 gap-2">
@@ -53,7 +53,9 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                                 <button
                                     key={seconds}
                                     onClick={() => setTurnDuration(seconds)}
-                                    className={`py-2.5 sm:py-3 rounded-xl text-sm font-bold transition-all touch-target ${turnDuration === seconds
+                                    aria-pressed={turnDuration === seconds}
+                                    aria-label={`${seconds} seconds`}
+                                    className={`py-2.5 sm:py-3 rounded-xl text-sm font-bold transition-all touch-target focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none ${turnDuration === seconds
                                         ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
                                         : 'bg-white/60 text-gray-600 hover:bg-white border border-gray-200'
                                         }`}
@@ -65,10 +67,10 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                     </div>
 
                     {/* Strict Mode Settings */}
-                    <div className="w-full mb-6 sm:mb-8">
+                    <div className="w-full mb-6 sm:mb-8" role="group" aria-label="Game mode">
                         <div className="flex items-center justify-between mb-2 sm:mb-3 text-gray-700">
                             <div className="flex items-center gap-2">
-                                {strictMode ? <Shield size={18} className="text-green-500" /> : <ShieldAlert size={18} className="text-orange-500" />}
+                                {strictMode ? <Shield size={18} className="text-green-500" aria-hidden="true" /> : <ShieldAlert size={18} className="text-orange-500" aria-hidden="true" />}
                                 <span className="font-bold text-sm sm:text-base">نظام اللعب</span>
                             </div>
                             <span className={`text-xs px-2 py-0.5 rounded-full ${strictMode ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>
@@ -79,14 +81,16 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                         <div className="flex bg-white/60 p-1 rounded-xl border border-gray-200">
                             <button
                                 onClick={() => setStrictMode(true)}
-                                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all touch-target ${strictMode ? 'bg-white text-gray-800 shadow-md' : 'text-gray-500 hover:text-gray-700'
+                                aria-pressed={strictMode}
+                                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all touch-target focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none ${strictMode ? 'bg-white text-gray-800 shadow-md' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 منع الغش تلقائياً
                             </button>
                             <button
                                 onClick={() => setStrictMode(false)}
-                                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all touch-target ${!strictMode ? 'bg-white text-gray-800 shadow-md' : 'text-gray-500 hover:text-gray-700'
+                                aria-pressed={!strictMode}
+                                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all touch-target focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none ${!strictMode ? 'bg-white text-gray-800 shadow-md' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 نظام التحدي
@@ -102,9 +106,10 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                     {/* Start Button - Premium Gold */}
                     <button
                         onClick={handleStart}
-                        className="w-full btn-premium flex items-center justify-center gap-2 mb-3"
+                        aria-label="Start Game against Computer"
+                        className="w-full btn-premium flex items-center justify-center gap-2 mb-3 focus-visible:ring-2 focus-visible:ring-blue-500 focus:outline-none"
                     >
-                        <Play size={20} fill="currentColor" />
+                        <Play size={20} fill="currentColor" aria-hidden="true" />
                         <span>ابدأ اللعب (ضد الكمبيوتر)</span>
                     </button>
 
