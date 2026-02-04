@@ -323,7 +323,36 @@ export default function Table({
         onPlayerAction('SAWA_RESPONSE', { response });
     };
 
-
+    const qaydResult = useMemo(() => {
+        if (gameState.qaydState?.active && gameState.qaydState.status === 'RESOLVED') {
+            const state = gameState.qaydState!;
+            const accusedPos = state.target_play?.playedBy;
+            const accusedPlayer = players.find(p => p.position === accusedPos);
+            
+            // Determine result logic
+            const accusedTeamAlias = (accusedPlayer?.index || 0) % 2 === 0 ? 'us' : 'them';
+            const isGuilty = state.loser_team === accusedTeamAlias;
+            
+            return {
+                success: true,
+                violationType: state.qayd_type || state.reason || 'Violation', // Use ENUM type first
+                accusedPlayer: accusedPos || 'Unknown',
+                isGuilty: isGuilty,
+                penaltyPoints: state.penalty_points
+            };
+        }
+        return undefined;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        gameState.qaydState?.status,
+        gameState.qaydState?.active,
+        gameState.qaydState?.loser_team,
+        gameState.qaydState?.reason,
+        gameState.qaydState?.qayd_type,
+        gameState.qaydState?.penalty_points
+        // 'players' ref is less likely to change deeply but included implicitly via closures if needed, 
+        // but for safety we rely on these primitives to trigger re-calc.
+    ]);
 
     return (
         <div className="relative w-full h-full flex flex-col overflow-hidden select-none safe-area-top safe-area-bottom font-sans" style={{ background: '#F5F3EF' }}>
@@ -445,54 +474,37 @@ export default function Table({
                     gameState={gameState}
                     isHokum={(gameState.gameMode as 'SUN' | 'HOKUM') === 'HOKUM'}
                     isClosedDouble={(gameState.doublingLevel || 0) >= 2}
-                    onAccusation={(type, card, trickNum, player) => {
+                    onAccusation={(type, card, trickNum, player, proofCard) => {
                          console.log('[Table] detailed: QAYD_ACCUSATION', { type, card });
                          onPlayerAction('QAYD_ACCUSATION', { 
                              accusation: { 
-                                 crime_card: card, // CardModel is already a plain object
-                                 proof_card: null, 
+                                 crime_card: card,
+                                 proof_card: proofCard, 
                                  violation_type: type 
                              } 
                          });
                     }}
                     onCancel={() => {
-                        console.log('[Table] detailed: QAYD_CANCEL clicked');
-                        onPlayerAction('QAYD_CANCEL');
+                        // Smart Cancel: If game is finished (Result shown or Penalty applied), treat as "Next Round"
+                        // Robustness: Check phase OR explicit penalty in result
+                        const isFinished = 
+                             gameState.phase === GamePhase.Finished || 
+                             gameState.phase === GamePhase.GameOver || 
+                             (qaydResult?.penaltyPoints && qaydResult.penaltyPoints > 0);
+                             
+                        if (isFinished) {
+                             console.log('[Table] Qayd Result Accepted -> Next Round');
+                             onPlayerAction('NEXT_ROUND');
+                        } else {
+                             console.log('[Table] Qayd Cancelled');
+                             onPlayerAction('QAYD_CANCEL');
+                        }
                     }}
                     onConfirm={() => {
-                        console.log('[Table] detailed: QAYD_CONFIRM triggered');
-                        onPlayerAction('QAYD_CONFIRM');
+                         // Only needed if we want to confirm a specific state, usually Bot handled or Result flow
+                         onPlayerAction('QAYD_CONFIRM'); 
                     }}
-                    result={gameState.qaydState?.active && gameState.qaydState.status === 'RESOLVED' ? (() => {
-                        const state = gameState.qaydState!;
-                        const accusedPos = state.target_play?.playedBy;
-                        const accusedPlayer = gameState.players.find(p => p.position === accusedPos);
-                        
-                        // Robustly determine if the accused is guilty
-                        // Logic: Backend sets 'loser_team'.
-                        // If loser_team == accusedPlayer's Team, then Accused is Guilty.
-                        // If loser_team != accusedPlayer's Team (meaning Accuser lost), then Accused is Not Guilty.
-                        
-                        // We need to determine Accused Player's Team.
-                        // Assuming standard alignment or just using helper if available.
-                        // In Frontend, we don't have explicit 'team' on Player.
-                        // But we can infer it: Bottom/Top = Team 1 ('us' if viewed by Bottom), Right/Left = Team 2.
-                        
-                        // However, Backend 'us'/'them' depends on whose perspective?
-                        // Backend 'game.match_scores' keys are 'us', 'them'.
-                        // Usually 'us' is the team of the first player (Bottom/Dealer init).
-                        // Let's assume 'us' = Team 0 (indexes 0, 2) and 'them' = Team 1 (indexes 1, 3).
-                        
-                        const accusedTeamAlias = (accusedPlayer?.index || 0) % 2 === 0 ? 'us' : 'them';
-                        const isGuilty = state.loser_team === accusedTeamAlias;
-                        
-                        return {
-                            success: true,
-                            violationType: state.reason || state.verdict || 'Violation',
-                            accusedPlayer: accusedPos || 'Unknown',
-                            isGuilty: isGuilty
-                        };
-                    })() : undefined}
+                    result={qaydResult}
                 />
             )}
 
@@ -561,7 +573,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={!!gameState?.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -579,7 +591,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={!!gameState?.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -597,7 +609,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={!!gameState?.isProjectRevealing}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -727,7 +739,7 @@ export default function Table({
                 timeLeft={timeLeft}
                 totalTime={turnDuration}
                 declarations={declarations}
-                isProjectRevealing={gameState.isProjectRevealing}
+                isProjectRevealing={!!gameState?.isProjectRevealing}
                 bid={bid}
                 doublingLevel={gameState.doublingLevel}
                 showProjects={showProjects}

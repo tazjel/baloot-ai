@@ -29,6 +29,7 @@ export enum GamePhase {
   Doubling = 'DOUBLING',
   VariantSelection = 'VARIANT_SELECTION', // Open/Closed choice
   Playing = 'PLAYING',
+  Finished = 'FINISHED', // Round End
   GameOver = 'GAMEOVER'
 }
 
@@ -184,7 +185,9 @@ export interface QaydState {
   target_play: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata };
   status?: 'REVIEW' | 'RESOLVED';
   verdict?: string;
-  loser_team?: 'us' | 'them'; // Added
+  loser_team?: 'us' | 'them';
+  qayd_type?: string;     // Added for Kammelna display
+  penalty_points?: number; // Added for detailed result
 }
 
 export interface GameState {

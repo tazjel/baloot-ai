@@ -1,0 +1,200 @@
+{
+    "id": "exam_1770209211_68efeed2",
+    "title": "Professor's Exam: None Blunder",
+    "description": "You played 8\u2666. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        null,
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "68efeed2",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "v3269px_w50-C5zwAAAF",
+                "name": "Me",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2665",
+                        "rank": "A",
+                        "id": "A\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "Q",
+                        "id": "Q\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "K",
+                        "id": "K\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "A",
+                        "id": "A\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "8",
+                        "id": "8\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "9",
+                        "id": "9\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "9",
+                        "id": "9\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "Q",
+                        "id": "Q\u2663",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770209205363",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770209205363",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770209205363",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [],
+        "currentTurnIndex": 0,
+        "gameMode": null,
+        "trumpSuit": null,
+        "bid": {
+            "type": "SUN",
+            "bidder": "Bottom",
+            "doubled": false,
+            "suit": null,
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 0,
+            "them": 0
+        },
+        "analytics": {
+            "winProbability": [],
+            "blunders": {}
+        },
+        "floorCard": null,
+        "dealerIndex": 3,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 2.486764430999756,
+            "duration": 5,
+            "elapsed": 2.513235569000244,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": null,
+        "roundHistory": [],
+        "currentRoundTricks": [],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "responses": {},
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {},
+        "challengeActive": false,
+        "timerStartTime": 1770209205.3611352,
+        "turnDuration": 30,
+        "serverTime": 1770209211.3026175,
+        "akkaState": null,
+        "gameId": "68efeed2",
+        "settings": {}
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "A\u2660"
+        ]
+    }
+}

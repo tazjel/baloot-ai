@@ -529,9 +529,18 @@ const App: React.FC = () => {
 
           isOpen={!!roundResultToShow}
           onClose={() => {
+            // Check if this is a Qayd result
+            const isQayd = roundResultToShow?.reason && roundResultToShow.reason.toUpperCase().includes('QAYD');
+            
             setRoundResultToShow(null);
-            // Trigger next round (Backend expects this now)
-            handlePlayerAction('NEXT_ROUND', {});
+            
+            // If Qayd, send QAYD_CONFIRM which triggers auto-restart
+            // Otherwise send NEXT_ROUND for normal bidding results
+            if (isQayd) {
+              handlePlayerAction('QAYD_CONFIRM', {});
+            } else {
+              handlePlayerAction('NEXT_ROUND', {});
+            }
           }}
           onReview={() => setShowReviewModal(true)}
         />

@@ -101,7 +101,9 @@ class Game:
         self.qayd_manager = QaydManager(self)
         
         # FIX: Alias Qayd State to TrickManager to prevent Split Brain
-        self.qayd_state = self.trick_manager.qayd_state
+        # self.qayd_state = self.trick_manager.qayd_state
+        # REFACTOR: qayd_state is now a property delegating to challenge_phase
+        pass
 
         # Initialize Phases Map
         self.phases = {
@@ -109,6 +111,16 @@ class Game:
             GamePhase.PLAYING.value: PlayingLogic(self),
             GamePhase.CHALLENGE.value: self.challenge_phase,
         }
+
+    @property
+    def qayd_state(self):
+        """Delegates source of truth to ChallengePhase"""
+        return self.challenge_phase.state
+
+    @qayd_state.setter
+    def qayd_state(self, value):
+        """Allow writing (legacy compat) but redirect to ChallengePhase"""
+        self.challenge_phase.state = value
 
     @property
     def current_turn(self):
@@ -246,10 +258,10 @@ class Game:
         
         Supports proof-based accusations with explicit crime_card and proof_card.
         """
-        # SPLIT-BRAIN FIX: Check which Manager is active
-        if self.trick_manager.qayd_state.get('active'):
-             logger.info(f"Routing Accusation to TrickManager (Confirming Proposal)")
-             return self.handle_qayd_confirm()
+        # FIXED: Allow explicit accusation update even if active (Step 2 of Qayd)
+        # if self.trick_manager.qayd_state.get('active'):
+        #      logger.info(f"Routing Accusation to TrickManager (Confirming Proposal)")
+        #      return self.handle_qayd_confirm()
 
         if accusation:
             # Proof-based accusation: extract crime/proof data
@@ -260,7 +272,7 @@ class Game:
             if crime_card and proof_card:
                 # Explicit accusation mode: pass to propose_qayd with data
                 logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}")
-                return self.trick_manager.propose_qayd(
+                return self.challenge_phase.propose_qayd(
                     player_index,
                     crime_card=crime_card,
                     proof_card=proof_card,
@@ -280,29 +292,21 @@ class Game:
     
     def handle_qayd_cancel(self):
         """Called when Qayd is cancelled/closed"""
-        # SPLIT-BRAIN FIX: Check TrickManager
-        if getattr(self, 'trick_manager', None) and self.trick_manager.qayd_state.get('active'):
-             result = self.trick_manager.cancel_qayd()
-             if result.get('success'):
-                  self.is_locked = False
-                  logger.info(f"[QAYD] Game UNLOCKED after Cancel (TrickManager).")
-                  
-                  # TRIGGER NEXT ROUND IF NEEDED
-                  if self.phase == GamePhase.FINISHED.value:
-                       logger.info(f"[QAYD] Phase is FINISHED. Signaling Auto-Restart.")
-                       result['trigger_next_round'] = True
-                       
-             return result
-
-        result = self.qayd_manager.cancel_challenge()
-        if result.get('success'):
+        logger.info("[QAYD] handle_qayd_cancel called in Game. Delegating...")
+        # Delegate to ChallengePhase (Centralized Logic)
+        try:
+             res = self.challenge_phase.cancel_investigation()
+             logger.info(f"[QAYD] Delegated cancel result: {res}")
+             return res
+        except Exception as e:
+             logger.error(f"[QAYD] CRITICAL: ChallengePhase.cancel failed: {e}")
+             # Safety Net
              self.is_locked = False
-             logger.info(f"[QAYD] Game UNLOCKED after cancel/close. is_locked={self.is_locked}")
-        return result
+             self.phase = GamePhase.PLAYING.value
+             self.timer_paused = False
+             return {'success': True, 'error': f"Fallback Force Cancel: {e}"}
 
-    def handle_qayd(self, player_index, reason=None):
-        """Legacy/Simple Qayd"""
-        return self.handle_qayd_trigger(player_index)
+
 
     def handle_akka(self, player_index):
         if hasattr(self, 'project_manager'):
@@ -401,7 +405,8 @@ class Game:
         self.sawa_failed_khasara = False
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
         self.sawa_failed_khasara = False
-        self.qayd_manager.reset()
+        self.challenge_phase.reset()
+        # self.qayd_manager.reset() # Deprecated
         self.akka_state = None
         
         if hasattr(self, 'trick_manager'):
@@ -413,7 +418,7 @@ class Game:
              self.trick_manager.reset_state()
              
              # Re-link for safety, but they should be the same object if reset_state clears it in place
-             self.qayd_state = self.trick_manager.qayd_state
+             # self.qayd_state = self.trick_manager.qayd_state # REMOVED (Property now)
              
         if hasattr(self.project_manager, 'akka_state'):
              self.project_manager.akka_state = None
@@ -546,12 +551,7 @@ class Game:
 
 
     
-    # --- FORENSIC CHALLENGE ---
-    def initiate_challenge(self, player_index):
-        return self.qayd_manager.initiate_challenge(player_index)
 
-    def process_accusation(self, player_index, accusation_data):
-        return self.qayd_manager.process_accusation(player_index, accusation_data)
 
 
 
@@ -622,10 +622,13 @@ class Game:
         if hasattr(self, 'trick_manager'):
              self.trick_manager.reset_state()
              self.sawa_state = self.trick_manager.sawa_state
-             self.qayd_state = self.trick_manager.qayd_state
+             # self.qayd_state = self.trick_manager.qayd_state
         else:
              self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+             # self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        
+        # Reset Challenge Phase properly
+        self.challenge_phase.reset()
              
         self.sawa_failed_khasara = False
         self.reset_timer()
@@ -672,19 +675,7 @@ class Game:
         self.timer.reset(duration)
         self.timer_paused = False # Unpause on reset
         
-        # SPLIT BRAIN FIX: 
-        # Only reset manual dict if TrickManager is NOT managing it.
-        # If TrickManager is present, ensure we are just syncing or modifying in place.
-        
-        if hasattr(self, 'trick_manager') and self.trick_manager.qayd_state is not None:
-             # We assume TrickManager handles its own reset via `trick_manager.reset_state()` 
-             # or we modify the shared dict in place if needed.
-             # Current pattern: end_round calls trick_manager.reset_state(), which sets active=False.
-             # So we don't need to do anything here if trick_manager exists.
-             pass
-        else:
-             # Fallback for legacy
-             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        pass
 
     def pause_timer(self):
         """Pauses the turn timer (e.g. for Professor Intervention)"""
@@ -815,7 +806,8 @@ class Game:
         else:
              self.phase = GamePhase.FINISHED.value
              
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.challenge_phase.reset()
+        # self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
 
     # @requires_unlocked - REMOVED to allow System/Bot to act during Lock (e.g. Qayd)
     def auto_play_card(self, player_index):
@@ -844,7 +836,7 @@ class Game:
                  
                  # FIX: Check Phase to route correctly
                  if self.phase == GamePhase.CHALLENGE.value:
-                      return self.process_accusation(player_index, payload)
+                      return self.handle_qayd_accusation(player_index, payload)
                  else:
                       # If not in Challenge Phase yet, treat Accusation as a Trigger first
                       logger.info(f"Auto-Play: QAYD_ACCUSATION received in {self.phase}. Triggering Investigation first.")
@@ -888,32 +880,7 @@ class Game:
             return {"error": f"Auto-Play Failed completely: {e}"}
 
 
-    def handle_qayd_cancel(self):
-        """
-        Handles the cancellation of a Qayd investigation (e.g. by User or Timer).
-        Ensures the game is UNLOCKED and resumes.
-        """
-        logger.info(f"[QAYD] handle_qayd_cancel called.")
-        
-        # 1. Reset Qayd State
-        if hasattr(self, 'trick_manager'):
-            self.trick_manager.cancel_qayd()
-            self.qayd_state = self.trick_manager.qayd_state
-        else:
-            self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
-            
-        # 2. Unlock Game
-        self.is_locked = False
-        
-        # 3. Resume Playing Phase if needed
-        if self.phase == GamePhase.CHALLENGE.value:
-            self.phase = GamePhase.PLAYING.value
-            logger.info("[QAYD] Phase reverted to PLAYING.")
-            
-        # 4. Resume Timer
-        self.timer_paused = False
-        
-        return {'success': True}
+
 
     # --- HANDLERS (Restored / New) ---
     # (Moved to QAYD DELEGATION section above)

@@ -33,6 +33,16 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
         }
     }, [isOpen, result]);
 
+    // Auto-dismiss after 2 seconds
+    useEffect(() => {
+        if (isOpen && result) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, result, onClose]);
+
     if (!isOpen || !result) return null;
 
     const usWon = result.winner === 'us';
@@ -47,11 +57,12 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
 
     // Custom label for Qayd/Violation
     let stateLabel = isBidderWinner ? 'ربحانة' : 'خسرانة';
-    if (result.reason && result.reason.includes('QAYD')) {
-        stateLabel = 'صحة القيد'; // Valid Qayd
+    const isQayd = result.reason && result.reason.toUpperCase().includes('QAYD');
+    if (isQayd) {
+        stateLabel = 'قيد صحيح'; // Valid Qayd (Correct Qayd)
     }
 
-    const stateColor = (result.reason && result.reason.includes('QAYD'))
+    const stateColor = isQayd
         ? 'text-amber-600'
         : (isBidderWinner ? 'text-green-600' : 'text-red-600');
 
@@ -84,12 +95,24 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                 <div className="bg-white/80 p-6 m-4 rounded-lg shadow-sm border border-stone-200">
                     <div className="flex justify-between items-center mb-2">
                         <div className="text-stone-500 font-bold">اللعبة: <span className="text-black">{bidLabel}</span></div>
-                        <div className="text-stone-500 font-bold">المشتري أو البديل: <span className="text-black">{bidderLabel}</span></div>
+                        <div className="text-stone-500 font-bold">المشتري أو المدبل: <span className="text-black">{bidderLabel}</span></div>
                     </div>
-                    <div className="text-center mt-2">
-                        <span className="text-stone-500 font-bold">نتيجة الشراء: </span>
-                        <span className={`font-black text-xl ${stateColor}`}>{stateLabel}</span>
-                    </div>
+                    
+                    {/* Bidding Result (only if not Qayd) */}
+                    {!isQayd && (
+                        <div className="text-center mt-2">
+                            <span className="text-stone-500 font-bold">نتيجة الشراء: </span>
+                            <span className={`font-black text-xl ${stateColor}`}>{stateLabel}</span>
+                        </div>
+                    )}
+                    
+                    {/* Qayd Result (only if Qayd) */}
+                    {isQayd && (
+                        <div className="text-center mt-2">
+                            <span className="text-stone-500 font-bold">نتيجة القيد: </span>
+                            <span className={`font-black text-xl ${stateColor}`}>{stateLabel}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* "Nashra" (Bulletin) Section */}
@@ -100,21 +123,13 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         النـشـرة
                     </div>
 
-                    {/* Table Header */}
+                    {/* Table Header - Aligned with Body */}
                     <div className="flex pt-10 pb-2 border-b border-stone-300 bg-[#e0e0e0]">
-                        <div className="w-1/3 text-center font-bold text-stone-700">لنا</div>
-                        <div className="w-1/3 text-center font-bold text-stone-700">لهم</div>
-                        <div className="w-1/3"></div> {/* Label Column is visually on the RIGHT in RTL, but DOM order... RTL: Right is first? 
-                             Tailwind RTL: 
-                             Flex row in RTL: 1st child is Right.
-                             So "Label" column should be FIRST child?
-                             Use explicit order or standard flow. 
-                             Standard flow RTL: 
-                             [Start] -> [End]
-                             Visual: [Right] -> [Left]
-                             Image: Labels are on the RIGHT (Start in RTL).
-                             So Labels should be FIRST div.
-                        */}
+                        <div className="w-1/4"></div> {/* Matches Label Column */}
+                        <div className="flex-1 flex flex-row-reverse text-center font-bold text-stone-700">
+                            <div className="w-1/2">لنا</div>
+                            <div className="w-1/2">لهم</div>
+                        </div>
                     </div>
 
                     {/* Table Body */}
@@ -122,7 +137,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         {/* Aklat Row */}
                         <div className="flex items-center py-2 border-b border-stone-300/50">
                             <div className="w-1/4 text-center font-bold text-stone-800 bg-[#8b5a2b] text-white mx-2 rounded shadow-sm text-sm py-1">الأكلات</div>
-                            <div className="flex-1 flex text-center font-mono font-bold text-black text-xl">
+                            <div className="flex-1 flex flex-row-reverse text-center font-mono font-bold text-black text-xl">
                                 <div className="w-1/2">{result.us.aklat}</div>
                                 <div className="w-1/2">{result.them.aklat}</div>
                             </div>
@@ -131,7 +146,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         {/* Ardh (Floor/Last) Row */}
                         <div className="flex items-center py-2 border-b border-stone-300/50">
                             <div className="w-1/4 text-center font-bold text-stone-600 text-sm">الأرض</div>
-                            <div className="flex-1 flex text-center font-mono font-bold text-slate-800">
+                            <div className="flex-1 flex flex-row-reverse text-center font-mono font-bold text-slate-800">
                                 <div className="w-1/2">{result.us.ardh || ''}</div>
                                 <div className="w-1/2">{result.them.ardh || ''}</div>
                             </div>
@@ -140,7 +155,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         {/* Projects Row */}
                         <div className="flex items-center py-2 border-b border-stone-300/50 min-h-[50px]">
                             <div className="w-1/4 text-center font-bold text-stone-600 text-sm">المشاريع</div>
-                            <div className="flex-1 flex text-center">
+                            <div className="flex-1 flex flex-row-reverse text-center">
                                 <div className="w-1/2 flex flex-col items-center justify-center">
                                     {formatProjects(result.us.projects)}
                                 </div>
@@ -153,7 +168,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         {/* Abnat Row (Total Raw) */}
                         <div className="flex items-center py-3 border-b border-stone-300/50 bg-black/5">
                             <div className="w-1/4 text-center font-bold text-stone-700 text-sm">الابناط</div>
-                            <div className="flex-1 flex text-center font-mono font-black text-2xl text-stone-800">
+                            <div className="flex-1 flex flex-row-reverse text-center font-mono font-black text-2xl text-stone-800">
                                 <div className="w-1/2">{result.us.abnat}</div>
                                 <div className="w-1/2">{result.them.abnat}</div>
                             </div>
@@ -162,7 +177,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         {/* Result Row (Highlighted) */}
                         <div className="flex items-center py-4 bg-[#e8e4dc]">
                             <div className="w-1/4 text-center font-bold text-white bg-[#d94a4a] mx-2 rounded py-2 shadow-md">النتيجة</div>
-                            <div className="flex-1 flex text-center font-mono font-black text-4xl text-black">
+                            <div className="flex-1 flex flex-row-reverse text-center font-mono font-black text-4xl text-black">
                                 <div className="w-1/2">{result.us.result}</div>
                                 <div className="w-1/2">{result.them.result}</div>
                             </div>

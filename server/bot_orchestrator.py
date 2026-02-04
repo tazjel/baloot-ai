@@ -143,27 +143,49 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         
         if not game or not game.players: return
             
-        if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION"]:
+        if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION", "CHALLENGE"]:
             return
         
         if game.current_turn < 0 or game.current_turn >= len(game.players): return
         
-        # 1. Respect Qayd State (Stop if investigation active)
+        # 1. Respect Qayd State (Handle Sherlock Bot)
+        current_idx = game.current_turn
+        current_player = game.players[current_idx]
+
         if game.qayd_manager.state.get('active'):
-            return
+            # Only allow the Reporter to act
+            reporter_pos = game.qayd_manager.state.get('reporter')
+            valid_reporter = next((p for p in game.players if p.position == reporter_pos and p.is_bot), None)
+            
+            if not valid_reporter:
+                return # Human reporter or invalid state -> wait for user input
+                
+            # HIJACK THE LOOP: Target the Reporter
+            current_idx = valid_reporter.index
+            current_player = valid_reporter
+            logger.info(f"Bot Loop: Qayd Active. Hijacking turn for Reporter {current_player.name}")
 
-        next_idx = game.current_turn
-        if not game.players[next_idx].is_bot:
-            broadcast_game_update(sio, game, room_id)
-            return
+        elif game.phase == "CHALLENGE":
+             # Should be covered above, but safety check
+             return
 
+        next_idx = current_idx # Use derived index
+        # (Original next_idx = game.current_turn logic was for broadcasting next player...)
+        
         # 2. Throttle Bot Loop (Prevent Freeze)
         sio.sleep(1.5) 
         
         if game.phase == "FINISHED": return
             
-        current_idx = game.current_turn
-        current_player = game.players[current_idx]
+        # Re-fetch in case state changed during sleep
+        if game.qayd_manager.state.get('active'):
+             reporter_pos = game.qayd_manager.state.get('reporter')
+             current_player = next((p for p in game.players if p.position == reporter_pos), None)
+             if not current_player or not current_player.is_bot: return
+             current_idx = current_player.index
+        else:
+             current_idx = game.current_turn
+             current_player = game.players[current_idx]
         
         if not current_player.is_bot: return
             

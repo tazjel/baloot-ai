@@ -216,8 +216,8 @@ class BotAgent:
                       
                  if is_me:
                       logger.info(f"[SHERLOCK] I am the reporter ({reporter_pos}). Investigation starting...")
-                      # 1. Brief Pause (simulating reaction time)
-                      time.sleep(1) # Reduced for responsiveness 
+                      # 1. Brief Pause (Removed for performance)
+                      # time.sleep(1) 
                       
                       # 2. Find the Crime (Using Deep Scan Logic, NOT Metadata)
                       # We must re-scan using the Sherlock Logic because 'is_illegal' metadata is hidden from clients.

@@ -30,7 +30,7 @@ def create_test_game_with_illegal_setup():
     # Force to PLAYING phase with HOKUM mode
     game.phase = "PLAYING"
     game.game_mode = "HOKUM"
-    game.hokum_suit = "HEARTS"
+    game.trump_suit = "HEARTS"
     game.current_turn = 0
     
     # Setup hands to create illegal move scenario
@@ -77,8 +77,9 @@ def test_qayd_flow_no_freeze():
     last_play = game.table_cards[-1]
     assert last_play['metadata'].get('is_illegal'), "Move should be flagged as illegal"
     
-    # Trigger Qayd (simulating bot detection)
-    qayd_result = game.handle_qayd_trigger(1)  # Bot 1 triggers
+    # Trigger Qayd (simulating user detection to verify locked state)
+    game.players[1].is_bot = False
+    qayd_result = game.handle_qayd_trigger(1)  # Player 1 triggers
     
     # Verify Qayd was triggered (Phase 1)
     assert qayd_result.get('success'), f"Qayd trigger failed: {qayd_result}"
@@ -93,8 +94,8 @@ def test_qayd_flow_no_freeze():
     assert not game.is_locked, "Game should be unlocked after Qayd confirm"
     
     # Verify Qayd state shows resolution
-    assert game.trick_manager.qayd_state.get('status') == 'RESOLVED', \
-        f"Qayd should be resolved, got: {game.trick_manager.qayd_state.get('status')}"
+    assert game.qayd_state.get('status') == 'RESOLVED', \
+        f"Qayd should be resolved, got: {game.qayd_state.get('status')}"
 
 
 def test_qayd_state_serializable():
@@ -115,7 +116,7 @@ def test_qayd_state_serializable():
     game.handle_qayd_confirm()
     
     # Get qayd state directly (not full game state to avoid schema issues)
-    qayd_state = game.trick_manager.qayd_state
+    qayd_state = game.qayd_state
     
     # Verify it's JSON-serializable (this would raise TypeError if not)
     try:
@@ -146,11 +147,11 @@ def test_qayd_penalty_applied():
     
     # Verify penalty was applied
     # Player 0 is on team 'us', so 'us' should have lost points
-    assert game.trick_manager.qayd_state.get('loser_team') == 'us', \
+    assert game.qayd_state.get('loser_team') == 'us', \
         "Offending team should be marked as loser"
     
     # Verify penalty points were set
-    penalty = game.trick_manager.qayd_state.get('penalty_points', 0)
+    penalty = game.qayd_state.get('penalty_points', 0)
     assert penalty > 0, f"Penalty should be positive, got: {penalty}"
 
 

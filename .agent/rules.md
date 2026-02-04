@@ -16,3 +16,8 @@
 4. **Architecture**:
     - **Shared Constants**: Enums for Game State (`BiddingPhase`, `BidType`, `GamePhase`) MUST live in `game_engine/models/constants.py`.
     - **Do NOT** define these Enums in `server/` or `ai_worker/` files. Always import them.
+
+5. **Identity & Conversation**:
+    - **Rule**: Always sign your response with BOTH your Agent Name and Model Name at the very end of your reply or conversation.
+    - **Format**: Enclosed in square brackets in the format `[AgentName (ModelName)]`, e.g., `[Antigravity (Gemini 2.0 Flash)]`.
+    - **Implementation**: You MUST include both. If the Model Name is not explicitly known, make a best-effort identification or use generic model family names (e.g., `(Gemini)`).

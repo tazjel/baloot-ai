@@ -242,6 +242,8 @@ def game_action(sid, data):
          result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
     elif action == 'QAYD_CONFIRM':
          result = game.handle_qayd_confirm()
+         if result.get('trigger_next_round'):
+              sio.start_background_task(auto_restart_round, game, room_id)
     elif action == 'QAYD_CANCEL':
          result = game.handle_qayd_cancel()
          if result.get('trigger_next_round'):
@@ -276,9 +278,13 @@ def game_action(sid, data):
         else:
              result = {'success': False, 'error': 'Cannot start round, phase is ' + game.phase}
     
+
     if result.get('success'):
         # PERSIST STATE TO REDIS
         room_manager.save_game(game)
+    else:
+        logger.error(f"[ACTION FAILURE] Action '{action}' failed for room {room_id}: {result.get('error')} | Payload: {payload}")
+
         
         # Broadcast Update
         broadcast_game_update(game, room_id)
@@ -307,7 +313,16 @@ def game_action(sid, data):
              # Auto-restart logic is handled by client request or explicit timer
              pass
         
+
+    # Log Result for Debugging
+    try:
+        import json
+        logger.info(f"Action Result for {action}: {json.dumps(result, default=str)}")
+    except Exception as e:
+        logger.error(f"Serialization Check Failed: {e} | Result keys: {result.keys()}")
+
     return result
+
 
 # run_sherlock_scan moved to bot_orchestrator
 
@@ -390,7 +405,9 @@ def auto_restart_round(game, room_id):
             return
 
         game.is_restarting = True
-        sio.sleep(3.0) # Wait 3 seconds for score display
+        logger.info(f"Auto-restart triggered for room {room_id}. Waiting 2s...")
+        # Wait 2 seconds for user to view results before dealing next round
+        sio.sleep(2.0)
 
         # HELPER: Save to Archive
         def save_to_archive():
@@ -421,11 +438,12 @@ def auto_restart_round(game, room_id):
              save_to_archive()
 
              if game.start_game():
-                  game.is_restarting = False # Reset flag
+                  # Note: start_game() sets is_restarting to False on success usually? 
+                  # But we do it in finally block to be safe.
                   sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                   handle_bot_turn(game, room_id)
         elif game.phase == "GAMEOVER":
-             game.is_restarting = False
+             # game.is_restarting = False # handled in finally
              print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
              
              # Save Final
@@ -443,7 +461,7 @@ def auto_restart_round(game, room_id):
                      if human.index in [0, 2]:
                          player_won = (winner_team == 'us')
                      else:
-                         player_won = (winner_team == 'them')
+                         player_won = (winner_team == 'them') # Fixed Logic
                          
                      # Identify Partner & Opponents
                      partner_idx = (human.index + 2) % 4
@@ -462,12 +480,17 @@ def auto_restart_round(game, room_id):
              except Exception as mem_err:
                  logger.error(f"Failed to save memory: {mem_err}")
 
-        else:
-             game.is_restarting = False
-             
     except Exception as e:
         logger.error(f"Error in auto_restart_round: {e}")
-        if game: game.is_restarting = False
+        import traceback
+        logger.error(traceback.format_exc())
+    finally:
+        # CRITICAL: Always reset restarting flag to prevent deadlock
+        if hasattr(game, 'is_restarting'):
+            game.is_restarting = False
+            logger.info("Auto-restart lock released.")
+
+
 
 @sio.event
 def add_bot(sid, data):
@@ -578,7 +601,7 @@ def timer_background_task(room_manager_instance):
                     # Check finish
                     if game.phase == "FINISHED":
                          save_match_snapshot(game, room_id)
-                         # sio.start_background_task(auto_restart_round, game, room_id)
+                         sio.start_background_task(auto_restart_round, game, room_id)
                          pass
 
         except Exception as e:

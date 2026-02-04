@@ -120,16 +120,30 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   const [timeLeft, setTimeLeft] = useState(TIMER_SECONDS);
 
   // Get tricks from game state
-  const tricks: TrickRecord[] = (gameState.currentRoundTricks || []).map((t: any, idx: number) => ({
-    cards: t.cards || [],
-    winner: t.winner,
-    trickNumber: idx + 1,
-  }));
+  // FIX: Backend stores 'cards' and 'playedBy' separately in round_history.
+  // We must zip them to match the TrickPlay interface.
+  const tricks: TrickRecord[] = (gameState.currentRoundTricks || []).map((t: any, idx: number) => {
+      // Check if cards are already formatted (legacy safety) or need zipping
+      const mappedCards = t.cards.map((c: any, cIdx: number) => {
+           // If 'c' has 'card' prop, it's already formatted (like tableCards)
+           if (c.card) return c;
+           // Otherwise, zip with playedBy
+           return {
+               card: c,
+               playedBy: t.playedBy ? t.playedBy[cIdx] : undefined
+           };
+      });
+      return {
+        cards: mappedCards,
+        winner: t.winner,
+        trickNumber: idx + 1,
+      };
+  });
 
   // Add current active trick (Table Cards)
   if (gameState.tableCards && gameState.tableCards.length > 0) {
     tricks.push({
-      cards: gameState.tableCards as any, // Cast to match TrickPlay structure if needed
+      cards: gameState.tableCards as any, 
       trickNumber: tricks.length + 1,
       winner: undefined
     });
@@ -174,15 +188,22 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
     return () => clearInterval(interval);
   }, [step, onCancel, onConfirm, gameState.qaydState]); // Added dep
 
+  // lifecycle debug
+  useEffect(() => {
+    console.log('[QaydOverlay] MOUNTED. Active:', gameState.qaydState?.active, 'Result:', !!result);
+    return () => console.log('[QaydOverlay] UNMOUNTED');
+  }, []);
+
   // Update step when result arrives
   useEffect(() => {
     if (result) {
+      console.log('[QaydOverlay] Result received. Forcing RESULT step.');
       setStep('RESULT');
       
-      // Auto-close result after 3 seconds (Kammelna style)
+      // Auto-close result after 5 seconds (increased from 3s for readability)
       const timer = setTimeout(() => {
           if (onCancel) onCancel();
-      }, 3000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [result, onCancel]);
@@ -279,7 +300,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
       if (selectionMode === 'crime') {
         // Step 1: Select the crime card
         instructionAr = 'تم الغش بها';
-        instructionColor = 'text-red-400';
+        instructionColor = 'text-pink-400';
         // titleAr remains 'نوع القيد'
       } else if (selectionMode === 'proof') {
         // Step 2: Select the proof card
@@ -316,10 +337,99 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   // NOTE: renderMainMenu also needs styling update to match Stitch (Tabs/Buttons)
   // ...
 
-  const renderMainMenu = () => {
-    const reporterPos = gameState.qaydState?.reporter;
-    const isReporter = reporterPos && gameState.players[0]?.position === reporterPos;
+  // ...
+  
+  // RATCHET LOGIC: Prevent backwards jumps (flickering)
+  const STEP_ORDER: Record<QaydStep, number> = {
+    'MAIN_MENU': 0,
+    'SELECT_VIOLATION': 1,
+    'SELECT_CARD': 2,
+    'RESULT': 3
+  };
 
+  const advanceTo = (newStep: QaydStep) => {
+    setStep(current => {
+        if (STEP_ORDER[newStep] > STEP_ORDER[current]) {
+            return newStep;
+        }
+        return current;
+    });
+  };
+
+  // Reactive State (Forward Only)
+  const reporterPos = gameState.qaydState?.reporter;
+  const isReporter = reporterPos && gameState.players[0]?.position === reporterPos;
+  const isBotReporter = !isReporter && reporterPos; 
+
+  // 1. DATA DRIVEN RATCHET (For live updates)
+  useEffect(() => {
+    if (result) return; // Handled by Playback below
+    
+    // DISABLE BOT PLAYBACK FOR NON-REPORTERS
+    // We want the accused/watchers to see the "Investigating..." screen until the result is ready.
+    // Advancing steps here caused the UI to show interactive controls (Select Card, etc.) 
+    // which confused users into thinking they needed to act.
+    
+    /* 
+    if (isBotReporter && gameState.qaydState?.active) {
+        if (gameState.qaydState.target_play) {
+             advanceTo('SELECT_CARD');
+             // Update selection data safely without resetting step
+             setSelectionMode('proof'); 
+             const play = gameState.qaydState.target_play;
+             setSelectedCrimeCard(prev => prev || { // Stick with existing if set
+                 card: play.card,
+                 trickNumber: 0,
+                 playedBy: play.playedBy
+             });
+        } else if (gameState.qaydState.qayd_type) {
+             advanceTo('SELECT_VIOLATION');
+             const v = filteredViolations.find(v => v.type === gameState.qaydState?.qayd_type) || filteredViolations[0];
+             setSelectedViolation(v.type as ViolationType);
+        } else {
+             // Do NOT force MAIN_MENU here. 
+             // Allow initial state to be MAIN_MENU, but never revert to it automatically.
+        }
+    }
+    */
+  }, [result, isBotReporter, gameState.qaydState]);
+
+  // 2. RESULT-DRIVEN PLAYBACK (The "Reveal" Animation)
+  // When result arrives, we play a fast sequence THEN show result.
+  useEffect(() => {
+    if (result && step !== 'RESULT') {
+        console.log('[QaydOverlay] Result received. Starting Reveal Sequence.');
+        
+        // Instant Setup for visualization
+        if (gameState.qaydState?.target_play) {
+             const play = gameState.qaydState.target_play;
+             setSelectedCrimeCard({ card: play.card, trickNumber: 0, playedBy: play.playedBy });
+        }
+        if (gameState.qaydState?.qayd_type) {
+             const v = filteredViolations.find(v => v.type === gameState.qaydState?.qayd_type) || filteredViolations[0];
+             setSelectedViolation(v.type as ViolationType);
+        }
+
+        // Sequence
+        const t1 = setTimeout(() => advanceTo('SELECT_VIOLATION'), 500);
+        const t2 = setTimeout(() => {
+            advanceTo('SELECT_CARD');
+            setSelectionMode('crime');
+        }, 1000);
+        const t3 = setTimeout(() => {
+            setSelectionMode('proof');
+        }, 1500);
+        const t4 = setTimeout(() => {
+            setStep('RESULT'); // Force final step
+        }, 2200);
+
+        return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    }
+  }, [result]); // Only run when result changes
+
+  const renderMainMenu = () => {
+    // Watcher Mode (Human Reporter is thinking OR Bot is investigating)
+    // If not the reporter, always show the "Investigating" screen unless we have a result.
     if (!isReporter) {
       return (
         <div className="flex flex-col items-center justify-center p-12 text-center h-full">
@@ -327,31 +437,35 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
               <Gavel size={48} className="text-amber-500" />
            </div>
            <h3 className="text-xl text-white font-bold font-tajawal mb-2">جاري التحقق...</h3>
-           <p className="text-gray-400 font-tajawal">يقوم {gameState.players.find(p => p.position === reporterPos)?.name} بمراجعة اللعب</p>
+           <p className="text-gray-400 font-tajawal">
+              يقوم <span className="text-amber-400 font-bold">{gameState.players.find(p => p.position === reporterPos)?.name || 'المحقق'}</span> بمراجعة اللعب
+           </p>
         </div>
       );
     }
 
+    // Interactive Mode (Me) OR Bot Playback Mode
     return (
-    <div className="p-6 flex flex-col items-center gap-4">
-      <h3 className="text-lg text-gray-300 font-tajawal mb-2">اختر نوع المخالفة</h3>
-      <div className="flex gap-3 flex-wrap justify-center">
-        {MAIN_MENU_OPTIONS.map((opt) => (
-          <motion.button
-            key={opt.type}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleMainOptionSelect(opt.type)}
-            className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/50 text-white px-6 py-5 rounded-2xl transition-all min-w-[140px] flex flex-col items-center gap-2"
-          >
-            <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 rounded-2xl transition-all" />
-            <span className="text-2xl font-black font-tajawal group-hover:text-amber-400 transition-colors">{opt.labelAr}</span>
-            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-sans">{opt.label}</span>
-          </motion.button>
-        ))}
+      <div className="p-6 flex flex-col items-center gap-4">
+        <h3 className="text-lg text-gray-300 font-tajawal mb-2">اختر نوع المخالفة</h3>
+        <div className="flex gap-3 flex-wrap justify-center">
+          {MAIN_MENU_OPTIONS.map((opt) => (
+            <motion.button
+              key={opt.type}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleMainOptionSelect(opt.type)}
+              className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-500/50 text-white px-6 py-5 rounded-2xl transition-all min-w-[140px] flex flex-col items-center gap-2"
+            >
+              <div className="absolute inset-0 bg-amber-500/0 group-hover:bg-amber-500/5 rounded-2xl transition-all" />
+              <span className="text-2xl font-black font-tajawal group-hover:text-amber-400 transition-colors">{opt.labelAr}</span>
+              <span className="text-[10px] text-gray-500 uppercase tracking-widest font-sans">{opt.label}</span>
+            </motion.button>
+          ))}
+        </div>
       </div>
-    </div>
-  )};
+    );
+  };
 
   const renderViolationButtons = () => (
     <div className="px-6 py-4 bg-[#404040] flex flex-wrap justify-center flex-row-reverse gap-3">
@@ -410,7 +524,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
                 // Determine ring color based on selection type
                 let ringClass = '';
                 if (isCrimeCard) {
-                  ringClass = 'ring-4 ring-red-500 rounded-md z-10'; // Crime = Red
+                  ringClass = 'ring-4 ring-pink-500 rounded-md z-10'; // Crime = Pink
                 } else if (isProofCard) {
                   ringClass = 'ring-4 ring-green-500 rounded-md z-10'; // Proof = Green
                 }
@@ -430,7 +544,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
                     </div>
                     {/* Label badge for selected cards */}
                     {isCrimeCard && (
-                      <div className="absolute -top-2 -right-2 bg-red-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
+                      <div className="absolute -top-2 -right-2 bg-pink-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">
                         الجريمة
                       </div>
                     )}
@@ -502,11 +616,11 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
                                <div className="w-16 h-24 rotate-[-5deg] grayscale opacity-70">
                                    <CardVector card={evidence.crimeCard} className="w-full h-full rounded shadow-lg" />
                                </div>
-                               <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                               <div className="absolute top-0 right-0 -mt-2 -mr-2 bg-pink-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                                    كان معه
                                </div>
                            </div>
-                           <span className="text-xs text-red-300 font-bold font-tajawal mt-1">الجريمة</span>
+                           <span className="text-xs text-pink-300 font-bold font-tajawal mt-1">الجريمة</span>
                       </div>
 
                       {/* VS */}
@@ -670,6 +784,12 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   // =============================================================================
   // MAIN RENDER
   // =============================================================================
+
+  // HIDE OVERLAY FOR NON-REPORTERS UNTIL RESULT IS READY
+  // User requested to remove the "Investigating..." waiting screen.
+  if (!isReporter && !result) {
+      return null;
+  }
 
   return (
     <AnimatePresence>
