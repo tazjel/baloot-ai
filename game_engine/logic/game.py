@@ -291,6 +291,11 @@ class Game:
                   if self.phase == GamePhase.FINISHED.value:
                        logger.info(f"[QAYD] Phase is FINISHED. Signaling Auto-Restart.")
                        result['trigger_next_round'] = True
+                  
+                  # DEADLOCK FIX: Force Phase Reset
+                  elif self.phase == GamePhase.CHALLENGE.value:
+                       logger.info(f"[QAYD] Resetting Phase from CHALLENGE to PLAYING to prevent deadlock.")
+                       self.phase = GamePhase.PLAYING.value
                        
              return result
 
@@ -771,10 +776,18 @@ class Game:
         return None
 
     def apply_qayd_penalty(self, loser_team, winner_team):
-        max_points = 26 if self.game_mode == 'SUN' else 16
+        # FIX: Single Source of Truth from TrickManager
+        if self.qayd_state and 'penalty_points' in self.qayd_state:
+             score_winner = self.qayd_state['penalty_points']
+             logger.info(f"[QAYD] Applying penalty points from TrickManager: {score_winner}")
+        else:
+             # Fallback
+             is_sun = 'SUN' in str(self.game_mode).upper()
+             max_points = 26 if is_sun else 16
+             score_winner = max_points 
+             logger.warning(f"[QAYD] Penalty points not found in state. Using fallback: {score_winner} (Mode: {self.game_mode})")
         
-        score_loser = 0
-        score_winner = max_points 
+        score_loser = 0 
         
         self.match_scores[winner_team] += score_winner
         self.match_scores[loser_team] += score_loser 
@@ -832,7 +845,6 @@ class Game:
             
             card_idx = decision.get('cardIndex', 0)
             action = decision.get('action', 'PLAY_CARD')
-            
             if action == 'QAYD_TRIGGER':
                  logger.info(f"Auto-Play for {player.name}: Triggering Qayd Protocol (Sherlock)")
                  return self.handle_qayd_trigger(player_index)
@@ -849,6 +861,10 @@ class Game:
                       # If not in Challenge Phase yet, treat Accusation as a Trigger first
                       logger.info(f"Auto-Play: QAYD_ACCUSATION received in {self.phase}. Triggering Investigation first.")
                       return self.handle_qayd_trigger(player_index)
+
+            elif action == 'QAYD_CONFIRM':
+                 logger.info(f"Auto-Play for {player.name}: Confirming Qayd Verdict")
+                 return self.handle_qayd_confirm()
 
             elif action == 'WAIT':
                  reason = decision.get('reason', 'Waiting')
@@ -888,32 +904,7 @@ class Game:
             return {"error": f"Auto-Play Failed completely: {e}"}
 
 
-    def handle_qayd_cancel(self):
-        """
-        Handles the cancellation of a Qayd investigation (e.g. by User or Timer).
-        Ensures the game is UNLOCKED and resumes.
-        """
-        logger.info(f"[QAYD] handle_qayd_cancel called.")
-        
-        # 1. Reset Qayd State
-        if hasattr(self, 'trick_manager'):
-            self.trick_manager.cancel_qayd()
-            self.qayd_state = self.trick_manager.qayd_state
-        else:
-            self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
-            
-        # 2. Unlock Game
-        self.is_locked = False
-        
-        # 3. Resume Playing Phase if needed
-        if self.phase == GamePhase.CHALLENGE.value:
-            self.phase = GamePhase.PLAYING.value
-            logger.info("[QAYD] Phase reverted to PLAYING.")
-            
-        # 4. Resume Timer
-        self.timer_paused = False
-        
-        return {'success': True}
+
 
     # --- HANDLERS (Restored / New) ---
     # (Moved to QAYD DELEGATION section above)

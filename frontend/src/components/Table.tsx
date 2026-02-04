@@ -440,7 +440,7 @@ export default function Table({
             )}
 
             {/* Qayd Overlay (Replaces Forensic) */}
-            {gameState.qaydState?.active && (
+            {gameState.qaydState?.active && gameState.qaydState?.status !== 'RESOLVED' && (
                 <QaydOverlay
                     gameState={gameState}
                     isHokum={(gameState.gameMode as 'SUN' | 'HOKUM') === 'HOKUM'}

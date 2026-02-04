@@ -565,7 +565,7 @@ def timer_background_task(room_manager_instance):
                 if not game: continue
                 
                 res = game.check_timeout()
-                if res and res.get('success'):
+                if res and isinstance(res, dict) and res.get('success'):
                     # Timeout caused an action (Pass or AutoPlay)
                     # Broadcast update
                     room_manager.save_game(game) # Persist Timeout Action

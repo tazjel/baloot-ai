@@ -179,8 +179,8 @@ class TrickManager:
         try:
              reporter = self.game.players[reporter_index]
              
-             # Reset Qayd State for new proposal
-             self.qayd_state = {
+             # Reset Qayd State for new proposal (IN-PLACE UPDATE)
+             new_state = {
                  'active': True,
                  'reporter': reporter.position, # Store Position String (e.g. 'Top')
                  'status': 'REVIEW',
@@ -198,6 +198,8 @@ class TrickManager:
                  'crime_trick_idx': crime_trick_idx,
                  'proof_trick_idx': proof_trick_idx
              }
+             self.qayd_state.clear()
+             self.qayd_state.update(new_state)
              
              crime_card_found = False
              
@@ -348,7 +350,10 @@ class TrickManager:
              # Calculate Points
              # Apply Kaboot logic if needed (TODO: port estimate_kaboot here or keep it simple)
              # For now, standard penalty.
-             base_points = 26 if game_mode == 'SUN' else 16
+             # FIX: Robust check for 'SUN' in string representation (handles "BidType.SUN" or "SUN")
+             mode_str = str(game_mode).upper()
+             is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
+             base_points = 26 if is_sun else 16
              if self.game.doubling_level >= 2: base_points *= self.game.doubling_level
              
              # Add projects
@@ -392,7 +397,8 @@ class TrickManager:
              self.ignored_crimes.add(self.qayd_state['crime_signature'])
              logger.info(f"[QAYD] Added crime {self.qayd_state['crime_signature']} to ignore list.")
              
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.qayd_state.clear()
+        self.qayd_state.update({'active': False, 'reporter': None, 'reason': None, 'target_play': None})
         return {'success': True}
 
     def confirm_qayd(self):
@@ -436,7 +442,8 @@ class TrickManager:
         winner_team = 'us' if loser_team == 'them' else 'them'
         
         # Calculate max round points
-        points = points_override if points_override else (26 if self.game.game_mode == 'SUN' else 16)
+        is_sun = 'SUN' in str(self.game.game_mode).upper() or 'ASHKAL' in str(self.game.game_mode).upper()
+        points = points_override if points_override else (26 if is_sun else 16)
         
         # Multiply if doubled
         if self.game.doubling_level >= 2:
@@ -496,13 +503,14 @@ class TrickManager:
         if len(self.game.table_cards) > 0:
              return {"error": "Cannot called Sawa after playing a card"}
              
-        self.sawa_state = {
+        self.sawa_state.clear()
+        self.sawa_state.update({
             "active": True,
             "claimer": self.game.players[player_index].position, 
             "responses": {}, 
             "status": "PENDING",
             "challenge_active": False 
-        }
+        })
         return {"success": True, "sawa_state": self.sawa_state}
 
     def handle_sawa_response(self, player_index, response):
@@ -563,6 +571,10 @@ class TrickManager:
         self.game.end_round()
 
     def reset_state(self):
-        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        self.sawa_state.clear()
+        self.sawa_state.update({"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False})
+        
+        self.qayd_state.clear()
+        self.qayd_state.update({'active': False, 'reporter': None, 'reason': None, 'target_play': None})
+        
         self.ignored_crimes = set()

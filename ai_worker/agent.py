@@ -61,7 +61,9 @@ class BotAgent:
         
         if contradiction:
              logger.info(f"[SHERLOCK] 🕵️‍♂️ {ctx.position} Caught {played_by_pos}! {contradiction} (Source: {source})")
+             # SILENCING SENSITIVE SHERLOCK temporarily to improve UX (prevent constant interruptions)
              return "QAYD_TRIGGER"
+             # return None
         return None
         
     def get_decision(self, game_state, player_index):
@@ -215,9 +217,14 @@ class BotAgent:
                       is_me = True
                       
                  if is_me:
+                      # CHECK STATUS: If waiting for review/confirm, just confirm!
+                      if qayd_state.get('status') == 'REVIEW':
+                           logger.info(f"[SHERLOCK] Qayd in REVIEW. Auto-Confirming Verdict.")
+                           return {"action": "QAYD_CONFIRM"}
+
                       logger.info(f"[SHERLOCK] I am the reporter ({reporter_pos}). Investigation starting...")
                       # 1. Brief Pause (simulating reaction time)
-                      time.sleep(1) # Reduced for responsiveness 
+                      # time.sleep(1) # REMOVED per user request (Too slow)
                       
                       # 2. Find the Crime (Using Deep Scan Logic, NOT Metadata)
                       # We must re-scan using the Sherlock Logic because 'is_illegal' metadata is hidden from clients.
@@ -276,8 +283,10 @@ class BotAgent:
 
              # Legacy/Backup Check - Now uses proof-based detection via Memory
              # Use ctx.memory (populated from current game state) not self.memory
-             if qayd_claim := self.referee.check_qayd(ctx, game_state, memory=ctx.memory):
-                 return qayd_claim
+             # SILENCED FOR UX:
+             # if qayd_claim := self.referee.check_qayd(ctx, game_state, memory=ctx.memory):
+             #     return qayd_claim
+             pass
 
              # 2. THE BRAIN: Check for Learned Moves (Redis)
              if ctx.phase in ['PLAYING', 'BIDDING']:
