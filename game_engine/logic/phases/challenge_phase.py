@@ -343,9 +343,9 @@ class ChallengePhase:
         
         result = {'success': True}
 
-        # Trigger auto-restart if game phase is FINISHED
-        if self.game.phase == GamePhase.FINISHED.value:
-            logger.info(f"[QAYD] Phase is FINISHED after confirmation. Signaling Auto-Restart.")
+        # Trigger auto-restart if game phase is FINISHED or GAMEOVER
+        if self.game.phase in [GamePhase.FINISHED.value, GamePhase.GAMEOVER.value]:
+            logger.info(f"[QAYD] Phase is {self.game.phase} after confirmation. Signaling Auto-Restart/Cleanup.")
             result['trigger_next_round'] = True
             
         return result
@@ -383,8 +383,8 @@ class ChallengePhase:
         result = {'success': True}
 
         # 5. Check for Auto-Restart
-        if self.game.phase == GamePhase.FINISHED.value:
-             logger.info(f"[QAYD] Phase is FINISHED. Signaling Auto-Restart.")
+        if self.game.phase in [GamePhase.FINISHED.value, GamePhase.GAMEOVER.value]:
+             logger.info(f"[QAYD] Phase is {self.game.phase}. Signaling Auto-Restart/Cleanup.")
              result['trigger_next_round'] = True
              
         return result

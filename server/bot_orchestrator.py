@@ -240,6 +240,14 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         if res.get('success'):
              broadcast_game_update(sio, game, room_id)
              
+             # Handle Round End (Qayd/Forensic Trigger)
+             if res.get('trigger_next_round'):
+                  logger.info(f"Bot-triggered Qayd ended round in room {room_id}. Triggering Auto-Restart.")
+                  from server.socket_handler import auto_restart_round
+                  sio.start_background_task(auto_restart_round, game, room_id)
+                  # Do not continue bot loop
+                  return
+
              # 3. Trigger Sherlock (Watchdog) to catch illegal moves IMMEDIATEY
              sio.start_background_task(run_sherlock_scan, sio, game, room_id)
 
