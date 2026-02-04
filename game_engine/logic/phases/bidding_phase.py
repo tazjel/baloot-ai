@@ -2,7 +2,7 @@ import logging
 import random
 from typing import Dict, Optional, Any
 
-from game_engine.logic.phases.challenge_phase import GamePhase
+from game_engine.models.constants import GamePhase, BiddingPhase as BiddingState
 # We might need to import Game dynamically or use TYPE_CHECKING to avoid circular imports
 # from game_engine.logic.game import Game
 
@@ -21,7 +21,8 @@ class BiddingPhase:
         """
         Process a bid action from a player.
         """
-        if self.game.phase != GamePhase.BIDDING.value:
+        if self.game.phase not in [GamePhase.BIDDING.value, GamePhase.DOUBLING.value, GamePhase.VARIANT_SELECTION.value]:
+            print(f"DEBUG: Phase Mismatch! Current={self.game.phase} Expected={[GamePhase.BIDDING.value, GamePhase.DOUBLING.value, GamePhase.VARIANT_SELECTION.value]}")
             return {'success': False, 'error': f"Not in bidding phase (Current: {self.game.phase})"}
 
         try:
@@ -44,7 +45,10 @@ class BiddingPhase:
             self.game._sync_bid_state()
             
             # Check if bidding is complete
-            if self.game.bidding_engine.is_bidding_complete():
+            # Check if bidding is complete (FINISHED only)
+            engine_phase = self.game.bidding_engine.phase
+            
+            if engine_phase == BiddingState.FINISHED:
                 winner = self.game.bidding_engine.get_winner()
                 if winner:
                    self.game.complete_deal(winner['player_index'])
@@ -53,7 +57,19 @@ class BiddingPhase:
                    logger.info("All players passed. Redealing.")
                    self.game.reset_round_state()
                    self.game.deal_initial_cards()
+            
+            elif engine_phase in [BiddingState.DOUBLING, BiddingState.VARIANT_SELECTION]:
+                 # Transition Game to Doubling if not already
+                 if self.game.phase != GamePhase.DOUBLING.value:
+                      self.game.phase = GamePhase.DOUBLING.value
+                      logger.info("Game Phase Transition -> DOUBLING")
+                 
+                 # Continue turn cycle for Doubling
+                 self.game.current_turn = self.game.bidding_engine.current_turn
+                 self.game.reset_timer()
+                 
             else:
+                 # Standard Bidding (Round 1/2)
                  # Move to next turn
                  self.game.current_turn = self.game.bidding_engine.current_turn
                  self.game.reset_timer()

@@ -132,6 +132,7 @@ def test_kawesh_post_bid_rotation(game):
 
     # 3. Attempt Kawesh (Post-Bid -> Rotate Dealer)
     res = game.handle_bid(p2_idx, "KAWESH")
+    print(f"DEBUG KAWESH RES: {res}")
     
     assert res.get("success") is True
     assert res.get("action") == "REDEAL"

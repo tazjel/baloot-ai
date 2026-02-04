@@ -93,7 +93,7 @@ class BiddingEngine:
         
         # 1. State Verification
         if self.phase == BiddingPhase.FINISHED:
-             return {"error": "Bidding is finished"}
+             return {"success": False, "error": "Bidding is finished"}
         
         # [KAWESH INTERCEPT]
         # Kawesh is a "super-action" valid at any time before playing Phase
@@ -108,7 +108,7 @@ class BiddingEngine:
         elif self.phase == BiddingPhase.VARIANT_SELECTION:
              result = self._handle_variant_selection(player_idx, action)
         else:
-             return {"error": "Invalid internal state"}
+             return {"success": False, "error": "Invalid internal state"}
         
         return result
 
@@ -124,17 +124,17 @@ class BiddingEngine:
         
         # 1. Validate Hand
         if not is_kawesh_hand(player.hand):
-             return {"error": "Cannot call Kawesh with points (A, K, Q, J, 10) in hand"}
+             return {"success": False, "error": "Cannot call Kawesh with points (A, K, Q, J, 10) in hand"}
         
         # 2. Valid Kawesh - Check Timing
         if self.has_bid_occurred:
              # Post-Bid -> Dealer Rotation
              logger.info(f"Post-Bid Kawesh by P{player_idx}. Dealer Rotates.")
-             return {"success": True, "action": "REDEAL", "rotate_dealer": True}
+             return {"success": True, "action": "REDEAL", "rotate_dealer": True, "message": "Kawesh! Redeal with Dealer Rotation."}
         else:
              # Pre-Bid -> Hard Reset
              logger.info(f"Pre-Bid Kawesh by P{player_idx}. Dealer Retained.")
-             return {"success": True, "action": "REDEAL", "rotate_dealer": False}
+             return {"success": True, "action": "REDEAL", "rotate_dealer": False, "message": "Kawesh! Redeal (Same Dealer)."}
 
 
     def _handle_contract_bid(self, player_idx, action, suit):
@@ -142,7 +142,7 @@ class BiddingEngine:
         # "Is this bid lower than an existing bid? (e.g., trying to bid Hokum when Sun is active). → Reject."
         if self.contract.type == BidType.SUN:
              if action == "HOKUM":
-                  return {"error": "Cannot bid Hokum over Sun"}
+                  return {"success": False, "error": "Cannot bid Hokum over Sun"}
              # Same type (Sun/Ashkal over Sun) only allowed if higher priority (Gablak/Hijack)
              # This is handled by the hijack check below.
         
@@ -150,7 +150,7 @@ class BiddingEngine:
              if action == "HOKUM":
                   # Only allowed via Gablak (intercepted at start of method)
                   if self.phase != BiddingPhase.GABLAK_WINDOW:
-                       return {"error": "Hokum bid already exists. Only Sun can hijack."}
+                       return {"success": False, "error": "Hokum bid already exists. Only Sun can hijack."}
 
 
         # --- GABLAK WINDOW Handling ---
@@ -184,12 +184,12 @@ class BiddingEngine:
              
              # If it's a BID (Hijack):
              if self._get_priority(player_idx) >= self._get_priority(tentative_idx):
-                  return {"error": "Not enough priority to Gablak/Steal"}
+                  return {"success": False, "error": "Not enough priority to Gablak/Steal"}
         
         # B. Turn Order Logic
         if self.phase != BiddingPhase.GABLAK_WINDOW:
              if player_idx != self.current_turn:
-                  return {"error": "Not your turn"}
+                  return {"success": False, "error": "Not your turn"}
 
         # --- CHECK 2: Gablak Loop / Turn Order ---
         # "If (P_current) is NOT Priority_List (not the First Player), terminate?"
@@ -233,7 +233,7 @@ class BiddingEngine:
 
         # Validate Bid constraints (Suit, Ace Rule, etc)
         valid, msg = self._validate_bid_constraints(player_idx, action, suit)
-        if not valid: return {"error": msg}
+        if not valid: return {"success": False, "error": msg}
 
         # --- GABLAK TRIGGER ---
         # If better players exist, we cannot finalize immediately.
@@ -329,7 +329,7 @@ class BiddingEngine:
              
         # If Gablak Window?
         if self.phase == BiddingPhase.GABLAK_WINDOW:
-             return {"error": "Cannot pass during Gablak (Action required is Steal or Ignore)"}
+             return {"success": False, "error": "Cannot pass during Gablak (Action required is Steal or Ignore)"}
 
         # Check for Round End / Game Over
         # Logic: If 3 passes after a Bid? Or 4 passes total?
@@ -475,8 +475,8 @@ class BiddingEngine:
         # Logic Chain
         new_level = current_level
         if action == "DOUBLE": # Dobl
-            if is_taker_team: return {"error": "Cannot double own bid"}
-            if current_level >= 2: return {"error": "Already doubled"}
+            if is_taker_team: return {"success": False, "error": "Cannot double own bid"}
+            if current_level >= 2: return {"success": False, "error": "Already doubled"}
             new_level = 2
              
             # Sun Firewall Rule
@@ -495,7 +495,7 @@ class BiddingEngine:
                 doubler_score = self.match_scores.get(doubler_team, 0)
                   
                 if not (bidder_score > 100 and doubler_score < 100):
-                    return {"error": f"Sun Double Rejected. Firewall Active. Scores: {bidder_team}={bidder_score}, {doubler_team}={doubler_score}"}
+                    return {"success": False, "error": f"Sun Double Rejected. Firewall Active. Scores: {bidder_team}={bidder_score}, {doubler_team}={doubler_score}"}
  
             # Hokum Variant (Open/Closed)
             # DECOUPLED: Double is now clean. Variant chosen later.
@@ -504,24 +504,24 @@ class BiddingEngine:
                 pass
 
         elif action == "TRIPLE": # Khamsin
-             if not is_taker_team: return {"error": "Only taking team can Triple"}
-             if current_level != 2: return {"error": "Can only Triple a Double"}
+             if not is_taker_team: return {"success": False, "error": "Only taking team can Triple"}
+             if current_level != 2: return {"success": False, "error": "Can only Triple a Double"}
              new_level = 3
 
         elif action == "FOUR": # Raba'a
-             if is_taker_team: return {"error": "Only opponents can Four"}
-             if current_level != 3: return {"error": "Can only Four a Triple"}
+             if is_taker_team: return {"success": False, "error": "Only opponents can Four"}
+             if current_level != 3: return {"success": False, "error": "Can only Four a Triple"}
              new_level = 4
 
         elif action == "GAHWA": # Coffee (Match Win)
              # "Only Taker's team can reply" to Raba'a?
              # Rules say: "Gahwa (Coffee): Only the Taker's team can reply."
-             if not is_taker_team: return {"error": "Only taking team can Gahwa"}
-             if current_level != 4: return {"error": "Can only Gahwa a Four"}
+             if not is_taker_team: return {"success": False, "error": "Only taking team can Gahwa"}
+             if current_level != 4: return {"success": False, "error": "Can only Gahwa a Four"}
              new_level = 100 # Symbolic Max
 
         else:
-             return {"error": f"Unknown doubling action {action}"}
+             return {"success": False, "error": f"Unknown doubling action {action}"}
 
         # Update State
         self.contract.level = new_level
@@ -533,10 +533,10 @@ class BiddingEngine:
     def _handle_variant_selection(self, player_idx, action):
         """Handle OPEN/CLOSED selection by Buyer."""
         if player_idx != self.contract.bidder_idx:
-             return {"error": "Only Buyer can choose Variant"}
+             return {"success": False, "error": "Only Buyer can choose Variant"}
         
         if action not in ["OPEN", "CLOSED"]:
-             return {"error": "Invalid Variant (Must be OPEN or CLOSED)"}
+             return {"success": False, "error": "Invalid Variant (Must be OPEN or CLOSED)"}
             
         self.contract.variant = action
         self.phase = BiddingPhase.FINISHED

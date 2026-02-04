@@ -1,0 +1,72 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\MiEXCITE\Projects\baloot-ai
+configfile: pytest.ini
+plugins: anyio-3.7.1, locust-2.43.1, cov-7.0.0
+collecting ... collected 6 items
+
+2026-02-04 19:12:38,939 - GameServer - INFO - Game Started. Random Dealer Index: 1
+tests/test_bidding_rules.py::test_ashkal_ace_constraint PASSED
+2026-02-04 19:12:38,942 - GameServer - INFO - Game Started. Random Dealer Index: 2
+tests/test_bidding_rules.py::test_ashkal_success_non_ace PASSED
+2026-02-04 19:12:38,945 - GameServer - INFO - Game Started. Random Dealer Index: 2
+tests/test_bidding_rules.py::test_kawesh_success PASSED
+2026-02-04 19:12:38,947 - GameServer - INFO - Game Started. Random Dealer Index: 0
+tests/test_bidding_rules.py::test_kawesh_fail_with_points PASSED
+2026-02-04 19:12:38,948 - GameServer - INFO - Game Started. Random Dealer Index: 2
+tests/test_bidding_rules.py::test_kawesh_post_bid_rotation DEBUG KAWESH RES: {'success': False, 'error': 'Not in BIDDING phase. Current: PLAYING'}
+FAILED
+2026-02-04 19:12:39,042 - GameServer - INFO - Game Started. Random Dealer Index: 2
+tests/test_bidding_rules.py::test_round_2_hukum_restriction PASSED
+
+================================== FAILURES ===================================
+________________________ test_kawesh_post_bid_rotation ________________________
+
+game = <game_engine.logic.game.Game object at 0x0000024DBC475DC0>
+
+    def test_kawesh_post_bid_rotation(game):
+        """Test using Kawesh AFTER a bid (Post-Bid: Next Dealer)"""
+        # 1. Setup: P1 bids SUN
+        game.floor_card = Card('♥', 'K') # Ensure floor is not Ace for Ashkal/etc
+        p1_idx = game.current_turn
+        game.handle_bid(p1_idx, "SUN")
+    
+        # 2. Setup: P2 (Next Player) has Zero Value Hand
+        p2_idx = (p1_idx + 1) % 4
+        player = game.players[p2_idx]
+        player.hand = [
+            Card('♠', '7'), Card('♠', '8'), Card('♠', '9'),
+            Card('♥', '7'), Card('♥', '8')
+        ]
+    
+        old_dealer = game.dealer_index
+    
+        # Force turn to P2 (Engine auto-rotates, but ensuring sync)
+        if game.bidding_engine:
+             game.bidding_engine.current_turn = p2_idx
+             game.current_turn = p2_idx
+    
+        # 3. Attempt Kawesh (Post-Bid -> Rotate Dealer)
+        res = game.handle_bid(p2_idx, "KAWESH")
+        print(f"DEBUG KAWESH RES: {res}")
+    
+>       assert res.get("success") is True
+E       AssertionError: assert False is True
+E        +  where False = <built-in method get of dict object at 0x0000024DBC4820C0>('success')
+E        +    where <built-in method get of dict object at 0x0000024DBC4820C0> = {'success': False, 'error': 'Not in BIDDING phase. Current: PLAYING'}.get
+
+tests\test_bidding_rules.py:137: AssertionError
+----------------------------- Captured log setup ------------------------------
+INFO     GameServer:game.py:362 Game Started. Random Dealer Index: 2
+============================== warnings summary ===============================
+tests/test_bidding_rules.py::test_ashkal_ace_constraint
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_bidding_rules.py::test_kawesh_post_bid_rotation - AssertionError: assert False is True
+ +  where False = <built-in method get of dict object at 0x0000024DBC4820C0>('success')
+ +    where <built-in method get of dict object at 0x0000024DBC4820C0> = {'success': False, 'error': 'Not in BIDDING phase. Current: PLAYING'}.get
+=================== 1 failed, 5 passed, 1 warning in 0.38s ====================
