@@ -3,6 +3,7 @@ import random
 from typing import Dict, Optional, Any
 
 from game_engine.models.constants import GamePhase, BiddingPhase as BiddingState
+from game_engine.logic.bidding_engine import BiddingEngine
 # We might need to import Game dynamically or use TYPE_CHECKING to avoid circular imports
 # from game_engine.logic.game import Game
 
@@ -40,6 +41,30 @@ class BiddingPhase:
             if reasoning and 'thoughts' in self.game.players[player_index].__dict__:
                  self.game.players[player_index].thoughts.append(f"Bid {action} {suit}: {reasoning}")
             
+            # Handle Kawesh Redeal
+            if result.get("action") == "REDEAL":
+                logger.info(f"Kawesh Triggered. Result: {result}")
+
+                if result.get("rotate_dealer"):
+                    self.game.dealer_index = (self.game.dealer_index + 1) % 4
+
+                # Redeal Flow
+                self.game.reset_round_state()
+                self.game.deal_initial_cards()
+
+                # Re-initialize Engine
+                self.game.bidding_engine = BiddingEngine(
+                     dealer_index=self.game.dealer_index,
+                     floor_card=self.game.floor_card,
+                     players=self.game.players,
+                     match_scores=self.game.match_scores
+                )
+                self.game.phase = GamePhase.BIDDING.value
+                self.game.current_turn = self.game.bidding_engine.current_turn
+                self.game.reset_timer()
+
+                return result
+
             # Sync Game state with Engine state
             # This is a critical step: Game.bid dictionary must match Engine.current_bid
             self.game._sync_bid_state()

@@ -446,7 +446,7 @@ class Game:
         """
         Delegates bid handling to BiddingPhase.
         """
-        if self.phase != GamePhase.BIDDING.value:
+        if self.phase not in [GamePhase.BIDDING.value, GamePhase.DOUBLING.value, GamePhase.VARIANT_SELECTION.value]:
              return {'success': False, 'error': f"Not in BIDDING phase. Current: {self.phase}"}
              
         # Check if BiddingPhase exists
