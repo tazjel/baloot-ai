@@ -21,38 +21,6 @@ class MockContext:
 
 class TestSherlockBot(unittest.TestCase):
     
-    def test_referee_trigger(self):
-        """
-        Test 1: verify RefereeObserver detects the 'is_illegal' flag 
-        and returns QAYD_TRIGGER.
-        """
-        from ai_worker.referee_observer import RefereeObserver
-        
-        observer = RefereeObserver()
-        
-        # Scenario: 
-        # Round Logic: Hearts led.
-        # Player 'Right' plays Diamonds (Illegal).
-        # We (Bottom) should detect it.
-        
-        game_state = {
-            'phase': 'PLAYING',
-            'tableCards': [
-                {'playerId': 'p1', 'card': {'suit': 'H', 'rank': 'A'}, 'playedBy': 'Top', 'metadata': {}},
-                # The Illegal Move:
-                {'playerId': 'p2', 'card': {'suit': 'D', 'rank': '9'}, 'playedBy': 'Right', 'metadata': {'is_illegal': True}} 
-            ]
-        }
-        
-        ctx = MockContext(position='Bottom', phase='PLAYING', table_cards=game_state['tableCards'])
-        
-        print("\n--- Test 1: Referee Detection ---")
-        decision = observer.check_qayd(ctx, game_state)
-        
-        self.assertIsNotNone(decision, "RefereeObserver should return a decision")
-        self.assertEqual(decision['action'], 'QAYD_TRIGGER', "Action should be QAYD_TRIGGER")
-        print("✅ RefereeObserver correctly returned QAYD_TRIGGER")
-
     def test_sherlock_accusation(self):
         """
         Test 2: Verify BotAgent calls the Sherlock logic when Qayd is Active

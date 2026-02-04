@@ -41,6 +41,7 @@ class BotAgent:
         
         # Anti-Spam Memory
         self.reported_crimes = set() # Stores (round_num, trick_idx, card_idx)
+        self.current_game_id = None
         
     def _check_crime_logic(self, ctx, card_dict, played_by_pos, source="Table"):
         """
@@ -68,6 +69,13 @@ class BotAgent:
         
     def get_decision(self, game_state, player_index):
         try:
+             # RESET STATE ON NEW GAME
+             gid = game_state.get('gameId')
+             if gid and gid != self.current_game_id:
+                  logger.info(f"BotAgent: Detected New Game ({gid}). Resetting Memory.")
+                  self.reported_crimes.clear()
+                  self.current_game_id = gid
+
              # DEBUG: Trace Illegal Flags
              table = game_state.get('tableCards', [])
              for tc in table:
@@ -120,9 +128,20 @@ class BotAgent:
 
                  # A. Check Current Table (Live Detection)
                  table_cards = game_state.get('tableCards', [])
-                 for tc in table_cards:
+                 round_num = len(game_state.get('roundHistory', []))
+                 current_trick_idx = len(game_state.get('currentRoundTricks', []))
+
+                 for i, tc in enumerate(table_cards):
                      action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Trick")
-                     if action: return {"action": action}
+                     if action:
+                          # ANTI-SPAM CHECK
+                          crime_id = (round_num, current_trick_idx, i)
+                          if crime_id in self.reported_crimes:
+                               continue
+
+                          logger.info(f"[SHERLOCK] Live Crime found in Trick {current_trick_idx} by {tc['playedBy']} ({tc['card']}). Reporting...")
+                          self.reported_crimes.add(crime_id)
+                          return {"action": action}
                  
                  # B. Check Last Trick (Post-Mortem Detection)
                  # Crucial for catching the 4th player who plays illegal, then trick clears immediately.
