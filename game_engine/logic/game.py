@@ -38,7 +38,7 @@ def requires_unlocked(func):
     def wrapper(self, *args, **kwargs):
         if self.is_locked:
             logger.info(f"[LOCK] {func.__name__} skipped - game is locked")
-            return None
+            return {'success': False, 'error': 'Game is locked'}
         return func(self, *args, **kwargs)
     return wrapper
 

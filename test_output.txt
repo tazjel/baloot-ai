@@ -1,0 +1,56 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\MiEXCITE\Projects\baloot-ai
+configfile: pytest.ini
+plugins: anyio-3.7.1, locust-2.43.1, cov-7.0.0
+collected 2 items
+
+tests\test_qayd_stabilization.py F.                                      [100%]
+
+================================== FAILURES ===================================
+__________ TestQaydStabilization.test_qayd_trigger_lock_and_release ___________
+
+self = <tests.test_qayd_stabilization.TestQaydStabilization testMethod=test_qayd_trigger_lock_and_release>
+
+    def test_qayd_trigger_lock_and_release(self):
+        """Test that Qayd locks the game and releases it after cancel/timeout"""
+        player_idx = self.game.current_turn
+    
+        # 1. Trigger Qayd
+        print(f"\n[TEST] Triggering Qayd for P{player_idx}")
+        res = self.game.handle_qayd_trigger(player_idx)
+        self.assertTrue(res['success'], "Qayd trigger failed")
+        self.assertTrue(self.game.is_locked, "Game should be locked after Qayd trigger")
+        self.assertTrue(self.game.qayd_state['active'], "Qayd state should be active")
+    
+        # 2. Verify Actions Blocked
+        print("[TEST] Attempting to play card while locked...")
+        play_res = self.game.play_card(player_idx, 0)
+>       self.assertFalse(play_res.get('success'), "Should NOT be able to play card while locked")
+                         ^^^^^^^^^^^^
+E       AttributeError: 'NoneType' object has no attribute 'get'
+
+tests\test_qayd_stabilization.py:34: AttributeError
+---------------------------- Captured stdout call -----------------------------
+
+[TEST] Triggering Qayd for P3
+[TEST] Attempting to play card while locked...
+---------------------------- Captured stderr call -----------------------------
+2026-02-05 18:52:23,935 - GameServer - INFO - Game Started. Random Dealer Index: 2
+2026-02-05 18:52:23,935 - GameServer - INFO - [BID] Game Mode Set: SUN, Trump: SUN, Level: 1
+2026-02-05 18:52:23,936 - GameServer - INFO - [QAYD] Scoring: game_mode=SUN, mode_str=SUN, is_sun=True, base_points=26
+2026-02-05 18:52:23,936 - GameServer - INFO - [LOCK] play_card skipped - game is locked
+------------------------------ Captured log call ------------------------------
+INFO     GameServer:game.py:396 Game Started. Random Dealer Index: 2
+INFO     GameServer:game.py:223 [BID] Game Mode Set: SUN, Trump: SUN, Level: 1
+INFO     GameServer:trick_manager.py:357 [QAYD] Scoring: game_mode=SUN, mode_str=SUN, is_sun=True, base_points=26
+INFO     GameServer:game.py:40 [LOCK] play_card skipped - game is locked
+============================== warnings summary ===============================
+tests/test_qayd_stabilization.py::TestQaydStabilization::test_qayd_trigger_lock_and_release
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_qayd_stabilization.py::TestQaydStabilization::test_qayd_trigger_lock_and_release
+=================== 1 failed, 1 passed, 1 warning in 0.36s ====================
