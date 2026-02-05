@@ -908,3 +908,333 @@ DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_repl
 DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
 DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
 DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1793970440336
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1519459453072
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1435128137776
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2311118555184
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2424906401840
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2526645225520
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1287806732336
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1707922507824
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2637798344752
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2300806187056
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2184799275056
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2464797313072
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2134815623216
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2913565952048
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2861234292784
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1662504421424
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1742562609200
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1734178850864
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2651872053296
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2630454708272
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1481009416240
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2411984078896
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2786844903472
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2251435378736
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2384705767472
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1817106270256
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 3014141954096
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 3016642021424
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2250216130608
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1703560103984
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2844219951152
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 2970817038384
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Importing server.controllers_replay... Hybrid Mode
+DEBUG: bind called for app 1614283229232
+DEBUG: Mounting Replay Routes manually...
+DEBUG: Failed to mount /replay/ping: Trying to register `server.controllers_replay.replay_ping` as handler for route methods `/replay/ping: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.replay_ping'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/list: Trying to register `server.controllers_replay.get_archived_matches` as handler for route methods `/replay/list: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_archived_matches'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['POST']`, but there are already registered: `{'POST': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/fork: Trying to register `server.controllers_replay.fork_game` as handler for route methods `/replay/fork: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.fork_game'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['GET']`, but there are already registered: `{'GET': 'server.controllers_replay.get_multiverse_tree'}`
+DEBUG: Failed to mount /replay/multiverse: Trying to register `server.controllers_replay.get_multiverse_tree` as handler for route methods `/replay/multiverse: ['OPTIONS']`, but there are already registered: `{'OPTIONS': 'server.controllers_replay.get_multiverse_tree'}`

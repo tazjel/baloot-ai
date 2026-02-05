@@ -1,0 +1,21 @@
+* 80804b5 (origin/debug/qayd-freeze-6707329125025715893, origin/debug/qayd-freeze, debug/qayd-freeze, backup/post-overhaul-chaos) Fix Kawesh redeal logic and phase validation
+* ea3f8f0 Debug: Partial fixes for Bidding phase and engine error handling
+* 92519c1 (origin/debug/qayd-freeze-6619761295714518725) Fix persistent Qayd freeze by handling GAMEOVER and bot-triggered restarts.
+* f332f07 wip: debug snapshot for Jules (Qayd freeze)
+* 7810c18 (HEAD -> fix/rebuild-qayd-stable, main) wip: checkpoint before Kammelna Qayd overhaul
+* 23779b6 wip: freeze debug session start
+| * 77a8569 (origin/palette/lobby-accessibility-10131964300407864683) feat: Enhance Lobby accessibility with ARIA labels and focus styles
+|/  
+* 36546b4 (origin/main, origin/HEAD) Fix(Engine): Resolve Bidding Freeze & Qayd Split-Brain
+* 458e86b wip: phase refactor & qayd debug checkpoint
+* 048eb06 refactor: Extracted Game phases and restructured frontend to /src
+* 38bf73c wip: qayd debugging and phase extraction refactor
+* d331554 Checkpoint: Cleanup knowledge base, fix Qayd visibility, and update game logic
+* 5062eb1 chore: Major codebase cleanup - removed ~710MB of unused files
+* 46eb73b docs: Update handoff for break
+* 9558b9b feat(workflow): Add handoff system for cross-tool context transfer
+* 8b8b54d feat(qayd): Complete Qayd refactor, Bot Orchestrator, Sherlock Protocol, Boot v2
+* a0f3b89 (distracted-wozniak, distracted-haibt, amazing-hamilton) feat(infra): Security Hardening & Architecture Formalization
+* 5c43277 feat: Skills library, React optimizations, and cleanup
+* cb8e4c7 feat: Refactor Replay Serialization & Server Runner (Automated Session End)
+* a2a99da chore: sanitize design system skill

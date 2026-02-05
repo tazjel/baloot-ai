@@ -41,6 +41,7 @@ class BotAgent:
         
         # Anti-Spam Memory
         self.reported_crimes = set() # Stores (round_num, trick_idx, card_idx)
+        self.pending_qayd_trigger = False  # Global lock to prevent multiple bots triggering Qayd
         
     def _check_crime_logic(self, ctx, card_dict, played_by_pos, source="Table"):
         """
@@ -68,6 +69,11 @@ class BotAgent:
         
     def get_decision(self, game_state, player_index):
         try:
+             # RESET: If no Qayd active, ensure flag is cleared (prevents permanent blocking)
+             qayd_state = game_state.get('qaydState', {})
+             if not qayd_state.get('active'):
+                 self.pending_qayd_trigger = False
+             
              # DEBUG: Trace Illegal Flags
              table = game_state.get('tableCards', [])
              for tc in table:
@@ -113,16 +119,25 @@ class BotAgent:
 
              # 1.15 SHERLOCK TRIGGER (Organic, Team-Aware, & Memory-Based)
              # If valid game phase and NO Qayd active, check for visual contradictions (The "Second Card" Trigger).
-             if ctx.phase == 'PLAYING' and not (game_state.get('qaydState') or {}).get('active'):
+             if ctx.phase == 'PLAYING' and not (game_state.get('qaydState') or {}).get('active') and not self.pending_qayd_trigger:
                  from game_engine.models.card import Card
                  
 
 
                  # A. Check Current Table (Live Detection)
                  table_cards = game_state.get('tableCards', [])
-                 for tc in table_cards:
-                     action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Trick")
-                     if action: return {"action": action}
+                 round_num = len(game_state.get('roundHistory', []))
+                 current_trick_idx = len(game_state.get('currentRoundTricks', []))
+                 for card_idx, tc in enumerate(table_cards):
+                      # ANTI-SPAM: Create unique crime ID for this specific card play
+                      crime_id = (round_num, current_trick_idx, card_idx, tc['card'].get('suit'), tc['card'].get('rank'))
+                      if crime_id in self.reported_crimes:
+                          continue  # Already reported this exact crime
+                      action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Trick")
+                      if action:
+                          self.reported_crimes.add(crime_id)
+                          self.pending_qayd_trigger = True  # Lock to prevent other bots
+                          return {"action": action}
                  
                  # B. Check Last Trick (Post-Mortem Detection)
                  # Crucial for catching the 4th player who plays illegal, then trick clears immediately.
@@ -191,6 +206,7 @@ class BotAgent:
                                                 
                                            logger.info(f"[SHERLOCK] Crime found in {source_label} by {p_pos} ({c_inner}). Reporting...")
                                            self.reported_crimes.add(crime_id)
+                                           self.pending_qayd_trigger = True  # Lock to prevent other bots
                                            return {"action": action}
                                      
                  # D. Extra Debugging: Log if we are suspicious but memory says OK
@@ -200,6 +216,8 @@ class BotAgent:
              # 1.2 Qayd Claim (Sherlock Logic)
              qayd_state = game_state.get('qaydState')
              if qayd_state and qayd_state.get('active'):
+                 # Reset the pending trigger - Qayd is now active, lock can be released
+                 self.pending_qayd_trigger = False
                  # Sherlock Bot Logic: If I am the reporter, investigate and accuse.
                  reporter_pos = qayd_state.get('reporter')
                  print(f"[SHERLOCK] Qayd Active. Reporter: {reporter_pos}, Me: {ctx.position}")
@@ -217,11 +235,8 @@ class BotAgent:
                       is_me = True
                       
                  if is_me:
-                      # CHECK STATUS: If waiting for review/confirm, just confirm!
-                      if qayd_state.get('status') == 'REVIEW':
-                           logger.info(f"[SHERLOCK] Qayd in REVIEW. Auto-Confirming Verdict.")
-                           return {"action": "QAYD_CONFIRM"}
-
+                      # DON'T auto-confirm - always investigate first to ensure proper penalty assignment
+                      # The investigate step sends QAYD_ACCUSATION with crime details
                       logger.info(f"[SHERLOCK] I am the reporter ({reporter_pos}). Investigation starting...")
                       # 1. Brief Pause (simulating reaction time)
                       # time.sleep(1) # REMOVED per user request (Too slow)
@@ -233,10 +248,24 @@ class BotAgent:
                       proof_card = None
                       violation_type = 'REVOKE'
                       
-                      # Deep History Scan (Re-used from Trigger)
-                      current_tricks = game_state.get('currentRoundTricks', [])
-                      if current_tricks:
-                           for rev_idx, trick in enumerate(reversed(current_tricks)):
+                      # FIRST: Check Current Table (where trigger found it!)
+                      table_cards = game_state.get('tableCards', [])
+                      if table_cards:
+                           for tc in table_cards:
+                                action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Table")
+                                if action:
+                                     crime_card = tc['card']
+                                     # Proof is the lead card of this trick
+                                     if table_cards:
+                                          proof_card = table_cards[0]['card']
+                                     logger.info(f"[SHERLOCK] Investigation confirmed crime on table by {tc['playedBy']}")
+                                     break
+                      
+                      # SECOND: Deep History Scan (Re-used from Trigger)
+                      if not crime_card:
+                          current_tricks = game_state.get('currentRoundTricks', [])
+                          if current_tricks:
+                               for rev_idx, trick in enumerate(reversed(current_tricks)):
                                 abs_trick_idx = len(current_tricks) - 1 - rev_idx
                                 involved_players = trick.get('playedBy', [])
                                 cards_list = trick.get('cards', [])

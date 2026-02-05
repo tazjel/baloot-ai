@@ -216,6 +216,11 @@ class Game:
                 "isAshkal": c.is_ashkal,
                 "isTentative": False
             }
+            # FIX: Propagate game_mode from contract type for Qayd scoring
+            self.game_mode = c.type.value  # 'SUN' or 'HOKUM'
+            self.trump_suit = c.suit  # None for SUN
+            self.doubling_level = c.level
+            logger.info(f"[BID] Game Mode Set: {self.game_mode}, Trump: {self.trump_suit}, Level: {self.doubling_level}")
         # Priority 2: Tentative Bid (during Gablak)
         elif tb:
             self.bid = {
@@ -246,11 +251,6 @@ class Game:
         
         Supports proof-based accusations with explicit crime_card and proof_card.
         """
-        # SPLIT-BRAIN FIX: Check which Manager is active
-        if self.trick_manager.qayd_state.get('active'):
-             logger.info(f"Routing Accusation to TrickManager (Confirming Proposal)")
-             return self.handle_qayd_confirm()
-
         if accusation:
             # Proof-based accusation: extract crime/proof data
             crime_card = accusation.get('crime_card')
@@ -258,16 +258,49 @@ class Game:
             qayd_type = accusation.get('qayd_type', 'REVOKE')
             
             if crime_card and proof_card:
-                # Explicit accusation mode: pass to propose_qayd with data
-                logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}")
-                return self.trick_manager.propose_qayd(
-                    player_index,
-                    crime_card=crime_card,
-                    proof_card=proof_card,
-                    qayd_type=qayd_type,
-                    crime_trick_idx=accusation.get('crime_trick_idx'),
-                    proof_trick_idx=accusation.get('proof_trick_idx')
-                )
+                # If Qayd is already active, UPDATE the state with accusation details
+                if self.trick_manager.qayd_state.get('active'):
+                    logger.info(f"[QAYD] Updating active Qayd with accusation: crime={crime_card}, proof={proof_card}")
+                    # Find the offender based on crime card in table/history
+                    offender_pos = None
+                    for play in self.table_cards:
+                        card_data = play.get('card', {})
+                        if hasattr(card_data, 'to_dict'):
+                            card_data = card_data.to_dict()
+                        if card_data.get('rank') == crime_card.get('rank') and card_data.get('suit') == crime_card.get('suit'):
+                            offender_pos = play.get('playedBy')
+                            break
+                    
+                    if offender_pos:
+                        offender = next((p for p in self.players if p.position == offender_pos), None)
+                        if offender:
+                            # Update qayd_state with correct penalty target
+                            self.trick_manager.qayd_state['loser_team'] = offender.team
+                            self.trick_manager.qayd_state['reason'] = f"Qayd Valid: {qayd_type}"
+                            self.trick_manager.qayd_state['verdict'] = f"QATA: {offender.position} played illegal move"
+                            
+                            # Calculate penalty points
+                            mode_str = str(self.game_mode).upper()
+                            is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
+                            base_points = 26 if is_sun else 16
+                            logger.info(f"[QAYD-GAME] Scoring: game_mode={self.game_mode}, mode_str={mode_str}, is_sun={is_sun}, base_points={base_points}")
+                            if self.doubling_level >= 2: base_points *= self.doubling_level
+                            self.trick_manager.qayd_state['penalty_points'] = base_points
+                            
+                            logger.info(f"[QAYD] Updated penalty: {offender.team} loses {base_points} pts")
+                    
+                    return self.handle_qayd_confirm()
+                else:
+                    # Start fresh Qayd with accusation details
+                    logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}")
+                    return self.trick_manager.propose_qayd(
+                        player_index,
+                        crime_card=crime_card,
+                        proof_card=proof_card,
+                        qayd_type=qayd_type,
+                        crime_trick_idx=accusation.get('crime_trick_idx'),
+                        proof_trick_idx=accusation.get('proof_trick_idx')
+                    )
             else:
                 # Legacy accusation format
                 return self.qayd_manager.process_accusation(player_index, accusation)
@@ -850,6 +883,15 @@ class Game:
                  return self.handle_qayd_trigger(player_index)
                  
             elif action == 'QAYD_ACCUSATION':
+                 # FIX: Only the reporter can submit accusation
+                 qayd_state = self.trick_manager.qayd_state if hasattr(self, 'trick_manager') else {}
+                 qayd_manager_state = self.qayd_manager.state if hasattr(self, 'qayd_manager') else {}
+                 reporter_pos = qayd_state.get('reporter') or qayd_manager_state.get('reporter')
+                 
+                 if player.position != reporter_pos:
+                     logger.debug(f"Auto-Play for {player.name}: Not reporter ({player.position} != {reporter_pos}), skipping accusation")
+                     return {"success": True, "action": "WAIT", "reason": "Not reporter"}
+                 
                  logger.info(f"Auto-Play for {player.name}: Submitting Qayd Accusation")
                  # Ensure we have payload
                  payload = decision.get('accusation', {})

@@ -354,6 +354,7 @@ class TrickManager:
              mode_str = str(game_mode).upper()
              is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
              base_points = 26 if is_sun else 16
+             logger.info(f"[QAYD] Scoring: game_mode={game_mode}, mode_str={mode_str}, is_sun={is_sun}, base_points={base_points}")
              if self.game.doubling_level >= 2: base_points *= self.game.doubling_level
              
              # Add projects
@@ -381,6 +382,15 @@ class TrickManager:
              
              # Pause Game
              self.game.timer_paused = True
+             
+             # AUTO-CONFIRM FOR BOT REPORTERS: Apply penalty immediately
+             reporter = self.game.players[reporter_index]
+             if reporter.is_bot and crime_card_found:
+                 logger.info(f"[QAYD] Bot reporter - AUTO-CONFIRMING penalty immediately")
+                 confirm_result = self.confirm_qayd()
+                 if confirm_result.get('success'):
+                     logger.info(f"[QAYD] Penalty applied: {self.qayd_state.get('loser_team')} loses {self.qayd_state.get('penalty_points')} pts")
+                     return {"success": True, "qayd_state": self.qayd_state, "auto_confirmed": True}
              
              return {"success": True, "qayd_state": self.qayd_state}
              
@@ -417,10 +427,16 @@ class TrickManager:
         # Log resolution
         logger.info(f"QAYD CONFIRMED: {reason}. {loser_team} loses {points} pts.")
         
+        # FIX: Add crime to ignore list BEFORE applying penalty to prevent re-detection
+        if self.qayd_state.get('crime_signature'):
+            self.ignored_crimes.add(self.qayd_state['crime_signature'])
+            logger.info(f"[QAYD] Crime {self.qayd_state['crime_signature']} added to ignore list after confirmation.")
+        
         self.apply_khasara(loser_team, reason, points_override=points)
         
         # Reset State (handled in reset_round_state usually, but good to clear status)
         self.qayd_state['status'] = 'RESOLVED'
+        self.qayd_state['active'] = False  # FIX: Mark as inactive to prevent re-trigger
         
         return {"success": True}
 
@@ -441,13 +457,17 @@ class TrickManager:
         """Ends round giving full points (16/26) to the winner team."""
         winner_team = 'us' if loser_team == 'them' else 'them'
         
-        # Calculate max round points
-        is_sun = 'SUN' in str(self.game.game_mode).upper() or 'ASHKAL' in str(self.game.game_mode).upper()
-        points = points_override if points_override else (26 if is_sun else 16)
-        
-        # Multiply if doubled
-        if self.game.doubling_level >= 2:
-             points *= self.game.doubling_level
+        if points_override:
+            # Use provided points directly (already calculated with doubling)
+            points = points_override
+        else:
+            # Calculate base points from game mode
+            is_sun = 'SUN' in str(self.game.game_mode).upper() or 'ASHKAL' in str(self.game.game_mode).upper()
+            points = 26 if is_sun else 16
+            
+            # Multiply if doubled (only when calculating fresh, not when override provided)
+            if self.game.doubling_level >= 2:
+                 points *= self.game.doubling_level
              
         # Calculate Project Points (All Declared Projects)
         project_points = 0

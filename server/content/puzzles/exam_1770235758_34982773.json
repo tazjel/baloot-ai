@@ -1,0 +1,351 @@
+{
+    "id": "exam_1770235758_34982773",
+    "title": "Professor's Exam: None Blunder",
+    "description": "You played Q\u2663. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        null,
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "34982773",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "r8eGbLcgNz7Xn1xXAAAB",
+                "name": "Me",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2666",
+                        "rank": "10",
+                        "id": "10\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "Q",
+                        "id": "Q\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "K",
+                        "id": "K\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "A",
+                        "id": "A\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "Q",
+                        "id": "Q\u2663",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770235702998",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770235702999",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770235702999",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [],
+        "currentTurnIndex": 3,
+        "gameMode": null,
+        "trumpSuit": null,
+        "bid": {
+            "type": "SUN",
+            "bidder": "Left",
+            "doubled": false,
+            "suit": null,
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 0,
+            "them": 0
+        },
+        "analytics": {
+            "winProbability": [
+                {
+                    "trick": 1,
+                    "us": 0.5328947368421053
+                },
+                {
+                    "trick": 2,
+                    "us": 0.45723684210526316
+                },
+                {
+                    "trick": 3,
+                    "us": 0.4309210526315789
+                }
+            ],
+            "blunders": {}
+        },
+        "floorCard": null,
+        "dealerIndex": 2,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 4.2324538230896,
+            "duration": 5,
+            "elapsed": 0.7675461769104004,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": {
+            "cards": [
+                {
+                    "suit": "\u2665",
+                    "rank": "J",
+                    "id": "J\u2665",
+                    "value": 0
+                },
+                {
+                    "suit": "\u2660",
+                    "rank": "8",
+                    "id": "8\u2660",
+                    "value": 0
+                },
+                {
+                    "suit": "\u2665",
+                    "rank": "K",
+                    "id": "K\u2665",
+                    "value": 0
+                },
+                {
+                    "suit": "\u2663",
+                    "rank": "J",
+                    "id": "J\u2663",
+                    "value": 0
+                }
+            ],
+            "winner": "Left",
+            "metadata": [
+                {
+                    "reasoning": "Fallback"
+                },
+                {
+                    "reasoning": "Fallback"
+                },
+                {
+                    "reasoning": "Fallback"
+                },
+                {
+                    "cardId": "J\u2663"
+                }
+            ]
+        },
+        "roundHistory": [],
+        "currentRoundTricks": [
+            {
+                "winner": "Top",
+                "points": 10,
+                "cards": [
+                    {
+                        "suit": "\u2665",
+                        "rank": "8",
+                        "id": "8\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "7",
+                        "id": "7\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "9",
+                        "id": "9\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "10",
+                        "id": "10\u2665",
+                        "value": 0
+                    }
+                ],
+                "playedBy": [
+                    "Left",
+                    "Bottom",
+                    "Right",
+                    "Top"
+                ]
+            },
+            {
+                "winner": "Right",
+                "points": 23,
+                "cards": [
+                    {
+                        "suit": "\u2660",
+                        "rank": "7",
+                        "id": "7\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "10",
+                        "id": "10\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "J",
+                        "id": "J\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "A",
+                        "id": "A\u2660",
+                        "value": 0
+                    }
+                ],
+                "playedBy": [
+                    "Top",
+                    "Left",
+                    "Bottom",
+                    "Right"
+                ]
+            },
+            {
+                "winner": "Left",
+                "points": 8,
+                "cards": [
+                    {
+                        "suit": "\u2665",
+                        "rank": "J",
+                        "id": "J\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "8",
+                        "id": "8\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "K",
+                        "id": "K\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "J",
+                        "id": "J\u2663",
+                        "value": 0
+                    }
+                ],
+                "playedBy": [
+                    "Right",
+                    "Top",
+                    "Left",
+                    "Bottom"
+                ]
+            }
+        ],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "responses": {},
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {
+            "active": false,
+            "reporter": null,
+            "reason": null,
+            "target_play": null
+        },
+        "challengeActive": false,
+        "timerStartTime": 1770235698.8933046,
+        "turnDuration": 30,
+        "serverTime": 1770235757.8150363,
+        "akkaState": null,
+        "gameId": "34982773",
+        "settings": {}
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "A\u2666"
+        ]
+    }
+}
