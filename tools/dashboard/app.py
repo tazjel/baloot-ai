@@ -7,7 +7,10 @@ from modules.logs import render_logs_tab
 from modules.brain import render_brain_tab
 from modules.visual_lab import render_visual_lab_tab
 from modules.ops import render_ops_tab
+from modules.ops import render_ops_tab
 from modules.qayd_war_room import render_qayd_war_room
+from modules.inspector import render_inspector_tab
+from modules.trace import render_trace_tab
 from modules.utils import get_redis_client
 
 # --- Config ---
@@ -61,6 +64,8 @@ tab_names = [
     "🚀 Launcher", 
     war_room_title,
     "🧠 Brain", 
+    "🕵️ Inspector",
+    "⏳ Trace",
     "📈 Reports",
     "📜 Logs",
     "📸 Visual Lab", 
@@ -81,13 +86,19 @@ with tabs[2]:
     render_brain_tab()
 
 with tabs[3]:
-    render_reports_tab()
+    render_inspector_tab()
 
 with tabs[4]:
-    render_logs_tab()
+    render_trace_tab()
 
 with tabs[5]:
-    render_visual_lab_tab()
+    render_reports_tab()
 
 with tabs[6]:
+    render_logs_tab()
+
+with tabs[7]:
+    render_visual_lab_tab()
+
+with tabs[8]:
     render_ops_tab()

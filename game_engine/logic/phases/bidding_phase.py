@@ -34,7 +34,7 @@ class BiddingPhase:
              logger.error(f"Error in BiddingEngine: {e}")
              return {'success': False, 'error': str(e)}
 
-        if result['success']:
+        if result.get('success'):
             # Log reasoning/thought if provided (for AI)
             if reasoning and 'thoughts' in self.game.players[player_index].__dict__:
                  self.game.players[player_index].thoughts.append(f"Bid {action} {suit}: {reasoning}")

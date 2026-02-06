@@ -268,7 +268,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
                 if decision.get('declarations'): metadata['declarations'] = decision['declarations']
                 res = game.play_card(current_idx, card_idx, metadata=metadata)
         
-        if res.get('success'):
+        if res and res.get('success'):
              broadcast_game_update(sio, game, room_id)
              
              # 3. Trigger Sherlock (Watchdog) to catch illegal moves IMMEDIATEY

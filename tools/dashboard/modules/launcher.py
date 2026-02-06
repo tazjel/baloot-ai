@@ -33,3 +33,18 @@ def render_launcher_tab():
             st.info("Launching headed test in separate window...")
             subprocess.Popen("pytest tests/browser/test_ui_qayd.py --headed --slowmo 1000", shell=True)
             st.success("Test launched in background.")
+
+    # --- Agent Assistance ---
+    st.markdown("---")
+    st.subheader("🤖 Agent Diagnostics")
+    col_ag1, col_ag2 = st.columns([1,3])
+    with col_ag1:
+        if st.button("📋 Generate Deep Scan Report", type="primary"):
+            from .reports import generate_deep_diagnostic_report
+            with st.spinner("Running system-wide diagnostics..."):
+                report = generate_deep_diagnostic_report()
+            st.session_state['agent_report'] = report
+    
+    if 'agent_report' in st.session_state:
+        st.info("Copy the report below and paste it to Antigravity:")
+        st.code(st.session_state['agent_report'], language="markdown")

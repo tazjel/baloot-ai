@@ -44,14 +44,16 @@ def test_qayd_flow(page: Page, assert_snapshot):
 
     # 3. Playing Phase - Wait for Qayd Button
     print("⏳ Waiting for Playing Phase (Qayd Button)...")
-    # 3. Playing Phase - Wait for Qayd Button (Use Floating Button as Dock is flaky)
-    print("⏳ Waiting for Playing Phase (Qayd Floating Button)...")
-    # Floating button has title="CALL QAYD (Forensic Challenge)"
-    # We use a substring match for robustness
-    qayd_btn = page.locator("button[title*='CALL QAYD']")
+    # 3. Playing Phase - Wait for Qayd Button (Use ActionBar Button)
+    print("⏳ Waiting for Playing Phase (Qayd Action Button)...")
+    # Button is now in ActionBar with Gavel icon and text "قيدها"
+    # Best practice: use data-testid
+    qayd_btn = page.locator("button[data-testid='btn-qayd']")
     
-    print("🔨 Clicking Qayd Floating Button...")
-    qayd_btn.click(timeout=30000)
+    print("🔨 Clicking Qayd Action Button...")
+    # Wait for it to be enabled (it might be disabled momentarily)
+    qayd_btn.wait_for(state="visible", timeout=30000)
+    qayd_btn.click()
     
     # expect(qayd_btn).to_be_visible(timeout=30000)
     print("✅ Playing Phase Active - Qayd Triggered")

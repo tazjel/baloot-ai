@@ -323,29 +323,26 @@ class QaydEngine:
         """Bots skip the 5-step UI; scan for is_illegal metadata flags."""
         crime_data = None
 
-        # Search table_cards (current trick)
-        for i, play in enumerate(reversed(self.game.table_cards)):
+        # Search table_cards (current trick) - FIFO (First Crime Wins)
+        for i, play in enumerate(self.game.table_cards):
             meta = play.get('metadata') or {}
             if meta.get('is_illegal'):
-                idx = len(self.game.table_cards) - 1 - i
-                trick_idx = len(self.game.round_history)  # current trick index
+                # Note: trick_idx is len(round_history)
+                trick_idx = len(self.game.round_history)
                 card = play['card']
                 crime_data = {
                     'suit': card.suit if hasattr(card, 'suit') else card.get('suit'),
                     'rank': card.rank if hasattr(card, 'rank') else card.get('rank'),
                     'trick_idx': trick_idx,
-                    'card_idx': idx,
+                    'card_idx': i,
                     'played_by': play.get('playedBy'),
                 }
                 meta['is_illegal'] = False  # Clear flag
                 break
 
-        # Search ALL completed tricks in reverse (Deep Scan)
+        # Search ALL completed tricks in forward order (FIFO)
         if not crime_data and self.game.round_history:
-            for t_idx, trick in enumerate(reversed(self.game.round_history)):
-                 # Calculate real trick index
-                 real_trick_idx = len(self.game.round_history) - 1 - t_idx
-                 
+            for t_idx, trick in enumerate(self.game.round_history):
                  metas = trick.get('metadata') or []
                  for i, meta in enumerate(metas):
                       if meta and meta.get('is_illegal'):
@@ -360,7 +357,7 @@ class QaydEngine:
                            crime_data = {
                                 'suit': card_inner.get('suit') if isinstance(card_inner, dict) else getattr(card_inner, 'suit', None),
                                 'rank': card_inner.get('rank') if isinstance(card_inner, dict) else getattr(card_inner, 'rank', None),
-                                'trick_idx': real_trick_idx,
+                                'trick_idx': t_idx,
                                 'card_idx': i,
                                 'played_by': played_by,
                            }

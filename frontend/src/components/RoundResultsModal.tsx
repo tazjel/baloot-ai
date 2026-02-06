@@ -33,6 +33,16 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
         }
     }, [isOpen, result]);
 
+    // Auto-close after 2 seconds
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => {
+                onClose();
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, onClose]);
+
     if (!isOpen || !result) return null;
 
     const usWon = result.winner === 'us';
@@ -169,24 +179,6 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         </div>
 
                     </div>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="mt-6 mb-4 px-4 flex gap-3">
-                    <button
-                        onClick={onClose}
-                        className="w-full bg-[#a89f91] hover:bg-[#968c7d] text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all text-xl"
-                    >
-                        عـــودة
-                    </button>
-                    {onReview && (
-                        <button
-                            onClick={onReview}
-                            className="w-1/3 bg-[#546e7a] hover:bg-[#455a64] text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all text-sm"
-                        >
-                            مراجعة
-                        </button>
-                    )}
                 </div>
 
             </div>

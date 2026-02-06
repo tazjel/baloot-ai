@@ -318,9 +318,10 @@ class Game:
 
         # Check if PlayingPhase exists
         if GamePhase.PLAYING.value not in self.phases:
+             from .phases.playing_phase import PlayingPhase as PlayingLogic
              self.phases = {
                 GamePhase.BIDDING.value: BiddingPhase(self),
-                GamePhase.PLAYING.value: PlayingPhase(self),
+                GamePhase.PLAYING.value: PlayingLogic(self),
                 GamePhase.CHALLENGE.value: self.challenge_phase,
              }
             
@@ -437,9 +438,10 @@ class Game:
         # Check if BiddingPhase exists
         if GamePhase.BIDDING.value not in self.phases:
              # Fallback if phases map logic fails or during reload
+             from .phases.playing_phase import PlayingPhase as PlayingLogic
              self.phases = {
                 GamePhase.BIDDING.value: BiddingPhase(self),
-                GamePhase.PLAYING.value: PlayingPhase(self),
+                GamePhase.PLAYING.value: PlayingLogic(self),
                 GamePhase.CHALLENGE.value: self.challenge_phase,
              }
              
@@ -810,8 +812,22 @@ class Game:
         
         round_result = {
             'roundNumber': len(self.past_round_results) + 1,
-            'us': {'gamePoints': score_winner if winner_team == 'us' else 0, 'isKaboot': True},
-            'them': {'gamePoints': score_winner if winner_team == 'them' else 0, 'isKaboot': True},
+            'us': {
+                'result': score_winner if winner_team == 'us' else 0, 
+                'aklat': 0, 
+                'ardh': 0, 
+                'projects': [],
+                'abnat': 0,
+                'isKaboot': True
+            },
+            'them': {
+                'result': score_winner if winner_team == 'them' else 0, 
+                'aklat': 0, 
+                'ardh': 0, 
+                'projects': [],
+                'abnat': 0,
+                'isKaboot': True
+            },
             'winner': winner_team,
             'qayd': True
         }
@@ -855,6 +871,17 @@ class Game:
             
             card_idx = decision.get('cardIndex', 0)
             action = decision.get('action', 'PLAY_CARD')
+            
+            # FIX: Prevent Bot Logic from triggering Qayd UI for Humans (Ghost Menu)
+            if action in ['QAYD_TRIGGER', 'QAYD_ACCUSATION'] and not player.is_bot:
+                 logger.warning(f"Auto-Play for {player.name} (Human): Ignoring Agent recommendation '{action}'. Falling back to simple play.")
+                 action = 'PLAY_CARD'
+                 # Force pick valid card as Agent didn't select one
+                 for i, c in enumerate(player.hand):
+                      if self.is_valid_move(c, player.hand):
+                           card_idx = i
+                           break
+
             if action == 'QAYD_TRIGGER':
                  logger.info(f"Auto-Play for {player.name}: Triggering Qayd Protocol (Sherlock)")
                  return self.handle_qayd_trigger(player_index)

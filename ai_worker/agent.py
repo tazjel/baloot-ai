@@ -397,7 +397,8 @@ class BotAgent:
                   my_score = scores.get(ctx.team, 0)
                   their_score = scores.get('them' if ctx.team == 'us' else 'us', 0)
                   
-                  is_losing_badly = (their_score - my_score) > 20 # Low threshold for testing
+                  # is_losing_badly = (their_score - my_score) > 20 # Low threshold for testing
+                  is_losing_badly = False # DISABLED per user request (Debugging confusion)
                   
                   if is_losing_badly:
                        # Look for a Cheat

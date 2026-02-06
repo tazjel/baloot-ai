@@ -743,6 +743,7 @@ def get_ai_thoughts(game_id):
                 try:
                     idx = int(k.split(':')[-1])
                     if v:
+                         import json
                          thoughts[idx] = json.loads(v)
                 except:
                     pass
@@ -1003,6 +1004,7 @@ def get_mind_inference(game_id):
                 try:
                     idx = int(k.split(':')[-1])
                     if v:
+                         import json
                          mind_map[idx] = json.loads(v)
                 except:
                     pass
