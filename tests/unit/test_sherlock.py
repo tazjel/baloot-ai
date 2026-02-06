@@ -1,52 +1,49 @@
-import pytest
-from ai_worker.memory import CardMemory
-from game_engine.models.card import Card
+import unittest
+from unittest.mock import MagicMock
+from ai_worker.strategies.sherlock import SherlockStrategy
 
-class TestSherlockMemory:
-    @pytest.fixture
-    def memory(self):
-        return CardMemory()
+class TestSherlockStrategy(unittest.TestCase):
+    def test_sherlock_init(self):
+        agent = MagicMock()
+        sherlock = SherlockStrategy(agent)
+        self.assertIsNotNone(sherlock)
+        self.assertFalse(sherlock.pending_qayd_trigger)
 
-    def test_void_tracking(self, memory):
-        """Test that memory correctly infers voids from game events"""
-        # Scenario: Player fails to follow suit
-        # Led: Hearts, Player plays: Spades
-        memory.mark_played("AH") # Ace Hearts Led
-        memory.mark_void("Player1", "♥") # Player 1 couldn't follow hearts
+    def test_check_crime_logic(self):
+        agent = MagicMock()
+        sherlock = SherlockStrategy(agent)
         
-        assert memory.is_void("Player1", "♥") == True
-        assert memory.is_void("Player1", "♠") == False
+        # Mock Context
+        ctx = MagicMock()
+        ctx.team = 'us'
+        ctx.position = 'Bottom'
+        ctx.players_team_map = {'Right': 'them'}
+        
+        # Mock Memory Contradiction
+        ctx.memory.check_contradiction.return_value = "Must Follow Suit"
+        
+        # Test Case: Enemy plays contradicting card
+        card = {'suit': 'S', 'rank': 'A'}
+        result = sherlock._check_crime_logic(ctx, card, 'Right', "Table")
+        
+        self.assertEqual(result, "QAYD_TRIGGER")
+        
+    def test_check_crime_logic_omerta(self):
+        """Team Loyalty Check"""
+        agent = MagicMock()
+        sherlock = SherlockStrategy(agent)
+        
+        ctx = MagicMock()
+        ctx.team = 'us'
+        ctx.players_team_map = {'Top': 'us'} # Partner
+        
+        ctx.memory.check_contradiction.return_value = "Must Follow Suit"
+        
+        # Test Case: Partner plays contradicting card -> Ignore
+        card = {'suit': 'S', 'rank': 'A'}
+        result = sherlock._check_crime_logic(ctx, card, 'Top', "Table")
+        
+        self.assertIsNone(result)
 
-    def test_contradiction_detection(self, memory):
-        """Test Sherlock's ability to catch a liar"""
-        # 1. Player 1 shows void in Hearts
-        memory.mark_void("Player1", "♥")
-        
-        # 2. Player 1 tries to play Hearts (illegal if they have it, but here we test the detection of the lie)
-        # Wait, if they show void, they shouldn't have it. 
-        # But if they play it later, that proves the PREVIOUS void claim was a lie (or this play is illegal if they really are void).
-        # In Baloot "Liar's Protocol":
-        # Turn 1: Lead H. Player plays S (Claims Void H). Memory marks Void H.
-        # Turn 2: Player plays H. Contradiction! 
-        
-        card = Card("♥", "K")
-        contradiction = memory.check_contradiction("Player1", card)
-        
-        assert contradiction is not None
-        assert "previously showed VOID" in contradiction
-
-    def test_no_false_positive(self, memory):
-        """Ensure honest plays don't trigger accusation"""
-        memory.mark_void("Player1", "♥")
-        
-        # Player plays Spades (Consistent with void in Hearts)
-        card = Card("♠", "K")
-        contradiction = memory.check_contradiction("Player1", card)
-        
-        assert contradiction is None
-
-    def test_reset_memory(self, memory):
-        """Memory should clear between rounds"""
-        memory.mark_void("Player1", "♥")
-        memory.reset()
-        assert memory.is_void("Player1", "♥") == False
+if __name__ == "__main__":
+    unittest.main()

@@ -44,37 +44,52 @@ def requires_unlocked(func):
 
 class Game:
     def __init__(self, room_id: str):
-        self.room_id: str = room_id
-        self.players = [] # List[Player]
-        self.deck = Deck()
-        self.table_cards = []  # List of {"playerId": id, "card": Card, "playedBy": position}
-        self.current_turn = 0
-        self.phase = GamePhase.WAITING.value
-        self.dealer_index = 0
+        # Core State (Pydantic)
+        from game_engine.core.state import GameState, GamePhaseState
+        self.state = GameState(roomId=room_id)
+        
+        # Legacy Attribute Proxies (Mapped to self.state)
+        # self.room_id is mapped via property or direct access if immutable
+        self.room_id: str = room_id 
+        
+        # self.players -> managed by property below to sync with self.state.players
+        self.players = [] 
+        
+        self.deck = Deck() # Deck is mutable / not strictly serialized in dict often?
+                           # Typically Deck is transient, but state.deck might be needed for serialization?
+                           # For Phase 1: Keep Deck separate as it's logic-heavy.
+        self._current_turn_backing = 0
+
+        # Mapped Fields
+        # self.phase = GamePhase.WAITING.value # Mapped Property
+        # self.dealer_index # Mapped Property
+        
+        # Direct State Fields (Shadows until fully migrated)
+        self.table_cards = [] 
         self.bid = {"type": None, "bidder": None, "doubled": False}
-        self.game_mode = None  # SUN or HOKUM
+        self.game_mode = None 
         self.trump_suit = None
         self.team_scores = {"us": 0, "them": 0}
         self.match_scores = {"us": 0, "them": 0}
-        self.round_history = []  # List of tricks (Current Round)
-        self.past_round_results = [] # HISTORY of RoundResult (Scores)
-        self.trick_history = []  # Complete game tricks history for debug
+        self.round_history = [] 
+        self.past_round_results = []
+        self.trick_history = [] 
         self.floor_card = None
         self.bidding_round = 1
-        self.declarations = {} # Map[PlayerPosition] -> List[ProjectDict]
-        self.trick_1_declarations = {} # Temp buffer for current round declarations
-        self.is_project_revealing = False # State for animation
-        self.initial_hands = {} # Snapshot of hands at start of round (for Replay)
-        self.metadata = {} # For Time Lord/Ghost features (source_game_id, ghost_score, etc.)
+        self.declarations = {} 
+        self.trick_1_declarations = {} 
+        self.is_project_revealing = False
+        self.initial_hands = {} 
+        self.metadata = {} 
 
         self.doubling_level = 1
         self.is_locked = False
-        self.dealing_phase = 0  # 0=not started, 1=3 cards dealt, 2=5 cards dealt, 3=floor revealed
-        self.last_trick = None  # Track last completed trick for animations 
+        self.dealing_phase = 0 
+        self.last_trick = None 
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-        self.sawa_failed_khasara = False # Flag if Sawa claim fails (Khasara triggered)
-        self.akka_state = None # {claimer: pos, suits: [], timestamp: float}
-        self.full_match_history = [] # Archives full round data: [{roundNum, tricks[], scores, bid...}]
+        self.sawa_failed_khasara = False 
+        self.akka_state = None 
+        self.full_match_history = []
         
         # Configuration
         self.strictMode = False # Default: False (Liar's Protocol Enabled)
@@ -84,7 +99,6 @@ class Game:
         self.timer_start_time = time.time() # Legacy / Read-only
         self.turn_duration = 30 # Legacy / Read-only
         self.timer_active = True # Legacy
-        self.last_timer_reset = 0
         self.last_timer_reset = 0
         self.timer_paused = False # Flag for Professor or other pauses
         
@@ -98,10 +112,19 @@ class Game:
         self.challenge_phase = ChallengePhase(self) # Refactored Handler
         self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
-        self.qayd_engine = QaydEngine(self)
         
-        # Single source of truth — alias to QaydEngine's dict (never reassign)
-        self.qayd_state = self.qayd_engine.state
+        # Reset QaydEngine (single source of truth)
+        if not hasattr(self, 'qayd_engine'):
+             from .qayd_engine import QaydEngine
+             self.qayd_engine = QaydEngine(self)
+        self.qayd_engine.reset()
+        self.qayd_state = self.qayd_engine.state  # Re-link alias
+
+        # Timeline Recorder
+        from server.common import redis_client
+        from game_engine.core.recorder import TimelineRecorder
+        self.recorder = TimelineRecorder(redis_client)
+        self.record_event("INIT", "Game Initialized")
 
         # Initialize Phases Map
         self.phases = {
@@ -110,14 +133,85 @@ class Game:
             GamePhase.CHALLENGE.value: self.challenge_phase,
         }
 
+    def _sync_state_from_legacy(self):
+        """Copies legacy mutable objects into self.state for snapshotting"""
+        # Sync Players
+        # Convert legacy Player objects to PlayerState dicts
+        # We assume Player.to_dict() matches PlayerState schema approx
+        # For Pydantic, we might need strict types.
+        try:
+             # This assumes Player objects calculate their own state (hand, etc)
+             # Ideally we move that state INTO PlayerState, but for now: copy.
+             p_states = []
+             for p in self.players:
+                  # Player.to_dict() returns dict. PlayerState accepts dict via ** unpack if compatible?
+                  # PlayerState is a Pydantic model. 
+                  # We can construct it: PlayerState(**p.to_dict())
+                  from game_engine.core.state import PlayerState
+                  p_states.append(PlayerState(**p.to_dict()))
+             self.state.players = p_states
+             
+             # Sync Table
+             # table_cards is [{"playerId":..., "card": Card...}]
+             # TrickState / GameState.tableCards expects specific format?
+             # GameState.tableCards is List[Dict]. 
+             # We need to serialize Card objects in table_cards to dicts
+             t_cards_serialized = []
+             for tc in self.table_cards:
+                  row = tc.copy()
+                  if hasattr(row['card'], 'to_dict'):
+                       row['card'] = row['card'].to_dict()
+                  t_cards_serialized.append(row)
+             self.state.tableCards = t_cards_serialized
+             
+             # Sync Scores/Bid/etc if they are not properties
+             self.state.teamScores = self.team_scores
+             self.state.matchScores = self.match_scores
+             self.state.bid.type = self.bid.get('type')
+             # ... copy other bid fields ...
+             
+        except Exception as e:
+             # Don't crash game logic if sync (for debugging) fails
+             logger.error(f"State Sync Failed: {e}")
+
+    def record_event(self, event_type: str, details: str = ""):
+        self._sync_state_from_legacy()
+        self.recorder.record_state(self.state, event_type, details) 
+
+    @property
+    def phase(self):
+        return self.state.phase.value if hasattr(self.state.phase, 'value') else self.state.phase
+
+    @phase.setter
+    def phase(self, value):
+        from game_engine.core.state import GamePhaseState
+        # Auto-convert string to enum
+        try:
+             self.state.phase = GamePhaseState(value)
+        except ValueError:
+             # Fallback or strict error? For now log warning and force
+             logger.warning(f"Invalid Phase transition: {value}")
+             self._phase_backing = value # Fallback for legacy?
+
+    @property
+    def dealer_index(self):
+        return self.state.dealerIndex
+    
+    @dealer_index.setter
+    def dealer_index(self, value):
+        self.state.dealerIndex = value
+
     @property
     def current_turn(self):
         """Returns the player whose turn it is, accounting for Gablak windows."""
-        return self.bidding_engine.get_current_actor() if self.phase == GamePhase.BIDDING.value else self._current_turn
+        target = self.state.currentTurnIndex
+        if self.phase == GamePhase.BIDDING.value and hasattr(self, 'bidding_engine') and self.bidding_engine:
+             return self.bidding_engine.get_current_actor()
+        return target
     
     @current_turn.setter
     def current_turn(self, value):
-        self._current_turn = value
+        self.state.currentTurnIndex = value
 
     def get_game_state(self) -> Dict[str, Any]:
         return {
@@ -398,19 +492,50 @@ class Game:
         self.sawa_failed_khasara = False
         self.akka_state = None
         
+        self.akka_state = None
+        
         # Reset QaydEngine (single source of truth)
+        if not hasattr(self, 'qayd_engine'):
+             from .qayd_engine import QaydEngine
+             self.qayd_engine = QaydEngine(self)
+        
         self.qayd_engine.reset()
         self.qayd_state = self.qayd_engine.state  # Re-link alias
         
-        if hasattr(self, 'trick_manager'):
-             self.trick_manager.sawa_state = self.sawa_state
-             self.trick_manager.reset_state()
-             
         if hasattr(self.project_manager, 'akka_state'):
              self.project_manager.akka_state = None
              
         self.reset_timer()
 
+    def __getstate__(self):
+        """Custom pickling to exclude non-serializable locks."""
+        state = self.__dict__.copy()
+        # Remove locks and other non-picklable ephemeral objects
+        keys_to_remove = ['_sherlock_lock', 'timer_manager', 'recorder']
+        
+        for k in keys_to_remove:
+            if k in state:
+                del state[k]
+        return state
+
+    def __setstate__(self, state):
+        """Restore state and re-initialize locks."""
+        self.__dict__.update(state)
+        # Re-init locks
+        self._sherlock_lock = False
+        
+        # Re-init Timer Manager
+        from .timer_manager import TimerManager
+        self.timer_manager = TimerManager(self)
+        
+        # Re-init Recorder (needs Redis)
+        from game_engine.core.recorder import TimelineRecorder
+        try:
+            from server.common import redis_client
+            self.recorder = TimelineRecorder(redis_client)
+        except ImportError:
+            # Fallback for offline tests
+            self.recorder = TimelineRecorder(None)
         
     def deal_initial_cards(self):
         # Deal 5 to each
@@ -557,6 +682,8 @@ class Game:
 
 
     def end_round(self, skip_scoring=False):
+        self.record_event("ROUND_END", f"Round {len(self.past_round_results)} ended")
+        
         log_event("ROUND_END", self.room_id, details={
             "scores": self.match_scores.copy(), 
             "round_history_length": len(self.round_history)
@@ -954,28 +1081,6 @@ class Game:
     # (Moved to QAYD DELEGATION section above)
 
 
-    # --- PICKLE SUPPORT ---
-    def __getstate__(self):
-        """Custom pickle state to exclude non-pickleable or transient objects."""
-        state = self.__dict__.copy()
-        # TimerManager might be fine, but if it has locks (future), let's be safe.
-        # Actually timer is just floats.
-        # But let's check if there are any other issues.
-        # If we have threading.Lock or socket objects, remove them.
-        # For now, we assume simple state.
-        # However, to be extra safe against 'can't pickle local object' from closures:
-        
-        # We need to ensure we don't pickle anything that might fail.
-        # If 'room_manager' was attached, we'd remove it.
-        # 'logger' objects are not pickleable.
-        if 'logger' in state: del state['logger']
-        
-        return state
 
-    def __setstate__(self, state):
-        """Restore state and re-initialize transient objects."""
-        self.__dict__.update(state)
-        # Re-init logger if needed, though usually it's global
-        # Ensure timer is active if it was
         if not hasattr(self, 'timer'):
              self.timer = TimerManager(5)

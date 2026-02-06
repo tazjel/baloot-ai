@@ -1,35 +1,37 @@
-# ✅ Session Handoff: Command Center v2 & Logic Fixes
+# ✅ Session Handoff: Qayd Logic & Dashboard Stability Fixes
 
-**Status**: STABLE & VERIFIED
-**Date**: Feb 06, 2026
+**Status**: 🟢 STABLE & VERIFIED
+**Date**: Feb 06, 2026 (Late Night Session)
 
 ## 🚀 Accomplishments
-We successfully implemented the "Command Center" Dashboard v2 and resolved key environment/logic issues.
+We resolved the critical "4-Day Bug" affecting Qayd logic and fixed major stability issues in the Dashboard.
 
-1.  **Implemented Command Center v2**:
-    - Created `tools/dashboard/app.py` (Streamlit-based).
-    - Features: Interactive Launcher, Reports Viewer, Live Log Monitor, Ops Controls.
-    - Status: Fully functional and verified via `walkthrough.md`.
+1.  **Fixed Qayd Logic (Ghost Menus & Loops)**:
+    - **Issue**: Qayd menus reappearing after resolution, infinite loops.
+    - **Fix**: Applied Claude-suggested fixes to `qayd_engine.py` (reset state before penalty), `game.py` (state serialization), and `bot_orchestrator.py` (proper locking).
+    - **Verification**: User verified live.
 
-2.  **Investigated Qayd Button Visibility**:
-    - Problem: `test_ui_qayd.py` failed consistently in Headless mode despite correct screenshots.
-    - Findings: Decoupling between visual rendering (Canvas/GPU) and DOM in Headless environment.
-    - Resolution: Documented as an **Environment Artifact**. Feature is visually confirmed working.
-    - Workaround: Documented in `walkthrough.md`, recommend using `/nw` (Headed) for this feature.
+2.  **Fixed Game Serialization (PickleError)**:
+    - **Issue**: `RedisConnection` and `Lock` objects inside `Game` caused pickle to fail, breaking persistence.
+    - **Fix**: Implemented custom `__getstate__` and `__setstate__` in `Game` class to exclude non-serializable objects.
+    - **Verification**: `scripts/verify_pickle_fix.py` passed.
 
-3.  **Fixed Double Logging**:
-    - Problem: Logs appeared twice in the console.
-    - Fix: Set `logger.propagate = False` in `server/logging_utils.py`.
-    - Result: Clean, single-stream logging.
+3.  **Fixed Dashboard Crashes**:
+    - **Issue**: Multiple tabs (Timeline, Watchdog, Sherlock, Ops) crashed due to Redis data type mismatches (`str` vs `bytes`) and missing arguments.
+    - **Fix**: 
+        - `recorder.py`: Added robust type checking/decoding.
+        - `ops.py`: Fixed `key.decode()` errors.
+        - `watchdog.py`, `sherlock_view.py`: Made `room_id` optional + auto-select.
+    - **Verification**: `scripts/repro_recorder_crash.py` passed; User verified live.
 
 ## 📂 Key Files Modified
-- `tools/dashboard/app.py`: Created (Main App)
-- `tools/dashboard/launch.ps1`: Created (Launcher)
-- `server/logging_utils.py`: Disabled logger propagation.
-- `tests/browser/test_ui_qayd.py`: Updated with robust/fallback selectors (stuck on env issue).
-- `frontend/src/components/ActionBar.tsx`: Fixed z-index and added test IDs.
+- `game_engine/logic/game.py`: Added serialization logic & Qayd locks.
+- `game_engine/logic/qayd_engine.py`: Fixed state reset order.
+- `game_engine/core/recorder.py`: Fixed Redis stream decoding.
+- `tools/dashboard/modules/ops.py`: Fixed Heartbeat decoding.
+- `tools/dashboard/modules/watchdog.py`: Fixed missing argument.
+- `tools/dashboard/modules/sherlock_view.py`: Fixed missing argument.
 
 ## ⏭️ Next Steps
-1.  **Manual Verification**: Run `/dashboard` and test the Ops/Reports tabs.
-2.  **Full Game Test**: Use the Dashboard to launch a game and verify the full flow end-to-end.
-3.  **Bot Tuning**: Double logging masked some bot decision latency; monitor `auto-play` logs now that they are clean.
+1.  **Play & Monitor**: Enjoy a stable game session. Use the now-working Dashboard to inspect logic.
+2.  **Clean Up**: Delete the temporary verification scripts (`scripts/repro_recorder_crash.py`, `scripts/verify_pickle_fix.py`) when confident.

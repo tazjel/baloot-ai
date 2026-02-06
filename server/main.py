@@ -18,6 +18,19 @@ def run():
     try:
         app = create_app()
         server = pywsgi.WSGIServer(('0.0.0.0', 3005), app, handler_class=WebSocketHandler)
+        
+        # Start Heartbeat
+        from server.common import redis_client
+        from server.process_manager import Heartbeat
+        import gevent
+        
+        hb = Heartbeat("game_server", redis_client)
+        def heartbeat_loop():
+            while True:
+                hb.beat()
+                gevent.sleep(5)
+        gevent.spawn(heartbeat_loop)
+        
         server.serve_forever()
         
     except Exception as e:

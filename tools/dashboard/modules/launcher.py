@@ -34,6 +34,12 @@ def render_launcher_tab():
             subprocess.Popen("pytest tests/browser/test_ui_qayd.py --headed --slowmo 1000", shell=True)
             st.success("Test launched in background.")
 
+        st.markdown("---")
+        if st.button("RUN: AI Simulation (Headless)", help="Populates Dashboard with a simulated game"):
+            st.info("Launching Headless Simulation...")
+            subprocess.Popen("python scripts/verification/verify_game_flow.py", shell=True)
+            st.success("Simulation started! Check 'Brain' tab.")
+
     # --- Agent Assistance ---
     st.markdown("---")
     st.subheader("🤖 Agent Diagnostics")

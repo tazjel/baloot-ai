@@ -11,6 +11,10 @@ from modules.ops import render_ops_tab
 from modules.qayd_war_room import render_qayd_war_room
 from modules.inspector import render_inspector_tab
 from modules.trace import render_trace_tab
+from modules.timeline import render_timeline_tab
+from modules.watchdog import render_watchdog_module
+from modules.sherlock_view import render_sherlock_view
+from modules.brain_view import render_brain_view
 from modules.utils import get_redis_client
 
 # --- Config ---
@@ -63,9 +67,12 @@ if qayd_active:
 tab_names = [
     "🚀 Launcher", 
     war_room_title,
-    "🧠 Brain", 
+    "🧠 Brain",
     "🕵️ Inspector",
     "⏳ Trace",
+    "⏪ Timeline",
+    "🚨 Watchdog", 
+    "🔍 Sherlock",
     "📈 Reports",
     "📜 Logs",
     "📸 Visual Lab", 
@@ -83,7 +90,7 @@ with tabs[1]:
     render_qayd_war_room()
 
 with tabs[2]:
-    render_brain_tab()
+    render_brain_view()
 
 with tabs[3]:
     render_inspector_tab()
@@ -92,13 +99,22 @@ with tabs[4]:
     render_trace_tab()
 
 with tabs[5]:
-    render_reports_tab()
+    render_timeline_tab()
 
 with tabs[6]:
-    render_logs_tab()
+    render_watchdog_module()
 
 with tabs[7]:
-    render_visual_lab_tab()
+    render_sherlock_view()
 
 with tabs[8]:
+    render_reports_tab()
+
+with tabs[9]:
+    render_logs_tab()
+
+with tabs[10]:
+    render_visual_lab_tab()
+
+with tabs[11]:
     render_ops_tab()
