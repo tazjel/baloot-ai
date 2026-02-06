@@ -16,7 +16,7 @@ from .timer_manager import TimerManager
 from .phases.challenge_phase import ChallengePhase
 from .project_manager import ProjectManager
 from .scoring_engine import ScoringEngine
-from .qayd_manager import QaydManager
+from .qayd_engine import QaydEngine
 from .trick_manager import TrickManager
 from .phases.bidding_phase import BiddingPhase as BiddingLogic
 from .phases.playing_phase import PlayingPhase as PlayingLogic
@@ -98,10 +98,10 @@ class Game:
         self.challenge_phase = ChallengePhase(self) # Refactored Handler
         self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
-        self.qayd_manager = QaydManager(self)
+        self.qayd_engine = QaydEngine(self)
         
-        # FIX: Alias Qayd State to TrickManager to prevent Split Brain
-        self.qayd_state = self.trick_manager.qayd_state
+        # Single source of truth — alias to QaydEngine's dict (never reassign)
+        self.qayd_state = self.qayd_engine.state
 
         # Initialize Phases Map
         self.phases = {
@@ -124,7 +124,6 @@ class Game:
             "roomId": self.room_id,
             "phase": self.phase,
             "biddingPhase": self.bidding_engine.phase.name if hasattr(self, 'bidding_engine') and self.bidding_engine else None,
-            "players": [p.to_dict() for p in self.players],
             "players": [p.to_dict() for p in self.players],
             "tableCards": [{"playerId": tc['playerId'], "card": tc['card'].to_dict(), "playedBy": tc['playedBy'], "metadata": tc.get('metadata')} for tc in self.table_cards],
             "currentTurnIndex": self.current_turn, # Frontend expects currentTurnIndex
@@ -180,7 +179,7 @@ class Game:
             ], 
             # 'trickHistory': self.trick_history,       # Full game debug - REMOVED for Optimization
             'sawaState': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else self.sawa_state,
-            'qaydState': self.trick_manager.qayd_state if hasattr(self.trick_manager, 'qayd_state') else {},
+            'qaydState': self.qayd_engine.get_frontend_state(),
             'challengeActive': (self.phase == GamePhase.CHALLENGE.value),
             
             # Timer Sync
@@ -240,102 +239,45 @@ class Game:
     def check_akka_eligibility(self, player_index):
         return self.project_manager.check_akka_eligibility(player_index)
 
-    # --- QAYD (FORENSIC) DELEGATION ---
+    # ═══════════════════════════════════════════════════════════════════════
+    #  QAYD (FORENSIC) DELEGATION — All routes to QaydEngine
+    # ═══════════════════════════════════════════════════════════════════════
+
     def handle_qayd_trigger(self, player_index):
-        # Delegate to ChallengePhase
-        return self.challenge_phase.trigger_investigation(player_index)
+        """Called when a player presses the Qayd button."""
+        return self.qayd_engine.trigger(player_index)
+
+    def handle_qayd_menu_select(self, player_index, option):
+        """Step 1 → 2: Reporter selects Main Menu option."""
+        return self.qayd_engine.select_menu_option(option)
+
+    def handle_qayd_violation_select(self, player_index, violation_type):
+        """Step 2 → 3: Reporter selects a violation type."""
+        return self.qayd_engine.select_violation(violation_type)
+
+    def handle_qayd_select_crime(self, player_index, card_data):
+        """Step 3 → 4: Reporter selects the crime card (Pink Ring)."""
+        return self.qayd_engine.select_crime_card(card_data)
+
+    def handle_qayd_select_proof(self, player_index, card_data):
+        """Step 4 → 5/6: Reporter selects the proof card (Green Ring)."""
+        return self.qayd_engine.select_proof_card(card_data)
 
     def handle_qayd_accusation(self, player_index, accusation=None):
-        """
-        Called when a bot/user provides specific accusation details.
-        
-        Supports proof-based accusations with explicit crime_card and proof_card.
-        """
-        if accusation:
-            # Proof-based accusation: extract crime/proof data
-            crime_card = accusation.get('crime_card')
-            proof_card = accusation.get('proof_card')
-            qayd_type = accusation.get('qayd_type', 'REVOKE')
-            
-            if crime_card and proof_card:
-                # If Qayd is already active, UPDATE the state with accusation details
-                if self.trick_manager.qayd_state.get('active'):
-                    logger.info(f"[QAYD] Updating active Qayd with accusation: crime={crime_card}, proof={proof_card}")
-                    # Find the offender based on crime card in table/history
-                    offender_pos = None
-                    for play in self.table_cards:
-                        card_data = play.get('card', {})
-                        if hasattr(card_data, 'to_dict'):
-                            card_data = card_data.to_dict()
-                        if card_data.get('rank') == crime_card.get('rank') and card_data.get('suit') == crime_card.get('suit'):
-                            offender_pos = play.get('playedBy')
-                            break
-                    
-                    if offender_pos:
-                        offender = next((p for p in self.players if p.position == offender_pos), None)
-                        if offender:
-                            # Update qayd_state with correct penalty target
-                            self.trick_manager.qayd_state['loser_team'] = offender.team
-                            self.trick_manager.qayd_state['reason'] = f"Qayd Valid: {qayd_type}"
-                            self.trick_manager.qayd_state['verdict'] = f"QATA: {offender.position} played illegal move"
-                            
-                            # Calculate penalty points
-                            mode_str = str(self.game_mode).upper()
-                            is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
-                            base_points = 26 if is_sun else 16
-                            logger.info(f"[QAYD-GAME] Scoring: game_mode={self.game_mode}, mode_str={mode_str}, is_sun={is_sun}, base_points={base_points}")
-                            if self.doubling_level >= 2: base_points *= self.doubling_level
-                            self.trick_manager.qayd_state['penalty_points'] = base_points
-                            
-                            logger.info(f"[QAYD] Updated penalty: {offender.team} loses {base_points} pts")
-                    
-                    return self.handle_qayd_confirm()
-                else:
-                    # Start fresh Qayd with accusation details
-                    logger.info(f"[QAYD] Explicit accusation: crime={crime_card}, proof={proof_card}")
-                    return self.trick_manager.propose_qayd(
-                        player_index,
-                        crime_card=crime_card,
-                        proof_card=proof_card,
-                        qayd_type=qayd_type,
-                        crime_trick_idx=accusation.get('crime_trick_idx'),
-                        proof_trick_idx=accusation.get('proof_trick_idx')
-                    )
-            else:
-                # Legacy accusation format
-                return self.qayd_manager.process_accusation(player_index, accusation)
-        return self.handle_qayd_confirm()
+        """Legacy: Direct accusation with crime_card + proof_card payload."""
+        if not accusation:
+            return self.qayd_engine.trigger(player_index)
+        return self.qayd_engine.handle_legacy_accusation(player_index, accusation)
 
     def handle_qayd_confirm(self):
-        """Called to confirm verdict"""
-        # Delegate to ChallengePhase (handles unlocking)
-        return self.challenge_phase.resolve_verdict()
-    
-    def handle_qayd_cancel(self):
-        """Called when Qayd is cancelled/closed"""
-        # SPLIT-BRAIN FIX: Check TrickManager
-        if getattr(self, 'trick_manager', None) and self.trick_manager.qayd_state.get('active'):
-             result = self.trick_manager.cancel_qayd()
-             if result.get('success'):
-                  self.is_locked = False
-                  logger.info(f"[QAYD] Game UNLOCKED after Cancel (TrickManager).")
-                  
-                  # TRIGGER NEXT ROUND IF NEEDED
-                  if self.phase == GamePhase.FINISHED.value:
-                       logger.info(f"[QAYD] Phase is FINISHED. Signaling Auto-Restart.")
-                       result['trigger_next_round'] = True
-                  
-                  # DEADLOCK FIX: Force Phase Reset
-                  elif self.phase == GamePhase.CHALLENGE.value:
-                       logger.info(f"[QAYD] Resetting Phase from CHALLENGE to PLAYING to prevent deadlock.")
-                       self.phase = GamePhase.PLAYING.value
-                       
-             return result
+        """Called when frontend sends QAYD_CONFIRM after viewing verdict."""
+        return self.qayd_engine.confirm()
 
-        result = self.qayd_manager.cancel_challenge()
-        if result.get('success'):
-             self.is_locked = False
-             logger.info(f"[QAYD] Game UNLOCKED after cancel/close. is_locked={self.is_locked}")
+    def handle_qayd_cancel(self):
+        """Called when Qayd is cancelled/closed."""
+        result = self.qayd_engine.cancel()
+        if result.get('success') and self.phase == GamePhase.FINISHED.value:
+            result['trigger_next_round'] = True
         return result
 
     def handle_qayd(self, player_index, reason=None):
@@ -437,21 +379,15 @@ class Game:
         self.last_trick = None
         self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
         self.sawa_failed_khasara = False
-        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-        self.sawa_failed_khasara = False
-        self.qayd_manager.reset()
         self.akka_state = None
+        
+        # Reset QaydEngine (single source of truth)
+        self.qayd_engine.reset()
+        self.qayd_state = self.qayd_engine.state  # Re-link alias
         
         if hasattr(self, 'trick_manager'):
              self.trick_manager.sawa_state = self.sawa_state
-             # CRITICAL FIX: Do NOT overwrite TrickManager's state with a new dict
-             # Instead, modify the existing one or sync carefully
-             # But here we are resetting everything.
-             # Ideally: self.trick_manager.reset_state() should handle it.
              self.trick_manager.reset_state()
-             
-             # Re-link for safety, but they should be the same object if reset_state clears it in place
-             self.qayd_state = self.trick_manager.qayd_state
              
         if hasattr(self.project_manager, 'akka_state'):
              self.project_manager.akka_state = None
@@ -584,12 +520,12 @@ class Game:
 
 
     
-    # --- FORENSIC CHALLENGE ---
+    # --- FORENSIC CHALLENGE (Legacy redirects to QaydEngine) ---
     def initiate_challenge(self, player_index):
-        return self.qayd_manager.initiate_challenge(player_index)
+        return self.qayd_engine.trigger(player_index)
 
     def process_accusation(self, player_index, accusation_data):
-        return self.qayd_manager.process_accusation(player_index, accusation_data)
+        return self.qayd_engine.handle_legacy_accusation(player_index, accusation_data)
 
 
 
@@ -636,7 +572,6 @@ class Game:
                 'initialHands': self.initial_hands
             }
             self.full_match_history.append(round_snapshot)
-            self.full_match_history.append(round_snapshot)
             try:
                  from ai_worker.agent import bot_agent
                  bot_agent.capture_round_data(round_snapshot)
@@ -660,11 +595,13 @@ class Game:
         if hasattr(self, 'trick_manager'):
              self.trick_manager.reset_state()
              self.sawa_state = self.trick_manager.sawa_state
-             self.qayd_state = self.trick_manager.qayd_state
         else:
              self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
-             
+
+        # Reset Qayd via engine (preserves dict identity)
+        self.qayd_engine.reset()
+        self.qayd_state = self.qayd_engine.state
+
         self.sawa_failed_khasara = False
         self.reset_timer()
 
@@ -709,20 +646,8 @@ class Game:
     def reset_timer(self, duration=None):
         self.timer.reset(duration)
         self.timer_paused = False # Unpause on reset
-        
-        # SPLIT BRAIN FIX: 
-        # Only reset manual dict if TrickManager is NOT managing it.
-        # If TrickManager is present, ensure we are just syncing or modifying in place.
-        
-        if hasattr(self, 'trick_manager') and self.trick_manager.qayd_state is not None:
-             # We assume TrickManager handles its own reset via `trick_manager.reset_state()` 
-             # or we modify the shared dict in place if needed.
-             # Current pattern: end_round calls trick_manager.reset_state(), which sets active=False.
-             # So we don't need to do anything here if trick_manager exists.
-             pass
-        else:
-             # Fallback for legacy
-             self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        # NOTE: qayd_state is managed exclusively by QaydEngine now.
+        # No need to touch it here.
 
     def pause_timer(self):
         """Pauses the turn timer (e.g. for Professor Intervention)"""
@@ -778,26 +703,48 @@ class Game:
                 res = self.auto_play_card(self.current_turn)
 
             elif self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
-                 # During Challenge/Qayd, if it's the Reporter's turn (conceptually), trigger them.
-                 # Actually, current_turn might not be the reporter?
-                 # We should trigger the reporter regardless of turn index in this special state?
-                 # Or rely on reporter index being passed.
-                 reporter_pos = self.qayd_state.get('reporter')
-                 reporter_idx = next((p.index for p in self.players if p.position == reporter_pos), -1)
-                 
-                 if reporter_idx != -1:
-                      logger.info(f"Timeout/Action Cycle for Qayd Reporter {reporter_pos} ({reporter_idx}).")
-                      res = self.auto_play_card(reporter_idx)
+                 # Check QaydEngine timeout first
+                 qayd_result = self.qayd_engine.check_timeout()
+                 if qayd_result:
+                      res = qayd_result
                  else:
-                      logger.warning("Qayd Active but reporter not found. ZOMBIE STATE DETECTED. Auto-cancelling.")
-                      self.handle_qayd_cancel()
-                      res = {'success': True, 'action': 'ZOMBIE_REPAIR'}
+                      reporter_pos = self.qayd_state.get('reporter')
+                      reporter_idx = next((p.index for p in self.players if p.position == reporter_pos), -1)
+                      
+                      if reporter_idx != -1:
+                           logger.info(f"Timeout/Action Cycle for Qayd Reporter {reporter_pos} ({reporter_idx}).")
+                           res = self.auto_play_card(reporter_idx)
+                      else:
+                           logger.warning("Qayd Active but reporter not found. ZOMBIE STATE. Auto-cancelling.")
+                           self.handle_qayd_cancel()
+                           res = {'success': True, 'action': 'ZOMBIE_REPAIR'}
             
             dur = time.time() - t_start
             logger.info(f"Timeout Action Completed in {dur:.4f}s. Result: {res}")
              
-            # Fallback: If action was successful but timer wasn't reset (bug in phase handler), do it here.
-            # ROBUS FIX: Force reset timer ALWAYS if it's still expired, to prevent infinite loops.
+            # --- DEADLOCK BREAKER ---
+            # If the action FAILED (success=False), we must force a state change
+            # otherwise the timer will expire again immediately and loop forever.
+            if res and not res.get('success'):
+                logger.error(f"[DEADLOCK] Timeout Action FAILED: {res.get('error')}. Forcing Fallback...")
+                
+                # Fallback 1: If in Challenge, Cancel it.
+                if self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
+                     logger.warning("[DEADLOCK] Forcing Qayd Cancel to break loop.")
+                     res = self.handle_qayd_cancel()
+                     
+                # Fallback 2: If in Bidding, Force Pass
+                elif self.phase == GamePhase.BIDDING.value:
+                     logger.warning("[DEADLOCK] Forcing BID PASS to break loop.")
+                     res = self.handle_bid(self.current_turn, "PASS")
+                     
+                # Fallback 3: General Reset Timer to give breathing room (prevent 100% CPU loop)
+                self.reset_timer(1.0) 
+            
+            # Additional check: If timer is STILL expired (and wasn't reset by action), FORCE reset.
+            if self.timer.is_expired():
+                logger.warning(f"[TIMEOUT] Timer still expired after action. Forcing reset to prevent loop.")
+                self.reset_timer()
             if self.timer.is_expired():
                  logger.warning(f"Timer still expired after action (Success: {res.get('success') if res else 'None'}). Forcing reset.")
                  with open("logs/timer_monitor.log", "a") as f:
@@ -809,21 +756,27 @@ class Game:
         return None
 
     def apply_qayd_penalty(self, loser_team, winner_team):
-        # FIX: Single Source of Truth from TrickManager
+        """Apply Qayd penalty. Called by QaydEngine.confirm()."""
+        # Get base penalty from QaydEngine (does NOT include projects — BUG-03 fix)
         if self.qayd_state and 'penalty_points' in self.qayd_state:
-             score_winner = self.qayd_state['penalty_points']
-             logger.info(f"[QAYD] Applying penalty points from TrickManager: {score_winner}")
+             base_penalty = self.qayd_state['penalty_points']
+             logger.info(f"[QAYD] Base penalty from QaydEngine: {base_penalty}")
         else:
-             # Fallback
              is_sun = 'SUN' in str(self.game_mode).upper()
-             max_points = 26 if is_sun else 16
-             score_winner = max_points 
-             logger.warning(f"[QAYD] Penalty points not found in state. Using fallback: {score_winner} (Mode: {self.game_mode})")
-        
-        score_loser = 0 
+             base_penalty = 26 if is_sun else 16
+             logger.warning(f"[QAYD] Penalty not in state. Fallback: {base_penalty}")
+
+        # Add project points ONCE (BUG-03 fix: no longer double-counted)
+        project_points = 0
+        if self.declarations:
+             for pos, projs in self.declarations.items():
+                  for proj in projs:
+                       project_points += proj.get('score', 0)
+
+        score_winner = base_penalty + project_points
+        logger.info(f"[QAYD] Total penalty: {base_penalty} base + {project_points} projects = {score_winner}")
         
         self.match_scores[winner_team] += score_winner
-        self.match_scores[loser_team] += score_loser 
         
         round_result = {
             'roundNumber': len(self.past_round_results) + 1,
@@ -834,23 +787,16 @@ class Game:
         }
         self.past_round_results.append(round_result)
         
-        # Archiving for Replay
-        # Qayd ends the round abruptly, but we should still record it.
-        # However, we don't have tricks.
-        # We'll snapshot with empty tricks or whatever occurred.
-        # Logic similar to end_round but simpler.
         round_snapshot = {
                 'roundNumber': len(self.past_round_results),
                 'bid': copy.deepcopy(self.bid),
                 'scores': copy.deepcopy(round_result),
-                'tricks': [], # No tricks played usually if Qayd happens early? Or insert self.round_history?
+                'tricks': copy.deepcopy(self.round_history),
                 'dealerIndex': self.dealer_index, 
                 'floorCard': self.floor_card.to_dict() if self.floor_card else None,
-                'declarations': {}, # Usually checking cards triggers Qayd, declarations might not exist
+                'declarations': {},
                 'initialHands': self.initial_hands
         }
-        # If Qayd happened during a trick, maybe we should save round_history?
-        # For now, empty tricks is safer than broken state.
         self.full_match_history.append(round_snapshot)
         
         self.dealer_index = (self.dealer_index + 1) % 4
@@ -860,8 +806,9 @@ class Game:
              self.phase = GamePhase.GAMEOVER.value
         else:
              self.phase = GamePhase.FINISHED.value
-             
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+
+        # NOTE: Do NOT reassign self.qayd_state here.
+        # QaydEngine.confirm() handles its own state reset via .clear().update()
 
     # @requires_unlocked - REMOVED to allow System/Bot to act during Lock (e.g. Qayd)
     def auto_play_card(self, player_index):
@@ -884,9 +831,7 @@ class Game:
                  
             elif action == 'QAYD_ACCUSATION':
                  # FIX: Only the reporter can submit accusation
-                 qayd_state = self.trick_manager.qayd_state if hasattr(self, 'trick_manager') else {}
-                 qayd_manager_state = self.qayd_manager.state if hasattr(self, 'qayd_manager') else {}
-                 reporter_pos = qayd_state.get('reporter') or qayd_manager_state.get('reporter')
+                 reporter_pos = self.qayd_state.get('reporter')
                  
                  if player.position != reporter_pos:
                      logger.debug(f"Auto-Play for {player.name}: Not reporter ({player.position} != {reporter_pos}), skipping accusation")

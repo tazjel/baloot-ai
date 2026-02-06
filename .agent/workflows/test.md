@@ -21,6 +21,7 @@ This workflow runs the CLI-based test runner to verify game logic.
 3. **Run Stress Test**
    Run 10 quick games to check for crashes.
    // turbo
+   ```powershell
    python scripts/cli_test_runner.py --scenario stress_test --games 10 --quiet
    ```
 

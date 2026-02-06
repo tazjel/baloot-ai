@@ -246,6 +246,14 @@ def game_action(sid, data):
              # Auto-restart next round after brief delay for user to see result
              sio.start_background_task(auto_restart_round, game, room_id)
          
+    elif action == 'QAYD_MENU_SELECT':
+         result = game.handle_qayd_menu_select(player.index, payload.get('option'))
+    elif action == 'QAYD_VIOLATION_SELECT':
+         result = game.handle_qayd_violation_select(player.index, payload.get('violation_type'))
+    elif action == 'QAYD_SELECT_CRIME':
+         result = game.handle_qayd_select_crime(player.index, payload)
+    elif action == 'QAYD_SELECT_PROOF':
+         result = game.handle_qayd_select_proof(player.index, payload)
     elif action == 'QAYD_ACCUSATION':
          print(f"[DEBUG] QAYD_ACCUSATION received: {payload.get('accusation')}")
          result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
@@ -254,6 +262,10 @@ def game_action(sid, data):
          print(f"[DEBUG] QAYD_CONFIRM received")
          result = game.handle_qayd_confirm()
          print(f"[DEBUG] QAYD_CONFIRM result: {result}")
+         
+         # FIX: Trigger auto-restart if game finished (Qayd Penalty applied)
+         if game.phase in ["FINISHED", "GAMEOVER"]:
+              sio.start_background_task(auto_restart_round, game, room_id)
     elif action == 'QAYD_CANCEL':
          result = game.handle_qayd_cancel()
          if result.get('trigger_next_round'):
@@ -402,7 +414,7 @@ def auto_restart_round(game, room_id):
             return
 
         game.is_restarting = True
-        sio.sleep(3.0) # Wait 3 seconds for score display
+        sio.sleep(0.5) # Fast restart (User requested "No waiting")
 
         # HELPER: Save to Archive
         def save_to_archive():
@@ -590,8 +602,8 @@ def timer_background_task(room_manager_instance):
                     # Check finish
                     if game.phase == "FINISHED":
                          save_match_snapshot(game, room_id)
-                         # sio.start_background_task(auto_restart_round, game, room_id)
-                         pass
+                         sio.start_background_task(auto_restart_round, game, room_id)
+                         # pass
 
         except Exception as e:
             logger.error(f"Error in timer_background_task: {e}")

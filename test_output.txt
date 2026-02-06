@@ -2,55 +2,73 @@
 platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0
 rootdir: C:\Users\MiEXCITE\Projects\baloot-ai
 configfile: pytest.ini
-plugins: anyio-3.7.1, locust-2.43.1, cov-7.0.0
-collected 2 items
+plugins: anyio-3.7.1, locust-2.43.1, base-url-2.1.0, cov-7.0.0, playwright-0.7.2
+collected 1 item
 
-tests\test_qayd_stabilization.py F.                                      [100%]
+tests\browser\test_ui_qayd.py 
+📸 Failure screenshot saved: diagnostics\failure_test_qayd_flow[chromium]_20260205_234341.png
+
+📄 Page URL: chrome-error://chromewebdata/
+F                                          [100%]
 
 ================================== FAILURES ===================================
-__________ TestQaydStabilization.test_qayd_trigger_lock_and_release ___________
+__________________________ test_qayd_flow[chromium] ___________________________
 
-self = <tests.test_qayd_stabilization.TestQaydStabilization testMethod=test_qayd_trigger_lock_and_release>
+page = <Page url='chrome-error://chromewebdata/'>
 
-    def test_qayd_trigger_lock_and_release(self):
-        """Test that Qayd locks the game and releases it after cancel/timeout"""
-        player_idx = self.game.current_turn
+    def test_qayd_flow(page: Page):
+        """
+        End-to-end verification of the Qayd flow in Single Player mode.
+        """
+        print("🌐 Navigating to Game...")
+>       page.goto("http://localhost:5173", timeout=15000)
+
+tests\browser\test_ui_qayd.py:10: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\sync_api\_generated.py:9054: in goto
+    self._sync(
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\_impl\_page.py:552: in goto
+    return await self._main_frame.goto(**locals_to_params(locals()))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\_impl\_frame.py:153: in goto
+    await self._channel.send(
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\_impl\_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <playwright._impl._connection.Connection object at 0x000001650FA63E30>
+cb = <function Channel.send.<locals>.<lambda> at 0x0000016510156020>
+is_internal = False, title = None
+
+    async def wrap_api_call(
+        self, cb: Callable[[], Any], is_internal: bool = False, title: str = None
+    ) -> Any:
+        if self._api_zone.get():
+            return await cb()
+        task = asyncio.current_task(self._loop)
+        st: List[inspect.FrameInfo] = getattr(
+            task, "__pw_stack__", None
+        ) or inspect.stack(0)
     
-        # 1. Trigger Qayd
-        print(f"\n[TEST] Triggering Qayd for P{player_idx}")
-        res = self.game.handle_qayd_trigger(player_idx)
-        self.assertTrue(res['success'], "Qayd trigger failed")
-        self.assertTrue(self.game.is_locked, "Game should be locked after Qayd trigger")
-        self.assertTrue(self.game.qayd_state['active'], "Qayd state should be active")
-    
-        # 2. Verify Actions Blocked
-        print("[TEST] Attempting to play card while locked...")
-        play_res = self.game.play_card(player_idx, 0)
->       self.assertFalse(play_res.get('success'), "Should NOT be able to play card while locked")
-                         ^^^^^^^^^^^^
-E       AttributeError: 'NoneType' object has no attribute 'get'
+        parsed_st = _extract_stack_trace_information_from_stack(st, is_internal, title)
+        self._api_zone.set(parsed_st)
+        try:
+            return await cb()
+        except Exception as error:
+>           raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E           playwright._impl._errors.Error: Page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/
+E           Call log:
+E             - navigating to "http://localhost:5173/", waiting until "load"
 
-tests\test_qayd_stabilization.py:34: AttributeError
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\_impl\_connection.py:559: Error
 ---------------------------- Captured stdout call -----------------------------
-
-[TEST] Triggering Qayd for P3
-[TEST] Attempting to play card while locked...
----------------------------- Captured stderr call -----------------------------
-2026-02-05 18:52:23,935 - GameServer - INFO - Game Started. Random Dealer Index: 2
-2026-02-05 18:52:23,935 - GameServer - INFO - [BID] Game Mode Set: SUN, Trump: SUN, Level: 1
-2026-02-05 18:52:23,936 - GameServer - INFO - [QAYD] Scoring: game_mode=SUN, mode_str=SUN, is_sun=True, base_points=26
-2026-02-05 18:52:23,936 - GameServer - INFO - [LOCK] play_card skipped - game is locked
------------------------------- Captured log call ------------------------------
-INFO     GameServer:game.py:396 Game Started. Random Dealer Index: 2
-INFO     GameServer:game.py:223 [BID] Game Mode Set: SUN, Trump: SUN, Level: 1
-INFO     GameServer:trick_manager.py:357 [QAYD] Scoring: game_mode=SUN, mode_str=SUN, is_sun=True, base_points=26
-INFO     GameServer:game.py:40 [LOCK] play_card skipped - game is locked
+🌐 Navigating to Game...
 ============================== warnings summary ===============================
-tests/test_qayd_stabilization.py::TestQaydStabilization::test_qayd_trigger_lock_and_release
+tests/browser/test_ui_qayd.py::test_qayd_flow[chromium]
   C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
     import cgi
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =========================== short test summary info ===========================
-FAILED tests/test_qayd_stabilization.py::TestQaydStabilization::test_qayd_trigger_lock_and_release
-=================== 1 failed, 1 passed, 1 warning in 0.36s ====================
+FAILED tests/browser/test_ui_qayd.py::test_qayd_flow[chromium] - playwright._...
+======================== 1 failed, 1 warning in 5.00s =========================

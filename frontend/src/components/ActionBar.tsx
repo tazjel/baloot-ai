@@ -61,10 +61,10 @@ const ActionBar: React.FC<ActionBarProps> = ({
     const handleSawa = () => onPlayerAction('SAWA_CLAIM');
     const handleRecord = () => {
         soundManager.playClick();
-        onPlayerAction('QAYD_CLAIM');
+        onPlayerAction('QAYD_TRIGGER');
     };
 
-    const ActionButton = ({ onClick, disabled, className, children, activeClass = dockBtnActive }: any) => (
+    const ActionButton = ({ onClick, disabled, className, children, activeClass = dockBtnActive, ...props }: any) => (
         <motion.button
             onClick={onClick}
             disabled={disabled}
@@ -72,6 +72,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
             whileHover={!disabled ? "hover" : "disabled"}
             whileTap={!disabled ? "tap" : "disabled"}
             className={`${dockBtnBase} ${!disabled ? activeClass : dockBtnDisabled} ${className || ''}`}
+            {...props}
         >
             {children}
             {!disabled && (
@@ -108,12 +109,13 @@ const ActionBar: React.FC<ActionBarProps> = ({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute bottom-2 sm:bottom-4 left-1/2 z-[100] flex items-center gap-3 sm:gap-6 bg-black/20 px-6 py-3 rounded-[2rem] border border-white/5 backdrop-blur-sm"
+                className="absolute bottom-12 sm:bottom-16 left-1/2 z-[1000] flex items-center gap-3 sm:gap-6 bg-black/20 px-6 py-3 rounded-[2rem] border border-white/5 backdrop-blur-sm"
             >
                 {/* 1. PROJECTS */}
                 <ActionButton
                     onClick={() => onPlayerAction('DECLARE_PROJECT', { type: availableProjects[0] || 'SIRA' })}
                     disabled={!hasProjects || !isMyTurn}
+                    data-testid="btn-projects"
                 >
                     <div className="text-amber-400 mb-1"><Trophy size={20} /></div>
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">المشاريع</span>
@@ -129,6 +131,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                         }
                     }}
                     disabled={!canAkka}
+                    data-testid="btn-akka"
                 >
                     <div className="text-rose-500 mb-1"><Megaphone size={20} /></div>
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">أكة</span>
@@ -138,13 +141,14 @@ const ActionBar: React.FC<ActionBarProps> = ({
                 <ActionButton
                     onClick={handleSawa}
                     disabled={!canSawa}
+                    data-testid="btn-sawa"
                 >
                     <div className="text-blue-400 mb-1"><RefreshCw size={20} /></div>
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">سوا</span>
                 </ActionButton>
 
                 {/* 4. RECORD */}
-                <ActionButton onClick={handleRecord}>
+                <ActionButton onClick={handleRecord} data-testid="btn-qayd">
                     <div className="text-zinc-400 mb-1"><Gavel size={20} /></div>
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">قيدها</span>
                 </ActionButton>

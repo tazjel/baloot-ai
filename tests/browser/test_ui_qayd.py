@@ -44,9 +44,17 @@ def test_qayd_flow(page: Page, assert_snapshot):
 
     # 3. Playing Phase - Wait for Qayd Button
     print("⏳ Waiting for Playing Phase (Qayd Button)...")
-    qayd_btn = page.get_by_text("قيدها")
-    expect(qayd_btn).to_be_visible(timeout=30000)
-    print("✅ Playing Phase Active")
+    # 3. Playing Phase - Wait for Qayd Button (Use Floating Button as Dock is flaky)
+    print("⏳ Waiting for Playing Phase (Qayd Floating Button)...")
+    # Floating button has title="CALL QAYD (Forensic Challenge)"
+    # We use a substring match for robustness
+    qayd_btn = page.locator("button[title*='CALL QAYD']")
+    
+    print("🔨 Clicking Qayd Floating Button...")
+    qayd_btn.click(timeout=30000)
+    
+    # expect(qayd_btn).to_be_visible(timeout=30000)
+    print("✅ Playing Phase Active - Qayd Triggered")
     
     # 4. Wait for game progress (Handle User Turn)
     print("⏳ Waiting for game flow...")

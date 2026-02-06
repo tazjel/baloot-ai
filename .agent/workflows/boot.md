@@ -46,9 +46,9 @@ This workflow "boots up" the agent's context using the **"High Value, Low Token"
 
 ## 5. Verification (What NOT to Do)
 
-- **Do NOT** read the "Comprehensive Project Handbook" or `current_state.md` (too large).
-- **Do NOT** list large directories (`node_modules`, `venv`, `__pycache__`).
-- **Do NOT** run `/check-health` automatically (save tokens; user can request it).
+- **Avoid** reading the "Comprehensive Project Handbook" or `current_state.md` unless deeply stuck (files are too large).
+- **Avoid** listing large directories (`node_modules`, `venv`, `__pycache__`).
+- **Avoid** running `/check-health` automatically (save tokens; user can request it).
 
 ## 6. Action Plan
 

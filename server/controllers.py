@@ -349,7 +349,6 @@ def health_check():
     return "OK"
 
 
-@action('index')
 def catch_all_v2(path=None):
     print("default page being served")
     print(f"DEBUG: catch_all_v2 ENTERED. File: {__file__}", flush=True)

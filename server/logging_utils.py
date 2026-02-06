@@ -18,6 +18,8 @@ console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(level
 
 logger = logging.getLogger("GameServer")
 logger.setLevel(logging.INFO)
+# Prevent propagation to root logger (which might have its own StreamHandler, causing double logs)
+logger.propagate = False
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 

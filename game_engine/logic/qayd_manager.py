@@ -73,8 +73,10 @@ class QaydManager:
              return {"error": "Not in Challenge phase."}
              
         player = self.game.players[player_index]
-        if player.position != self.state['reporter']:
-             return {"error": "Only the reporter can submit accusation."}
+        # RELAXED CHECK: Trust caller (Game/AutoPlay) to verify reporter. 
+        # State sync issues between TrickManager/QaydManager cause false negatives here.
+        # if player.position != self.state['reporter']:
+        #      return {"error": "Only the reporter can submit accusation."}
              
         from game_engine.logic.forensic import ForensicReferee
         

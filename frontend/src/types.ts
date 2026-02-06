@@ -179,12 +179,23 @@ export interface ProfessorIntervention {
 
 export interface QaydState {
   active: boolean;
-  reporter: PlayerPosition | null; // Backend uses Position string
-  reason: string | null;
-  target_play: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata };
-  status?: 'REVIEW' | 'RESOLVED';
-  verdict?: string;
-  loser_team?: 'us' | 'them'; // Added
+  step?: string; // QaydStep: IDLE | MAIN_MENU | VIOLATION_SELECT | SELECT_CARD_1 | SELECT_CARD_2 | ADJUDICATION | RESULT
+  reporter: PlayerPosition | null;
+  reporter_is_bot?: boolean;
+  menu_option?: string | null;
+  violation_type?: string | null;
+  crime_card?: any | null;
+  proof_card?: any | null;
+  verdict?: string | null; // 'CORRECT' | 'WRONG'
+  verdict_message?: string | null;
+  loser_team?: 'us' | 'them' | null;
+  penalty_points?: number;
+  timer_duration?: number;
+  timer_start?: number;
+  // Legacy compat
+  reason?: string | null;
+  target_play?: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata } | null;
+  status?: 'REVIEW' | 'RESOLVED' | null;
 }
 
 export interface GameState {

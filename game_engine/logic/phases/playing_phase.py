@@ -66,8 +66,8 @@ class PlayingPhase:
             self.game.resolve_trick()
         else:
             # Next player
-             self.game.current_turn = (player_index + 1) % 4
-             self.game.reset_timer()
+            self.game.current_turn = (player_index + 1) % 4
+            self.game.reset_timer()
              
         return {'success': True, 'card': played_card.to_dict(), 'table': [tc['card'].to_dict() for tc in self.game.table_cards]}
 

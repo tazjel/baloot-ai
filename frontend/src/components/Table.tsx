@@ -424,20 +424,9 @@ export default function Table({
                 />
             )}
 
-            {/* Qayd Trigger Button (Floating) - Enabled in Bidding for Verification */}
-            {(gameState.phase === GamePhase.Playing || gameState.phase === GamePhase.Bidding) && !gameState.qaydState?.active && (
-                <button
-                    onClick={handleQaydTrigger}
-                    className="absolute bottom-32 right-4 z-[300] bg-red-600 hover:bg-red-500 text-white font-bold p-3 rounded-full shadow-lg border-2 border-red-400/50 transition-all hover:scale-110 active:scale-95 group flex flex-col items-center"
-                    title="CALL QAYD (Forensic Challenge)"
-                >
-                    <ShieldAlert size={24} className="group-hover:animate-pulse" />
-                    {/* Debug: Visibility Check */}
-                    <span className="text-[8px] absolute -bottom-4 bg-black/50 px-1 rounded text-white whitespace-nowrap">
-                        {gameState.phase} Check
-                    </span>
-                </button>
-            )}
+            {/* Qayd Trigger Button (Floating) - REMOVED to prevent ghost triggers during Bidding
+                Access via ActionBar -> Gavel Icon instead.
+             */}
 
             {/* Qayd Overlay (Replaces Forensic) */}
             {gameState.qaydState?.active && gameState.qaydState?.status !== 'RESOLVED' && (

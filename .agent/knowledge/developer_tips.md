@@ -82,3 +82,6 @@
 - **Readiness Probes**: Do NOT ping the root URL (`/`) for health checks if it serves a static file that might not exist. Create and use a dedicated minimal `/health` endpoint that returns a simple string ("OK").
 - **Agent Directory Hygiene**: Keep `.agent/knowledge` lean. Large rulebooks (40KB+) should be moved to the Agent's Brain (artifacts) or Knowledge Base (KIs) to prevent them being loaded into every single session context. Use pointers in `.agent` to reference them.
 
+
+## Communication Protocols
+- **Signature Rule**: Always sign your model name at the end of your statement. Example: `[Antigravity]`.
