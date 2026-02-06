@@ -38,62 +38,87 @@ class CardMemory:
         """
         Rebuilds memory from the full game history provided in the state.
         Critically, this infers VOIDS based on player actions.
-        
-        TODO: Upgrade to "Mind's Eye" Probabilistic Memory.
-        Current implementation uses binary voids (Has Suit / Void).
-        Future: self.hand_distributions = {player: {suit: prob}}
+        """
+        self.scan_and_populate(game_state)
+
+    def scan_and_populate(self, game_state):
+        """
+        Rebuilds memory from the full game history provided in the state.
+        Returns a contradiction dictionary if one is found, else None.
         """
         self.reset()
         
-        # 1. Mark Table Cards as Played
-        for tc in game_state.get('tableCards', []):
-             c = tc['card']
-             self.mark_played(f"{c['rank']}{c['suit']}")
-             
-        # 2. Process Round History (Tricks)
-        # Assuming round_history / currentRoundTricks structure:
-        # [{'winner': 'Bottom', 'cards': [{'suit': 'S', 'rank': 'A', 'playedBy': 'Bottom'}, ...]}, ...]
-        
         history = game_state.get('currentRoundTricks', [])
-        # Also check 'pastRoundResults' for previous rounds if we wanted long-term memory?
-        # No, Baloot memory is per-round (cards are reshuffled).
-        
         trump = game_state.get('trumpSuit')
         mode = game_state.get('gameMode')
         
+        # 1. Process History (Tricks)
         for trick in history:
             led_suit = None
+            proof_card = None
             if trick.get('cards'):
                  led_suit = trick['cards'][0]['suit']
-                 
+                 proof_card = trick['cards'][0]
+
             for c_data in trick.get('cards', []):
-                 rank = c_data['rank']
-                 suit = c_data['suit']
-                 player_pos = c_data.get('playedBy') # Position 'Bottom', etc.
+                 player_pos = c_data.get('playedBy')
                  
-                 # Mark Played
-                 self.mark_played(f"{rank}{suit}")
+                 # Check Contradiction
+                 if contradiction := self.check_contradiction(player_pos, c_data['suit']):
+                      return {
+                          "violation_type": "REVOKE",
+                          "reason": contradiction,
+                          "crime_card": c_data,
+                          "proof_card": proof_card
+                      }
                  
-                 # Infer Voids
-                 if led_suit and suit != led_suit:
-                      # Player failed to follow suit -> VOID in led_suit
-                      self.mark_void(player_pos, led_suit)
-                      
-                      # Track Discard for Signaling History
-                      # structure: { player_pos: [ { card: {rank, suit}, trick_idx: i } ] }
-                      if player_pos not in self.discards: self.discards[player_pos] = []
-                      self.discards[player_pos].append({
-                          'rank': rank,
-                          'suit': suit,
-                          'trick_idx': history.index(trick) # Naive index
-                      })
-                      
-                      # Hokum Constraint: If failed to follow suit, AND failed to Trump (when enemy winning?)
-                      # In Baloot, you MUST play trump if you can't follow lead.
-                      # So if they played non-trump on a non-trump lead... they are void in Trump too?
-                      # Only if: Mode is Hokum, Lead was Non-Trump, and they played Non-Trump.
-                      if mode == 'HOKUM' and led_suit != trump and suit != trump:
-                           self.mark_void(player_pos, trump)
+                 self._process_card_update(c_data, player_pos, led_suit, trump, mode, history.index(trick))
+
+        # 2. Process Table (Current Trick)
+        table_cards = game_state.get('tableCards', [])
+        led_suit = None
+        proof_card = None
+        if table_cards:
+             led_suit = table_cards[0]['card']['suit']
+             proof_card = table_cards[0]['card']
+
+        for tc in table_cards:
+             c_data = tc['card']
+             player_pos = tc.get('playedBy')
+
+             # Check Contradiction
+             if contradiction := self.check_contradiction(player_pos, c_data['suit']):
+                  return {
+                      "violation_type": "REVOKE",
+                      "reason": contradiction,
+                      "crime_card": c_data,
+                      "proof_card": proof_card
+                  }
+
+             self._process_card_update(c_data, player_pos, led_suit, trump, mode, -1)
+
+        return None
+
+    def _process_card_update(self, c_data, player_pos, led_suit, trump, mode, trick_idx):
+         rank = c_data['rank']
+         suit = c_data['suit']
+
+         # Mark Played
+         self.mark_played(f"{rank}{suit}")
+
+         # Infer Voids
+         if led_suit and suit != led_suit:
+              self.mark_void(player_pos, led_suit)
+
+              if player_pos not in self.discards: self.discards[player_pos] = []
+              self.discards[player_pos].append({
+                  'rank': rank,
+                  'suit': suit,
+                  'trick_idx': trick_idx
+              })
+
+              if mode == 'HOKUM' and led_suit != trump and suit != trump:
+                   self.mark_void(player_pos, trump)
 
     def mark_void(self, player_ref, suit):
         # player_ref can be int index or string position
@@ -106,13 +131,18 @@ class CardMemory:
     def get_remaining_trumps(self, trump_suit):
         return [c for c in self.get_remaining_in_suit(trump_suit)]
 
-    def check_contradiction(self, player_ref, card_obj):
+    def check_contradiction(self, player_ref, card_or_suit):
         """
         Sherlock's Magnifying Glass:
         Checks if playing 'card_obj' contradicts previously known voids.
         Returns a Reason string if contradictory, else None.
         """
-        suit = card_obj.suit
+        suit = card_or_suit.suit if hasattr(card_or_suit, 'suit') else card_or_suit
+
+        # If it's a dict like {'rank': 'A', 'suit': 'S'}
+        if isinstance(suit, dict):
+            suit = suit.get('suit')
+
         if self.is_void(player_ref, suit):
              return f"Player {player_ref} played {suit} but previously showed VOID in {suit}."
         return None

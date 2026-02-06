@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 class BotAgent:
     def __init__(self):
         self.memory = CardMemory()
+        self.current_game_id = None
         
         # Personality
         self.personality = BALANCED # Default
@@ -48,224 +49,45 @@ class BotAgent:
 
              # Determine Personality
              p_data = game_state['players'][player_index]
-             p_name = p_data.get('name', 'Bot')
-             profile = self.personality
              
-             # Director Override
-             explicit_profile = p_data.get('profile')
-             if explicit_profile:
-                  if explicit_profile in PROFILES:
-                       profile = PROFILES[explicit_profile]
-                  elif explicit_profile == 'Balanced':
-                       profile = PROFILES['Balanced']
-             else:
-                 # Fallback to Name Parsing
-                 if "Aggressive" in p_name: profile = PROFILES['Aggressive']
-                 elif "Conservative" in p_name: profile = PROFILES['Conservative']
-                 elif "Balanced" in p_name: profile = PROFILES['Balanced']
-            
-             # Use Typed Context
-             ctx = BotContext(game_state, player_index, personality=profile)
- 
+             # Context Wrapper
+             ctx = BotContext(game_state, player_index)
+
              # 1. REFEREE: Check Mandatory Rules (Sawa/Qayd)
+
              # 1.1 Sawa Response
              if sawa_resp := self.referee.check_sawa(ctx, game_state):
-                  return sawa_resp
-             
-             # Pub Sub: Theory of Mind (if active)
-             # Only run occasionally or every move? Every move is fine for now on GPU/fast CPU.
-             if ctx.phase == 'PLAYING':
-                  try:
-                      guesses = ctx.guess_hands()
-                      if guesses:
-                          gid = game_state.get('gameId', 'unknown')
-                          self.brain.publish_mind_map(gid, player_index, guesses)
-                  except Exception as me:
-                      pass # Don't block game for metrics
-
-             # 1.15 SHERLOCK TRIGGER (Organic, Team-Aware, & Memory-Based)
-             # If valid game phase and NO Qayd active, check for visual contradictions (The "Second Card" Trigger).
-             if ctx.phase == 'PLAYING' and not (game_state.get('qaydState') or {}).get('active'):
-                 from game_engine.models.card import Card
-                 
-                 # Helper to check a card play for contractions
-                 def check_for_crime(card_dict, played_by_pos, source="Table"):
-                      # 1. Team Loyalty Check (Omerta)
-                      # If offender is my partner, I see nothing.
-                      offender_team = ctx.players_team_map.get(played_by_pos)
-                      my_team = ctx.team
-                      
-                      if offender_team == my_team:
-                           # "I saw nothing." - The Partner
-                           return None
-                           
-                      # 2. Rival Aggression (Check Memory)
-                      c_obj = Card(card_dict['suit'], card_dict['rank'])
-                      contradiction = ctx.memory.check_contradiction(played_by_pos, c_obj)
-                      
-                      if contradiction:
-                           logger.info(f"[SHERLOCK] 🕵️‍♂️ {ctx.position} Caught {played_by_pos}! {contradiction} (Source: {source})")
-                           return "QAYD_TRIGGER"
-                      return None
-
-                 # A. Check Current Table (Live Detection)
-                 table_cards = game_state.get('tableCards', [])
-                 for tc in table_cards:
-                     action = check_for_crime(tc['card'], tc['playedBy'], "Current Trick")
-                     if action: return {"action": action}
-                 
-                 # B. Check Last Trick (Post-Mortem Detection)
-                 # Crucial for catching the 4th player who plays illegal, then trick clears immediately.
-                 last_trick = game_state.get('lastTrick')
-                 if last_trick and last_trick.get('cards'):
-                      # last_trick cards are dicts or objects? game.py says serialized to dicts.
-                      # structure: {'cards': [{'rank':.., 'suit':.., 'playedBy': ..}], ...}
-                      # WAIT: game.py serialization: 'cards': [{**c, 'card': c['card'].to_dict()}...] or just list of cards?
-                      # game.py line 155 in get_game_state uses {**c, 'card': ...} format for roundHistory/currentRoundTricks.
-                      # BUT last_trick (line 145) is assigned self.last_trick.
-                      # In resolve_trick (trick_manager.py line 100): 
-                      # 'cards': [tc['card'].to_dict() for tc in self.game.table_cards]
-                      # 'metadata': ...
-                      # But wait, where is 'playedBy' in last_trick['cards']?
-                      # trick_manager.py line 100 doesn't seem to zip playedBy into the cards list!
-                      # It stores `winner` pos.
-                      
-                      # Ah, trick_manager.py line 113 `trick_data` stores `cards` and `playedBy` as parallel lists for history.
-                      # But `self.game.last_trick` (line 100) might only store cards?
-                      # Let's check `trick_manager.py` again.
-                      
-                      # Re-reading trick_manager.py from context:
-                      # 100: self.game.last_trick = {
-                      # 101:     'cards': [tc['card'].to_dict() for tc in self.game.table_cards], 
-                      # 102:     'winner': winner_pos,
-                      # 103:     'metadata': ...
-                      # 104: }
-                      # It does NOT store playedBy per card! This is a flaw for Sherlock checking last trick if he needs position.
-                      # However, we can reconstruct order. Trick starts at `(winner_index_of_prev_trick)`.
-                      # But easier: Use `game_state['roundHistory'][-1]` (the last completed trick) which HAS playedBy data.
-                      pass
-
-                 # C. Robust Last Trick Check using Round History
-                 round_history = game_state.get('roundHistory', []) # past_round_results? No.
-                 # game.py get_game_state mapping: 'roundHistory': self.past_round_results 
-                 # WAIT. 'roundHistory' in get_game_state maps to SCORING history (past rounds).
-                 # 'currentRoundTricks' (line 150) maps to self.round_history (current round tricks).
-                 
-                 current_tricks = game_state.get('currentRoundTricks', [])
-                 if current_tricks:
-                      last_completed_trick = current_tricks[-1]
-                      # Format: {'cards': [{'rank':.., 'suit':.., 'playedBy':..}], ...}
-                      # See game.py line 156-160 serialization.
-                      
-                      for i, c_data in enumerate(last_completed_trick.get('cards', [])):
-                           # c_data might be wrapper?
-                           # game.py line 156: {**c, 'card': c['card'].to_dict()} ...
-                           # OR c.to_dict().
-                           # If it's from trick_history append (trick_manager line 116), it's just card dict.
-                           # trick_manager line 116: "cards": [t['card'].to_dict()...], "playedBy": [...]
-                           # game.py line 150 serializes `self.round_history` which contains these dicts.
-                           
-                           # The serialization in game.py line 150 is complex conditional.
-                           # Let's assume standard structure: If we can get card and playedBy, we are good.
-                           
-                           card_dict = c_data if 'rank' in c_data else c_data.get('card')
-                           p_pos = c_data.get('playedBy') # Might be in c_data if zipped, OR in parallel list?
-                           
-                           # trick_manager line 117 uses parallel list `playedBy`.
-                           # game.py 160: 'playedBy': t.get('playedBy')
-                           
-                           # So `last_completed_trick['playedBy']` is a list of positions.
-                           # `last_completed_trick['cards']` is list of card dicts.
-                           
-                           involved_players = last_completed_trick.get('playedBy', [])
-                           cards = last_completed_trick.get('cards', [])
-                           
-                           if i < len(involved_players) and i < len(cards):
-                                p_pos = involved_players[i]
-                                card_dict = cards[i]
-                                action = check_for_crime(card_dict, p_pos, "Last Trick")
-                                if action: return {"action": action}
+                 return sawa_resp
 
              # 1.2 Qayd Claim (Sherlock Logic)
-             qayd_state = game_state.get('qaydState')
-             if qayd_state and qayd_state.get('active'):
-                 # Sherlock Bot Logic: If I am the reporter, investigate and accuse.
+             qayd_state = game_state.get('qaydState') or game_state.get('qayd_state') # Handle snake_case
+             is_qayd_active = qayd_state and qayd_state.get('active')
+
+             if is_qayd_active:
                  reporter_pos = qayd_state.get('reporter')
-                 print(f"[SHERLOCK] Qayd Active. Reporter: {reporter_pos}, Me: {ctx.position}")
-                 
-                 # Check if I am the reporter (by position name OR index)
-                 # ctx.position is 'Bottom', 'Right', etc.
-                 # ctx.player_index is 0-3
-                 
-                 is_me = False
-                 if reporter_pos == ctx.position:
-                      is_me = True
-                 elif str(reporter_pos) == str(ctx.player_index):
-                      is_me = True
-                 elif isinstance(reporter_pos, int) and reporter_pos == ctx.player_index:
-                      is_me = True
-                      
-                 if is_me:
-                      logger.info(f"[SHERLOCK] I am the reporter ({reporter_pos}). Investigation starting...")
-                      # 1. Brief Pause (simulating reaction time)
-                      time.sleep(1) # Reduced for responsiveness 
-                      
-                      # 2. Find the Crime
-                      # We look for the last card played that has 'is_illegal' metadata
-                      table_cards = game_state.get('tableCards', [])
-                      full_history = game_state.get('fullMatchHistory', []) # Or we iterate recent tricks if needed
-                      
-                      # Simple approach: Check active table cards first
-                      crime_card = None
-                      proof_card = None
-                      violation_type = 'REVOKE'
-                      
-                      # Look at current table
-                      if table_cards:
-                          for tc in reversed(table_cards):
-                              if (tc.get('metadata') or {}).get('is_illegal'):
-                                  crime_card = tc['card']
-                                  # Proof is usually the first card of the trick (the lead)
-                                  if table_cards:
-                                      proof_card = table_cards[0]['card']
-                                  break
-                     
-                      if not crime_card:
-                          # Check Last Trick (if table cleared)
-                          last_trick = game_state.get('lastTrick')
-                          if last_trick and last_trick.get('metadata'):
-                               for i, meta in enumerate(reversed(last_trick['metadata'])):
-                                    if meta and meta.get('is_illegal'):
-                                         # Need to get card from cards array
-                                         # last_trick['cards'] is list of play objects
-                                         idx = len(last_trick['cards']) - 1 - i
-                                         play = last_trick['cards'][idx]
-                                         crime_card = play['card']
-                                         proof_card = last_trick['cards'][0]['card'] # Proof is lead
-                                         break
-
-
-                      if crime_card:
-                         logger.info(f"[SHERLOCK] Crime Solved! {crime_card} is illegal. Accusing...")
-                         return {
-                             "action": "QAYD_ACCUSATION",
-                             "accusation": {
-                                 "crime_card": crime_card,
-                                 "proof_card": proof_card or crime_card,
-                                 "violation_type": "REVOKE" # Default for now
-                             }
-                         }
-                      else:
-                         logger.error("[SHERLOCK] False Alarm? Cancelling.")
-                         return {"action": "QAYD_CANCEL"} # Should ideally cancel
-                 
-                 else:
+                 if reporter_pos != ctx.position:
                       # Not the reporter -> Wait
                       return {"action": "WAIT", "reason": "Qayd Investigation"}
 
-             # Legacy/Backup Check
-             if qayd_claim := self.referee.check_qayd(ctx, game_state):
-                 return qayd_claim
+             elif ctx.phase == 'PLAYING':
+                 # Check Game ID reset
+                 game_id = game_state.get('gameId')
+                 if game_id != self.current_game_id:
+                      logger.info(f"New Game Detected: {game_id}. Resetting Memory.")
+                      self.memory.reset()
+                      self.current_game_id = game_id
+
+                 # PROOF-BASED DETECTION (Memory Scan)
+                 if crime := self.memory.scan_and_populate(game_state):
+                      logger.info(f"[SHERLOCK] Crime Solved! {crime['crime_card']} is illegal. Reason: {crime['reason']}")
+                      return {
+                          "action": "QAYD_ACCUSATION",
+                          "accusation": {
+                              "crime_card": crime['crime_card'],
+                              "proof_card": crime['proof_card'],
+                              "violation_type": crime['violation_type']
+                          }
+                      }
 
              # 2. THE BRAIN: Check for Learned Moves (Redis)
              if ctx.phase in ['PLAYING', 'BIDDING']:
