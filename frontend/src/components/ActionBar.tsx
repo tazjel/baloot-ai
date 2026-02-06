@@ -147,8 +147,12 @@ const ActionBar: React.FC<ActionBarProps> = ({
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">سوا</span>
                 </ActionButton>
 
-                {/* 4. RECORD */}
-                <ActionButton onClick={handleRecord} data-testid="btn-qayd">
+                {/* 4. RECORD (Qayd) — Only during PLAYING, not while locked */}
+                <ActionButton
+                    onClick={handleRecord}
+                    disabled={phase !== GamePhase.Playing || gameState.isLocked}
+                    data-testid="btn-qayd"
+                >
                     <div className="text-zinc-400 mb-1"><Gavel size={20} /></div>
                     <span className="text-[10px] sm:text-xs font-bold font-tajawal">قيدها</span>
                 </ActionButton>

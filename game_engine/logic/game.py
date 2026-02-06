@@ -167,13 +167,9 @@ class Game:
                 {
                     'winner': t.get('winner'),
                     'points': t.get('points'),
-                    # We might need cards for "Last Trick" view, but usually not entire history every tick
-                    'cards': [
-                        {**c, 'card': c['card'].to_dict()} if isinstance(c, dict) and 'card' in c and hasattr(c['card'], 'to_dict')
-                        else (c.to_dict() if hasattr(c, 'to_dict') else c)
-                        for c in t['cards']
-                    ],
-                    'playedBy': t.get('playedBy') # Expose who played the cards (needed for Bot Void detection)
+                    'cards': self._serialize_trick_cards(t.get('cards', [])),
+                    'playedBy': t.get('playedBy'),
+                    'metadata': t.get('metadata'),
                 }
                 for t in self.round_history
             ], 
@@ -194,6 +190,26 @@ class Game:
             # It should be fetched via a separate API call if needed.
             # 'fullMatchHistory': self.full_match_history 
         }
+
+    @staticmethod
+    def _serialize_trick_cards(cards):
+        """Safely serialize trick cards to JSON-safe dicts, handling both Card objects and dicts."""
+        result = []
+        for c in cards:
+            if isinstance(c, dict):
+                # Could be {card: CardObj, playedBy: str} or already a flat card dict
+                if 'card' in c:
+                    inner = c['card']
+                    card_dict = inner.to_dict() if hasattr(inner, 'to_dict') else inner
+                    result.append({**c, 'card': card_dict})
+                else:
+                    # Already a flat card dict (suit, rank, etc.)
+                    result.append(c)
+            elif hasattr(c, 'to_dict'):
+                result.append(c.to_dict())
+            else:
+                result.append(c)
+        return result
 
     def _sync_bid_state(self):
         """Syncs the Game.bid structure with current BiddingEngine state."""
@@ -593,14 +609,14 @@ class Game:
              self.phase = GamePhase.FINISHED.value
              
         if hasattr(self, 'trick_manager'):
-             self.trick_manager.reset_state()
+             # self.trick_manager.reset_state()
              self.sawa_state = self.trick_manager.sawa_state
         else:
              self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
 
-        # Reset Qayd via engine (preserves dict identity)
-        self.qayd_engine.reset()
-        self.qayd_state = self.qayd_engine.state
+        # Qayd: Do NOT reset here. Preserve verdict during FINISHED phase.
+        # QaydEngine.reset() is called in reset_round_state() when next round starts.
+        # Do NOT reassign self.qayd_state — it's an alias to qayd_engine.state.
 
         self.sawa_failed_khasara = False
         self.reset_timer()
@@ -675,7 +691,21 @@ class Game:
             self.timer.stop()
             return None
 
+        # Priority: Check Qayd Timeout INDEPENDENTLY of Main Timer
+        # Qayd has its own internal timer (qayd_engine.state['timer_start'])
+        if self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
+             qayd_result = self.qayd_engine.check_timeout()
+             if qayd_result:
+                  logger.info(f"[TIMEOUT] Qayd Timer Expired. Action: {qayd_result}")
+                  return qayd_result
+
+        # Check Main Game Timer
         if self.timer.is_expired():
+            # If Qayd is active but Qayd timer hasn't expired, we should NOT process main timer 
+            # (which is paused anyway, but mostly for safety)
+            if self.phase == GamePhase.CHALLENGE.value:
+                  return None
+
             lag = self.timer.get_lag()
             logger.info(f"[TIMEOUT] Timer expired. is_locked={self.is_locked}, phase={self.phase}")
             msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action... | Room: {self.room_id} | GameObj: {id(self)}"

@@ -1,7 +1,7 @@
 /**
  * QaydOverlay — Thin compatibility wrapper.
  * 
- * The canonical Qayd UI is now DisputeModal.tsx (Kammelna 5-step flow).
+ * The canonical Qayd UI is DisputeModal.tsx (Kammelna 5-step flow).
  * This file re-exports it with the old QaydOverlay prop interface so
  * Table.tsx doesn't need import changes.
  */
@@ -23,6 +23,7 @@ interface QaydOverlayProps {
   ) => void;
   onCancel: () => void;
   onConfirm?: () => void;
+  onPlayerAction?: (action: string, payload?: any) => void;
   result?: any;
 }
 
@@ -31,9 +32,16 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
   onAccusation,
   onCancel,
   onConfirm,
+  onPlayerAction,
 }) => {
-  // Bridge old prop interface → new unified onAction
   const handleAction = (action: string, payload?: any) => {
+    // If Table.tsx passes onPlayerAction directly, use it for ALL actions
+    if (onPlayerAction) {
+      onPlayerAction(action, payload);
+      return;
+    }
+
+    // Fallback: Map to old prop interface
     switch (action) {
       case 'QAYD_CANCEL':
         onCancel();
@@ -54,20 +62,9 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
         }
         break;
       default:
-        // For new 5-step actions (QAYD_MENU_SELECT, QAYD_VIOLATION_SELECT, etc),
-        // emit directly via the game state socket.
-        // Table.tsx's onPlayerAction handles this.
-        // But since the old interface doesn't have a generic onAction,
-        // we need to use the window-level emit.
-        try {
-          // Access the socket emit that Table passes as onPlayerAction
-          // This is a known limitation of the bridge — ideally Table.tsx
-          // should pass onPlayerAction directly.
-          const event = new CustomEvent('qayd_action', { detail: { action, payload } });
-          window.dispatchEvent(event);
-        } catch (e) {
-          console.warn('[QaydOverlay Bridge] Cannot forward action:', action, e);
-        }
+        // For 5-step actions (QAYD_MENU_SELECT, QAYD_VIOLATION_SELECT, etc.)
+        // Fall back to QAYD_CANCEL if no handler available
+        console.warn('[QaydOverlay] No handler for action:', action);
         break;
     }
   };

@@ -158,16 +158,16 @@ class QaydEngine:
         return {'success': True, 'qayd_state': self.state}
 
     def select_violation(self, violation_type: str) -> Dict[str, Any]:
-        """Step 2 (VIOLATION_SELECT) → Step 3 (SELECT_CARD_1)."""
-        if self.state['step'] != QaydStep.VIOLATION_SELECT:
+        """Step 2 (VIOLATION_SELECT) → Step 3 (SELECT_CARD_1). Also allows re-selection from SELECT_CARD_1/2."""
+        if self.state['step'] not in (QaydStep.VIOLATION_SELECT, QaydStep.SELECT_CARD_1, QaydStep.SELECT_CARD_2):
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
         self._update({'violation_type': violation_type, 'step': QaydStep.SELECT_CARD_1})
         return {'success': True, 'qayd_state': self.state}
 
     def select_crime_card(self, card_data: Dict) -> Dict[str, Any]:
-        """Step 3 (SELECT_CARD_1) → Step 4 (SELECT_CARD_2)."""
-        if self.state['step'] != QaydStep.SELECT_CARD_1:
+        """Step 3 (SELECT_CARD_1) → Step 4 (SELECT_CARD_2). Also allows re-selection from SELECT_CARD_2."""
+        if self.state['step'] not in (QaydStep.SELECT_CARD_1, QaydStep.SELECT_CARD_2):
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
         if not self._validate_card_in_history(card_data):
@@ -340,24 +340,34 @@ class QaydEngine:
                 meta['is_illegal'] = False  # Clear flag
                 break
 
-        # Search last completed trick
+        # Search ALL completed tricks in reverse (Deep Scan)
         if not crime_data and self.game.round_history:
-            last = self.game.round_history[-1]
-            metas = last.get('metadata') or []
-            for i, meta in enumerate(metas):
-                if meta and meta.get('is_illegal'):
-                    trick_idx = len(self.game.round_history) - 1
-                    cards = last.get('cards', [])
-                    c = cards[i] if i < len(cards) else {}
-                    crime_data = {
-                        'suit': c.get('suit') if isinstance(c, dict) else getattr(c, 'suit', None),
-                        'rank': c.get('rank') if isinstance(c, dict) else getattr(c, 'rank', None),
-                        'trick_idx': trick_idx,
-                        'card_idx': i,
-                        'played_by': last.get('playedBy', [])[i] if i < len(last.get('playedBy', [])) else None,
-                    }
-                    meta['is_illegal'] = False
-                    break
+            for t_idx, trick in enumerate(reversed(self.game.round_history)):
+                 # Calculate real trick index
+                 real_trick_idx = len(self.game.round_history) - 1 - t_idx
+                 
+                 metas = trick.get('metadata') or []
+                 for i, meta in enumerate(metas):
+                      if meta and meta.get('is_illegal'):
+                           cards = trick.get('cards', [])
+                           c = cards[i] if i < len(cards) else {}
+                           # Cards may be {card: dict, playedBy: str} or flat dicts
+                           card_inner = c.get('card', c) if isinstance(c, dict) else c
+                           played_by_list = trick.get('playedBy', [])
+                           played_by = c.get('playedBy') if isinstance(c, dict) and 'playedBy' in c else (
+                               played_by_list[i] if i < len(played_by_list) else None
+                           )
+                           crime_data = {
+                                'suit': card_inner.get('suit') if isinstance(card_inner, dict) else getattr(card_inner, 'suit', None),
+                                'rank': card_inner.get('rank') if isinstance(card_inner, dict) else getattr(card_inner, 'rank', None),
+                                'trick_idx': real_trick_idx,
+                                'card_idx': i,
+                                'played_by': played_by,
+                           }
+                           meta['is_illegal'] = False # Clear flag to prevent double jeopardy
+                           break
+                 if crime_data:
+                      break
 
         # Double Jeopardy check
         if crime_data:
@@ -488,9 +498,9 @@ class QaydEngine:
         proof_trick_idx = proof.get('trick_idx', -1)
 
         if crime_trick_idx == len(self.game.round_history):
-            # Construct virtual trick from current table
+            # Construct virtual trick from current table (already in {card, playedBy} format)
             crime_trick = {
-                'cards': [c['card'] for c in self.game.table_cards],
+                'cards': [{'card': c['card'], 'playedBy': c['playedBy']} for c in self.game.table_cards],
                 'playedBy': [c['playedBy'] for c in self.game.table_cards],
                 'metadata': [c.get('metadata', {}) for c in self.game.table_cards]
             }
@@ -583,13 +593,14 @@ class QaydEngine:
                     reason = meta.get('illegal_reason', 'Rule violation detected by engine')
                     return True, reason
 
-        # Check round history
+        # Check round history — metadata is a separate array parallel to cards
         if 0 <= trick_idx < len(self.game.round_history):
             trick = self.game.round_history[trick_idx]
             metas = trick.get('metadata') or []
             if 0 <= card_idx < len(metas) and metas[card_idx]:
-                if metas[card_idx].get('is_illegal'):
-                    reason = metas[card_idx].get('illegal_reason', 'Rule violation detected')
+                meta_entry = metas[card_idx]
+                if isinstance(meta_entry, dict) and meta_entry.get('is_illegal'):
+                    reason = meta_entry.get('illegal_reason', 'Rule violation detected')
                     return True, reason
 
         return False, "Move appears legal."
@@ -618,17 +629,29 @@ class QaydEngine:
         if 0 <= trick_idx < len(self.game.round_history):
             trick = self.game.round_history[trick_idx]
             cards = trick.get('cards', [])
-            return 0 <= card_idx < len(cards)
+            if 0 <= card_idx < len(cards):
+                return True
+            # Also check via playedBy array length as fallback
+            played_by = trick.get('playedBy', [])
+            if 0 <= card_idx < len(played_by):
+                return True
+            return False
 
         return False
 
     def _get_led_suit(self, trick: Dict) -> Optional[str]:
-        """Extract the led suit from a trick record."""
+        """Extract the led suit from a trick record.
+        Cards may be flat dicts {suit, rank} or wrapped {card: {suit, rank}, playedBy: str}.
+        """
         cards = trick.get('cards', [])
         if not cards:
             return None
         first = cards[0]
         if isinstance(first, dict):
+            # Wrapped format: {card: {...}, playedBy: ...}
+            if 'card' in first:
+                inner = first['card']
+                return inner.get('suit') if isinstance(inner, dict) else getattr(inner, 'suit', None)
             return first.get('suit')
         if hasattr(first, 'suit'):
             return first.suit

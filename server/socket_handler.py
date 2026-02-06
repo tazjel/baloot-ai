@@ -236,15 +236,8 @@ def game_action(sid, data):
     
     # --- FORENSIC (VAR) ACTIONS ---
     elif action == 'QAYD_TRIGGER':
-         print(f"[DEBUG] QAYD_TRIGGER received from player {player.index}")
+         logger.info(f"[SOCKET] QAYD_TRIGGER from player {player.index}")
          result = game.handle_qayd_trigger(player.index)
-         print(f"[DEBUG] QAYD_TRIGGER result: {result}")
-         # FIX: If bot auto-confirmed, push the new phase to frontend
-         if result.get('auto_confirmed'):
-             logger.info(f"[QAYD] Bot auto-confirmed. Emitting game_start with phase: {game.phase}")
-             sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
-             # Auto-restart next round after brief delay for user to see result
-             sio.start_background_task(auto_restart_round, game, room_id)
          
     elif action == 'QAYD_MENU_SELECT':
          result = game.handle_qayd_menu_select(player.index, payload.get('option'))
@@ -259,13 +252,15 @@ def game_action(sid, data):
          result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
          print(f"[DEBUG] QAYD_ACCUSATION result: {result}")
     elif action == 'QAYD_CONFIRM':
-         print(f"[DEBUG] QAYD_CONFIRM received")
+         logger.info(f"[SOCKET] QAYD_CONFIRM received")
          result = game.handle_qayd_confirm()
-         print(f"[DEBUG] QAYD_CONFIRM result: {result}")
          
-         # FIX: Trigger auto-restart if game finished (Qayd Penalty applied)
-         if game.phase in ["FINISHED", "GAMEOVER"]:
+         # Trigger auto-restart if game finished (Qayd Penalty applied)
+         if result.get('success') and game.phase in ["FINISHED", "GAMEOVER"]:
+              room_manager.save_game(game)
+              broadcast_game_update(game, room_id)
               sio.start_background_task(auto_restart_round, game, room_id)
+              return result  # Skip normal broadcast below since we already did it
     elif action == 'QAYD_CANCEL':
          result = game.handle_qayd_cancel()
          if result.get('trigger_next_round'):

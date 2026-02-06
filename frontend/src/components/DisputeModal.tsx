@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, CardModel, PlayerPosition } from '../types';
 import CardVector from './CardVector';
@@ -90,12 +90,32 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
   const isDoubled   = (gameState.doublingLevel ?? 1) >= 2;
 
   // ─── Local UI state ────────────────────────────────────────────────────────
-  const [step, setStep]                   = useState<QaydStep>('MAIN_MENU');
+  const [step, setStep]                   = useState<QaydStep>(serverStep || 'MAIN_MENU');
   const [menuOption, setMenuOption]       = useState<MainMenuOption | null>(null);
   const [violation, setViolation]         = useState<ViolationType | null>(null);
   const [crimeCard, setCrimeCard]         = useState<CardSelection | null>(null);
   const [proofCard, setProofCard]         = useState<CardSelection | null>(null);
   const [timeLeft, setTimeLeft]           = useState(isBot ? 2 : 60);
+
+  // ─── Verdict data (defined early so useEffect can reference it) ────────────
+  const verdictData = useMemo(() => {
+    const qs = qaydState as any;
+    if (!qs) return null;
+    const v = qs.verdict;
+    if (!v) return null;
+    const isCorrect = v === 'CORRECT';
+    return {
+      isCorrect,
+      message: qs.verdict_message ?? (isCorrect ? 'قيد صحيح' : 'قيد خاطئ'),
+      reason: qs.reason ?? '',
+      penalty: qs.penalty_points ?? 0,
+      loserTeam: qs.loser_team,
+    };
+  }, [qaydState]);
+
+  // Ref for stable access in useEffect
+  const verdictRef = useRef(verdictData);
+  verdictRef.current = verdictData;
 
   // ─── Sync with server step ─────────────────────────────────────────────────
   useEffect(() => {
@@ -113,15 +133,12 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
 
   useEffect(() => {
     if (step === 'RESULT') return;
+    if (!isReporter) return; // Non-reporters don't have timer control
 
     const interval = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
-          if (serverStep === 'RESULT') {
-            onAction('QAYD_CONFIRM');
-          } else {
-            onAction('QAYD_CANCEL');
-          }
+          onAction('QAYD_CANCEL');
           return 0;
         }
         return prev - 1;
@@ -129,15 +146,17 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [step, serverStep, onAction]);
+  }, [step, isReporter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ─── Auto-close result after 3s ────────────────────────────────────────────
+  // ─── Auto-close result after 5s ────────────────────────────────────────────
   useEffect(() => {
-    if (step === 'RESULT') {
-      const t = setTimeout(() => onAction('QAYD_CONFIRM'), 3000);
+    if (step === 'RESULT' && verdictRef.current) {
+      const t = setTimeout(() => {
+        onAction('QAYD_CONFIRM');
+      }, 5000);
       return () => clearTimeout(t);
     }
-  }, [step, onAction]);
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Trick history ─────────────────────────────────────────────────────────
   const tricks: TrickRecord[] = useMemo(() => {
@@ -214,30 +233,21 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
     if (step === 'SELECT_CARD_2') {
       setProofCard(null);
       setStep('SELECT_CARD_1');
+      // Note: Backend stays at SELECT_CARD_2 step, but re-selecting crime card
+      // will re-send QAYD_SELECT_CRIME which resets backend to SELECT_CARD_2.
+      // This is safe because backend validates step on each action.
     } else if (step === 'SELECT_CARD_1') {
       setCrimeCard(null);
       setStep('VIOLATION_SELECT');
     } else if (step === 'VIOLATION_SELECT') {
       setViolation(null);
       setStep('MAIN_MENU');
+      // Cancel and re-trigger to reset backend state
+      onAction('QAYD_CANCEL');
     }
   };
 
-  // ─── Verdict info ──────────────────────────────────────────────────────────
-  const verdictData = useMemo(() => {
-    const qs = qaydState as any;
-    if (!qs) return null;
-    const v = qs.verdict;
-    if (!v) return null;
-    const isCorrect = v === 'CORRECT';
-    return {
-      isCorrect,
-      message: qs.verdict_message ?? (isCorrect ? 'قيد صحيح' : 'قيد خاطئ'),
-      reason: qs.reason ?? '',
-      penalty: qs.penalty_points ?? 0,
-      loserTeam: qs.loser_team,
-    };
-  }, [qaydState]);
+  // verdictData is defined above (before useEffects) to avoid forward reference issues
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  RENDER — MAIN MENU (Step 1)
@@ -346,8 +356,9 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
 
                 <div className="flex justify-center gap-3">
                   {trick.cards.map((cardOrPlay: any, cardIdx: number) => {
+                    // Handle both formats: {card: {...}, playedBy} or flat card dict {suit, rank}
                     const card: CardModel = cardOrPlay?.card ?? cardOrPlay;
-                    const playedBy: string = trick.playedBy?.[cardIdx] ?? cardOrPlay?.playedBy ?? '';
+                    const playedBy: string = cardOrPlay?.playedBy ?? trick.playedBy?.[cardIdx] ?? '';
                     if (!card) return null;
 
                     const isCrime = crimeCard?.trick_idx === trickIdx && crimeCard?.card_idx === cardIdx;

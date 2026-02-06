@@ -227,6 +227,7 @@ class PlayingStrategy:
         should_open_trump = (bidder_team == 'us')
         
         # SMART SAHN: Only open trumps if enemies still have them!
+        opponents_might_have_trump = True # Default assumption
         if should_open_trump:
              # Check if ANY opponent is NOT void in trump
              # If all opponents are void in trump, don't bleed ours.
