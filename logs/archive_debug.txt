@@ -607,3 +607,12 @@
 2026-02-06 23:51:13.262946 - Attempting to save snapshot for room c4f59e63
 2026-02-06 23:51:13.263462 - History Length: 1
 2026-02-06 23:51:13.274579 - SUCCESS: Saved to DB
+2026-02-07 20:51:36.593787 - Attempting to save snapshot for room 232501f0
+2026-02-07 20:51:36.597927 - History Length: 1
+2026-02-07 20:51:36.610556 - SUCCESS: Saved to DB
+2026-02-07 20:53:12.387232 - Attempting to save snapshot for room 232501f0
+2026-02-07 20:53:12.388442 - History Length: 2
+2026-02-07 20:53:12.409239 - SUCCESS: Saved to DB
+2026-02-07 20:54:25.741084 - Attempting to save snapshot for room 232501f0
+2026-02-07 20:54:25.742221 - History Length: 3
+2026-02-07 20:54:25.755642 - SUCCESS: Saved to DB
