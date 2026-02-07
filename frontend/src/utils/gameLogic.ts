@@ -526,12 +526,54 @@ export const resolveProjectConflicts = (
 // --- AKKA DECLARATION LOGIC ---
 
 /**
- * Checks if a user can declare "Akka" (Master Card).
- * Rules:
- * 1. Must be HOKUM.
- * 2. Must be LEADING the trick (Table empty).
- * 3. Played card must be NON-TRUMP.
- * 4. Played card must be the highest remaining card of that suit.
+ * Extracts a consistent card key ("rank+suit" e.g. "A♠") from any card format.
+ * Handles: CardModel objects, flat dicts {suit, rank}, and nested {card: ...} wrappers.
+ * This MUST match the backend's ProjectManager._card_key() format.
+ */
+const cardKey = (card: any): string => {
+    if (!card) return '';
+    // Nested wrapper: {card: CardModel, playedBy: string}
+    if (card.card) return cardKey(card.card);
+    return `${card.rank}${card.suit}`;
+};
+
+/**
+ * Builds a Set of all played card keys from round history.
+ * Handles both frontend CardModel[] and backend-style {card: {rank, suit}, playedBy}[] formats.
+ */
+const buildPlayedCardsSet = (
+    currentRoundTricks: any[] = [],
+    tableCards: any[] = []
+): Set<string> => {
+    const played = new Set<string>();
+
+    for (const trick of currentRoundTricks) {
+        const cards = trick.cards || [];
+        for (const c of cards) {
+            const key = cardKey(c);
+            if (key) played.add(key);
+        }
+    }
+
+    for (const tc of tableCards) {
+        const key = cardKey(tc.card || tc);
+        if (key) played.add(key);
+    }
+
+    return played;
+};
+
+/**
+ * Checks if a specific card qualifies as an Akka (Boss Card) declaration.
+ *
+ * Rules (must match backend ProjectManager.check_akka_eligibility):
+ *   1. Mode: HOKUM only.
+ *   2. Table must be empty (player is leading).
+ *   3. Card suit must NOT be trump.
+ *   4. Card rank must NOT be Ace (self-evident boss).
+ *   5. Card must be the highest remaining card of its suit
+ *      (all stronger cards are either played or in our hand — but if in
+ *       our hand, then THIS card isn't the boss, the higher one is).
  */
 export const canDeclareAkka = (
     card: CardModel,
@@ -539,85 +581,67 @@ export const canDeclareAkka = (
     tableCards: { card: CardModel, metadata?: TableCardMetadata }[],
     mode: 'SUN' | 'HOKUM',
     trumpSuit: Suit | null,
-    currentRoundTricks: { cards: CardModel[] }[] = [] // History of played cards
+    currentRoundTricks: any[] = []
 ): boolean => {
-    // 1. Must be Hokum
+    // Rule 1: HOKUM only
     if (mode !== 'HOKUM') return false;
 
-    // 2. Must be Leading (Table empty)
+    // Rule 2: Must be leading (table empty)
     if (tableCards.length > 0) return false;
 
-    // 3. Must be Non-Trump
+    // Rule 3: Non-trump
     if (trumpSuit && card.suit === trumpSuit) return false;
 
-    // 4. Must NOT be an Ace (Self-evident)
+    // Rule 4: No Aces
     if (card.rank === Rank.Ace) return false;
 
-    // 4. Highest Remaining Logic
-    // Collect all cards of this suit that have been played so far (Graveyard)
-    const suit = card.suit;
-    const playedCardsOfSuit: Rank[] = [];
+    // Build played-cards set (single scan, handles all card formats)
+    const playedCards = buildPlayedCardsSet(currentRoundTricks, []);
 
-    // Check previous tricks
-    currentRoundTricks.forEach(trick => {
-        trick.cards.forEach(c => {
-            if (c.suit === suit) playedCardsOfSuit.push(c.rank);
-        });
-    });
+    // Non-trump strength: STRENGTH_ORDER.HOKUM_NORMAL = [7, 8, 9, J, Q, K, 10, A]
+    // Low index = weak, high index = strong.
+    const order = STRENGTH_ORDER.HOKUM_NORMAL;
+    const myRankIdx = order.indexOf(card.rank);
+    if (myRankIdx === -1) return false;
 
-    // Determine Strength Order for this suit (Non-Trump in Hokum -> A, 10, K, Q...)
-    const order = STRENGTH_ORDER.HOKUM_NORMAL; // A > 10 > K ...
-
-    // Valid ranks are those logically higher than my card
-    const myRankIdx = order.indexOf(card.rank); // e.g. Rank.King -> index 5
-    if (myRankIdx === -1) return false; // Should not happen
-
-    // Check if any card HIGHER in the order exists outside the graveyard
-    // Higher strength = Higher Index? 
-    // Wait, STRENGTH_ORDER is [7, 8, 9, J, Q, K, 10, A]. 
-    // Low index = Weak. High index = Strong.
-    // So if my card is Index 5 (King), I need to check Index 6 (10) and Index 7 (Ace).
-
+    // Check every rank stronger than ours
     for (let i = myRankIdx + 1; i < order.length; i++) {
         const higherRank = order[i];
-        // Is this higher rank played?
-        if (!playedCardsOfSuit.includes(higherRank)) {
-            // It is NOT played.
-            // Do I have it in my hand? (If I have Ace and King, leading Ace is Akka, leading King is NOT Akka).
-            const haveIt = hand.some(c => c.suit === suit && c.rank === higherRank);
-            if (haveIt) {
-                // I have the higher card, so THIS card is not the master.
-                return false;
-            }
-            // If I don't have it, and it wasn't played -> Opponent might have it.
-            // So this card is NOT master.
+        const sig = `${higherRank}${card.suit}`;
+
+        if (playedCards.has(sig)) {
+            continue; // Already played — no threat
+        }
+
+        // Card is unplayed. Do WE hold it?
+        const weHoldIt = hand.some(c => c.rank === higherRank && c.suit === card.suit);
+        if (weHoldIt) {
+            // We have a higher card → THIS card isn't boss
             return false;
         }
-    }
 
-    // If we passed the loop, all higher cards are verified played (or held by me? No, if held by me we return false).
-    // Wait, if I hold A and K.
-    // I play K. Check A. Not in graveyard. In hand? Yes. Return False. Correct.
-    // I play A. Index 7. Loop doesn't run. Return True. Correct.
+        // Unplayed and we don't have it → someone else might → not boss
+        return false;
+    }
 
     return true;
 };
 
 /**
  * Scans the entire hand to check if ANY card is eligible for Akka.
+ * This drives the Akka button enabled/disabled state in ActionBar.
  */
 export const scanHandForAkka = (
     hand: CardModel[],
     tableCards: { card: CardModel, metadata?: TableCardMetadata }[],
     mode: 'SUN' | 'HOKUM',
     trumpSuit: Suit | null,
-    currentRoundTricks: { cards: CardModel[] }[] = []
+    currentRoundTricks: any[] = []
 ): boolean => {
-    // Basic checks first to save performance
+    // Fast-path: skip entirely if not HOKUM or table not empty
     if (mode !== 'HOKUM') return false;
     if (tableCards.length > 0) return false;
 
-    // Check every card in hand
     for (const card of hand) {
         if (canDeclareAkka(card, hand, tableCards, mode, trumpSuit, currentRoundTricks)) {
             return true;

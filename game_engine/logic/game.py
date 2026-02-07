@@ -492,8 +492,6 @@ class Game:
         self.sawa_failed_khasara = False
         self.akka_state = None
         
-        self.akka_state = None
-        
         # Reset QaydEngine (single source of truth)
         if not hasattr(self, 'qayd_engine'):
              from .qayd_engine import QaydEngine
@@ -1005,7 +1003,7 @@ class Game:
                  action = 'PLAY_CARD'
                  # Force pick valid card as Agent didn't select one
                  for i, c in enumerate(player.hand):
-                      if self.is_valid_move(c, player.hand):
+                      if self.trick_manager.is_valid_move(c, player.hand):
                            card_idx = i
                            break
 
@@ -1054,9 +1052,9 @@ class Game:
             if card_idx < 0 or card_idx >= len(player.hand):
                 card_idx = 0 
                 
-            if not self.is_valid_move(player.hand[card_idx], player.hand):
+            if not self.trick_manager.is_valid_move(player.hand[card_idx], player.hand):
                  for i, c in enumerate(player.hand):
-                      if self.is_valid_move(c, player.hand):
+                      if self.trick_manager.is_valid_move(c, player.hand):
                            card_idx = i
                            break
 
@@ -1068,7 +1066,7 @@ class Game:
             # Fallback: Play ANY valid card
             player = self.players[player_index]
             for i, c in enumerate(player.hand):
-                 if self.is_valid_move(c, player.hand):
+                 if self.trick_manager.is_valid_move(c, player.hand):
                       logger.info(f"Auto-Play Fallback for {player.name}: Playing index {i} ({c.rank}{c.suit})")
                       return self.play_card(player_index, i)
             

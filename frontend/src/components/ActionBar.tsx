@@ -42,7 +42,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
             opacity: 1,
             x: "-50%",
             transition: { type: "spring", stiffness: 300, damping: 30 }
-        },
+        } as any,
         exit: {
             y: 100,
             opacity: 0,
@@ -91,13 +91,19 @@ const ActionBar: React.FC<ActionBarProps> = ({
         const hasProjects = availableProjects.length > 0;
 
         let canAkka = false;
-        if (isMyTurn && phase === GamePhase.Playing) {
-            let trumpSuit = gameState.bid.suit || null;
-            if (gameState.bid.type === 'HOKUM' && !trumpSuit) trumpSuit = gameState.floorCard?.suit || null;
+        if (isMyTurn && phase === GamePhase.Playing && gameState.bid.type === 'HOKUM') {
+            // Akka is HOKUM-only. Determine trump suit.
+            const trumpSuit = gameState.trumpSuit || gameState.bid.suit || gameState.floorCard?.suit || null;
 
-            // Scan Hand for any Akka eligibility
-            if (scanHandForAkka(me.hand, gameState.tableCards, gameState.bid.type === 'SUN' ? 'SUN' : 'HOKUM', trumpSuit, gameState.currentRoundTricks || [])) {
-                canAkka = true;
+            // Only show Akka button when leading (table empty) — scanHandForAkka checks this too
+            if ((gameState.tableCards || []).length === 0) {
+                canAkka = scanHandForAkka(
+                    me.hand,
+                    gameState.tableCards || [],
+                    'HOKUM',
+                    trumpSuit,
+                    gameState.currentRoundTricks || []
+                );
             }
         }
         const canSawa = isMyTurn && phase === GamePhase.Playing;
@@ -109,7 +115,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute bottom-12 sm:bottom-16 left-1/2 z-[1000] flex items-center gap-3 sm:gap-6 bg-black/20 px-6 py-3 rounded-[2rem] border border-white/5 backdrop-blur-sm"
+                className="absolute bottom-0 sm:bottom-1 left-1/2 z-[1000] flex items-center gap-3 sm:gap-6 bg-black/20 px-6 py-3 rounded-t-[2rem] border-t border-x border-white/5 backdrop-blur-sm"
             >
                 {/* 1. PROJECTS */}
                 <ActionButton
@@ -175,7 +181,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-2 sm:bottom-4 left-1/2 z-[100] flex items-center gap-3 sm:gap-4 bg-black/20 px-6 py-3 rounded-[2rem] border border-white/5 backdrop-blur-sm"
+            className="absolute bottom-0 sm:bottom-1 left-1/2 z-[100] flex items-center gap-3 sm:gap-4 bg-black/20 px-6 py-3 rounded-t-[2rem] border-t border-x border-white/5 backdrop-blur-sm"
         >
             <ActionButton onClick={() => onPlayerAction('SUN')} disabled={!isMyTurn}>
                 <Sun size={20} className="text-amber-400 mb-1" />
@@ -218,7 +224,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute bottom-2 sm:bottom-4 left-1/2 z-[100] flex items-center gap-2 sm:gap-4 bg-black/40 px-6 py-3 rounded-[2rem] border border-white/10 backdrop-blur-md shadow-2xl"
+                className="absolute bottom-0 sm:bottom-1 left-1/2 z-[100] flex items-center gap-2 sm:gap-4 bg-black/40 px-6 py-3 rounded-t-[2rem] border-t border-x border-white/10 backdrop-blur-md shadow-2xl"
             >
                 <ActionButton onClick={() => onPlayerAction('PASS')} disabled={!isMyTurn}>
                     <div className="text-zinc-400 font-bold">X</div>
@@ -259,7 +265,7 @@ const ActionBar: React.FC<ActionBarProps> = ({
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute bottom-2 sm:bottom-4 left-1/2 z-[100] flex items-center gap-4 bg-black/40 px-8 py-4 rounded-[2rem] border border-white/10 backdrop-blur-md shadow-2xl"
+            className="absolute bottom-0 sm:bottom-1 left-1/2 z-[100] flex items-center gap-4 bg-black/40 px-8 py-4 rounded-t-[2rem] border-t border-x border-white/10 backdrop-blur-md shadow-2xl"
         >
             <h3 className="absolute -top-10 left-1/2 -translate-x-1/2 text-white font-bold bg-black/50 px-3 py-1 rounded-full text-xs">Choose Variant</h3>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { GameState, GamePhase, PlayerPosition, DoublingLevel, UserProfile, DeclaredProject, Suit, Rank, RoundResult } from '../types';
+import { GameState, GamePhase, PlayerPosition, DoublingLevel, UserProfile, DeclaredProject, Suit, Rank, RoundResult, DetailedScore } from '../types';
 import { AccountingEngine } from '../services/AccountingEngine';
 import { generateDeck, isValidMove, getTrickWinner, POINT_VALUES, detectProjects, calculateFinalScore, getProjectScoreValue, sortHand, resolveProjectConflicts } from '../utils/gameLogic';
 import { getBotDecision } from '../services/botService';
@@ -161,7 +161,7 @@ export const useGameState = () => {
             const newTable = prev.tableCards;
             const newPlayers = [...prev.players];
 
-            const trumpSuit = prev.bid.type === 'HOKUM' ? (prev.bid.suit || prev.floorCard?.suit) : null;
+            const trumpSuit = prev.bid.type === 'HOKUM' ? (prev.bid.suit || prev.floorCard?.suit || null) : null;
             const mode = prev.bid.type === 'SUN' ? 'SUN' : 'HOKUM';
             const winIdx = getTrickWinner(newTable, mode, trumpSuit);
 
@@ -219,13 +219,31 @@ export const useGameState = () => {
                     bidderTeam
                 );
 
+                // Convert ScoreBreakdown to DetailedScore
+                const usDetailed: DetailedScore = {
+                    aklat: 0, ardh: 0,
+                    mashaari: result.us.projectPoints,
+                    abnat: result.us.rawCardPoints,
+                    result: result.us.gamePoints,
+                    projects: [], // Populate if needed
+                    gamePoints: result.us.gamePoints
+                };
+                const themDetailed: DetailedScore = {
+                    aklat: 0, ardh: 0,
+                    mashaari: result.them.projectPoints,
+                    abnat: result.them.rawCardPoints,
+                    result: result.them.gamePoints,
+                    projects: [],
+                    gamePoints: result.them.gamePoints
+                };
+
                 const newHistory: RoundResult[] = [...prev.roundHistory, {
                     roundNumber: prev.roundHistory.length + 1,
-                    us: result.us,
-                    them: result.them,
-                    project: prev.bid.type || 'PASS',
-                    winner: result.winner,
-                    baida: result.baida
+                    us: usDetailed,
+                    them: themDetailed,
+                    gameMode: prev.bid.type || undefined,
+                    winner: result.winner === 'tie' ? 'tie' : result.winner,
+                    // baida: result.baida // Removed as it doesn't exist in RoundResult
                 }];
 
                 const globalUs = prev.matchScores.us + result.us.gamePoints;
@@ -769,10 +787,7 @@ export const useGameState = () => {
 
         const cleanupUpdate = socketService.onGameUpdate((newGameState) => {
             const rotatedState = rotateGameState(newGameState, myIndexRef.current);
-
-            // Log if turn changed
-                return { ...rotatedState, settings: prev.settings };
-            });
+            setGameState(prev => ({ ...rotatedState, settings: prev.settings }));
         });
 
         const cleanupStart = socketService.onGameStart((newGameState) => {

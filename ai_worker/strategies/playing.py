@@ -893,6 +893,9 @@ class PlayingStrategy:
          """
          if ctx.mode != 'HOKUM': return None
          
+         # Rule: Must be leading (Table empty)
+         if len(ctx.table_cards) > 0: return None
+
          # Check if already declared by me
          if ctx.akka_state and ctx.akka_state.get('claimer') == ctx.position:
               return None

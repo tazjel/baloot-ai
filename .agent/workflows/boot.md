@@ -10,8 +10,6 @@ This workflow "boots up" the agent's context using the **"High Value, Low Token"
 
 - **OS**: Windows (Paths use `\`, but `/` works in code).
 - **Shell**: PowerShell (Do NOT use `export` or `&&`).
-// turbo
-- **Redis**: Check with `Get-Process redis-server -ErrorAction SilentlyContinue`.
 
 ## 2. Git Sync Check (Conflict Prevention)
 

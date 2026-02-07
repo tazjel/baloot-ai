@@ -168,36 +168,9 @@ class BotAgent:
                   if neural_move:
                        return neural_move
  
-             # 4.5. DESPERATION CHEATING (The Liar)
-             # If losing badly and Strict Mode is OFF, consider lying.
-             strict_mode = game_state.get('strictMode', False)
-             if ctx.phase == 'PLAYING' and not strict_mode:
-                  # Check Score Differential
-                  scores = game_state.get('matchScores', {'us': 0, 'them': 0})
-                  my_score = scores.get(ctx.team, 0)
-                  their_score = scores.get('them' if ctx.team == 'us' else 'us', 0)
-                  
-                  # is_losing_badly = (their_score - my_score) > 20 # Low threshold for testing
-                  is_losing_badly = False # DISABLED per user request (Debugging confusion)
-                  
-                  if is_losing_badly:
-                       # Look for a Cheat
-                       # Simple Heuristic: If I have a Master Card (Ace/Trump) that is ILLEGAL, play it.
-                       legal_indices = ctx.get_legal_moves()
-                       
-                       for i, card in enumerate(ctx.hand):
-                            if i not in legal_indices:
-                                 # This is an illegal card. Is it good?
-                                 # If it's an Ace or Trump, maybe it wins?
-                                 # Only cheat if it's worth it (Master Card).
-                                 is_master = ctx.is_master_card(card)
-                                 if is_master:
-                                      logger.info(f"😈 [DIRTY] Desperation! {ctx.position} is losing and chooses to LIE with {card}.")
-                                      return {
-                                          "action": "PLAY", 
-                                          "cardIndex": i, 
-                                          "reasoning": "Desperation Cheat (Lying with Master Card)"
-                                      }
+             # 4.5. DESPERATION CHEATING (The Liar) - REMOVED
+             # We want to ensure bots NEVER make illegal moves.
+
 
              # 5. STRATEGY DISPATCH (MCTS + Heuristics)
              if ctx.phase in ['BIDDING', 'DOUBLING']:
