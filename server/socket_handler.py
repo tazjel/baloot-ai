@@ -339,7 +339,7 @@ def client_log(sid, data):
         msg = data.get('message', '')
         
         log_line = f"[{level}] [{category}] {msg}"
-        print(f"[CLIENT-LOG] {log_line}")
+        print(f"[CLIENT-LOG] [SID:{sid}] {log_line}")
         
         # Write to file for Agent to read
         with open('logs/client_debug.log', 'a', encoding='utf-8') as f:

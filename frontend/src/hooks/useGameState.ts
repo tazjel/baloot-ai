@@ -771,15 +771,6 @@ export const useGameState = () => {
             const rotatedState = rotateGameState(newGameState, myIndexRef.current);
 
             // Log if turn changed
-            setGameState(prev => {
-                if (prev.currentTurnIndex !== rotatedState.currentTurnIndex) {
-                    turnStartTimeRef.current = performance.now();
-                    // @ts-ignore
-                    import('../utils/devLogger').then(({ devLogger }) => {
-                        const currentPlayer = rotatedState.players[rotatedState.currentTurnIndex];
-                        devLogger.log('PERF', `New Turn: ${currentPlayer.name} (Index ${rotatedState.currentTurnIndex})`);
-                    });
-                }
                 return { ...rotatedState, settings: prev.settings };
             });
         });
@@ -796,6 +787,20 @@ export const useGameState = () => {
         };
 
     }, [roomId, rotateGameState]);
+
+     // --- LOGGING EFFECT ---
+    useEffect(() => {
+        if (!gameState.players || !gameState.players[gameState.currentTurnIndex]) return;
+        
+        turnStartTimeRef.current = performance.now();
+        const player = gameState.players[gameState.currentTurnIndex];
+        
+        // @ts-ignore
+        import('../utils/devLogger').then(({ devLogger }) => {
+             devLogger.log('PERF', `New Turn: ${player.name} (Index ${gameState.currentTurnIndex})`);
+        });
+
+    }, [gameState.currentTurnIndex]);
 
     // --- STORE LOGIC ---
     const handlePurchase = (itemId: string, cost: number) => {
