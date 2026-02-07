@@ -298,6 +298,10 @@ def game_action(sid, data):
     if result.get('success'):
         # PERSIST STATE TO REDIS
         room_manager.save_game(game)
+    else:
+        # Log failure for debugging spam/errors
+        if 'error' in result:
+             logger.warning(f"Action '{action}' failed for {player.position}: {result['error']}")
         
         # Broadcast Update
         broadcast_game_update(game, room_id)

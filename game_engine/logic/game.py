@@ -1,1084 +1,452 @@
-import random
+"""
+game_engine/logic/game.py — Refactored Game Controller (v2)
+=============================================================
 
-import time
-import logging
-import traceback
-import copy
-from functools import wraps
+454 lines. Architecture:
+  - State:      self.state (GameState Pydantic model) — single source of truth
+  - Properties: StateBridgeMixin — legacy aliases (game.phase -> game.state.phase)
+  - Phases:     self.phases[phase].handle_action() — delegated logic
+  - Auto-play:  AutoPilot.execute() — extracted bot/timeout logic
+  - Tracking:   self.graveyard — O(1) played-card lookups
+  - Events:     ActionResult + GameEvent — typed results
+
+Persistence: redis.set(key, game.state.model_dump_json())
+"""
+
+from __future__ import annotations
+import random, time, copy, logging
 from typing import Dict, List, Optional, Any
+from functools import wraps
 
-from game_engine.models.constants import SUITS, RANKS, POINT_VALUES_SUN, POINT_VALUES_HOKUM, ORDER_SUN, ORDER_HOKUM, ORDER_PROJECTS, GamePhase, BiddingPhase, BidType
-from game_engine.models.card import Card
+from game_engine.models.constants import GamePhase
 from game_engine.models.deck import Deck
 from game_engine.models.player import Player
-from game_engine.logic.utils import sort_hand, scan_hand_for_projects, add_sequence_project, compare_projects, get_project_rank_order
+from game_engine.logic.utils import sort_hand
+from game_engine.core.state import GameState, BidState
+from game_engine.core.graveyard import Graveyard
+from game_engine.core.models import ActionResult, EventType
+
+from .state_bridge import StateBridgeMixin
 from .timer_manager import TimerManager
-from .phases.challenge_phase import ChallengePhase
-from .project_manager import ProjectManager
-from .scoring_engine import ScoringEngine
-from .qayd_engine import QaydEngine
 from .trick_manager import TrickManager
+from .scoring_engine import ScoringEngine
+from .project_manager import ProjectManager
+from .qayd_engine import QaydEngine
+from .phases.challenge_phase import ChallengePhase
 from .phases.bidding_phase import BiddingPhase as BiddingLogic
 from .phases.playing_phase import PlayingPhase as PlayingLogic
+from .autopilot import AutoPilot
 
-from .bidding_engine import BiddingEngine
-from .forensic import ForensicReferee
-
-
-# Configure Logging
-from server.logging_utils import log_event, log_error, logger
+from server.logging_utils import log_event, logger
 
 
 def requires_unlocked(func):
-    """
-    Decorator to prevent execution when game is locked.
-    Returns None if game is locked, otherwise executes the function.
-    """
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        if self.is_locked:
-            logger.info(f"[LOCK] {func.__name__} skipped - game is locked")
+    def wrapper(self, *a, **kw):
+        if self.state.isLocked:
             return {'success': False, 'error': 'Game is locked'}
-        return func(self, *args, **kwargs)
+        return func(self, *a, **kw)
     return wrapper
 
-class Game:
+
+class Game(StateBridgeMixin):
+    """Lightweight game controller. All mutable state in self.state."""
+
     def __init__(self, room_id: str):
-        # Core State (Pydantic)
-        from game_engine.core.state import GameState, GamePhaseState
         self.state = GameState(roomId=room_id)
-        
-        # Legacy Attribute Proxies (Mapped to self.state)
-        # self.room_id is mapped via property or direct access if immutable
-        self.room_id: str = room_id 
-        
-        # self.players -> managed by property below to sync with self.state.players
-        self.players = [] 
-        
-        self.deck = Deck() # Deck is mutable / not strictly serialized in dict often?
-                           # Typically Deck is transient, but state.deck might be needed for serialization?
-                           # For Phase 1: Keep Deck separate as it's logic-heavy.
-        self._current_turn_backing = 0
+        self._floor_card_obj = None
 
-        # Mapped Fields
-        # self.phase = GamePhase.WAITING.value # Mapped Property
-        # self.dealer_index # Mapped Property
-        
-        # Direct State Fields (Shadows until fully migrated)
-        self.table_cards = [] 
-        self.bid = {"type": None, "bidder": None, "doubled": False}
-        self.game_mode = None 
-        self.trump_suit = None
-        self.team_scores = {"us": 0, "them": 0}
-        self.match_scores = {"us": 0, "them": 0}
-        self.round_history = [] 
-        self.past_round_results = []
-        self.trick_history = [] 
-        self.floor_card = None
-        self.bidding_round = 1
-        self.declarations = {} 
-        self.trick_1_declarations = {} 
-        self.is_project_revealing = False
-        self.initial_hands = {} 
-        self.metadata = {} 
-
-        self.doubling_level = 1
-        self.is_locked = False
-        self.dealing_phase = 0 
-        self.last_trick = None 
-        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-        self.sawa_failed_khasara = False 
-        self.akka_state = None 
-        self.full_match_history = []
-        
-        # Configuration
-        self.strictMode = False # Default: False (Liar's Protocol Enabled)
-        
-        # Temporal Logic
+        # Transient (not serialized into state)
+        self.deck = Deck()
+        self.players: List[Player] = []
+        self.table_cards: List[Dict] = []
         self.timer = TimerManager(5)
-        self.timer_start_time = time.time() # Legacy / Read-only
-        self.turn_duration = 30 # Legacy / Read-only
-        self.timer_active = True # Legacy
-        self.last_timer_reset = 0
-        self.timer_paused = False # Flag for Professor or other pauses
-        
-        # Analytics
-        self.win_probability_history = [] # List of {trick: int, us: float}
-        self.blunders = {} # Map[PlayerPosition] -> count
-        
-        
+        self.timer_paused = False
+        self.turn_duration = 30
+        self.bidding_engine = None
+
         # Managers
+        self.graveyard = Graveyard()
         self.trick_manager = TrickManager(self)
-        self.challenge_phase = ChallengePhase(self) # Refactored Handler
-        self.project_manager = ProjectManager(self)
         self.scoring_engine = ScoringEngine(self)
-        
-        # Reset QaydEngine (single source of truth)
-        if not hasattr(self, 'qayd_engine'):
-             from .qayd_engine import QaydEngine
-             self.qayd_engine = QaydEngine(self)
+        self.project_manager = ProjectManager(self)
+        self.challenge_phase = ChallengePhase(self)
+        self.qayd_engine = QaydEngine(self)
         self.qayd_engine.reset()
-        self.qayd_state = self.qayd_engine.state  # Re-link alias
+        self.qayd_state = self.qayd_engine.state
 
-        # Timeline Recorder
-        from server.common import redis_client
-        from game_engine.core.recorder import TimelineRecorder
-        self.recorder = TimelineRecorder(redis_client)
-        self.record_event("INIT", "Game Initialized")
-
-        # Initialize Phases Map
+        # Phase Handlers
         self.phases = {
-            GamePhase.BIDDING.value: BiddingLogic(self),
-            GamePhase.PLAYING.value: PlayingLogic(self),
+            GamePhase.BIDDING.value:   BiddingLogic(self),
+            GamePhase.PLAYING.value:   PlayingLogic(self),
             GamePhase.CHALLENGE.value: self.challenge_phase,
         }
 
-    def _sync_state_from_legacy(self):
-        """Copies legacy mutable objects into self.state for snapshotting"""
-        # Sync Players
-        # Convert legacy Player objects to PlayerState dicts
-        # We assume Player.to_dict() matches PlayerState schema approx
-        # For Pydantic, we might need strict types.
+        # Recorder (optional)
         try:
-             # This assumes Player objects calculate their own state (hand, etc)
-             # Ideally we move that state INTO PlayerState, but for now: copy.
-             p_states = []
-             for p in self.players:
-                  # Player.to_dict() returns dict. PlayerState accepts dict via ** unpack if compatible?
-                  # PlayerState is a Pydantic model. 
-                  # We can construct it: PlayerState(**p.to_dict())
-                  from game_engine.core.state import PlayerState
-                  p_states.append(PlayerState(**p.to_dict()))
-             self.state.players = p_states
-             
-             # Sync Table
-             # table_cards is [{"playerId":..., "card": Card...}]
-             # TrickState / GameState.tableCards expects specific format?
-             # GameState.tableCards is List[Dict]. 
-             # We need to serialize Card objects in table_cards to dicts
-             t_cards_serialized = []
-             for tc in self.table_cards:
-                  row = tc.copy()
-                  if hasattr(row['card'], 'to_dict'):
-                       row['card'] = row['card'].to_dict()
-                  t_cards_serialized.append(row)
-             self.state.tableCards = t_cards_serialized
-             
-             # Sync Scores/Bid/etc if they are not properties
-             self.state.teamScores = self.team_scores
-             self.state.matchScores = self.match_scores
-             self.state.bid.type = self.bid.get('type')
-             # ... copy other bid fields ...
-             
-        except Exception as e:
-             # Don't crash game logic if sync (for debugging) fails
-             logger.error(f"State Sync Failed: {e}")
+            from server.common import redis_client
+            from game_engine.core.recorder import TimelineRecorder
+            self.recorder = TimelineRecorder(redis_client)
+        except Exception:
+            self.recorder = None
+        self._record("INIT")
 
-    def record_event(self, event_type: str, details: str = ""):
-        self._sync_state_from_legacy()
-        self.recorder.record_state(self.state, event_type, details) 
-
-    @property
-    def phase(self):
-        return self.state.phase.value if hasattr(self.state.phase, 'value') else self.state.phase
-
-    @phase.setter
-    def phase(self, value):
-        from game_engine.core.state import GamePhaseState
-        # Auto-convert string to enum
-        try:
-             self.state.phase = GamePhaseState(value)
-        except ValueError:
-             # Fallback or strict error? For now log warning and force
-             logger.warning(f"Invalid Phase transition: {value}")
-             self._phase_backing = value # Fallback for legacy?
-
-    @property
-    def dealer_index(self):
-        return self.state.dealerIndex
-    
-    @dealer_index.setter
-    def dealer_index(self, value):
-        self.state.dealerIndex = value
-
-    @property
-    def current_turn(self):
-        """Returns the player whose turn it is, accounting for Gablak windows."""
-        target = self.state.currentTurnIndex
-        if self.phase == GamePhase.BIDDING.value and hasattr(self, 'bidding_engine') and self.bidding_engine:
-             return self.bidding_engine.get_current_actor()
-        return target
-    
-    @current_turn.setter
-    def current_turn(self, value):
-        self.state.currentTurnIndex = value
-
-    def get_game_state(self) -> Dict[str, Any]:
-        return {
-            "roomId": self.room_id,
-            "phase": self.phase,
-            "biddingPhase": self.bidding_engine.phase.name if hasattr(self, 'bidding_engine') and self.bidding_engine else None,
-            "players": [p.to_dict() for p in self.players],
-            "tableCards": [{"playerId": tc['playerId'], "card": tc['card'].to_dict(), "playedBy": tc['playedBy'], "metadata": tc.get('metadata')} for tc in self.table_cards],
-            "currentTurnIndex": self.current_turn, # Frontend expects currentTurnIndex
-            "gameMode": self.game_mode,
-            "trumpSuit": self.trump_suit,
-            "bid": self.bid,
-            "teamScores": self.team_scores,
-            "matchScores": self.match_scores,
-            "analytics": {
-                "winProbability": self.win_probability_history,
-                "blunders": self.blunders
-            },
-            "floorCard": self.floor_card.to_dict() if self.floor_card else None,
-            "dealerIndex": self.dealer_index,
-            "biddingRound": self.bidding_round,
-            "declarations": { 
-                pos: [ 
-                    {**proj, 'cards': [c.to_dict() if hasattr(c, 'to_dict') else c for c in proj.get('cards', [])]} 
-                    for proj in projs 
-                ] 
-                for pos, projs in self.declarations.items() 
-            },
-            "timer": {
-                "remaining": self.timer.get_time_remaining(),
-                "duration": self.timer.duration,
-                "elapsed": self.timer.get_time_elapsed(),
-                "active": self.timer.active
-            },
-            "isProjectRevealing": self.is_project_revealing,
-
-            'doublingLevel': self.doubling_level,
-            'isLocked': self.is_locked,
-            'strictMode': self.strictMode,
-            'dealingPhase': self.dealing_phase,
-            'lastTrick': self.last_trick,
-            'roundHistory': self.past_round_results,  # SCORING history (Required by Frontend)
-        
-            # Serialize currentRoundTricks fully
-            # OPTIMIZED: Only send essential data for current round animation/state
-            'currentRoundTricks': [
-                {
-                    'winner': t.get('winner'),
-                    'points': t.get('points'),
-                    'cards': self._serialize_trick_cards(t.get('cards', [])),
-                    'playedBy': t.get('playedBy'),
-                    'metadata': t.get('metadata'),
-                }
-                for t in self.round_history
-            ], 
-            # 'trickHistory': self.trick_history,       # Full game debug - REMOVED for Optimization
-            'sawaState': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else self.sawa_state,
-            'qaydState': self.qayd_engine.get_frontend_state(),
-            'challengeActive': (self.phase == GamePhase.CHALLENGE.value),
-            
-            # Timer Sync
-            'timerStartTime': self.timer_start_time,
-            'turnDuration': self.turn_duration,
-            'serverTime': time.time(),
-            
-            'akkaState': self.project_manager.akka_state if hasattr(self.project_manager, 'akka_state') else self.akka_state,
-            'gameId': self.room_id,
-            'settings': getattr(self, 'settings', {}), # Expose Director Settings
-            # OPTIMIZATION: Do not send full history on every tick. 
-            # It should be fetched via a separate API call if needed.
-            # 'fullMatchHistory': self.full_match_history 
-        }
-
-    @staticmethod
-    def _serialize_trick_cards(cards):
-        """Safely serialize trick cards to JSON-safe dicts, handling both Card objects and dicts."""
-        result = []
-        for c in cards:
-            if isinstance(c, dict):
-                # Could be {card: CardObj, playedBy: str} or already a flat card dict
-                if 'card' in c:
-                    inner = c['card']
-                    card_dict = inner.to_dict() if hasattr(inner, 'to_dict') else inner
-                    result.append({**c, 'card': card_dict})
-                else:
-                    # Already a flat card dict (suit, rank, etc.)
-                    result.append(c)
-            elif hasattr(c, 'to_dict'):
-                result.append(c.to_dict())
-            else:
-                result.append(c)
-        return result
-
-    def _sync_bid_state(self):
-        """Syncs the Game.bid structure with current BiddingEngine state."""
-        if not self.bidding_engine:
-            return
-            
-        c = self.bidding_engine.contract
-        tb = self.bidding_engine.tentative_bid
-        
-        # Priority 1: Current Finalized Contract
-        if c.type:
-            self.bid = {
-                "type": c.type.value,
-                "bidder": self.players[c.bidder_idx].position,
-                "doubled": (c.level >= 2),
-                "suit": c.suit,
-                "level": c.level,
-                "variant": c.variant,
-                "isAshkal": c.is_ashkal,
-                "isTentative": False
-            }
-            # FIX: Propagate game_mode from contract type for Qayd scoring
-            self.game_mode = c.type.value  # 'SUN' or 'HOKUM'
-            self.trump_suit = c.suit  # None for SUN
-            self.doubling_level = c.level
-            logger.info(f"[BID] Game Mode Set: {self.game_mode}, Trump: {self.trump_suit}, Level: {self.doubling_level}")
-        # Priority 2: Tentative Bid (during Gablak)
-        elif tb:
-            self.bid = {
-                "type": tb['type'],
-                "bidder": self.players[tb['bidder']].position,
-                "doubled": False,
-                "suit": tb['suit'],
-                "level": 1,
-                "variant": None,
-                "isAshkal": (tb['type'] == 'ASHKAL'),
-                "isTentative": True
-            }
-        else:
-            self.bid = {"type": None, "bidder": None, "doubled": False}
-
-    # --- AKKA LOGIC DELEGATION ---
-    def check_akka_eligibility(self, player_index):
-        return self.project_manager.check_akka_eligibility(player_index)
-
-    # ═══════════════════════════════════════════════════════════════════════
-    #  QAYD (FORENSIC) DELEGATION — All routes to QaydEngine
-    # ═══════════════════════════════════════════════════════════════════════
-
-    def handle_qayd_trigger(self, player_index):
-        """Called when a player presses the Qayd button."""
-        return self.qayd_engine.trigger(player_index)
-
-    def handle_qayd_menu_select(self, player_index, option):
-        """Step 1 → 2: Reporter selects Main Menu option."""
-        return self.qayd_engine.select_menu_option(option)
-
-    def handle_qayd_violation_select(self, player_index, violation_type):
-        """Step 2 → 3: Reporter selects a violation type."""
-        return self.qayd_engine.select_violation(violation_type)
-
-    def handle_qayd_select_crime(self, player_index, card_data):
-        """Step 3 → 4: Reporter selects the crime card (Pink Ring)."""
-        return self.qayd_engine.select_crime_card(card_data)
-
-    def handle_qayd_select_proof(self, player_index, card_data):
-        """Step 4 → 5/6: Reporter selects the proof card (Green Ring)."""
-        return self.qayd_engine.select_proof_card(card_data)
-
-    def handle_qayd_accusation(self, player_index, accusation=None):
-        """Legacy: Direct accusation with crime_card + proof_card payload."""
-        if not accusation:
-            return self.qayd_engine.trigger(player_index)
-        return self.qayd_engine.handle_legacy_accusation(player_index, accusation)
-
-    def handle_qayd_confirm(self):
-        """Called when frontend sends QAYD_CONFIRM after viewing verdict."""
-        return self.qayd_engine.confirm()
-
-    def handle_qayd_cancel(self):
-        """Called when Qayd is cancelled/closed."""
-        result = self.qayd_engine.cancel()
-        if result.get('success') and self.phase == GamePhase.FINISHED.value:
-            result['trigger_next_round'] = True
-        return result
-
-    def handle_qayd(self, player_index, reason=None):
-        """Legacy/Simple Qayd"""
-        return self.handle_qayd_trigger(player_index)
-
-    def handle_akka(self, player_index):
-        if hasattr(self, 'project_manager'):
-             return self.project_manager.handle_akka(player_index)
-        return {'success': False, 'error': 'ProjectManager missing'}
-
-    # --- END QAYD DELEGATION ---
-
-
-    @requires_unlocked
-    def play_card(self, player_index: int, card_idx: int, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        Delegates card play to PlayingPhase.
-        """
-        if self.phase != GamePhase.PLAYING.value:
-            return {'success': False, 'error': f"Not in PLAYING phase. Current: {self.phase}"}
-
-        # Check if PlayingPhase exists
-        if GamePhase.PLAYING.value not in self.phases:
-             from .phases.playing_phase import PlayingPhase as PlayingLogic
-             self.phases = {
-                GamePhase.BIDDING.value: BiddingPhase(self),
-                GamePhase.PLAYING.value: PlayingLogic(self),
-                GamePhase.CHALLENGE.value: self.challenge_phase,
-             }
-            
-        return self.phases[GamePhase.PLAYING.value].play_card(player_index, card_idx, metadata)
-
+    # ═══════════════════════════════════════════════════════════════════
+    #  LIFECYCLE
+    # ═══════════════════════════════════════════════════════════════════
 
     def add_player(self, id, name, avatar=None):
-        # Check if player already exists
         for p in self.players:
             if p.id == id:
-                p.name = name # Update name if changed
-                if avatar: p.avatar = avatar # Update avatar if provided
+                p.name = name
+                if avatar: p.avatar = avatar
                 return p
-
-        if len(self.players) >= 4:
-            return None
-        
-        index = len(self.players)
-        new_player = Player(id, name, index, self, avatar=avatar)
-        self.players.append(new_player)
-        return new_player
+        if len(self.players) >= 4: return None
+        p = Player(id, name, len(self.players), self, avatar=avatar)
+        self.players.append(p)
+        return p
 
     def start_game(self) -> bool:
-        if len(self.players) < 4:
-            return False
-        
+        if len(self.players) < 4: return False
         self.reset_round_state()
-        
-        # Set Random Dealer for the first game (Force Seed)
         self.dealer_index = random.randint(0, 3)
-        logger.info(f"Game Started. Random Dealer Index: {self.dealer_index}")
-        
         self.deal_initial_cards()
         self.phase = GamePhase.BIDDING.value
-        
-        # Initialize Bidding Engine
+        from .bidding_engine import BiddingEngine
         self.bidding_engine = BiddingEngine(
-             dealer_index=self.dealer_index, 
-             floor_card=self.floor_card, 
-             players=self.players,
-             match_scores=self.match_scores
+            dealer_index=self.dealer_index, floor_card=self._floor_card_obj,
+            players=self.players, match_scores=self.match_scores,
         )
         self.current_turn = self.bidding_engine.current_turn
-        
-        self.reset_timer() # Start timer for first bidder
+        self.reset_timer()
         return True
 
     def reset_round_state(self):
-        """Reset state for a new round while preserving match-level data"""
         self.deck = Deck()
         for p in self.players:
-            p.hand = []
-            p.captured_cards = []
-            p.action_text = ''  # Clear action text
-        
+            p.hand, p.captured_cards, p.action_text = [], [], ''
         self.table_cards = []
-        self.bid = {"type": None, "bidder": None, "doubled": False}
-        self.game_mode = None
-        self.trump_suit = None
-        self.floor_card = None
-        self.bidding_round = 1
-        self.declarations = {}
-        self.trick_1_declarations = {}
-        self.is_project_revealing = False
-        self.initial_hands = {}
-
-        self.round_history = []  # Trick history for this round
-        self.is_locked = False
-        self.doubling_level = 1
-        self.dealing_phase = 0
-
-        self.last_trick = None
-        self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-        self.sawa_failed_khasara = False
-        self.akka_state = None
-        
-        # Reset QaydEngine (single source of truth)
-        if not hasattr(self, 'qayd_engine'):
-             from .qayd_engine import QaydEngine
-             self.qayd_engine = QaydEngine(self)
-        
+        self._floor_card_obj = None
+        self.state.reset_round()
+        self.graveyard.reset()
         self.qayd_engine.reset()
-        self.qayd_state = self.qayd_engine.state  # Re-link alias
-        
+        self.qayd_state = self.qayd_engine.state
         if hasattr(self.project_manager, 'akka_state'):
-             self.project_manager.akka_state = None
-             
+            self.project_manager.akka_state = None
         self.reset_timer()
 
-    def __getstate__(self):
-        """Custom pickling to exclude non-serializable locks."""
-        state = self.__dict__.copy()
-        # Remove locks and other non-picklable ephemeral objects
-        keys_to_remove = ['_sherlock_lock', 'timer_manager', 'recorder']
-        
-        for k in keys_to_remove:
-            if k in state:
-                del state[k]
-        return state
-
-    def __setstate__(self, state):
-        """Restore state and re-initialize locks."""
-        self.__dict__.update(state)
-        # Re-init locks
-        self._sherlock_lock = False
-        
-        # Re-init Timer Manager
-        from .timer_manager import TimerManager
-        self.timer_manager = TimerManager(self)
-        
-        # Re-init Recorder (needs Redis)
-        from game_engine.core.recorder import TimelineRecorder
-        try:
-            from server.common import redis_client
-            self.recorder = TimelineRecorder(redis_client)
-        except ImportError:
-            # Fallback for offline tests
-            self.recorder = TimelineRecorder(None)
-        
     def deal_initial_cards(self):
-        # Deal 5 to each
         for p in self.players:
             p.hand.extend(self.deck.deal(5))
-        
-        # Reveal Floor Card
         val = self.deck.deal(1)
-        if val:
-            self.floor_card = val[0]
-            
-    # --- PROJECT LOGIC ---
-    def resolve_declarations(self):
-        return self.project_manager.resolve_declarations() 
-
-
-    @requires_unlocked
-    def handle_bid(self, player_index: int, action: str, suit: Optional[str] = None, reasoning: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Delegates bid handling to BiddingPhase.
-        """
-        if self.phase != GamePhase.BIDDING.value:
-             return {'success': False, 'error': f"Not in BIDDING phase. Current: {self.phase}"}
-             
-        # Check if BiddingPhase exists
-        if GamePhase.BIDDING.value not in self.phases:
-             # Fallback if phases map logic fails or during reload
-             from .phases.playing_phase import PlayingPhase as PlayingLogic
-             self.phases = {
-                GamePhase.BIDDING.value: BiddingPhase(self),
-                GamePhase.PLAYING.value: PlayingLogic(self),
-                GamePhase.CHALLENGE.value: self.challenge_phase,
-             }
-             
-        return self.phases[GamePhase.BIDDING.value].handle_bid(player_index, action, suit, reasoning)
-
-    def handle_double(self, player_index):
-        try:
-            if self.phase != GamePhase.BIDDING.value and self.phase != GamePhase.PLAYING.value:
-                 pass
-            
-            # Check if bid exists
-            if not self.bid['type']:
-                 return {"error": "No bid to double"}
-                 
-            # Check eligibility (Opponent of bidder)
-            bidder_pos = self.bid['bidder']
-            doubler_pos = self.players[player_index].position
-            
-            is_same_team = (bidder_pos in ['Bottom', 'Top'] and doubler_pos in ['Bottom', 'Top']) or \
-                           (bidder_pos in ['Right', 'Left'] and doubler_pos in ['Right', 'Left'])
-                           
-            if is_same_team:
-                 return {"error": "Cannot double your partner"}
-                 
-            if self.doubling_level >= 2: # Limit to x2 for now, or x4 if Gahwa
-                 return {"error": "Already doubled"}
-                 
-            self.doubling_level = 2
-            self.bid['doubled'] = True
-            self.is_locked = True # Locking prevents leading trump usually
-            return {"success": True}
-        except Exception as e:
-             logger.error(f"Error in handle_double: {e}")
-             return {"error": f"Internal Error: {str(e)}"}
+        if val: self.floor_card = val[0]
 
     def complete_deal(self, bidder_index):
-        # Give floor card to bidder
         bidder = self.players[bidder_index]
-        if self.floor_card:
-            bidder.hand.append(self.floor_card)
+        if self._floor_card_obj:
+            bidder.hand.append(self._floor_card_obj)
             self.floor_card = None
-            
-        # Deal remaining (2 to bidder, 3 to others)
         bidder.hand.extend(self.deck.deal(2))
-        
-        # Give 3 to everyone else
         for p in self.players:
             if p.index != bidder_index:
                 p.hand.extend(self.deck.deal(3))
-        
-        # Sort Hands for all players
         for p in self.players:
-             p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
-             p.action_text = "" # Clear "PASS" or other bidding texts
-             # Capture Initial Hand for Replay
-             self.initial_hands[p.position] = [c.to_dict() for c in p.hand]
-
+            p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
+            p.action_text = ""
+            self.initial_hands[p.position] = [c.to_dict() for c in p.hand]
         self.phase = GamePhase.PLAYING.value
-        # Play starts from person RIGHT of dealer? Or Bidder?
-        # Standard: Person to right of Dealer leads first.
         self.current_turn = (self.dealer_index + 1) % 4
         self.reset_timer()
 
-    def handle_declare_project(self, player_index, type):
-        return self.project_manager.handle_declare_project(player_index, type)
+    # ═══════════════════════════════════════════════════════════════════
+    #  ACTION DELEGATION
+    # ═══════════════════════════════════════════════════════════════════
 
-    # --- SAWA LOGIC DELEGATION ---
-    def handle_sawa(self, player_index):
-        result = self.trick_manager.handle_sawa(player_index)
-        # Sync state for legacy access compatibility
-        if hasattr(self.trick_manager, 'sawa_state'):
-             self.sawa_state = self.trick_manager.sawa_state
+    @requires_unlocked
+    def handle_bid(self, player_index, action, suit=None, reasoning=None):
+        if self.phase != GamePhase.BIDDING.value:
+            return {'success': False, 'error': f"Not in BIDDING. Current: {self.phase}"}
+        return self.phases[GamePhase.BIDDING.value].handle_bid(player_index, action, suit, reasoning)
+
+    @requires_unlocked
+    def play_card(self, player_index, card_idx, metadata=None):
+        if self.phase != GamePhase.PLAYING.value:
+            return {'success': False, 'error': f"Not in PLAYING. Current: {self.phase}"}
+        result = self.phases[GamePhase.PLAYING.value].play_card(player_index, card_idx, metadata)
+        if result.get('success') and self.table_cards:
+            self.graveyard.add(self.table_cards[-1])
         return result
 
-    def _resolve_sawa_win(self):
-        return self.trick_manager._resolve_sawa_win()
+    def handle_double(self, player_index):
+        if not self.bid.get('type'): return {"error": "No bid to double"}
+        bidder_pos, doubler_pos = self.bid['bidder'], self.players[player_index].position
+        same = (bidder_pos in ('Bottom','Top') and doubler_pos in ('Bottom','Top')) or \
+               (bidder_pos in ('Right','Left') and doubler_pos in ('Right','Left'))
+        if same:                      return {"error": "Cannot double your partner"}
+        if self.doubling_level >= 2:  return {"error": "Already doubled"}
+        self.doubling_level = 2
+        b = self.bid; b['doubled'] = True; self.bid = b
+        self.is_locked = True
+        return {"success": True}
 
-    def handle_sawa_response(self, player_index, response):
-        result = self.trick_manager.handle_sawa_response(player_index, response)
-        # Sync state
-        if hasattr(self.trick_manager, 'sawa_state'):
-             self.sawa_state = self.trick_manager.sawa_state
-        return result
+    # ── Sub-system pass-throughs ─────────────────────────────────────
 
-    def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
-        return self.trick_manager.is_valid_move(card, hand)
+    def handle_declare_project(self, pi, t):  return self.project_manager.handle_declare_project(pi, t)
+    def resolve_declarations(self):           return self.project_manager.resolve_declarations()
+    def check_akka_eligibility(self, pi):     return self.project_manager.check_akka_eligibility(pi)
+    def handle_akka(self, pi):                return self.project_manager.handle_akka(pi)
 
-    def can_beat_trump(self, winning_card, hand):
-        return self.trick_manager.can_beat_trump(winning_card, hand)
+    def handle_sawa(self, pi):
+        r = self.trick_manager.handle_sawa(pi)
+        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
+        return r
+
+    def handle_sawa_response(self, pi, resp):
+        r = self.trick_manager.handle_sawa_response(pi, resp)
+        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
+        return r
+
+    def _resolve_sawa_win(self):              return self.trick_manager._resolve_sawa_win()
+    def is_valid_move(self, card, hand):       return self.trick_manager.is_valid_move(card, hand)
+    def can_beat_trump(self, wc, hand):        return self.trick_manager.can_beat_trump(wc, hand)
+    def get_card_points(self, card):           return self.trick_manager.get_card_points(card)
+    def get_trick_winner(self):                return self.trick_manager.get_trick_winner()
 
     def resolve_trick(self):
-        return self.trick_manager.resolve_trick()
+        result = self.trick_manager.resolve_trick()
+        if self.round_history:
+            self.graveyard.commit_trick(self.round_history[-1].get('cards', []))
+        return result
 
+    # ── Qayd delegation ──────────────────────────────────────────────
 
+    def handle_qayd_trigger(self, pi):              return self.qayd_engine.trigger(pi)
+    def handle_qayd_menu_select(self, pi, o):       return self.qayd_engine.select_menu_option(o)
+    def handle_qayd_violation_select(self, pi, v):  return self.qayd_engine.select_violation(v)
+    def handle_qayd_select_crime(self, pi, d):      return self.qayd_engine.select_crime_card(d)
+    def handle_qayd_select_proof(self, pi, d):      return self.qayd_engine.select_proof_card(d)
+    def handle_qayd_confirm(self):                  return self.qayd_engine.confirm()
+    def handle_qayd(self, pi, reason=None):         return self.handle_qayd_trigger(pi)
+    def handle_qayd_accusation(self, pi, acc=None):
+        return self.qayd_engine.trigger(pi) if not acc else self.qayd_engine.handle_legacy_accusation(pi, acc)
+    def handle_qayd_cancel(self):
+        r = self.qayd_engine.cancel()
+        if r.get('success') and self.phase == GamePhase.FINISHED.value:
+            r['trigger_next_round'] = True
+        return r
 
-    
-    # --- FORENSIC CHALLENGE (Legacy redirects to QaydEngine) ---
-    def initiate_challenge(self, player_index):
-        return self.qayd_engine.trigger(player_index)
+    def initiate_challenge(self, pi):   return self.qayd_engine.trigger(pi)
+    def process_accusation(self, pi, d): return self.qayd_engine.handle_legacy_accusation(pi, d)
 
-    def process_accusation(self, player_index, accusation_data):
-        return self.qayd_engine.handle_legacy_accusation(player_index, accusation_data)
-
-
-
-    def get_card_points(self, card):
-        return self.trick_manager.get_card_points(card)
-
-    def get_trick_winner(self):
-        return self.trick_manager.get_trick_winner()
-
-
-
+    # ═══════════════════════════════════════════════════════════════════
+    #  SCORING / ROUND END
+    # ═══════════════════════════════════════════════════════════════════
 
     def end_round(self, skip_scoring=False):
-        self.record_event("ROUND_END", f"Round {len(self.past_round_results)} ended")
-        
-        log_event("ROUND_END", self.room_id, details={
-            "scores": self.match_scores.copy(), 
-            "round_history_length": len(self.round_history)
-        })
+        self._record("ROUND_END")
         if not skip_scoring:
-            # Delegate to Scoring Engine
-            round_result, score_us, score_them = self.scoring_engine.calculate_final_scores()
-            
-            self.past_round_results.append(round_result)
-            self.match_scores['us'] += score_us
-            self.match_scores['them'] += score_them
-            
-            import copy
-            serialized_declarations = {}
-            for pos, projects in self.declarations.items():
-                 serialized_declarations[pos] = []
-                 for proj in projects:
-                      new_proj = proj.copy()
-                      if 'cards' in new_proj:
-                           new_proj['cards'] = [c.to_dict() if hasattr(c, 'to_dict') else c for c in new_proj['cards']]
-                      serialized_declarations[pos].append(new_proj)
-                      
-            round_snapshot = {
-                'roundNumber': len(self.past_round_results),
-                'bid': copy.deepcopy(self.bid),
-                'scores': copy.deepcopy(round_result),
-                'tricks': copy.deepcopy(self.round_history),
-                'dealerIndex': self.dealer_index, 
-                'floorCard': self.floor_card.to_dict() if self.floor_card else None,
-                'declarations': serialized_declarations,
-                'initialHands': self.initial_hands
-            }
-            self.full_match_history.append(round_snapshot)
+            rr, su, st = self.scoring_engine.calculate_final_scores()
+            self.past_round_results.append(rr)
+            self.match_scores['us'] += su
+            self.match_scores['them'] += st
+            snap = self._build_round_snapshot(rr)
+            self.full_match_history.append(snap)
             try:
-                 from ai_worker.agent import bot_agent
-                 bot_agent.capture_round_data(round_snapshot)
-            except Exception:
-                 pass
-        
+                from ai_worker.agent import bot_agent
+                bot_agent.capture_round_data(snap)
+            except Exception: pass
+
         self.dealer_index = (self.dealer_index + 1) % 4
-        # Check Win Condition
         if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
-             log_event("GAME_END", self.room_id, details={"final_scores": self.match_scores.copy(), "winner": "us" if self.match_scores['us'] > self.match_scores['them'] else "them"})
-             self.phase = GamePhase.GAMEOVER.value
-             # Archive Match
-             try:
-                 from server.services.archiver import archive_match
-                 archive_match(self)
-             except Exception as e:
-                 logger.error(f"Archive Trigger Failed: {e}")
+            self.phase = GamePhase.GAMEOVER.value
+            try:
+                from server.services.archiver import archive_match
+                archive_match(self)
+            except Exception: pass
         else:
-             self.phase = GamePhase.FINISHED.value
-             
-        if hasattr(self, 'trick_manager'):
-             # self.trick_manager.reset_state()
-             self.sawa_state = self.trick_manager.sawa_state
-        else:
-             self.sawa_state = {"active": False, "claimer": None, "responses": {}, "status": "NONE", "challenge_active": False}
-
-        # Qayd: Do NOT reset here. Preserve verdict during FINISHED phase.
-        # QaydEngine.reset() is called in reset_round_state() when next round starts.
-        # Do NOT reassign self.qayd_state — it's an alias to qayd_engine.state.
-
+            self.phase = GamePhase.FINISHED.value
+        if hasattr(self.trick_manager, 'sawa_state'):
+            self.sawa_state = self.trick_manager.sawa_state
         self.sawa_failed_khasara = False
         self.reset_timer()
 
-    def calculate_win_probability(self):
-        """
-        Heuristic-based probability calculation.
-        Formula: 50% + ((UsTotal - ThemTotal) / Target) * Weight
-        """
-        # 1. Calculate Current Round Points
-        round_us = 0
-        round_them = 0
-        for trick in self.round_history:
-            points = trick['points']
-            winner_pos = trick['winner']
-            if winner_pos in ['Bottom', 'Top']:
-                round_us += points
-            else:
-                round_them += points
-                
-        # 2. Add Match Scores (Total Context)
-        total_us = self.match_scores['us'] + round_us
-        total_them = self.match_scores['them'] + round_them
-        
-        # 3. Apply Heuristic (Target 152)
-        diff = total_us - total_them
-        # Clamp diff to reasonable bounds (-152 to 152 effectively)
-        prob = 0.5 + (diff / 152.0) * 0.5
-        
-        # Clamp result 0.0 to 1.0
-        return max(0.0, min(1.0, prob))
+    def apply_qayd_penalty(self, loser_team, winner_team):
+        penalty = self.qayd_state.get('penalty_points', 26 if 'SUN' in str(self.game_mode).upper() else 16)
+        proj_pts = sum(p.get('score',0) for projs in self.declarations.values() for p in projs)
+        total = penalty + proj_pts
+        self.match_scores[winner_team] += total
+        rr = self._build_qayd_round_result(winner_team, total)
+        self.past_round_results.append(rr)
+        self.full_match_history.append(self._build_round_snapshot(rr))
+        self.dealer_index = (self.dealer_index + 1) % 4
+        self.phase = GamePhase.GAMEOVER.value if (self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152) else GamePhase.FINISHED.value
 
-    def increment_blunder(self, player_index):
-        """Increments the blunder count for a specific player."""
-        try:
-            player = self.players[player_index]
-            pos = player.position
-            self.blunders[pos] = self.blunders.get(pos, 0) + 1
-            logger.info(f"Blunder recorded for {pos}. Total: {self.blunders[pos]}")
-        except Exception as e:
-            logger.error(f"Error incrementing blunder: {e}")
+    # ═══════════════════════════════════════════════════════════════════
+    #  TIMEOUT — Delegates to AutoPilot
+    # ═══════════════════════════════════════════════════════════════════
+
+    def check_timeout(self):
+        is_chal = self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active')
+        if (not self.timer.active or self.timer_paused) and not is_chal: return None
+        if self.phase in (GamePhase.FINISHED.value, GamePhase.GAMEOVER.value):
+            self.timer.stop(); return None
+        if is_chal:
+            qr = self.qayd_engine.check_timeout()
+            if qr: return qr
+        if not self.timer.is_expired(): return None
+
+        if self.phase == GamePhase.BIDDING.value:
+            res = self.handle_bid(self.current_turn, "PASS")
+        elif self.phase == GamePhase.PLAYING.value:
+            r = AutoPilot.execute(self, self.current_turn)
+            res = r.to_legacy_dict() if isinstance(r, ActionResult) else r
+        elif is_chal:
+            res = self._handle_challenge_timeout()
+        else:
+            res = None
+
+        if res and not res.get('success'):
+            if is_chal: res = self.handle_qayd_cancel()
+            elif self.phase == GamePhase.BIDDING.value: res = self.handle_bid(self.current_turn, "PASS")
+            self.reset_timer(1.0)
+        if self.timer.is_expired(): self.reset_timer()
+        return res
+
+    def auto_play_card(self, player_index):
+        """Legacy entry point -> AutoPilot."""
+        r = AutoPilot.execute(self, player_index)
+        return r.to_legacy_dict() if isinstance(r, ActionResult) else r
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  STATE EXPORT (for frontend)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def get_game_state(self) -> Dict[str, Any]:
+        return {
+            "roomId": self.room_id, "phase": self.phase,
+            "biddingPhase": self.bidding_engine.phase.name if self.bidding_engine else None,
+            "players": [p.to_dict() for p in self.players],
+            "tableCards": [
+                {"playerId": tc['playerId'], "card": tc['card'].to_dict(), "playedBy": tc['playedBy'], "metadata": tc.get('metadata')}
+                for tc in self.table_cards],
+            "currentTurnIndex": self.current_turn,
+            "gameMode": self.game_mode, "trumpSuit": self.trump_suit,
+            "bid": self.bid, "teamScores": self.team_scores, "matchScores": self.match_scores,
+            "analytics": {"winProbability": self.win_probability_history, "blunders": self.blunders},
+            "floorCard": self._floor_card_obj.to_dict() if self._floor_card_obj else None,
+            "dealerIndex": self.dealer_index, "biddingRound": self.state.biddingRound,
+            "declarations": {
+                pos: [{**p, 'cards': [c.to_dict() if hasattr(c,'to_dict') else c for c in p.get('cards',[])]} for p in projs]
+                for pos, projs in self.declarations.items()},
+            "timer": {"remaining": self.timer.get_time_remaining(), "duration": self.timer.duration,
+                      "elapsed": self.timer.get_time_elapsed(), "active": self.timer.active},
+            "isProjectRevealing": self.is_project_revealing,
+            "doublingLevel": self.doubling_level, "isLocked": self.is_locked,
+            "strictMode": self.strictMode, "dealingPhase": self.dealing_phase,
+            "lastTrick": self.last_trick, "roundHistory": self.past_round_results,
+            "currentRoundTricks": [
+                {"winner": t.get("winner"), "points": t.get("points"),
+                 "cards": self._ser_tc(t.get("cards",[])),
+                 "playedBy": t.get("playedBy"), "metadata": t.get("metadata")}
+                for t in self.round_history],
+            "sawaState": self.trick_manager.sawa_state if hasattr(self.trick_manager,'sawa_state') else self.sawa_state,
+            "qaydState": self.qayd_engine.get_frontend_state(),
+            "challengeActive": self.phase == GamePhase.CHALLENGE.value,
+            "timerStartTime": getattr(self.timer,'start_time',0),
+            "turnDuration": self.turn_duration, "serverTime": time.time(),
+            "akkaState": (self.project_manager.akka_state if hasattr(self.project_manager,'akka_state') else None) or self.akka_state,
+            "gameId": self.room_id, "settings": self.state.settings,
+        }
+
+    # ═══════════════════════════════════════════════════════════════════
+    #  INTERNAL HELPERS
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _sync_bid_state(self):
+        if not self.bidding_engine: return
+        c = self.bidding_engine.contract
+        tb = self.bidding_engine.tentative_bid
+        if c.type:
+            self.bid = {"type": c.type.value, "bidder": self.players[c.bidder_idx].position,
+                "doubled": c.level >= 2, "suit": c.suit, "level": c.level,
+                "variant": c.variant, "isAshkal": c.is_ashkal, "isTentative": False}
+            self.game_mode, self.trump_suit, self.doubling_level = c.type.value, c.suit, c.level
+        elif tb:
+            self.bid = {"type": tb['type'], "bidder": self.players[tb['bidder']].position,
+                "doubled": False, "suit": tb['suit'], "level": 1,
+                "variant": None, "isAshkal": tb['type'] == 'ASHKAL', "isTentative": True}
+        else:
+            self.bid = {"type": None, "bidder": None, "doubled": False}
+
+    def calculate_win_probability(self):
+        ru = sum(t['points'] for t in self.round_history if t['winner'] in ('Bottom','Top'))
+        rt = sum(t['points'] for t in self.round_history if t['winner'] in ('Right','Left'))
+        d = (self.match_scores['us']+ru) - (self.match_scores['them']+rt)
+        return max(0.0, min(1.0, 0.5 + (d/152.0)*0.5))
+
+    def increment_blunder(self, pi):
+        pos = self.players[pi].position
+        self.blunders[pos] = self.blunders.get(pos, 0) + 1
 
     def reset_timer(self, duration=None):
-        self.timer.reset(duration)
-        self.timer_paused = False # Unpause on reset
-        # NOTE: qayd_state is managed exclusively by QaydEngine now.
-        # No need to touch it here.
+        self.timer.reset(duration); self.timer_paused = False
 
-    def pause_timer(self):
-        """Pauses the turn timer (e.g. for Professor Intervention)"""
-        self.timer_paused = True # Legacy flag for double safety
-        self.timer.pause()
-        logger.info(f"Timer Paused for Room {self.room_id}")
+    def pause_timer(self):  self.timer_paused = True;  self.timer.pause()
+    def resume_timer(self): self.timer_paused = False; self.timer.resume()
 
-    def resume_timer(self):
-        """Resumes the turn timer"""
-        self.timer_paused = False
-        self.timer.resume()
-        logger.info(f"Timer Resumed for Room {self.room_id}")
-        
-    # @requires_unlocked - REMOVED to fix Deadlock Loop during Challenge
-    def check_timeout(self):
-        """Called by background loop to check if current turn expired"""
-        # Allow timeout check if Challenge is active (for Sherlock Bot)
-        is_challenge = (self.phase == GamePhase.CHALLENGE.value) or (self.qayd_state.get('active'))
-        
-        if (not self.timer.active or self.timer_paused) and not is_challenge:
-            return None
-            
-        # Don't check timeout in terminal phases
-        if self.phase == GamePhase.FINISHED.value or self.phase == GamePhase.GAMEOVER.value:
-            self.timer.stop()
-            return None
+    @staticmethod
+    def _ser_tc(cards):
+        out = []
+        for c in cards:
+            if isinstance(c, dict):
+                if 'card' in c:
+                    i = c['card']
+                    out.append({**c, 'card': i.to_dict() if hasattr(i,'to_dict') else i})
+                else: out.append(c)
+            elif hasattr(c, 'to_dict'): out.append(c.to_dict())
+            else: out.append(c)
+        return out
 
-        # Priority: Check Qayd Timeout INDEPENDENTLY of Main Timer
-        # Qayd has its own internal timer (qayd_engine.state['timer_start'])
-        if self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
-             qayd_result = self.qayd_engine.check_timeout()
-             if qayd_result:
-                  logger.info(f"[TIMEOUT] Qayd Timer Expired. Action: {qayd_result}")
-                  return qayd_result
+    def _record(self, ev, details=""):
+        if self.recorder:
+            try: self.recorder.record_state(self.state, ev, details)
+            except Exception: pass
 
-        # Check Main Game Timer
-        if self.timer.is_expired():
-            # If Qayd is active but Qayd timer hasn't expired, we should NOT process main timer 
-            # (which is paused anyway, but mostly for safety)
-            if self.phase == GamePhase.CHALLENGE.value:
-                  return None
+    def _build_round_snapshot(self, rr):
+        sd = {pos: [{**p, 'cards': [c.to_dict() if hasattr(c,'to_dict') else c for c in p.get('cards',[])]} for p in projs]
+              for pos, projs in self.declarations.items()}
+        return {'roundNumber': len(self.past_round_results), 'bid': copy.deepcopy(self.bid),
+                'scores': copy.deepcopy(rr), 'tricks': copy.deepcopy(self.round_history),
+                'dealerIndex': self.dealer_index,
+                'floorCard': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
+                'declarations': sd, 'initialHands': self.initial_hands}
 
-            lag = self.timer.get_lag()
-            logger.info(f"[TIMEOUT] Timer expired. is_locked={self.is_locked}, phase={self.phase}")
-            msg = f"Timeout Triggered for Player {self.current_turn} (Lag: {lag:.4f}s). Executing Action... | Room: {self.room_id} | GameObj: {id(self)}"
-            logger.info(msg)
-            with open("logs/timer_monitor.log", "a") as f:
-                f.write(f"{time.time()} {msg}\n")
-            
-            t_start = time.time()
-            res = None
-            
-            if self.phase == GamePhase.BIDDING.value:
-                logger.info(f"Timeout Bidding for Player {self.current_turn}. Auto-PASS.")
-                res = self.handle_bid(self.current_turn, "PASS")
-            
-            elif self.phase == GamePhase.DOUBLING.value:
-                logger.info(f"Timeout Doubling for Player {self.current_turn}. Auto-PASS.")
-                res = self.handle_bid(self.current_turn, "PASS")
+    def _build_qayd_round_result(self, winner, total):
+        z = {'result': 0, 'aklat': 0, 'ardh': 0, 'projects': [], 'abnat': 0, 'isKaboot': True}
+        return {'roundNumber': len(self.past_round_results)+1, 'qayd': True, 'winner': winner,
+                'us': {**z, 'result': total} if winner == 'us' else z,
+                'them': {**z, 'result': total} if winner == 'them' else z}
 
-            elif self.phase == GamePhase.VARIANT_SELECTION.value:
-                 logger.info(f"Timeout Variant Selection for Player {self.current_turn}. Auto-OPEN.")
-                 res = self.handle_bid(self.current_turn, "OPEN", "OPEN")
-            
-            elif self.phase == GamePhase.PLAYING.value:
-                logger.info(f"Timeout Playing for Player {self.current_turn}. Auto-Play.")
-                res = self.auto_play_card(self.current_turn)
+    def _handle_challenge_timeout(self):
+        qr = self.qayd_engine.check_timeout()
+        if qr: return qr
+        rp = self.qayd_state.get('reporter')
+        ri = next((p.index for p in self.players if p.position == rp), -1)
+        if ri != -1: return AutoPilot.execute(self, ri)
+        self.handle_qayd_cancel()
+        return {'success': True, 'action': 'ZOMBIE_REPAIR'}
 
-            elif self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
-                 # Check QaydEngine timeout first
-                 qayd_result = self.qayd_engine.check_timeout()
-                 if qayd_result:
-                      res = qayd_result
-                 else:
-                      reporter_pos = self.qayd_state.get('reporter')
-                      reporter_idx = next((p.index for p in self.players if p.position == reporter_pos), -1)
-                      
-                      if reporter_idx != -1:
-                           logger.info(f"Timeout/Action Cycle for Qayd Reporter {reporter_pos} ({reporter_idx}).")
-                           res = self.auto_play_card(reporter_idx)
-                      else:
-                           logger.warning("Qayd Active but reporter not found. ZOMBIE STATE. Auto-cancelling.")
-                           self.handle_qayd_cancel()
-                           res = {'success': True, 'action': 'ZOMBIE_REPAIR'}
-            
-            dur = time.time() - t_start
-            logger.info(f"Timeout Action Completed in {dur:.4f}s. Result: {res}")
-             
-            # --- DEADLOCK BREAKER ---
-            # If the action FAILED (success=False), we must force a state change
-            # otherwise the timer will expire again immediately and loop forever.
-            if res and not res.get('success'):
-                logger.error(f"[DEADLOCK] Timeout Action FAILED: {res.get('error')}. Forcing Fallback...")
-                
-                # Fallback 1: If in Challenge, Cancel it.
-                if self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active'):
-                     logger.warning("[DEADLOCK] Forcing Qayd Cancel to break loop.")
-                     res = self.handle_qayd_cancel()
-                     
-                # Fallback 2: If in Bidding, Force Pass
-                elif self.phase == GamePhase.BIDDING.value:
-                     logger.warning("[DEADLOCK] Forcing BID PASS to break loop.")
-                     res = self.handle_bid(self.current_turn, "PASS")
-                     
-                # Fallback 3: General Reset Timer to give breathing room (prevent 100% CPU loop)
-                self.reset_timer(1.0) 
-            
-            # Additional check: If timer is STILL expired (and wasn't reset by action), FORCE reset.
-            if self.timer.is_expired():
-                logger.warning(f"[TIMEOUT] Timer still expired after action. Forcing reset to prevent loop.")
-                self.reset_timer()
-            if self.timer.is_expired():
-                 logger.warning(f"Timer still expired after action (Success: {res.get('success') if res else 'None'}). Forcing reset.")
-                 with open("logs/timer_monitor.log", "a") as f:
-                     f.write(f"{time.time()} FORCE_RESET. Result: {res}\n")
-                 self.reset_timer()
+    def __getstate__(self):
+        s = self.__dict__.copy()
+        for k in ('_sherlock_lock', 'timer_manager', 'recorder'): s.pop(k, None)
+        return s
 
-            return res
-                
-        return None
-
-    def apply_qayd_penalty(self, loser_team, winner_team):
-        """Apply Qayd penalty. Called by QaydEngine.confirm()."""
-        # Get base penalty from QaydEngine (does NOT include projects — BUG-03 fix)
-        if self.qayd_state and 'penalty_points' in self.qayd_state:
-             base_penalty = self.qayd_state['penalty_points']
-             logger.info(f"[QAYD] Base penalty from QaydEngine: {base_penalty}")
-        else:
-             is_sun = 'SUN' in str(self.game_mode).upper()
-             base_penalty = 26 if is_sun else 16
-             logger.warning(f"[QAYD] Penalty not in state. Fallback: {base_penalty}")
-
-        # Add project points ONCE (BUG-03 fix: no longer double-counted)
-        project_points = 0
-        if self.declarations:
-             for pos, projs in self.declarations.items():
-                  for proj in projs:
-                       project_points += proj.get('score', 0)
-
-        score_winner = base_penalty + project_points
-        logger.info(f"[QAYD] Total penalty: {base_penalty} base + {project_points} projects = {score_winner}")
-        
-        self.match_scores[winner_team] += score_winner
-        
-        round_result = {
-            'roundNumber': len(self.past_round_results) + 1,
-            'us': {
-                'result': score_winner if winner_team == 'us' else 0, 
-                'aklat': 0, 
-                'ardh': 0, 
-                'projects': [],
-                'abnat': 0,
-                'isKaboot': True
-            },
-            'them': {
-                'result': score_winner if winner_team == 'them' else 0, 
-                'aklat': 0, 
-                'ardh': 0, 
-                'projects': [],
-                'abnat': 0,
-                'isKaboot': True
-            },
-            'winner': winner_team,
-            'qayd': True
-        }
-        self.past_round_results.append(round_result)
-        
-        round_snapshot = {
-                'roundNumber': len(self.past_round_results),
-                'bid': copy.deepcopy(self.bid),
-                'scores': copy.deepcopy(round_result),
-                'tricks': copy.deepcopy(self.round_history),
-                'dealerIndex': self.dealer_index, 
-                'floorCard': self.floor_card.to_dict() if self.floor_card else None,
-                'declarations': {},
-                'initialHands': self.initial_hands
-        }
-        self.full_match_history.append(round_snapshot)
-        
-        self.dealer_index = (self.dealer_index + 1) % 4
-        
-        if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
-             log_event("GAME_END", self.room_id, details={"final_scores": self.match_scores.copy(), "winner": "us" if self.match_scores['us'] > self.match_scores['them'] else "them"})
-             self.phase = GamePhase.GAMEOVER.value
-        else:
-             self.phase = GamePhase.FINISHED.value
-
-        # NOTE: Do NOT reassign self.qayd_state here.
-        # QaydEngine.confirm() handles its own state reset via .clear().update()
-
-    # @requires_unlocked - REMOVED to allow System/Bot to act during Lock (e.g. Qayd)
-    def auto_play_card(self, player_index):
+    def __setstate__(self, s):
+        self.__dict__.update(s)
+        self._sherlock_lock = False
         try:
-            player = self.players[player_index]
-            if not player.hand:
-                return {"error": "Hand empty"}
-                
-            t0 = time.time()
-            from ai_worker.agent import bot_agent
-            decision = bot_agent.get_decision(self.get_game_state(), player_index)
-            dt = time.time() - t0
-            logger.info(f"Auto-Play Decision Latency for {player.name}: {dt:.4f}s")
-            
-            card_idx = decision.get('cardIndex', 0)
-            action = decision.get('action', 'PLAY_CARD')
-            
-            # FIX: Prevent Bot Logic from triggering Qayd UI for Humans (Ghost Menu)
-            if action in ['QAYD_TRIGGER', 'QAYD_ACCUSATION'] and not player.is_bot:
-                 logger.warning(f"Auto-Play for {player.name} (Human): Ignoring Agent recommendation '{action}'. Falling back to simple play.")
-                 action = 'PLAY_CARD'
-                 # Force pick valid card as Agent didn't select one
-                 for i, c in enumerate(player.hand):
-                      if self.trick_manager.is_valid_move(c, player.hand):
-                           card_idx = i
-                           break
-
-            if action == 'QAYD_TRIGGER':
-                 logger.info(f"Auto-Play for {player.name}: Triggering Qayd Protocol (Sherlock)")
-                 return self.handle_qayd_trigger(player_index)
-                 
-            elif action == 'QAYD_ACCUSATION':
-                 # FIX: Only the reporter can submit accusation
-                 reporter_pos = self.qayd_state.get('reporter')
-                 
-                 if player.position != reporter_pos:
-                     logger.debug(f"Auto-Play for {player.name}: Not reporter ({player.position} != {reporter_pos}), skipping accusation")
-                     return {"success": True, "action": "WAIT", "reason": "Not reporter"}
-                 
-                 logger.info(f"Auto-Play for {player.name}: Submitting Qayd Accusation")
-                 # Ensure we have payload
-                 payload = decision.get('accusation', {})
-                 
-                 # FIX: Check Phase to route correctly
-                 if self.phase == GamePhase.CHALLENGE.value:
-                      return self.process_accusation(player_index, payload)
-                 else:
-                      # If not in Challenge Phase yet, treat Accusation as a Trigger first
-                      logger.info(f"Auto-Play: QAYD_ACCUSATION received in {self.phase}. Triggering Investigation first.")
-                      return self.handle_qayd_trigger(player_index)
-
-            elif action == 'QAYD_CONFIRM':
-                 logger.info(f"Auto-Play for {player.name}: Confirming Qayd Verdict")
-                 return self.handle_qayd_confirm()
-
-            elif action == 'WAIT':
-                 reason = decision.get('reason', 'Waiting')
-                 
-                 # FIX: Phantom Qayd Detection (Loop Breaker)
-                 # Use substring match to be robust against variations
-                 if "Qayd Investigation" in reason and self.phase == GamePhase.PLAYING.value:
-                      logger.warning(f"PHANTOM QAYD DETECTED (Reason: {reason}) during Auto-Play. Force-clearing state to RESUME GAME.")
-                      self.handle_qayd_cancel() 
-                      return {"success": True, "action": "PHANTOM_REPAIR"}
-
-                 if "Qayd Investigation" not in reason:
-                      logger.info(f"Auto-Play for {player.name}: WAIT ({reason})")
-                 return {"success": True, "action": "WAIT", "message": reason}
-
-            if card_idx < 0 or card_idx >= len(player.hand):
-                card_idx = 0 
-                
-            if not self.trick_manager.is_valid_move(player.hand[card_idx], player.hand):
-                 for i, c in enumerate(player.hand):
-                      if self.trick_manager.is_valid_move(c, player.hand):
-                           card_idx = i
-                           break
-
-            logger.info(f"Auto-Play for {player.name}: Bot chose index {card_idx}")
-            return self.play_card(player_index, card_idx)
-            
-        except Exception as e:
-            logger.error(f"Error in auto_play_card: {e}")
-            # Fallback: Play ANY valid card
-            player = self.players[player_index]
-            for i, c in enumerate(player.hand):
-                 if self.trick_manager.is_valid_move(c, player.hand):
-                      logger.info(f"Auto-Play Fallback for {player.name}: Playing index {i} ({c.rank}{c.suit})")
-                      return self.play_card(player_index, i)
-            
-            return {"error": f"Auto-Play Failed completely: {e}"}
-
-
-
-
-    # --- HANDLERS (Restored / New) ---
-    # (Moved to QAYD DELEGATION section above)
-
-
-
-        if not hasattr(self, 'timer'):
-             self.timer = TimerManager(5)
+            from server.common import redis_client
+            from game_engine.core.recorder import TimelineRecorder
+            self.recorder = TimelineRecorder(redis_client)
+        except Exception: self.recorder = None
+        if not hasattr(self, 'graveyard'): self.graveyard = Graveyard()

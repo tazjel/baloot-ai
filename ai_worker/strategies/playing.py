@@ -896,7 +896,12 @@ class PlayingStrategy:
          # Rule: Must be leading (Table empty)
          if len(ctx.table_cards) > 0: return None
 
-         # Check if already declared by me
+         # Check if Akka is already active (by ANYONE)
+         # Current server rules: Only ONE Akka per trick.
+         if ctx.akka_state and ctx.akka_state.get('active'):
+              return None
+              
+         # Check if already declared by me (redundant but safe)
          if ctx.akka_state and ctx.akka_state.get('claimer') == ctx.position:
               return None
               

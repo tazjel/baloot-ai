@@ -289,6 +289,13 @@ class ProjectManager:
                     "error": "Akka is only available in HOKUM mode"
                 }
 
+            # Validation: Already active within Game State (Bridge)
+            current_akka = self.game.akka_state
+            if current_akka and current_akka.get('active'):
+                 # Log this to catch spam
+                 logger.warning(f"AKKA REJECTED: Already active (Claimer: {current_akka.get('claimer')}). Request by: {player.position}")
+                 return {'success': False, 'error': 'Already Active'}
+
             eligible = self.check_akka_eligibility(player_index)
 
             if not eligible:
@@ -308,16 +315,22 @@ class ProjectManager:
                 }
 
             # Valid Akka!
-            self.akka_state = {
+            akka_data = {
                 'active': True,
                 'claimer': player.position,
                 'claimerIndex': player_index,
                 'suits': eligible,
                 'timestamp': time.time()
             }
+            
+            # CRITICAL FIX: Update Game State Bridge (Persisted)
+            # self.akka_state is local to ProjectManager, but we must update game.akka_state
+            # so it flows into game.state.akkaState (Pydantic) -> Redis.
+            self.game.akka_state = akka_data
+            self.akka_state = akka_data # Keep local copy just in case, or remove if unused
 
             logger.info(f"AKKA DECLARED by {player.position} for suits: {eligible}")
-            return {"success": True, "akka_state": self.akka_state}
+            return {"success": True, "akka_state": akka_data}
 
         except Exception as e:
             logger.error(f"Error in handle_akka: {e}")

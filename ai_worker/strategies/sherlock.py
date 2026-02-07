@@ -51,15 +51,19 @@ class SherlockStrategy:
         current_trick_idx = len(game_state.get('currentRoundTricks', [])) or 0
         
         for card_idx, tc in enumerate(table_cards):
-            crime_id = (round_num, current_trick_idx, card_idx, tc['card'].get('suit'), tc['card'].get('rank'))
-            if crime_id in self.reported_crimes:
-                continue
-                
-            action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Trick")
-            if action:
-                self.reported_crimes.add(crime_id)
-                self.pending_qayd_trigger = True
-                return {"action": action}
+            # Check Server Flag FIRST (Alignment with QaydEngine)
+            meta = tc.get('metadata') or {}
+            if meta.get('is_illegal'):
+                 crime_id = (round_num, current_trick_idx, card_idx, tc['card'].get('suit'), tc['card'].get('rank'))
+                 if crime_id in self.reported_crimes:
+                     continue
+                 
+                 self.reported_crimes.add(crime_id)
+                 self.pending_qayd_trigger = True
+                 return {"action": "QAYD_TRIGGER"}
+
+            # Optional: Keep Logic Check for logging/debugging but DO NOT Trigger if server didn't flag it
+            # action = self._check_crime_logic(ctx, tc['card'], tc['playedBy'], "Current Trick")
 
         # B. Check History (Deep Scan)
         current_tricks = game_state.get('currentRoundTricks', []) # This might need to be passed in differently if not in standard state
@@ -70,6 +74,7 @@ class SherlockStrategy:
                   abs_trick_idx = len(current_tricks) - 1 - rev_idx
                   involved_players = trick.get('playedBy', [])
                   cards_list = trick.get('cards', [])
+                  metas = trick.get('metadata') or []
                   
                   for i, c_data in enumerate(cards_list):
                         # Robust Parsing
@@ -79,18 +84,22 @@ class SherlockStrategy:
                         # Fallback for old history format
                         if not p_pos and i < len(involved_players):
                             p_pos = involved_players[i]
-                            
-                        if p_pos and c_inner:
+                        
+                        # Check Server Flag
+                        is_illegal = False
+                        if i < len(metas) and metas[i]:
+                             if metas[i].get('is_illegal'):
+                                  is_illegal = True
+
+                        if is_illegal:
                              crime_id = (round_num, abs_trick_idx, i)
                              if crime_id in self.reported_crimes:
                                   continue
                              
-                             action = self._check_crime_logic(ctx, c_inner, p_pos, f"Trick {abs_trick_idx}")
-                             if action:
-                                  self.reported_crimes.add(crime_id)
-                                  self.pending_qayd_trigger = True
-                                  logger.info(f"[SHERLOCK] Found crime in history: {crime_id}")
-                                  return {"action": action}
+                             self.reported_crimes.add(crime_id)
+                             self.pending_qayd_trigger = True
+                             logger.info(f"[SHERLOCK] Found flagged crime in history: {crime_id}")
+                             return {"action": "QAYD_TRIGGER"}
         return None
 
     def _check_crime_logic(self, ctx, card_dict, played_by_pos, source="Table"):

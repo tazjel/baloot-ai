@@ -295,7 +295,16 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
              # Fallback: Try playing the first card available
              # This prevents the game from freezing if the AI's complex move was rejected
              try:
-                 fallback_res = game.play_card(current_idx, 0, metadata={'reasoning': 'Fallback Random'})
+                 fallback_res = {'success': False, 'error': 'Unknown Phase'}
+                 
+                 if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+                      # Fallback in auction is to PASS
+                      fallback_res = game.handle_bid(current_idx, "PASS", None, reasoning="Fallback Pass")
+                      
+                 elif game.phase == "PLAYING":
+                      # Fallback in playing is random card
+                      fallback_res = game.play_card(current_idx, 0, metadata={'reasoning': 'Fallback Random'})
+
                  if fallback_res.get('success'):
                       broadcast_game_update(sio, game, room_id)
                       room_manager.save_game(game)
