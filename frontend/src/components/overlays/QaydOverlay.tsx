@@ -52,13 +52,27 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
       case 'QAYD_ACCUSATION':
         if (payload?.accusation) {
           const acc = payload.accusation;
-          onAccusation(
-            acc.violation_type || 'REVOKE',
-            acc.crime_card,
-            0,
-            acc.crime_card?.played_by || 'Unknown',
-            acc.proof_card
-          );
+          
+          // Helper to normalize card input
+          const normalizeCard = (c: any): CardModel | undefined => {
+            if (!c) return undefined;
+            return c.card || c;
+          };
+
+          const crime = normalizeCard(acc.crime_card);
+          const proof = normalizeCard(acc.proof_card);
+          // played_by might be on the wrapper or passed separately
+          const playedBy = (acc.crime_card as any)?.playedBy || 'Unknown';
+
+          if (crime) {
+            onAccusation(
+              acc.violation_type || 'REVOKE',
+              crime,
+              0, // Trick number unknown here contextually
+              playedBy,
+              proof
+            );
+          }
         }
         break;
       default:

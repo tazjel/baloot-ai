@@ -217,3 +217,117 @@ def is_move_legal(
             return True
 
     return True
+
+def get_violation_details(
+    card: Any, 
+    hand: List[Any], 
+    table_cards: List[Dict], 
+    game_mode: str, 
+    trump_suit: str, 
+    my_team: str,
+    players_team_map: Dict[str, str],
+    contract_variant: str = None
+) -> Dict[str, Any]:
+    """
+    Detailed validation that returns the reason and PROOF (if applicable).
+    Used for Qayd/Forensic analysis.
+    """
+    # Default Result
+    res = {'is_legal': True, 'violation_type': None, 'reason': None, 'proof_hint': None}
+
+    c_suit = _get_suit(card)
+    c_rank = _get_rank(card)
+
+    # 0. Check Closed Doubling Constraint
+    if not table_cards and contract_variant == 'CLOSED' and game_mode == 'HOKUM':
+        if c_suit == trump_suit:
+            non_trumps = [c for c in hand if _get_suit(c) != trump_suit]
+            if non_trumps:
+                 return {
+                     'is_legal': False,
+                     'violation_type': 'TRUMP_IN_DOUBLE',
+                     'reason': 'Cannot lead Trump in Locked mode unless forced',
+                     'proof_hint': non_trumps[0].to_dict() if hasattr(non_trumps[0], 'to_dict') else non_trumps[0]
+                 }
+
+    if not table_cards:
+        return res
+    
+    lead_play = table_cards[0]
+    lead_card = lead_play['card']
+    lead_suit = _get_suit(lead_card)
+    
+    # 1. Follow Suit (Mandatory)
+    cards_of_suit = [c for c in hand if _get_suit(c) == lead_suit]
+    has_suit = len(cards_of_suit) > 0
+    
+    if has_suit:
+        if c_suit != lead_suit:
+            # Illegal unless following suit in Hokum (Trump) overrides
+            if game_mode == 'HOKUM' and lead_suit == trump_suit:
+                 pass 
+            else:
+                 return {
+                     'is_legal': False, 
+                     'violation_type': 'REVOKE', 
+                     'reason': f"Must follow suit ({lead_suit})",
+                     'proof_hint': cards_of_suit[0].to_dict() if hasattr(cards_of_suit[0], 'to_dict') else cards_of_suit[0]
+                 }
+
+    if game_mode == 'SUN':
+        return res
+    
+    # --- HOKUM STRICT RULES ---
+    
+    # Determine Current Winner
+    winner_idx = get_trick_winner_index(table_cards, game_mode, trump_suit)
+    curr_winner_play = table_cards[winner_idx]
+    curr_winner_pos = curr_winner_play['playedBy']
+    
+    # Is partner winning?
+    winner_team = players_team_map.get(curr_winner_pos)
+    is_partner_winning = (winner_team == my_team)
+    
+    if is_partner_winning:
+        return res # Partner winning = freedom (mostly)
+
+    # Enemy Winning
+    trumps_in_hand = [c for c in hand if _get_suit(c) == trump_suit]
+    has_trump = len(trumps_in_hand) > 0
+    
+    # Case A: Void in Lead Suit (Already checked suit follow above)
+    # If lead was trump, we handled it.
+    
+    # Case B: Void in Lead Suit -> Must Trump
+    if not has_suit:
+        if has_trump:
+            if c_suit != trump_suit:
+                return {
+                    'is_legal': False,
+                    'violation_type': 'NO_TRUMP',
+                    'reason': "Must trump when void in lead suit",
+                    'proof_hint': trumps_in_hand[0].to_dict() if hasattr(trumps_in_hand[0], 'to_dict') else trumps_in_hand[0]
+                }
+            
+            # Must Over-Trump?
+            winning_card = curr_winner_play['card']
+            if _get_suit(winning_card) == trump_suit:
+                 can_beat, beating_cards = can_beat_trump_card(winning_card, hand, trump_suit)
+                 if can_beat:
+                      # Did we play a beating card?
+                      # beating_cards contains valid options.
+                      # We need to check if 'card' is one of them.
+                      # Ideally check identity or value.
+                      
+                      played_strength = 100 + ORDER_HOKUM.index(c_rank)
+                      winning_strength = 100 + ORDER_HOKUM.index(_get_rank(winning_card))
+                      
+                      if played_strength <= winning_strength:
+                           return {
+                               'is_legal': False,
+                               'violation_type': 'NO_OVERTRUMP',
+                               'reason': "Must over-trump current winner",
+                               'proof_hint': beating_cards[0].to_dict() if hasattr(beating_cards[0], 'to_dict') else beating_cards[0]
+                           }
+
+    return res

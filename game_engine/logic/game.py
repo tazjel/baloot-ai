@@ -228,7 +228,7 @@ class Game(StateBridgeMixin):
     def handle_qayd_confirm(self):                  return self.qayd_engine.confirm()
     def handle_qayd(self, pi, reason=None):         return self.handle_qayd_trigger(pi)
     def handle_qayd_accusation(self, pi, acc=None):
-        return self.qayd_engine.trigger(pi) if not acc else self.qayd_engine.handle_legacy_accusation(pi, acc)
+        return self.qayd_engine.trigger(pi) if not acc else self.qayd_engine.handle_bot_accusation(pi, acc)
     def handle_qayd_cancel(self):
         r = self.qayd_engine.cancel()
         if r.get('success') and self.phase == GamePhase.FINISHED.value:
@@ -236,7 +236,7 @@ class Game(StateBridgeMixin):
         return r
 
     def initiate_challenge(self, pi):   return self.qayd_engine.trigger(pi)
-    def process_accusation(self, pi, d): return self.qayd_engine.handle_legacy_accusation(pi, d)
+    def process_accusation(self, pi, d): return self.qayd_engine.handle_bot_accusation(pi, d)
 
     # ═══════════════════════════════════════════════════════════════════
     #  SCORING / ROUND END
@@ -356,6 +356,7 @@ class Game(StateBridgeMixin):
             "turnDuration": self.turn_duration, "serverTime": time.time(),
             "akkaState": (self.project_manager.akka_state if hasattr(self.project_manager,'akka_state') else None) or self.akka_state,
             "gameId": self.room_id, "settings": self.state.settings,
+            "resolvedCrimes": self.state.resolved_crimes,
         }
 
     # ═══════════════════════════════════════════════════════════════════

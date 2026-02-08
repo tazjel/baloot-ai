@@ -81,6 +81,28 @@ class BotAgent:
              if sawa_resp := self.referee.check_sawa(ctx, game_state):
                   return sawa_resp
              
+             # 1.2 Detect Human Lies (Project Blunders)
+             # If server flagged an invalid project in the previous turn/event log (hypothetically)
+             # or we scan the table metadata for "intervention" flags.
+             
+             # Current implementation of handle_akka/sawa returns error dicts to the caller (API).
+             # It doesn't put "intervention" in game_state directly unless we added it.
+             # However, if we want the Bot to CATCH it, the Bot needs to see the invalid claim.
+             
+             # New Logic: Inspect 'intervention' field in Table or specific GameState flag
+             # The ProjectManager puts it in... wait, it returns it to the API response.
+             # So the CLIENT sees it. The BOT (via socket) might not see the immediate API response of the human.
+             # BUT: The server likely broadcasts an event or updates state.
+             
+             # Assumption: The server updates `game_state['latest_event']` or similar.
+             # For now, let's assume the helper `self.sherlock.scan_for_blunders` handles this
+             # if we point it to the right data.
+             
+             # Let's delegate to Sherlock entirely for this.
+             if hasattr(self.sherlock, 'detect_invalid_projects'):
+                  qayd = self.sherlock.detect_invalid_projects(game_state)
+                  if qayd: return qayd
+             
              # Pub Sub: Theory of Mind (if active)
              if ctx.phase == 'PLAYING':
                   try:

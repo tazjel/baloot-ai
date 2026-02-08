@@ -1,6 +1,9 @@
 """
-QaydEngine — Unified Forensic Challenge System (Kammelna Spec)
-==============================================================
+QaydEngine — Unified Forensic Challenge System (Refactored)
+============================================================
+
+STATE MACHINE ONLY - All validation delegated to RulesValidator
+NO BOT LOGIC - Bot detection moved to ForensicScanner in ai_worker
 
 Replaces:
   - qayd_manager.py (no longer used)
@@ -12,17 +15,20 @@ State Machine:
 
 Single source of truth for all Qayd state. Game.qayd_state is an alias
 to QaydEngine.state (same dict object, never reassigned).
+
+MISSION 2 & 3 REFACTORING:
+- Removed _bot_auto_accuse (now in ForensicScanner)
+- Removed _validate_* methods (now in RulesValidator)
+- Removed handle_legacy_accusation (bots use proper API now)
+- Clean separation: Engine = State, Validator = Rules, Scanner = Detection
 """
 
 import time
 import logging
-import copy
 from typing import Dict, List, Any, Optional, Tuple
 
-from game_engine.models.constants import (
-    GamePhase, ORDER_HOKUM, ORDER_SUN,
-    POINT_VALUES_SUN, POINT_VALUES_HOKUM
-)
+from game_engine.models.constants import GamePhase
+from game_engine.logic.rules_validator import RulesValidator, ViolationType
 
 logger = logging.getLogger(__name__)
 
@@ -36,14 +42,6 @@ class QaydStep:
     SELECT_CARD_2    = 'SELECT_CARD_2'   # Proof card (Green Ring)
     ADJUDICATION     = 'ADJUDICATION'    # Backend validates
     RESULT           = 'RESULT'          # Verdict displayed
-
-
-# ─── Violation Types ──────────────────────────────────────────────────────────
-class ViolationType:
-    REVOKE           = 'REVOKE'           # قاطع — Failure to follow suit
-    TRUMP_IN_DOUBLE  = 'TRUMP_IN_DOUBLE'  # ربع في الدبل — Illegal trump in doubled game
-    NO_OVERTRUMP     = 'NO_OVERTRUMP'     # ما كبر بحكم — Playing lower trump when holding higher
-    NO_TRUMP         = 'NO_TRUMP'         # ما دق بحكم — Not trumping when void in suit
 
 
 # ─── Main Menu Options ────────────────────────────────────────────────────────
@@ -85,7 +83,7 @@ def _empty_state() -> Dict[str, Any]:
 
 class QaydEngine:
     """
-    Unified Qayd (Forensic Challenge) Engine.
+    Unified Qayd (Forensic Challenge) Engine - Refactored.
 
     Usage:
         engine = QaydEngine(game)
@@ -93,12 +91,17 @@ class QaydEngine:
 
     All mutations go through engine methods. The dict is mutated IN-PLACE
     so all aliases remain valid.
+    
+    REFACTORING NOTES:
+    - Bot auto-accusation logic moved to ai_worker/strategies/components/forensics.py
+    - Validation logic moved to game_engine/logic/rules_validator.py
+    - This class now ONLY manages state transitions
     """
 
     def __init__(self, game):
         self.game = game
         self.state: Dict[str, Any] = _empty_state()
-        self.ignored_crimes: set = set()   # (trick_idx, card_idx) tuples — Double Jeopardy
+        # Note: ignored_crimes moved to ForensicScanner (bot-specific)
 
     # ══════════════════════════════════════════════════════════════════════════
     #  PUBLIC API
@@ -109,6 +112,9 @@ class QaydEngine:
         Step 0 → Step 1 (MAIN_MENU).
         Called when a player presses the Qayd button.
         Locks the game and pauses timers.
+        
+        NOTE: Bot detection is now handled externally by ForensicScanner.
+        Bots should call this, then immediately call accusation methods.
         """
         if self.state['active']:
             return {'success': False, 'error': 'Qayd already active'}
@@ -142,10 +148,6 @@ class QaydEngine:
         })
 
         logger.info(f"[QAYD] Triggered by {player.position} (bot={is_bot}). Timer={timer_dur}s. Phase → CHALLENGE.")
-
-        # Bot Fast-Path — skip UI, go straight to auto-detect + confirm
-        if is_bot:
-            return self._bot_auto_accuse(player_index)
 
         return {'success': True, 'qayd_state': self.state}
 
@@ -218,13 +220,9 @@ class QaydEngine:
 
         logger.info(f"[QAYD] CONFIRMED: {self.state['verdict']}. {loser_team} penalized {penalty} pts → {winner_team}")
 
-        # Add crime to ignore list (Legacy session-based)
+        # Add crime to ledger (persistent)
         sig = self.state.get('crime_signature')
         if sig:
-            self.ignored_crimes.add(sig)
-            
-            # --- LEDGER SYSTEM (Persistent) ---
-            # Format: "{trick_idx}_{card_idx}" matches select_crime_card check
             ledger_sig = f"{sig[0]}_{sig[1]}"
             if ledger_sig not in self.game.state.resolved_crimes:
                 self.game.state.resolved_crimes.append(ledger_sig)
@@ -233,7 +231,7 @@ class QaydEngine:
         # Apply penalty through game (ends the round)
         self.game.apply_qayd_penalty(loser_team, winner_team)
 
-        # Mark resolved (state may have been partially reset by apply_qayd_penalty)
+        # Mark resolved
         self._update({
             'step': QaydStep.IDLE,
             'active': False,
@@ -256,11 +254,6 @@ class QaydEngine:
         if not self.state['active']:
             return {'success': False, 'error': 'No active Qayd'}
 
-        sig = self.state.get('crime_signature')
-        if sig:
-            self.ignored_crimes.add(sig)
-            logger.info(f"[QAYD] Crime {sig} added to ignore list (cancelled).")
-
         was_result = self.state['step'] == QaydStep.RESULT
         self._reset_state()
 
@@ -279,7 +272,7 @@ class QaydEngine:
     def reset(self):
         """Full reset for new round. Called by game.reset_round_state()."""
         self._reset_state()
-        self.ignored_crimes.clear()
+        # Note: ForensicScanner handles its own session reset
 
     def check_timeout(self) -> Optional[Dict[str, Any]]:
         """Called by game's background timer loop."""
@@ -299,161 +292,20 @@ class QaydEngine:
         return self.cancel()
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  LEGACY COMPAT: Direct accusation (used by old bot_agent / auto_play)
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def handle_legacy_accusation(self, player_index: int, accusation: Dict) -> Dict[str, Any]:
-        """
-        Accepts old-style {crime_card, proof_card, violation_type} payload.
-        Fast-paths through the state machine.
-        """
-        crime_card = accusation.get('crime_card')
-        proof_card = accusation.get('proof_card')
-        qayd_type = accusation.get('qayd_type', accusation.get('violation_type', 'REVOKE'))
-
-        # Ensure triggered
-        if not self.state['active']:
-            result = self.trigger(player_index)
-            if not result.get('success'):
-                return result
-
-        if self.state['step'] in (QaydStep.MAIN_MENU, QaydStep.IDLE):
-            self.select_menu_option('REVEAL_CARDS')
-
-        if self.state['step'] == QaydStep.VIOLATION_SELECT:
-            self.select_violation(qayd_type)
-
-        if self.state['step'] == QaydStep.SELECT_CARD_1 and crime_card:
-            self.select_crime_card(crime_card)
-
-        if self.state['step'] == QaydStep.SELECT_CARD_2 and proof_card:
-            return self.select_proof_card(proof_card)
-
-        return {'success': True, 'qayd_state': self.state}
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  BOT AUTO-ACCUSATION (Metadata-based detection)
-    # ══════════════════════════════════════════════════════════════════════════
-
-    def _bot_auto_accuse(self, reporter_index: int) -> Dict[str, Any]:
-        """Bots skip the 5-step UI; scan for is_illegal metadata flags."""
-        crime_data = None
-
-        # Search table_cards (current trick) - FIFO (First Crime Wins)
-        for i, play in enumerate(self.game.table_cards):
-            meta = play.get('metadata') or {}
-            if meta.get('is_illegal'):
-                # Note: trick_idx is len(round_history)
-                trick_idx = len(self.game.round_history)
-                card = play['card']
-                crime_data = {
-                    'suit': card.suit if hasattr(card, 'suit') else card.get('suit'),
-                    'rank': card.rank if hasattr(card, 'rank') else card.get('rank'),
-                    'trick_idx': trick_idx,
-                    'card_idx': i,
-                    'played_by': play.get('playedBy'),
-                }
-                meta['is_illegal'] = False  # Clear flag
-                break
-
-        # Search ALL completed tricks in forward order (FIFO)
-        if not crime_data and self.game.round_history:
-            for t_idx, trick in enumerate(self.game.round_history):
-                 metas = trick.get('metadata') or []
-                 for i, meta in enumerate(metas):
-                      if meta and meta.get('is_illegal'):
-                           cards = trick.get('cards', [])
-                           c = cards[i] if i < len(cards) else {}
-                           # Cards may be {card: dict, playedBy: str} or flat dicts
-                           card_inner = c.get('card', c) if isinstance(c, dict) else c
-                           played_by_list = trick.get('playedBy', [])
-                           played_by = c.get('playedBy') if isinstance(c, dict) and 'playedBy' in c else (
-                               played_by_list[i] if i < len(played_by_list) else None
-                           )
-                           crime_data = {
-                                'suit': card_inner.get('suit') if isinstance(card_inner, dict) else getattr(card_inner, 'suit', None),
-                                'rank': card_inner.get('rank') if isinstance(card_inner, dict) else getattr(card_inner, 'rank', None),
-                                'trick_idx': t_idx,
-                                'card_idx': i,
-                                'played_by': played_by,
-                           }
-                           meta['is_illegal'] = False # Clear flag to prevent double jeopardy
-                           break
-                 if crime_data:
-                      break
-
-        # Double Jeopardy check (Session + Ledger)
-        if crime_data:
-            sig = (crime_data['trick_idx'], crime_data['card_idx'])
-            ledger_sig = f"{sig[0]}_{sig[1]}"
-            
-            if sig in self.ignored_crimes:
-                logger.info(f"[QAYD] Bot ignoring already-cancelled crime (Session): {sig}")
-                self._unlock_and_reset()
-                return {'success': False, 'error': 'Double Jeopardy (Session)'}
-            
-            if ledger_sig in self.game.state.resolved_crimes:
-                logger.info(f"[QAYD] Bot ignoring resolved crime (Ledger): {ledger_sig}")
-                self._unlock_and_reset()
-                return {'success': False, 'error': 'Double Jeopardy (Ledger)'}
-
-        if not crime_data:
-            logger.info("[QAYD] Bot found no illegal cards. Cancelling.")
-            self._unlock_and_reset()
-            return {'success': False, 'error': 'No crime detected'}
-
-        # Determine verdict
-        offender_pos = crime_data['played_by']
-        offender = next((p for p in self.game.players if p.position == offender_pos), None)
-        reporter = self.game.players[reporter_index]
-
-        if offender:
-            loser_team = offender.team
-            verdict = 'CORRECT'
-            verdict_msg = 'قيد صحيح'
-            reason = f"Bot auto-detect: {offender_pos} played illegal card"
-        else:
-            loser_team = reporter.team
-            verdict = 'WRONG'
-            verdict_msg = 'قيد خاطئ'
-            reason = "Bot accusation failed — offender not found"
-
-        penalty = self._calculate_penalty()
-        sig = (crime_data['trick_idx'], crime_data['card_idx'])
-
-        self._update({
-            'crime_card': crime_data,
-            'proof_card': None,
-            'violation_type': ViolationType.REVOKE,
-            'verdict': verdict,
-            'verdict_message': verdict_msg,
-            'loser_team': loser_team,
-            'penalty_points': penalty,
-            'crime_signature': sig,
-            'step': QaydStep.RESULT,
-            'reason': reason,
-            'target_play': {
-                'card': crime_data,
-                'playedBy': offender_pos,
-                'metadata': {'illegal_reason': reason},
-            },
-        })
-
-        logger.info(f"[QAYD] Bot auto-accused: {verdict}. Penalty={penalty}. Loser={loser_team}")
-
-        # Bot waits for timer to expire before confirming (so users see the result)
-        return {'success': True, 'qayd_state': self.state}
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  ADJUDICATION (Human forensic path)
+    #  ADJUDICATION (Delegates to RulesValidator)
     # ══════════════════════════════════════════════════════════════════════════
 
     def _adjudicate(self) -> Dict[str, Any]:
-        """Validate the accusation after both cards selected."""
+        """
+        Validate the accusation after both cards selected.
+        
+        REFACTORED: Now delegates to RulesValidator instead of inline logic.
+        """
         crime = self.state['crime_card']
         proof = self.state['proof_card']
         violation = self.state['violation_type']
         reporter_pos = self.state['reporter']
+        
         reporter = next((p for p in self.game.players if p.position == reporter_pos), None)
 
         if not crime or not reporter:
@@ -463,19 +315,22 @@ class QaydEngine:
         offender_pos = crime.get('played_by')
         offender = next((p for p in self.game.players if p.position == offender_pos), None)
 
-        is_guilty = False
-        reason = "Move appears legal."
+        # Build game context for validator
+        game_context = {
+            'trump_suit': self.game.trump_suit,
+            'game_mode': str(self.game.game_mode or '').upper(),
+            'round_history': self.game.round_history,
+            'table_cards': self.game.table_cards,
+            'players': self.game.players,
+        }
 
-        if violation == ViolationType.REVOKE and proof:
-            is_guilty, reason = self._validate_revoke(crime, proof, offender_pos)
-        elif violation == ViolationType.NO_TRUMP and proof:
-            is_guilty, reason = self._validate_no_trump(crime, proof, offender_pos)
-        elif violation == ViolationType.NO_OVERTRUMP and proof:
-            is_guilty, reason = self._validate_no_overtrump(crime, proof, offender_pos)
-        elif violation == ViolationType.TRUMP_IN_DOUBLE:
-            is_guilty, reason = self._validate_via_metadata(crime)
-        else:
-            is_guilty, reason = self._validate_via_metadata(crime)
+        # DELEGATION: Call RulesValidator
+        is_guilty, reason = RulesValidator.validate(
+            violation_type=violation,
+            crime=crime,
+            proof=proof,
+            game_context=game_context
+        )
 
         # Build verdict
         if is_guilty:
@@ -509,121 +364,8 @@ class QaydEngine:
         return {'success': True, 'qayd_state': self.state}
 
     # ══════════════════════════════════════════════════════════════════════════
-    #  VALIDATION HELPERS
+    #  HELPER METHODS (Non-validation)
     # ══════════════════════════════════════════════════════════════════════════
-
-    def _validate_revoke(self, crime: Dict, proof: Dict, offender_pos: str) -> Tuple[bool, str]:
-        """Revoke: offender played wrong suit, proof shows they had the led suit."""
-        crime_trick_idx = crime.get('trick_idx', -1)
-        proof_trick_idx = proof.get('trick_idx', -1)
-
-        if crime_trick_idx == len(self.game.round_history):
-            # Construct virtual trick from current table (already in {card, playedBy} format)
-            crime_trick = {
-                'cards': [{'card': c['card'], 'playedBy': c['playedBy']} for c in self.game.table_cards],
-                'playedBy': [c['playedBy'] for c in self.game.table_cards],
-                'metadata': [c.get('metadata', {}) for c in self.game.table_cards]
-            }
-        elif 0 <= crime_trick_idx < len(self.game.round_history):
-            crime_trick = self.game.round_history[crime_trick_idx]
-        else:
-            return False, "Crime trick not found in history."
-
-        led_suit = self._get_led_suit(crime_trick)
-
-        if not led_suit:
-            return False, "Cannot determine led suit."
-
-        crime_suit = crime.get('suit')
-        proof_suit = proof.get('suit')
-
-        if crime_suit == led_suit:
-            return False, "Crime card follows suit — not a revoke."
-
-        if proof_suit != led_suit:
-            return False, "Proof card is not the led suit."
-
-        proof_played_by = proof.get('played_by')
-        if proof_played_by != offender_pos:
-            return False, "Proof card was not played by the accused."
-
-        # Pass if proof is in hand (trick_idx == -1)
-        if proof_trick_idx >= 0 and proof_trick_idx <= crime_trick_idx:
-            return False, "Proof card was played before or at the same time as the crime."
-
-        return True, f"قاطع: {offender_pos} held {led_suit} but played {crime_suit}."
-
-    def _validate_no_trump(self, crime: Dict, proof: Dict, offender_pos: str) -> Tuple[bool, str]:
-        """NO_TRUMP: Offender didn't play trump when they had it."""
-        mode = str(self.game.game_mode or '').upper()
-        if 'HOKUM' not in mode:
-            return False, "NO_TRUMP only applies to Hokum."
-
-        proof_suit = proof.get('suit')
-        if proof_suit != self.game.trump_suit:
-            return False, "Proof card is not trump suit."
-
-        crime_suit = crime.get('suit')
-        if crime_suit == self.game.trump_suit:
-            return False, "Crime card IS trump — they did trump."
-
-        proof_played_by = proof.get('played_by')
-        if proof_played_by != offender_pos:
-            return False, "Proof card not played by accused."
-
-        return True, f"ما دق بحكم: {offender_pos} had trump but didn't play it."
-
-    def _validate_no_overtrump(self, crime: Dict, proof: Dict, offender_pos: str) -> Tuple[bool, str]:
-        """NO_OVERTRUMP: Offender played lower trump when holding higher."""
-        mode = str(self.game.game_mode or '').upper()
-        if 'HOKUM' not in mode:
-            return False, "NO_OVERTRUMP only applies to Hokum."
-
-        crime_suit = crime.get('suit')
-        proof_suit = proof.get('suit')
-
-        if crime_suit != self.game.trump_suit or proof_suit != self.game.trump_suit:
-            return False, "Both cards must be trump for overtrump violation."
-
-        proof_played_by = proof.get('played_by')
-        if proof_played_by != offender_pos:
-            return False, "Proof card not played by accused."
-
-        try:
-            crime_strength = ORDER_HOKUM.index(crime.get('rank'))
-            proof_strength = ORDER_HOKUM.index(proof.get('rank'))
-        except ValueError:
-            return False, "Invalid card rank."
-
-        if proof_strength <= crime_strength:
-            return False, "Proof card is not higher than crime card."
-
-        return True, f"ما كبر بحكم: {offender_pos} had higher trump but played lower."
-
-    def _validate_via_metadata(self, crime: Dict) -> Tuple[bool, str]:
-        """Fallback: Check if the card was flagged as illegal by the engine."""
-        trick_idx = crime.get('trick_idx', -1)
-        card_idx = crime.get('card_idx', -1)
-
-        # Check current table
-        if trick_idx == len(self.game.round_history):
-            if 0 <= card_idx < len(self.game.table_cards):
-                meta = self.game.table_cards[card_idx].get('metadata') or {}
-                if meta.get('is_illegal'):
-                    reason = meta.get('illegal_reason', 'Rule violation detected by engine')
-                    return True, reason
-
-        # Check round history — metadata is a separate array parallel to cards
-        if 0 <= trick_idx < len(self.game.round_history):
-            trick = self.game.round_history[trick_idx]
-            metas = trick.get('metadata') or []
-            if 0 <= card_idx < len(metas) and metas[card_idx]:
-                meta_entry = metas[card_idx]
-                if isinstance(meta_entry, dict) and meta_entry.get('is_illegal'):
-                    reason = meta_entry.get('illegal_reason', 'Rule violation detected')
-                    return True, reason
-
-        return False, "Move appears legal."
 
     def _validate_card_in_history(self, card_data: Dict) -> bool:
         """Check that a card reference points to a real card (History, Table, or Hand)."""
@@ -632,7 +374,6 @@ class QaydEngine:
         player_pos = card_data.get('played_by')
 
         # Case 1: Card in Hand (trick_idx == -1)
-        # Needed for 'Proof' cards when hands are revealed
         if trick_idx == -1:
             if not player_pos:
                 return False
@@ -641,7 +382,7 @@ class QaydEngine:
                 return False
             return 0 <= card_idx < len(player.hand)
 
-        # Case 2: Card currently on Table (In-progress trick)
+        # Case 2: Card currently on Table
         if trick_idx == len(self.game.round_history):
             return 0 <= card_idx < len(self.game.table_cards)
 
@@ -651,31 +392,12 @@ class QaydEngine:
             cards = trick.get('cards', [])
             if 0 <= card_idx < len(cards):
                 return True
-            # Also check via playedBy array length as fallback
             played_by = trick.get('playedBy', [])
             if 0 <= card_idx < len(played_by):
                 return True
             return False
 
         return False
-
-    def _get_led_suit(self, trick: Dict) -> Optional[str]:
-        """Extract the led suit from a trick record.
-        Cards may be flat dicts {suit, rank} or wrapped {card: {suit, rank}, playedBy: str}.
-        """
-        cards = trick.get('cards', [])
-        if not cards:
-            return None
-        first = cards[0]
-        if isinstance(first, dict):
-            # Wrapped format: {card: {...}, playedBy: ...}
-            if 'card' in first:
-                inner = first['card']
-                return inner.get('suit') if isinstance(inner, dict) else getattr(inner, 'suit', None)
-            return first.get('suit')
-        if hasattr(first, 'suit'):
-            return first.suit
-        return None
 
     def _calculate_penalty(self) -> int:
         """
@@ -740,3 +462,36 @@ class QaydEngine:
             'reason':           self.state['reason'],
             'target_play':      self.state['target_play'],
         }
+
+    def handle_bot_accusation(self, player_index: int, accusation: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Orchestrate a full accusation sequence for a Bot.
+        Input: {'crime_card': ..., 'proof_card': ..., 'violation_type': ...}
+        """
+        # 1. Trigger if needed
+        if not self.state['active']:
+             res = self.trigger(player_index)
+             if not res['success']: return res
+        
+        # 2. Select VIOLATION (Skip MENU)
+        if self.state['step'] == QaydStep.MAIN_MENU:
+             self.select_menu_option(QaydMenuOption.REVEAL_CARDS)
+             
+        # 3. Select Violation Type
+        v_type = accusation.get('violation_type', 'REVOKE')
+        res = self.select_violation(v_type)
+        if not res['success']: return res
+        
+        # 4. Select Crime Card
+        crime = accusation.get('crime_card')
+        if not crime: return {'success': False, 'error': 'Missing crime_card'}
+        res = self.select_crime_card(crime)
+        if not res['success']: return res
+        
+        # 5. Select Proof Card
+        proof = accusation.get('proof_card')
+        if not proof: return {'success': False, 'error': 'Missing proof_card'}
+        res = self.select_proof_card(proof)
+        
+        return res
+
