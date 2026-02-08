@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CardModel as Card, Suit } from '../types';
-import CardVector from './CardVector';
+import { CardModel, Suit } from '../types';
+import Card from './Card';
 import { sortHand } from '../utils/gameLogic';
 
 interface HandFanProps {
-    hand: Card[];
+    hand: CardModel[];
     selectedCardIndex: number | null;
     isMyTurn: boolean;
     onCardClick: (index: number) => void;
@@ -44,7 +44,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
     // Memoized sort to avoid re-sorting on every render
     const sortedHand = React.useMemo(() => {
         if (!hand) return [];
-        return sortHand(hand, gameMode, trumpSuit || 'S'); // Default stump suit to prevent crash
+        return sortHand(hand, gameMode, trumpSuit);
     }, [hand, gameMode, trumpSuit]);
 
     // Calculate Card Groups for Elevation (Alternating Up/Down)
@@ -64,7 +64,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
     }, [sortedHand]);
 
     // Validation Helper (Duplicated from Table, ideally passed down or in util)
-    const isCardPlayable = (card: Card) => {
+    const isCardPlayable = (card: CardModel) => {
         // Strict validation logic is complex and state-dependent (table cards).
         // For visual interaction, we assume "Playable" unless visually disabled?
         // Actually, Table.tsx handles the actual *logic* check on click.
@@ -125,7 +125,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
                             }
                         }}
                     >
-                        <CardVector
+                        <Card
                             card={card}
                             className="w-[3.75rem] h-[5.55rem] sm:w-[4.55rem] sm:h-[6.7rem] md:w-[5.2rem] md:h-[7.9rem] shadow-2xl"
                             selected={isSelected}

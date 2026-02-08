@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
-import CardVector from './CardVector';
+import Card from './Card';
 import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
 import { ProfessorOverlay } from './overlays/ProfessorOverlay';
 import { ForensicOverlay } from './overlays/ForensicOverlay';
@@ -517,7 +517,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={gameState.isProjectRevealing || false}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -535,7 +535,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={gameState.isProjectRevealing || false}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -553,7 +553,7 @@ export default function Table({
                                 timeLeft={timeLeft}
                                 totalTime={turnDuration}
                                 declarations={declarations}
-                                isProjectRevealing={gameState.isProjectRevealing}
+                                isProjectRevealing={gameState.isProjectRevealing || false}
                                 bid={bid}
                                 doublingLevel={gameState.doublingLevel}
                                 showProjects={showProjects}
@@ -574,7 +574,7 @@ export default function Table({
                                     <div className="absolute -inset-3 sm:-inset-4 bg-yellow-400/40 rounded-lg blur-lg"></div>
                                     <div className="absolute -inset-2 rounded-lg border-3 sm:border-4 border-yellow-400 opacity-60 animate-ping"></div>
                                     <div className="absolute -inset-1 rounded-lg border-2 border-amber-300 opacity-40 animate-ping" style={{ animationDelay: '0.5s' }}></div>
-                                    <CardVector
+                                    <Card
                                         card={gameState.floorCard}
                                         className="h-32 w-24 sm:h-36 sm:w-26 md:h-40 md:w-28 shadow-2xl"
                                         isPlayable={false}
@@ -608,7 +608,7 @@ export default function Table({
                                         transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
                                         className={`${animClass}`}
                                         style={style}>
-                                        <CardVector
+                                        <Card
                                             card={played.card}
                                             className="w-full h-full shadow-xl"
                                             isPlayable={false}
@@ -647,7 +647,7 @@ export default function Table({
                                             ...style,
                                             zIndex: 50 + idx
                                         }}>
-                                        <CardVector
+                                        <Card
                                             card={played.card}
                                             className="h-[25%] w-auto aspect-[2.5/3.5] shadow-2xl played-card-mobile opacity-90"
                                             skin={cardSkin}
@@ -683,7 +683,7 @@ export default function Table({
                 timeLeft={timeLeft}
                 totalTime={turnDuration}
                 declarations={declarations}
-                isProjectRevealing={gameState.isProjectRevealing}
+                isProjectRevealing={gameState.isProjectRevealing || false}
                 bid={bid}
                 doublingLevel={gameState.doublingLevel}
                 showProjects={showProjects}

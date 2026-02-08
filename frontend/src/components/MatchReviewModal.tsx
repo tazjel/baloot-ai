@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight, Play, Check, ChevronDown, ChevronUp } from 'lucide-react';
-import Card from './Card';
+
 import { Suit } from '../types';
 
 // Helper for card display

@@ -1,4 +1,4 @@
-import React, { useMemo, memo } from 'react';
+import React, { useMemo } from 'react';
 import { CardModel, Suit, Rank } from '../types';
 import { VISUAL_ASSETS } from '../constants';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
@@ -14,11 +14,7 @@ interface CardProps {
     skin?: string;
 }
 
-/**
- * CardComponent - Pure card rendering without memo
- * Separated for easier testing and memo wrapping
- */
-const CardComponent: React.FC<CardProps> = ({
+const Card: React.FC<CardProps> = ({
     card,
     isHidden = false,
     className = '',
@@ -34,31 +30,36 @@ const CardComponent: React.FC<CardProps> = ({
     const color = isRed ? '#d32f2f' : '#111';
 
     // --- Suit Icon Component ---
-    const SuitIcon = useMemo(() => {
-        return ({ size, className, rotate }: { size: number, className?: string, rotate?: boolean }) => {
-            const props = { size, color, className: `${className} ${rotate ? 'rotate-180' : ''}` };
-            switch (card.suit) {
-                case Suit.Spades: return <Spade {...props} />;
-                case Suit.Hearts: return <Heart {...props} />;
-                case Suit.Clubs: return <Club {...props} />;
-                case Suit.Diamonds: return <Diamond {...props} />;
-            }
-        };
-    }, [card.suit, color]);
+    const SuitIcon = ({ size, className, rotate }: { size: number, className?: string, rotate?: boolean }) => {
+        const props = { size, color, className: `${className} ${rotate ? 'rotate-180' : ''}` };
+        switch (card.suit) {
+            case Suit.Spades: return <Spade {...props} />;
+            case Suit.Hearts: return <Heart {...props} />;
+            case Suit.Clubs: return <Club {...props} />;
+            case Suit.Diamonds: return <Diamond {...props} />;
+        }
+    };
 
     // --- Pip Layout Logic ---
-    const pips = useMemo(() => {
-        const pipElements = [];
+    const getPips = () => {
+        // 100% width/height of the PILLARED area
+        const pips = [];
         const r = card.rank;
 
         // Standard Pip Positions (percentages)
+        // Cols: 30%, 70% | Row Center: 50%
+        // Rows: 20, 35, 50, 65, 80
+
+        // Column Definitions
         const left = '30%';
         const right = '70%';
         const mid = '50%';
+
+        // Row Definitions
         const top = '20%';
-        const topMid = '35%';
+        const topMid = '35%'; // for 7,8
         const center = '50%';
-        const botMid = '65%';
+        const botMid = '65%'; // for 8
         const bot = '80%';
 
         interface StandardPipProps {
@@ -76,43 +77,42 @@ const CardComponent: React.FC<CardProps> = ({
         // Logic for 7, 8, 9, 10
         if ([Rank.Seven, Rank.Eight, Rank.Nine, Rank.Ten].includes(r)) {
             // Corners
-            pipElements.push(<StandardPip top={top} left={left} key="tl" />);
-            pipElements.push(<StandardPip top={top} left={right} key="tr" />);
-            pipElements.push(<StandardPip top={bot} left={left} key="bl" invert />);
-            pipElements.push(<StandardPip top={bot} left={right} key="br" invert />);
+            pips.push(<StandardPip top={top} left={left} key="tl" />);
+            pips.push(<StandardPip top={top} left={right} key="tr" />);
+            pips.push(<StandardPip top={bot} left={left} key="bl" invert />);
+            pips.push(<StandardPip top={bot} left={right} key="br" invert />);
 
-            // Mids
+            // Mids (all have side mids except 4,5 which we don't support)
+            // 6,7,8,9,10 all have side mids
             if ([Rank.Seven, Rank.Eight, Rank.Nine, Rank.Ten].includes(r)) {
-                pipElements.push(<StandardPip top={center} left={left} key="ml" />);
-                pipElements.push(<StandardPip top={center} left={right} key="mr" />);
+                pips.push(<StandardPip top={center} left={left} key="ml" />);
+                pips.push(<StandardPip top={center} left={right} key="mr" />);
             }
 
             // Center Column
             if (r === Rank.Nine) {
-                pipElements.push(<StandardPip top={center} left={mid} key="c" />);
+                pips.push(<StandardPip top={center} left={mid} key="c" />);
             }
             if ([Rank.Seven, Rank.Eight, Rank.Ten].includes(r)) {
-                pipElements.push(<StandardPip top={topMid} left={mid} key="tm" />);
+                pips.push(<StandardPip top={topMid} left={mid} key="tm" />);
             }
             if ([Rank.Eight, Rank.Ten].includes(r)) {
-                pipElements.push(<StandardPip top={botMid} left={mid} key="bm" invert />);
+                pips.push(<StandardPip top={botMid} left={mid} key="bm" invert />);
             }
         }
 
-        return pipElements;
-    }, [card.rank, SuitIcon]);
+        return pips;
+    };
 
     const isFace = [Rank.Jack, Rank.Queen, Rank.King].includes(card.rank);
     const isAce = card.rank === Rank.Ace;
 
     // Rank Text
-    const rankText = useMemo(() => {
-        return card.rank === Rank.Ten ? '10' :
-            card.rank === Rank.Ace ? 'A' :
-                card.rank === Rank.King ? 'K' :
-                    card.rank === Rank.Queen ? 'Q' :
-                        card.rank === Rank.Jack ? 'J' : card.rank;
-    }, [card.rank]);
+    const rankText = card.rank === Rank.Ten ? '10' :
+        card.rank === Rank.Ace ? 'A' :
+            card.rank === Rank.King ? 'K' :
+                card.rank === Rank.Queen ? 'Q' :
+                    card.rank === Rank.Jack ? 'J' : card.rank;
 
     const playStyle = (!isHidden && isPlayable) ? 'cursor-pointer hover:-translate-y-2 hover:shadow-2xl' : '';
 
@@ -122,12 +122,12 @@ const CardComponent: React.FC<CardProps> = ({
             tabIndex={onClick ? 0 : undefined}
             aria-label={onClick && card ? `${card.rank} of ${card.suit}` : undefined}
             className={`
-                relative aspect-[2.5/3.5] bg-white rounded-lg border border-gray-300 shadow-md select-none transition-transform duration-300
-                font-serif overflow-hidden
-                ${selected ? 'ring-4 ring-yellow-400 -translate-y-6 z-50' : ''}
-                ${playStyle}
-                ${className}
-            `}
+        relative aspect-[2.5/3.5] bg-white rounded-lg border border-gray-300 shadow-md select-none transition-transform duration-300
+        font-serif overflow-hidden
+        ${selected ? 'ring-4 ring-yellow-400 -translate-y-6 z-50' : ''}
+        ${playStyle}
+        ${className}
+      `}
             onClick={onClick}
             onKeyDown={(e) => {
                 if (onClick && (e.key === 'Enter' || e.key === ' ')) {
@@ -174,7 +174,7 @@ const CardComponent: React.FC<CardProps> = ({
                             </div>
                         ) : (
                             <div className="relative w-full h-full pointer-events-none">
-                                {pips}
+                                {getPips()}
                             </div>
                         )}
                     </div>
@@ -183,47 +183,5 @@ const CardComponent: React.FC<CardProps> = ({
         </div>
     );
 };
-
-/**
- * Card - Memoized version with custom comparison
- * 
- * Performance Optimization:
- * - Only re-renders when card identity, selected state, or playability changes
- * - Prevents re-renders during timer ticks or unrelated state changes
- * - Target: <16ms render time even with 13 cards in hand
- */
-const Card = memo(CardComponent, (prev, next) => {
-    // Fast path: Reference equality
-    if (prev.card === next.card &&
-        prev.selected === next.selected &&
-        prev.isHidden === next.isHidden &&
-        prev.isPlayable === next.isPlayable &&
-        prev.onClick === next.onClick &&
-        prev.className === next.className &&
-        prev.skin === next.skin) {
-        return true; // Props are equal, skip render
-    }
-
-    // Deep comparison for card object (if references differ)
-    if (prev.card && next.card) {
-        const cardEqual = prev.card.id === next.card.id &&
-            prev.card.suit === next.card.suit &&
-            prev.card.rank === next.card.rank;
-
-        const propsEqual = prev.selected === next.selected &&
-            prev.isHidden === next.isHidden &&
-            prev.isPlayable === next.isPlayable &&
-            prev.className === next.className &&
-            prev.skin === next.skin;
-
-        // Note: We don't compare onClick because it's recreated every render
-        // but the actual behavior doesn't change
-        return cardEqual && propsEqual;
-    }
-
-    return false; // If we can't determine, re-render
-});
-
-Card.displayName = 'Card';
 
 export default Card;

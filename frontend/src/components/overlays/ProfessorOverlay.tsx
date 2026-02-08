@@ -76,7 +76,7 @@ export const ProfessorOverlay: React.FC<ProfessorOverlayProps> = ({ intervention
                                             <Card
                                                 card={intervention.better_card}
                                                 isPlayable={false}
-                                                height={120} // Standard height
+                                                className="h-[120px]"
                                             />
                                         </div>
                                     </div>

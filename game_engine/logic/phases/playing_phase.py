@@ -44,9 +44,37 @@ class PlayingPhase:
             else:
                  # Flag as illegal but proceed (for Qayd)
                  logger.warning(f"Player {player_index} played ILLEGAL card: {card}")
-                 if not metadata: metadata = {}
-                 metadata['is_illegal'] = True
-                 metadata['illegal_reason'] = 'Rule Violation' # capture details if possible
+                 
+                 # Detailed Analysis for Forensic Proof
+                 try:
+                     from game_engine.logic.validation import get_violation_details
+                     players_team_map = {p.position: p.team for p in self.game.players}
+                     
+                     contract_variant = None
+                     if self.game.bidding_engine and self.game.bidding_engine.contract:
+                         contract_variant = self.game.bidding_engine.contract.variant
+
+                     details = get_violation_details(
+                         card=card,
+                         hand=player.hand,
+                         table_cards=self.game.table_cards,
+                         game_mode=self.game.game_mode,
+                         trump_suit=self.game.trump_suit,
+                         my_team=player.team, # Logic considers 'my_team' perspective
+                         players_team_map=players_team_map,
+                         contract_variant=contract_variant
+                     )
+                     
+                     if not metadata: metadata = {}
+                     metadata['is_illegal'] = True
+                     metadata['illegal_reason'] = details.get('reason', 'Rule Violation')
+                     metadata['violation_type'] = details.get('violation_type')
+                     metadata['proof_hint'] = details.get('proof_hint') # Crucial for Bot
+                 except Exception as e:
+                     logger.error(f"Error getting violation details: {e}")
+                     if not metadata: metadata = {}
+                     metadata['is_illegal'] = True
+                     metadata['illegal_reason'] = 'Rule Violation (Unknown)'
 
         # 5. Execute Play
         played_card = player.hand.pop(card_idx)

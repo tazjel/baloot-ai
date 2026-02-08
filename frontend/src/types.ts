@@ -184,8 +184,8 @@ export interface QaydState {
   reporter_is_bot?: boolean;
   menu_option?: string | null;
   violation_type?: string | null;
-  crime_card?: any | null;
-  proof_card?: any | null;
+  crime_card?: CardModel | { card: CardModel } | null;
+  proof_card?: CardModel | { card: CardModel } | null;
   verdict?: string | null; // 'CORRECT' | 'WRONG'
   verdict_message?: string | null;
   loser_team?: 'us' | 'them' | null;

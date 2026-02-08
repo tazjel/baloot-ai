@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import CardVector from './CardVector';
+import Card from './Card';
+import { CardModel } from '../types';
 
 interface CandidateMove {
-    card: any; // Using any for simplicity with backend dict, but ideally formatted
+    card: CardModel;
     win_rate: number;
     diff: number;
     rank: number;
@@ -43,7 +44,7 @@ export const GhostCardLayer: React.FC<GhostCardLayerProps> = ({ candidates }) =>
                                     <div className="absolute -inset-3 bg-green-400/40 rounded-xl blur-lg animate-pulse" />
                                 )}
 
-                                <CardVector
+                                <Card
                                     card={cand.card}
                                     className="w-20 h-28 sm:w-24 sm:h-36 shadow-2xl skew-x-1"
                                     isPlayable={false}
