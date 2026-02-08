@@ -369,6 +369,13 @@ export default function Table({
                 <ContractIndicator bid={bid} players={players} doublingLevel={gameState.doublingLevel || 1} />
             </div>
 
+            {/* Gablak Timer (Center Screen / HUD) */}
+            <GablakTimer 
+                biddingPhase={gameState.biddingPhase} 
+                isActive={gameState.biddingPhase === 'GABLAK_WINDOW'} 
+                duration={5} 
+            />
+
             {/* Accessibility Toggle */}
             <button
                 onClick={() => setIsAccessibilityMode(!isAccessibilityMode)}

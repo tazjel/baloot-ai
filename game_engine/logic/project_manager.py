@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, Any
 from game_engine.logic.rules.projects import check_project_eligibility, compare_projects
+from game_engine.logic.rules.sawa import check_sawa_eligibility
 from server.logging_utils import logger
 
 class ProjectManager:
@@ -299,4 +300,68 @@ class ProjectManager:
             for proj in projects:
                 points[team] += proj.get('score', 0)
                 
+                
         return points 
+
+    # ═══════════════════════════════════════════════════════════════════════
+    #  SAWA LOGIC — "Grand Slam" Declaration
+    #  Sawa = Declaring you guarantee winning ALL remaining tricks.
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def check_sawa_eligibility(self, player_index):
+        """
+        Wrapper checking Sawa eligibility for a player.
+        """
+        player = self.game.players[player_index]
+        if not player.hand: return False
+        
+        return check_sawa_eligibility(
+            hand=player.hand,
+            played_cards=self._build_played_cards_set(),
+            trump_suit=self.game.trump_suit,
+            game_mode=self.game.game_mode,
+            phase=self.game.phase
+        )
+
+    def handle_sawa(self, player_index):
+        """
+        Process a Sawa declaration.
+        """
+        from game_engine.models.constants import GamePhase
+        
+        try:
+             player = self.game.players[player_index]
+             
+             # Validation: Must be PLAYING phase & Player's Turn
+             if self.game.phase != GamePhase.PLAYING.value or player_index != self.game.current_turn:
+                  return {"success": False, "error": "Invalid Timing"}
+                  
+             eligible = self.check_sawa_eligibility(player_index)
+             
+             if not eligible:
+                  # PENALTY / REFEREE
+                  logger.warning(f"INVALID SAWA CLAIM by {player.position}")
+                  self.game.increment_blunder(player_index)
+                  return {
+                      "success": False, 
+                      "error": "REFEREE_FLAG",
+                      "intervention": {
+                          "type": "INVALID_SAWA",
+                          "playerIndex": player_index,
+                          "message": "Sawa Rejected! You do not guarantee all tricks."
+                      }
+                  }
+             
+             # Valid Sawa
+             logger.info(f"SAWA DECLARED VALID by {player.position}")
+             
+             self.game.sawa_declaration = {
+                 'player_index': player_index,
+                 'active': True
+             }
+             
+             return {"success": True, "sawa_active": True}
+             
+        except Exception as e:
+             logger.error(f"Error in handle_sawa: {e}")
+             return {"success": False, "error": str(e)}

@@ -150,7 +150,17 @@ class BiddingEngine:
              if action == "HOKUM":
                   # Only allowed via Gablak (intercepted at start of method)
                   if self.phase != BiddingPhase.GABLAK_WINDOW:
-                       return {"error": "Hokum bid already exists. Only Sun can hijack."}
+                       # STRICT PRIORITY CHECK:
+                       # If I have higher priority (lower index) than the current bidder, I can hijack.
+                       # This addresses the user scenario: "I (Right) want to bid Hokum over Partner (Left/Top)."
+                       current_bidder_prio = self._get_priority(self.contract.bidder_idx)
+                       my_prio = self._get_priority(player_idx)
+                       
+                       if my_prio >= current_bidder_prio:
+                            return {"error": "Hokum bid already exists. Only Sun (or Higher Priority) can hijack."}
+                       else:
+                            logger.info(f"Priority Hijack! P{player_idx} (Prio {my_prio}) overrides P{self.contract.bidder_idx} (Prio {current_bidder_prio}) with HOKUM.")
+
 
 
         # --- GABLAK WINDOW Handling ---
