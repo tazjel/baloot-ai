@@ -285,6 +285,7 @@ class Game(StateBridgeMixin):
     #  TIMEOUT — Delegates to AutoPilot
     # ═══════════════════════════════════════════════════════════════════
 
+    @requires_unlocked
     def check_timeout(self):
         is_chal = self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active')
         if (not self.timer.active or self.timer_paused) and not is_chal: return None

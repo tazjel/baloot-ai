@@ -22,7 +22,7 @@ class TestRevokeValidation:
         """
         crime = {
             'suit': 'Hearts',
-            'rank': 'Ace',
+            'rank': 'A',
             'trick_idx': 0,
             'card_idx': 2,
             'played_by': 'Right'
@@ -30,7 +30,7 @@ class TestRevokeValidation:
         
         proof = {
             'suit': 'Spades',  # Led suit
-            'rank': 'King',
+            'rank': 'K',
             'trick_idx': 1,  # Later trick
             'card_idx': 0,
             'played_by': 'Right'  # Same player
@@ -42,16 +42,16 @@ class TestRevokeValidation:
             'round_history': [
                 {
                     'cards': [
-                        {'card': {'suit': 'Spades', 'rank': 'Queen'}, 'playedBy': 'Bottom'},  # Led Spades
+                        {'card': {'suit': 'Spades', 'rank': 'Q'}, 'playedBy': 'Bottom'},  # Led Spades
                         {'card': {'suit': 'Spades', 'rank': '10'}, 'playedBy': 'Right'},
-                        {'card': {'suit': 'Hearts', 'rank': 'Ace'}, 'playedBy': 'Top'},  # CRIME
+                        {'card': {'suit': 'Hearts', 'rank': 'A'}, 'playedBy': 'Top'},  # CRIME
                     ],
                     'playedBy': ['Bottom', 'Right', 'Top'],
                     'metadata': [{}, {}, {}]
                 },
                 {
                     'cards': [
-                        {'card': {'suit': 'Spades', 'rank': 'King'}, 'playedBy': 'Top'},  # PROOF
+                        {'card': {'suit': 'Spades', 'rank': 'K'}, 'playedBy': 'Top'},  # PROOF
                     ],
                     'playedBy': ['Top'],
                     'metadata': [{}]
@@ -78,7 +78,7 @@ class TestRevokeValidation:
         """
         crime = {
             'suit': 'Hearts',
-            'rank': 'Ace',
+            'rank': 'A',
             'trick_idx': 0,
             'card_idx': 2,
             'played_by': 'Right'
@@ -86,7 +86,7 @@ class TestRevokeValidation:
         
         proof = {
             'suit': 'Clubs',  # Wrong suit (not led suit)
-            'rank': 'King',
+            'rank': 'K',
             'trick_idx': 1,
             'card_idx': 0,
             'played_by': 'Right'
@@ -98,7 +98,7 @@ class TestRevokeValidation:
             'round_history': [
                 {
                     'cards': [
-                        {'card': {'suit': 'Spades', 'rank': 'Queen'}, 'playedBy': 'Bottom'},
+                        {'card': {'suit': 'Spades', 'rank': 'Q'}, 'playedBy': 'Bottom'},
                     ],
                     'playedBy': ['Bottom'],
                     'metadata': [{}]
@@ -125,15 +125,15 @@ class TestRevokeValidation:
         """
         crime = {
             'suit': 'Hearts',
-            'rank': 'Ace',
+            'rank': 'A',
             'trick_idx': 1,  # Later trick
-            'card_idx': 0,
+            'card_idx': 1,   # Played 2nd
             'played_by': 'Right'
         }
         
         proof = {
             'suit': 'Spades',
-            'rank': 'King',
+            'rank': 'K',
             'trick_idx': 0,  # Earlier trick
             'card_idx': 0,
             'played_by': 'Right'
@@ -143,8 +143,15 @@ class TestRevokeValidation:
             'trump_suit': 'Clubs',
             'game_mode': 'HOKUM',
             'round_history': [
-                {'cards': [{'card': {'suit': 'Spades', 'rank': 'King'}, 'playedBy': 'Right'}], 'playedBy': ['Right'], 'metadata': [{}]},
-                {'cards': [{'card': {'suit': 'Hearts', 'rank': 'Ace'}, 'playedBy': 'Right'}], 'playedBy': ['Right'], 'metadata': [{}]},
+                {'cards': [{'card': {'suit': 'Spades', 'rank': 'K'}, 'playedBy': 'Right'}], 'playedBy': ['Right'], 'metadata': [{}]},
+                {
+                    'cards': [
+                        {'card': {'suit': 'Spades', 'rank': '7'}, 'playedBy': 'Top'},      # Lead Spades
+                        {'card': {'suit': 'Hearts', 'rank': 'A'}, 'playedBy': 'Right'}     # Offender plays Hearts (Revoke candidate)
+                    ],
+                    'playedBy': ['Top', 'Right'],
+                    'metadata': [{}, {}]
+                },
             ],
             'table_cards': [],
             'players': []
@@ -172,7 +179,7 @@ class TestNoTrumpValidation:
         """
         crime = {
             'suit': 'Hearts',  # Not trump
-            'rank': 'Ace',
+            'rank': 'A',
             'trick_idx': 0,
             'card_idx': 1,
             'played_by': 'Right'
@@ -180,7 +187,7 @@ class TestNoTrumpValidation:
         
         proof = {
             'suit': 'Clubs',  # Trump
-            'rank': 'Jack',
+            'rank': 'J',
             'trick_idx': 1,
             'card_idx': 0,
             'played_by': 'Right'
@@ -190,7 +197,7 @@ class TestNoTrumpValidation:
             'trump_suit': 'Clubs',
             'game_mode': 'HOKUM',
             'round_history': [
-                {'cards': [{'card': {'suit': 'Spades', 'rank': 'Queen'}, 'playedBy': 'Bottom'}], 'playedBy': ['Bottom'], 'metadata': [{}]},
+                {'cards': [{'card': {'suit': 'Spades', 'rank': 'Q'}, 'playedBy': 'Bottom'}], 'playedBy': ['Bottom'], 'metadata': [{}]},
             ],
             'table_cards': [],
             'players': []
@@ -211,8 +218,8 @@ class TestNoTrumpValidation:
         Scenario: NO_TRUMP violation in SUN mode (not applicable).
         Expected: NOT GUILTY
         """
-        crime = {'suit': 'Hearts', 'rank': 'Ace', 'trick_idx': 0, 'card_idx': 0, 'played_by': 'Right'}
-        proof = {'suit': 'Clubs', 'rank': 'Jack', 'trick_idx': 1, 'card_idx': 0, 'played_by': 'Right'}
+        crime = {'suit': 'Hearts', 'rank': 'A', 'trick_idx': 0, 'card_idx': 0, 'played_by': 'Right'}
+        proof = {'suit': 'Clubs', 'rank': 'J', 'trick_idx': 1, 'card_idx': 0, 'played_by': 'Right'}
         
         game_context = {
             'trump_suit': None,
@@ -251,7 +258,7 @@ class TestNoOvertrumpValidation:
         
         proof = {
             'suit': 'Clubs',  # Trump
-            'rank': 'Jack',  # Higher in HOKUM order
+            'rank': 'J',  # Higher in HOKUM order
             'trick_idx': 1,
             'card_idx': 0,
             'played_by': 'Right'
@@ -281,7 +288,7 @@ class TestNoOvertrumpValidation:
         Expected: NOT GUILTY
         """
         crime = {'suit': 'Hearts', 'rank': '10', 'trick_idx': 0, 'card_idx': 0, 'played_by': 'Right'}
-        proof = {'suit': 'Clubs', 'rank': 'Jack', 'trick_idx': 1, 'card_idx': 0, 'played_by': 'Right'}
+        proof = {'suit': 'Clubs', 'rank': 'J', 'trick_idx': 1, 'card_idx': 0, 'played_by': 'Right'}
         
         game_context = {
             'trump_suit': 'Clubs',
@@ -312,7 +319,7 @@ class TestMetadataValidation:
         """
         crime = {
             'suit': 'Hearts',
-            'rank': 'Ace',
+            'rank': 'A',
             'trick_idx': 0,
             'card_idx': 0,
             'played_by': 'Right'
@@ -323,7 +330,7 @@ class TestMetadataValidation:
             'game_mode': 'HOKUM',
             'round_history': [
                 {
-                    'cards': [{'card': {'suit': 'Hearts', 'rank': 'Ace'}, 'playedBy': 'Right'}],
+                    'cards': [{'card': {'suit': 'Hearts', 'rank': 'A'}, 'playedBy': 'Right'}],
                     'playedBy': ['Right'],
                     'metadata': [{'is_illegal': True, 'illegal_reason': 'Server detected revoke'}]
                 }
@@ -347,14 +354,14 @@ class TestMetadataValidation:
         Scenario: Crime card has no is_illegal flag.
         Expected: NOT GUILTY
         """
-        crime = {'suit': 'Hearts', 'rank': 'Ace', 'trick_idx': 0, 'card_idx': 0, 'played_by': 'Right'}
+        crime = {'suit': 'Hearts', 'rank': 'A', 'trick_idx': 0, 'card_idx': 0, 'played_by': 'Right'}
         
         game_context = {
             'trump_suit': 'Clubs',
             'game_mode': 'HOKUM',
             'round_history': [
                 {
-                    'cards': [{'card': {'suit': 'Hearts', 'rank': 'Ace'}, 'playedBy': 'Right'}],
+                    'cards': [{'card': {'suit': 'Hearts', 'rank': 'A'}, 'playedBy': 'Right'}],
                     'playedBy': ['Right'],
                     'metadata': [{}]
                 }
