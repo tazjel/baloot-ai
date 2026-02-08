@@ -173,6 +173,15 @@ class QaydEngine:
         if not self._validate_card_in_history(card_data):
             return {'success': False, 'error': 'Card not found in round history'}
 
+        # --- LEDGER CHECK (Prevent Double Jeopardy) ---
+        trick_idx = card_data.get('trick_idx')
+        card_idx = card_data.get('card_idx')
+        if trick_idx is not None and card_idx is not None:
+            ledger_sig = f"{trick_idx}_{card_idx}"
+            if ledger_sig in self.game.state.resolved_crimes:
+                logger.warning(f"[QAYD] Selection blocked: Crime {ledger_sig} already resolved.")
+                return {'success': False, 'error': 'This play has already been challenged.'}
+
         self._update({'crime_card': card_data, 'step': QaydStep.SELECT_CARD_2})
         return {'success': True, 'qayd_state': self.state}
 
@@ -209,10 +218,17 @@ class QaydEngine:
 
         logger.info(f"[QAYD] CONFIRMED: {self.state['verdict']}. {loser_team} penalized {penalty} pts → {winner_team}")
 
-        # Add crime to ignore list
+        # Add crime to ignore list (Legacy session-based)
         sig = self.state.get('crime_signature')
         if sig:
             self.ignored_crimes.add(sig)
+            
+            # --- LEDGER SYSTEM (Persistent) ---
+            # Format: "{trick_idx}_{card_idx}" matches select_crime_card check
+            ledger_sig = f"{sig[0]}_{sig[1]}"
+            if ledger_sig not in self.game.state.resolved_crimes:
+                self.game.state.resolved_crimes.append(ledger_sig)
+                logger.info(f"[LEDGER] Crime {ledger_sig} added to permanent history.")
 
         # Apply penalty through game (ends the round)
         self.game.apply_qayd_penalty(loser_team, winner_team)
@@ -366,13 +382,20 @@ class QaydEngine:
                  if crime_data:
                       break
 
-        # Double Jeopardy check
+        # Double Jeopardy check (Session + Ledger)
         if crime_data:
             sig = (crime_data['trick_idx'], crime_data['card_idx'])
+            ledger_sig = f"{sig[0]}_{sig[1]}"
+            
             if sig in self.ignored_crimes:
-                logger.info(f"[QAYD] Bot ignoring already-cancelled crime: {sig}")
+                logger.info(f"[QAYD] Bot ignoring already-cancelled crime (Session): {sig}")
                 self._unlock_and_reset()
-                return {'success': False, 'error': 'Double Jeopardy'}
+                return {'success': False, 'error': 'Double Jeopardy (Session)'}
+            
+            if ledger_sig in self.game.state.resolved_crimes:
+                logger.info(f"[QAYD] Bot ignoring resolved crime (Ledger): {ledger_sig}")
+                self._unlock_and_reset()
+                return {'success': False, 'error': 'Double Jeopardy (Ledger)'}
 
         if not crime_data:
             logger.info("[QAYD] Bot found no illegal cards. Cancelling.")

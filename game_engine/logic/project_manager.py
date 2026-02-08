@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from game_engine.logic.utils import scan_hand_for_projects, compare_projects
+from game_engine.logic.rules.projects import check_project_eligibility, compare_projects
 from server.logging_utils import logger
 
 class ProjectManager:
@@ -18,7 +18,7 @@ class ProjectManager:
                        return {"error": "Wait for your turn"}
 
              # Validate using new scan
-             hand_projs = scan_hand_for_projects(player.hand, self.game.game_mode)
+             hand_projs = check_project_eligibility(player.hand, self.game.game_mode)
              
              # Check if requested type matches ANY found project
              matches = [p for p in hand_projs if p['type'] == type]
@@ -183,77 +183,22 @@ class ProjectManager:
 
     def check_akka_eligibility(self, player_index):
         """
-        Returns a list of suits where the player holds the Boss card
-        (highest remaining non-trump, non-Ace card).
-
-        Returns: List[str] — eligible suit symbols, e.g. ['♠', '♦']
+        Returns a list of suits where the player holds the Boss card.
+        Delegates to pure logic in rules/akka.py.
         """
-        from game_engine.models.constants import ORDER_SUN, GamePhase
-
-        # Rule 1: HOKUM only
-        if self.game.game_mode != 'HOKUM':
-            return []
-
-        # Rule 5: Must be in PLAYING phase
-        if self.game.phase != GamePhase.PLAYING.value:
-            return []
-
+        from game_engine.logic.rules.akka import check_akka_eligibility
+        
         player = self.game.players[player_index]
         if not player.hand:
             return []
-
-        # Build played-cards set once (efficient: single scan)
-        played_cards = self._build_played_cards_set()
-
-        # Non-trump strength order: same as SUN order (7 < 8 < 9 < J < Q < K < 10 < A)
-        rank_order = ORDER_SUN  # index = strength; higher index = stronger
-
-        # Group hand by suit
-        hand_by_suit = {}
-        for c in player.hand:
-            hand_by_suit.setdefault(c.suit, []).append(c)
-
-        eligible_suits = []
-
-        for suit, cards in hand_by_suit.items():
-            # Rule 2: Skip trump suit
-            if suit == self.game.trump_suit:
-                continue
-
-            # Find player's strongest card in this suit
-            my_best = max(cards, key=lambda c: rank_order.index(c.rank))
-
-            # Rule 3: Skip Aces (self-evident boss)
-            if my_best.rank == 'A':
-                continue
-
-            my_strength = rank_order.index(my_best.rank)
-
-            # Check: is any STRONGER card still unplayed (and not in our hand)?
-            is_boss = True
-            for i in range(my_strength + 1, len(rank_order)):
-                higher_rank = rank_order[i]
-                card_sig = f"{higher_rank}{suit}"
-
-                if card_sig in played_cards:
-                    continue  # Already played — no threat
-
-                # Card is unplayed. Do WE hold it?
-                we_hold_it = any(c.rank == higher_rank and c.suit == suit for c in player.hand)
-                if we_hold_it:
-                    # We have a higher card ourselves — so the card we're checking
-                    # (my_best) is NOT the boss; our higher card is.
-                    is_boss = False
-                    break
-
-                # Unplayed AND we don't have it → someone else might → not boss
-                is_boss = False
-                break
-
-            if is_boss:
-                eligible_suits.append(suit)
-
-        return eligible_suits
+            
+        return check_akka_eligibility(
+            hand=player.hand,
+            played_cards=self._build_played_cards_set(),
+            trump_suit=self.game.trump_suit,
+            game_mode=self.game.game_mode,
+            phase=self.game.phase
+        )
 
     def handle_akka(self, player_index):
         """

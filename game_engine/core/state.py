@@ -165,6 +165,7 @@ class GameState(BaseModel):
     # Sub-system states
     sawaState: SawaState = Field(default_factory=SawaState)
     sawaFailedKhasara: bool = False
+    resolved_crimes: List[str] = Field(default_factory=list) # Ledger of processed violations
     akkaState: AkkaState = Field(default_factory=AkkaState)
     qaydState: Dict[str, Any] = Field(default_factory=dict)
     declarations: Dict[str, Any] = Field(default_factory=dict)

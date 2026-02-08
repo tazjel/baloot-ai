@@ -33,4 +33,7 @@ Successfully diagnosed and fixed multiple critical issues in the Game Engine, fo
 ## Known Issues
 - None active.
 
+## Pending Actions
+- **Jules Review (Akka/Sawa)**: Started automated session [8929799751380087076](https://jules.google.com/session/8929799751380087076) to review bot logic and suggest improvements for Sawa/Akka/Qayd. Check this link when you return.
+
 Ready for break.

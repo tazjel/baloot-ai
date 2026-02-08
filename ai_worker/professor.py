@@ -68,6 +68,9 @@ class Professor:
             # DEBUG LOG: Dump all considered moves and their legality
             if hasattr(game, 'is_valid_move'):
                  for m_idx, stats in move_values.items():
+                      if m_idx < 0 or m_idx >= len(player.hand):
+                           logger.warning(f"PROFESSOR: MCTS returned out-of-bounds index {m_idx} for hand size {len(player.hand)}")
+                           continue
                       c_card = player.hand[m_idx]
                       is_real_legal = game.is_valid_move(c_card, player.hand)
                       suffix = " (ILLEGAL in Real Game!)" if not is_real_legal else ""
