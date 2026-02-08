@@ -2,6 +2,8 @@ import os
 import time
 import logging
 import traceback
+import hashlib
+import json
 
 # New Modular Imports
 from ai_worker.bot_context import BotContext
@@ -14,6 +16,8 @@ from ai_worker.memory import CardMemory
 # Core Architecture Modules
 from ai_worker.brain_client import BrainClient
 from ai_worker.referee_observer import RefereeObserver
+
+from game_engine.models.card import Card
 
 # Logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -36,7 +40,6 @@ class BotAgent:
 
         # Core Components
         self.brain = BrainClient()
-        self.brain = BrainClient()
         self.referee = RefereeObserver()
         
         # Anti-Spam Memory
@@ -47,7 +50,6 @@ class BotAgent:
         """
         Helper to check a card play for contractions (Sherlock Logic).
         """
-        from game_engine.models.card import Card
         
         # 1. Team Loyalty Check (Omerta)
         offender_team = ctx.players_team_map.get(played_by_pos)
@@ -120,9 +122,6 @@ class BotAgent:
              # 1.15 SHERLOCK TRIGGER (Organic, Team-Aware, & Memory-Based)
              # If valid game phase and NO Qayd active, check for visual contradictions (The "Second Card" Trigger).
              if ctx.phase == 'PLAYING' and not (game_state.get('qaydState') or {}).get('active') and not self.pending_qayd_trigger:
-                 from game_engine.models.card import Card
-                 
-
 
                  # A. Check Current Table (Live Detection)
                  table_cards = game_state.get('tableCards', [])
@@ -143,31 +142,6 @@ class BotAgent:
                  # Crucial for catching the 4th player who plays illegal, then trick clears immediately.
                  last_trick = game_state.get('lastTrick')
                  if last_trick and last_trick.get('cards'):
-                      # last_trick cards are dicts or objects? game.py says serialized to dicts.
-                      # structure: {'cards': [{'rank':.., 'suit':.., 'playedBy': ..}], ...}
-                      # WAIT: game.py serialization: 'cards': [{**c, 'card': c['card'].to_dict()}...] or just list of cards?
-                      # game.py line 155 in get_game_state uses {**c, 'card': ...} format for roundHistory/currentRoundTricks.
-                      # BUT last_trick (line 145) is assigned self.last_trick.
-                      # In resolve_trick (trick_manager.py line 100): 
-                      # 'cards': [tc['card'].to_dict() for tc in self.game.table_cards]
-                      # 'metadata': ...
-                      # But wait, where is 'playedBy' in last_trick['cards']?
-                      # trick_manager.py line 100 doesn't seem to zip playedBy into the cards list!
-                      # It stores `winner` pos.
-                      
-                      # Ah, trick_manager.py line 113 `trick_data` stores `cards` and `playedBy` as parallel lists for history.
-                      # But `self.game.last_trick` (line 100) might only store cards?
-                      # Let's check `trick_manager.py` again.
-                      
-                      # Re-reading trick_manager.py from context:
-                      # 100: self.game.last_trick = {
-                      # 101:     'cards': [tc['card'].to_dict() for tc in self.game.table_cards], 
-                      # 102:     'winner': winner_pos,
-                      # 103:     'metadata': ...
-                      # 104: }
-                      # It does NOT store playedBy per card! This is a flaw for Sherlock checking last trick if he needs position.
-                      # However, we can reconstruct order. Trick starts at `(winner_index_of_prev_trick)`.
-                      # But easier: Use `game_state['roundHistory'][-1]` (the last completed trick) which HAS playedBy data.
                       pass
 
                  # C. Robust Last Trick Check using Round History
@@ -280,7 +254,7 @@ class BotAgent:
                                           action = self._check_crime_logic(ctx, c_inner, p_pos, f"Trick {abs_trick_idx}")
                                           if action:
                                                # Found it! Reconstruct details
-                                               from game_engine.models.card import Card
+
                                                crime_card = c_inner # Dict representation
                                                
                                                # Proof is usually the lead of that trick
@@ -321,7 +295,6 @@ class BotAgent:
              if ctx.phase in ['PLAYING', 'BIDDING']:
                   try:
                        # Generate Hash
-                       import hashlib, json
                        state_str = json.dumps({
                            'hand': [str(c) for c in ctx.hand],
                            'table': [str(tc['card']) for tc in ctx.table_cards],
@@ -435,7 +408,6 @@ class BotAgent:
     def _queue_analysis(self, ctx: BotContext, context_hash: str):
         """Prepare payload and delegate to BrainClient"""
         try:
-             import json
              # Prepare Payload
              payload = {
                  'context_hash': context_hash,

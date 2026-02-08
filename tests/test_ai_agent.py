@@ -13,7 +13,7 @@ from ai_worker.bot_context import BotContext
 class TestBotAgent(unittest.TestCase):
     def setUp(self):
         # Patch Redis to avoid connection attempts
-        self.redis_patcher = patch('ai_worker.agent.redis')
+        self.redis_patcher = patch('ai_worker.brain_client.redis')
         self.mock_redis_module = self.redis_patcher.start()
         
         # Instantiate fresh agent
@@ -25,7 +25,7 @@ class TestBotAgent(unittest.TestCase):
         
         # Mock Redis Client
         self.mock_redis_client = MagicMock()
-        self.agent.redis_client = self.mock_redis_client
+        self.agent.brain.redis_client = self.mock_redis_client
 
     def tearDown(self):
         self.redis_patcher.stop()

@@ -743,18 +743,11 @@ class Game:
             
             # Additional check: If timer is STILL expired (and wasn't reset by action), FORCE reset.
             if self.timer.is_expired():
-                logger.warning(f"[TIMEOUT] Timer still expired after action. Forcing reset to prevent loop.")
-                self.reset_timer()
-            if self.timer.is_expired():
-                 logger.warning(f"Timer still expired after action (Success: {res.get('success') if res else 'None'}). Forcing reset.")
+                 logger.warning(f"[TIMEOUT] Timer still expired after action (Success: {res.get('success') if res else 'None'}). Forcing reset to prevent loop.")
                  with open("logs/timer_monitor.log", "a") as f:
                      f.write(f"{time.time()} FORCE_RESET. Result: {res}\n")
                  self.reset_timer()
-
             return res
-                
-        return None
-
     def apply_qayd_penalty(self, loser_team, winner_team):
         """Apply Qayd penalty. Called by QaydEngine.confirm()."""
         # Get base penalty from QaydEngine (does NOT include projects — BUG-03 fix)
@@ -889,13 +882,6 @@ class Game:
                       return self.play_card(player_index, i)
             
             return {"error": f"Auto-Play Failed completely: {e}"}
-
-
-
-
-    # --- HANDLERS (Restored / New) ---
-    # (Moved to QAYD DELEGATION section above)
-
 
     # --- PICKLE SUPPORT ---
     def __getstate__(self):
