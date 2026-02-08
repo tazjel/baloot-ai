@@ -64,6 +64,12 @@ def handle_bot_speak(sio, game, room_id, player, action, result):
     except Exception as e:
         logger.error(f"Bot Speak Error: {e}")
 
+def _sherlock_log(msg):
+    """Write debug line to sherlock_debug.log"""
+    import datetime
+    with open('logs/sherlock_debug.log', 'a', encoding='utf-8') as f:
+        f.write(f"{datetime.datetime.now().isoformat()} {msg}\n")
+
 def run_sherlock_scan(sio, game, room_id):
     """
     Independent Watchdog process.
@@ -71,22 +77,31 @@ def run_sherlock_scan(sio, game, room_id):
     All penalty logic goes through QaydEngine — NO direct penalty path.
     """
     try:
+        _sherlock_log(f"Scan invoked. Phase={game.phase}, Locked={game.is_locked}, Qayd={game.qayd_state.get('active')}")
         # Skip if not in PLAYING phase
         if game.phase != "PLAYING":
+            _sherlock_log(f"SKIP: Phase is {game.phase}, not PLAYING")
             return
         # Skip if Qayd already active or recently resolved
         if game.qayd_state.get('active'):
+            _sherlock_log(f"SKIP: Qayd already active")
             return
         if game.is_locked:
+            _sherlock_log(f"SKIP: Game is locked")
             return
 
         # GLOBAL LOCK: Prevent race condition between bots
         if hasattr(game, '_sherlock_lock') and game._sherlock_lock:
+            _sherlock_log(f"SKIP: Sherlock lock held")
             return
         game._sherlock_lock = True
         
         try:
             state = game.get_game_state()
+            
+            # Check for illegal cards in table
+            table_illegals = [tc for tc in state.get('tableCards', []) if (tc.get('metadata') or {}).get('is_illegal')]
+            _sherlock_log(f"Table cards: {len(state.get('tableCards', []))}, Illegal: {len(table_illegals)}")
             
             for player in game.players:
                 if not player.is_bot:
@@ -98,38 +113,84 @@ def run_sherlock_scan(sio, game, room_id):
                 
                 decision = bot_agent.get_decision(state, player.index)
                 action = decision.get('action')
+                _sherlock_log(f"Bot {player.name} decided: {action}")
                 
-                if action in ('QAYD_TRIGGER', 'QAYD_ACCUSATION'):
-                    logger.warning(f"[SHERLOCK] Bot {player.name} detected crime! Triggering QaydEngine.")
-                    
-                    # Route EVERYTHING through QaydEngine.trigger()
-                    # For bots, trigger() auto-calls _bot_auto_accuse() which:
-                    #   1. Scans for is_illegal metadata
-                    #   2. Sets verdict + penalty
-                    #   3. Returns state at RESULT step
-                    # Then the timer (check_timeout) auto-confirms after 2s.
+                if action == 'QAYD_TRIGGER':
+                    _sherlock_log(f"QAYD_TRIGGER from {player.name}! Calling handle_qayd_trigger({player.index})")
+                    _sherlock_log(f"  Pre-trigger state: phase={game.phase}, locked={game.is_locked}, qayd_active={game.qayd_state.get('active')}")
                     res = game.handle_qayd_trigger(player.index)
+                    _sherlock_log(f"  Trigger result: {res}")
                     
                     if res.get('success'):
-                        logger.info(f"[SHERLOCK] Bot {player.name} triggered Qayd. Step={game.qayd_state.get('step')}")
+                        _sherlock_log(f"Qayd triggered OK. Re-querying bot for accusation...")
                         room_manager.save_game(game)
                         broadcast_game_update(sio, game, room_id)
                         
-                        # If the bot auto-accuse already reached RESULT, the timer
-                        # will auto-confirm in 2s via check_timeout(). No need to
-                        # do anything else here.
+                        # Re-query same bot for accusation data now that Qayd is active
+                        state = game.get_game_state()  # Refresh state
+                        follow_up = bot_agent.get_decision(state, player.index)
+                        _sherlock_log(f"  Follow-up decision: action={follow_up.get('action')}")
+                        if follow_up.get('action') == 'QAYD_ACCUSATION':
+                            accusation_data = follow_up.get('accusation', {})
+                            _sherlock_log(f"  Accusation data: {accusation_data}")
+                            acc_res = game.handle_qayd_accusation(player.index, {
+                                'crime_card': accusation_data.get('crime_card'),
+                                'proof_card': accusation_data.get('proof_card'),
+                                'violation_type': accusation_data.get('violation_type', 'REVOKE'),
+                            })
+                            _sherlock_log(f"  Accusation result: {acc_res}")
+                            room_manager.save_game(game)
+                            broadcast_game_update(sio, game, room_id)
+                            
+                            # Auto-confirm after delay (don't rely on frontend timer)
+                            if acc_res.get('success') and game.qayd_state.get('step') == 'RESULT':
+                                _sherlock_log(f"  Auto-confirming verdict after 3s delay...")
+                                sio.sleep(3)  # Let frontend show the result (gevent-safe)
+                                _sherlock_log(f"  Calling handle_qayd_confirm()...")
+                                confirm_res = game.handle_qayd_confirm()
+                                _sherlock_log(f"  Confirm result: {confirm_res}, phase={game.phase}")
+                                
+                                if confirm_res.get('success'):
+                                    room_manager.save_game(game)
+                                    broadcast_game_update(sio, game, room_id)
+                                    
+                                    if game.phase in ("FINISHED", "GAMEOVER"):
+                                        sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+                                        from server.socket_handler import auto_restart_round
+                                        sio.start_background_task(auto_restart_round, game, room_id)
+                        else:
+                            _sherlock_log(f"  Follow-up was NOT QAYD_ACCUSATION, was: {follow_up}")
                         
-                        # If phase already transitioned (e.g. instant confirm), handle restart
+                        return
+                    else:
+                        _sherlock_log(f"  Trigger FAILED: {res.get('error')}")
+                
+                elif action == 'QAYD_ACCUSATION':
+                    logger.warning(f"[SHERLOCK] Bot {player.name} has accusation ready! Going atomic.")
+                    accusation_data = decision.get('accusation', {})
+                    res = game.handle_qayd_accusation(player.index, {
+                        'crime_card': accusation_data.get('crime_card'),
+                        'proof_card': accusation_data.get('proof_card'),
+                        'violation_type': accusation_data.get('violation_type', 'REVOKE'),
+                    })
+                    
+                    if res.get('success'):
+                        logger.info(f"[SHERLOCK] Atomic accusation succeeded. Verdict: {game.qayd_state.get('verdict')}")
+                        room_manager.save_game(game)
+                        broadcast_game_update(sio, game, room_id)
+                        
                         if game.phase in ("FINISHED", "GAMEOVER"):
                             sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                             from server.socket_handler import auto_restart_round
                             sio.start_background_task(auto_restart_round, game, room_id)
                         return
                     else:
-                        logger.info(f"[SHERLOCK] Bot {player.name} trigger failed: {res.get('error')}")
+                        logger.info(f"[SHERLOCK] Atomic accusation failed: {res.get('error')}")
         finally:
             game._sherlock_lock = False
     except Exception as e:
+        import traceback
+        _sherlock_log(f"EXCEPTION: {e}\n{traceback.format_exc()}")
         logger.error(f"Sherlock Watchdog Error: {e}")
         if hasattr(game, '_sherlock_lock'):
             game._sherlock_lock = False
@@ -234,22 +295,14 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
 
         elif action == 'QAYD_ACCUSATION':
              print(f"[DEBUG] Bot sending QAYD_ACCUSATION: {decision.get('accusation')}")
-             crime_data = decision.get('crime', {})
              accusation_data = decision.get('accusation', {})
-             
-             # Merge compatible formats (legacy 'accusation' vs new 'crime')
-             crime_card = crime_data.get('crime_card') or accusation_data.get('crime_card')
-             proof_card = crime_data.get('proof_card') or accusation_data.get('proof_card')
-             qayd_type = decision.get('qayd_type', 'REVOKE')
              
              res = game.handle_qayd_accusation(
                  current_idx,
                  {
-                     'crime_card': crime_card,
-                     'proof_card': proof_card,
-                     'qayd_type': qayd_type,
-                     'crime_trick_idx': crime_data.get('crime_trick_idx'),
-                     'proof_trick_idx': crime_data.get('proof_trick_idx')
+                     'crime_card': accusation_data.get('crime_card'),
+                     'proof_card': accusation_data.get('proof_card'),
+                     'violation_type': accusation_data.get('violation_type', 'REVOKE'),
                  }
              )
 

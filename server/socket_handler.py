@@ -253,7 +253,9 @@ def game_action(sid, data):
          print(f"[DEBUG] QAYD_ACCUSATION result: {result}")
     elif action == 'QAYD_CONFIRM':
          logger.info(f"[SOCKET] QAYD_CONFIRM received")
+         bot_orchestrator._sherlock_log(f"QAYD_CONFIRM from {player.position}. qayd_state={game.qayd_state}")
          result = game.handle_qayd_confirm()
+         bot_orchestrator._sherlock_log(f"QAYD_CONFIRM result={result}, phase={game.phase}")
          
          # Trigger auto-restart if game finished (Qayd Penalty applied)
          if result.get('success') and game.phase in ["FINISHED", "GAMEOVER"]:
@@ -298,12 +300,8 @@ def game_action(sid, data):
     if result.get('success'):
         # PERSIST STATE TO REDIS
         room_manager.save_game(game)
-    else:
-        # Log failure for debugging spam/errors
-        if 'error' in result:
-             logger.warning(f"Action '{action}' failed for {player.position}: {result['error']}")
-        
-        # Broadcast Update
+
+        # Broadcast Update to all clients
         broadcast_game_update(game, room_id)
         
         # Trigger Bot Responses for Sawa
@@ -311,14 +309,11 @@ def game_action(sid, data):
              sio.start_background_task(bot_orchestrator.handle_sawa_responses, sio, game, room_id)
         
         # --- SHERLOCK WATCHDOG --- 
+        bot_orchestrator._sherlock_log(f"SOCKET: Launching Sherlock scan after action '{action}' by {player.position}")
         sio.start_background_task(bot_orchestrator.run_sherlock_scan, sio, game, room_id)
         # -------------------------
 
         # Trigger Bot Loop (Background)
-        st = game.get_game_state()
-        cur_turn_export = st['currentTurnIndex']
-        # with open('logs/server_manual.log', 'a') as f:
-        #      f.write(f"{time.time()} Game Action Success. Turn: {game.current_turn} Exported: {cur_turn_export} ID: {id(game)}\n")
         try:
              sio.start_background_task(bot_orchestrator.bot_loop, sio, game, room_id)
         except Exception as e:
@@ -327,9 +322,12 @@ def game_action(sid, data):
         # Check if game finished to trigger auto-restart
         if game.phase == "FINISHED":
              save_match_snapshot(game, room_id)
-             # Auto-restart logic is handled by client request or explicit timer
-             pass
         
+    else:
+        # Log failure for debugging spam/errors
+        if 'error' in result:
+             logger.warning(f"Action '{action}' failed for {player.position}: {result['error']}")
+
     return result
 
 # run_sherlock_scan moved to bot_orchestrator
