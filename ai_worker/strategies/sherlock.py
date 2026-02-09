@@ -79,8 +79,11 @@ class SherlockStrategy:
         adapter = ForensicAdapter(game_state)
         scanner = ForensicScanner(adapter)
         
-        # Sync ignored crimes (use same 2-tuple format as ForensicScanner)
-        scanner._ignored_crimes = set(self.reported_crimes)
+        # DON'T sync reported_crimes to scanner's _ignored_crimes — 
+        # the scanner already deduplicates via is_illegal flag clearing and resolvedCrimes ledger.
+        # Syncing reported_crimes caused NEW crimes (with is_illegal=True still set on live object)
+        # to be silently skipped if they had the same trick_idx/card_idx as a previous detection.
+        _slog(f"reported_crimes={self.reported_crimes}, pending={self.pending_qayd_trigger}")
         
         # Pre-scan debug: check table cards AND history directly
         tc = adapter.table_cards
