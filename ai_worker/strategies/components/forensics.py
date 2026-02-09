@@ -107,7 +107,7 @@ class ForensicScanner:
             # Extract evidence
             card = play['card']
             played_by = play.get('playedBy')
-            reason = meta.get('illegal_reason', 'Rule violation detected')
+            reason = meta.get('illegal_reason') or 'Rule violation detected'
             
             crime_data = {
                 'suit': card.suit if hasattr(card, 'suit') else card.get('suit'),
@@ -187,7 +187,7 @@ class ForensicScanner:
                     logger.warning(f"[ForensicScanner] Cannot determine played_by for trick {trick_idx}, card {card_idx}")
                     continue
                 
-                reason = meta.get('illegal_reason', 'Rule violation detected')
+                reason = meta.get('illegal_reason') or 'Rule violation detected'
                 
                 crime_data = {
                     'suit': card_inner.get('suit') if isinstance(card_inner, dict) else getattr(card_inner, 'suit', None),
@@ -247,7 +247,7 @@ class ForensicScanner:
         Returns:
             ViolationType constant (REVOKE, NO_TRUMP, NO_OVERTRUMP, etc.)
         """
-        reason_lower = reason.lower()
+        reason_lower = (reason or 'Rule violation detected').lower()
         
         if 'revoke' in reason_lower or 'قاطع' in reason_lower or 'follow suit' in reason_lower:
             return 'REVOKE'

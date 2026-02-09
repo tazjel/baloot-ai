@@ -404,14 +404,15 @@ def handle_bot_turn(game, room_id):
     sio.start_background_task(bot_orchestrator.bot_loop, sio, game, room_id, 0)
 
 def auto_restart_round(game, room_id):
-    """Wait for 3 seconds then start next round if match is not over"""
+    """Wait then start next round if match is not over"""
     try:
         # race condition guard
         if hasattr(game, 'is_restarting') and game.is_restarting:
+            logger.info(f"auto_restart_round: SKIPPED (is_restarting=True) for room {room_id}")
             return
 
         game.is_restarting = True
-        sio.sleep(0.5) # Fast restart (User requested "No waiting")
+        sio.sleep(0.5) # Fast restart
 
         # HELPER: Save to Archive
         def save_to_archive():
@@ -442,11 +443,11 @@ def auto_restart_round(game, room_id):
              save_to_archive()
 
              if game.start_game():
-                  game.is_restarting = False # Reset flag
                   sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
+                  game.is_restarting = False  # Reset BEFORE bot loop
                   handle_bot_turn(game, room_id)
+                  return
         elif game.phase == "GAMEOVER":
-             game.is_restarting = False
              print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
              
              # Save Final
@@ -482,13 +483,15 @@ def auto_restart_round(game, room_id):
                      memory_hall.remember_match(human.id, human.name, match_data)
              except Exception as mem_err:
                  logger.error(f"Failed to save memory: {mem_err}")
-
         else:
-             game.is_restarting = False
+             logger.warning(f"auto_restart_round: Unexpected phase '{game.phase}' for room {room_id}")
              
     except Exception as e:
         logger.error(f"Error in auto_restart_round: {e}")
-        if game: game.is_restarting = False
+    finally:
+        # ALWAYS clear the flag to prevent permanent freeze
+        if game:
+            game.is_restarting = False
 
 @sio.event
 def add_bot(sid, data):

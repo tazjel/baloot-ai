@@ -79,19 +79,24 @@ class SherlockStrategy:
         adapter = ForensicAdapter(game_state)
         scanner = ForensicScanner(adapter)
         
-        # Sync ignored crimes
-        scanner._ignored_crimes = self.reported_crimes
+        # Sync ignored crimes (use same 2-tuple format as ForensicScanner)
+        scanner._ignored_crimes = set(self.reported_crimes)
         
-        # Pre-scan debug: check table cards directly
+        # Pre-scan debug: check table cards AND history directly
         tc = adapter.table_cards
         illegals = [i for i, c in enumerate(tc) if (c.get('metadata') or {}).get('is_illegal')]
-        if illegals:
-            _slog(f"Pre-scan: {len(tc)} table cards, illegal at indices={illegals}")
+        hist_illegals = []
+        for ti, trick in enumerate(adapter.round_history):
+            for ci, meta in enumerate(trick.get('metadata') or []):
+                if meta and meta.get('is_illegal'):
+                    hist_illegals.append((ti, ci))
+        if illegals or hist_illegals:
+            _slog(f"Pre-scan: {len(tc)} table cards, illegal at indices={illegals}, history_illegals={hist_illegals}")
         
         crime = scanner.scan()
         
         if crime:
-            sig = (current_round, crime['trick_idx'], crime['card_idx'])
+            sig = (crime['trick_idx'], crime['card_idx'])  # 2-tuple matching ForensicScanner
             _slog(f"Crime found! sig={sig}, reported_crimes={self.reported_crimes}")
             if sig in self.reported_crimes:
                 _slog(f"SKIP: sig already in reported_crimes")

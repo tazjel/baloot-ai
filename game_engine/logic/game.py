@@ -131,6 +131,8 @@ class Game(StateBridgeMixin):
         self.graveyard.reset()
         self.qayd_engine.reset()
         self.qayd_state = self.qayd_engine.state
+        # Clear Akka state on BOTH game and project_manager
+        self.akka_state = None
         if hasattr(self.project_manager, 'akka_state'):
             self.project_manager.akka_state = None
         self.reset_timer()
@@ -216,6 +218,11 @@ class Game(StateBridgeMixin):
         result = self.trick_manager.resolve_trick()
         if self.round_history:
             self.graveyard.commit_trick(self.round_history[-1].get('cards', []))
+        # Clear Akka after trick resolves — it's a one-trick announcement
+        # Must clear BOTH because get_game_state() exports project_manager.akka_state as primary
+        self.akka_state = None
+        if hasattr(self.project_manager, 'akka_state'):
+            self.project_manager.akka_state = None
         return result
 
     # ── Qayd delegation ──────────────────────────────────────────────
@@ -285,7 +292,7 @@ class Game(StateBridgeMixin):
     #  TIMEOUT — Delegates to AutoPilot
     # ═══════════════════════════════════════════════════════════════════
 
-    @requires_unlocked
+    # @requires_unlocked  <-- Removed to clear deadlock
     def check_timeout(self):
         is_chal = self.phase == GamePhase.CHALLENGE.value or self.qayd_state.get('active')
         if (not self.timer.active or self.timer_paused) and not is_chal: return None

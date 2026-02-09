@@ -1,0 +1,203 @@
+{
+    "id": "exam_1770646803_89250e41",
+    "title": "Professor's Exam: HOKUM Blunder",
+    "description": "You played 9\u2663. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        "HOKUM",
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "89250e41",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "-dt-e00sUswlDr1zAAAH",
+                "name": "StressTester",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2663",
+                        "rank": "9",
+                        "id": "9\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "Q",
+                        "id": "Q\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "7",
+                        "id": "7\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2665",
+                        "rank": "K",
+                        "id": "K\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "7",
+                        "id": "7\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "8",
+                        "id": "8\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "10",
+                        "id": "10\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "Q",
+                        "id": "Q\u2666",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770646796373",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770646796373",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770646796373",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [],
+        "currentTurnIndex": 3,
+        "gameMode": "HOKUM",
+        "trumpSuit": "\u2663",
+        "bid": {
+            "type": "HOKUM",
+            "bidder": "Top",
+            "doubled": false,
+            "suit": "\u2663",
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 0,
+            "them": 0
+        },
+        "analytics": {
+            "winProbability": [],
+            "blunders": {}
+        },
+        "floorCard": null,
+        "dealerIndex": 2,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 4.4182655811309814,
+            "duration": 5,
+            "elapsed": 0.5817344188690186,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": null,
+        "roundHistory": [],
+        "currentRoundTricks": [],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "responses": {},
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {
+            "active": false
+        },
+        "challengeActive": false,
+        "timerStartTime": 1770646802.9803174,
+        "turnDuration": 30,
+        "serverTime": 1770646803.5620518,
+        "akkaState": null,
+        "gameId": "89250e41",
+        "settings": {},
+        "resolvedCrimes": []
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "K\u2665"
+        ]
+    }
+}

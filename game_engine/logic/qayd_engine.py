@@ -465,33 +465,41 @@ class QaydEngine:
 
     def handle_bot_accusation(self, player_index: int, accusation: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Orchestrate a full accusation sequence for a Bot.
-        Input: {'crime_card': ..., 'proof_card': ..., 'violation_type': ...}
+        Atomic bot accusation — bypasses the step-by-step UI flow.
+        Bot evidence comes from server-verified metadata (is_illegal flags),
+        so we trust it and go directly to adjudication.
+
+        Input: {'crime_card': {...}, 'proof_card': {...}, 'violation_type': str}
         """
-        # 1. Trigger if needed
+        # 1. Trigger if not already active
         if not self.state['active']:
-             res = self.trigger(player_index)
-             if not res['success']: return res
-        
-        # 2. Select VIOLATION (Skip MENU)
-        if self.state['step'] == QaydStep.MAIN_MENU:
-             self.select_menu_option(QaydMenuOption.REVEAL_CARDS)
-             
-        # 3. Select Violation Type
-        v_type = accusation.get('violation_type', 'REVOKE')
-        res = self.select_violation(v_type)
-        if not res['success']: return res
-        
-        # 4. Select Crime Card
+            res = self.trigger(player_index)
+            if not res['success']:
+                return res
+
         crime = accusation.get('crime_card')
-        if not crime: return {'success': False, 'error': 'Missing crime_card'}
-        res = self.select_crime_card(crime)
-        if not res['success']: return res
-        
-        # 5. Select Proof Card
         proof = accusation.get('proof_card')
-        if not proof: return {'success': False, 'error': 'Missing proof_card'}
-        res = self.select_proof_card(proof)
-        
-        return res
+        violation = accusation.get('violation_type', 'REVOKE')
+
+        if not crime:
+            logger.error("[QAYD-BOT] Missing crime_card in accusation. Cancelling.")
+            self._unlock_and_reset()
+            return {'success': False, 'error': 'Missing crime_card'}
+
+        # 2. Set state directly (skip menu/card select UI steps)
+        self._update({
+            'menu_option':    QaydMenuOption.REVEAL_CARDS,
+            'violation_type': violation,
+            'crime_card':     crime,
+            'proof_card':     proof or crime,
+            'step':           QaydStep.SELECT_CARD_2,  # Pre-adjudication
+        })
+
+        logger.info(
+            f"[QAYD-BOT] Atomic accusation by {self.state['reporter']}: "
+            f"crime={crime}, proof={proof}, violation={violation}"
+        )
+
+        # 3. Adjudicate immediately
+        return self._adjudicate()
 

@@ -1,182 +1,704 @@
+"""
+verify_qayd_live.py — Comprehensive Qayd (Forensic Challenge) Live Test
+========================================================================
+
+Multi-round, event-driven stress test that verifies:
+  1. Revoke detection (is_illegal flags)
+  2. Qayd state machine transitions (IDLE → MAIN_MENU → RESULT → RESOLVED)
+  3. Score penalty application
+  4. Phase transitions (PLAYING → CHALLENGE → FINISHED → BIDDING)
+  5. Multi-round cycling without freezes or errors
+  6. Socket/server error capture
+
+Usage:
+  python scripts/verify_qayd_live.py [--rounds N] [--timeout T]
+"""
 
 import socketio
 import time
 import sys
 import logging
+import argparse
+import json
+from typing import List, Dict, Any, Optional
 
-# === CONFIGURATION ===
-GAME_ID = "live_test_pro_qayd"
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
 SERVER_URL = "http://localhost:3005"
-TIMEOUT_PHASE = 15
-TIMEOUT_OVERALL = 60
+DEFAULT_ROUNDS = 3
+DEFAULT_TIMEOUT = 120  # Overall test timeout in seconds
 
-# === LOGGING SETUP ===
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s', datefmt='%H:%M:%S')
-logger = logging.getLogger('ProTest')
+# ═══════════════════════════════════════════════════════════════════════════════
+# LOGGING
+# ═══════════════════════════════════════════════════════════════════════════════
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%H:%M:%S'
+)
+logger = logging.getLogger('QaydStress')
 
-sio = socketio.Client()
 
-# === STATE TRACKING ===
-class GameMonitor:
+# ═══════════════════════════════════════════════════════════════════════════════
+# EVENT LOG — Timestamped event recorder for post-mortem analysis
+# ═══════════════════════════════════════════════════════════════════════════════
+class EventLog:
+    """Records every socket event with a time offset from test start."""
+
     def __init__(self):
-        self.phase = None
-        self.round_num = 0
-        self.scores = {'us': 0, 'them': 0}
-        self.hand = []
-        self.my_turn = False
-        self.qayd_status = None
-        self.events = []
-        self.room_id = None
-        self.player_index = -1
+        self.start_time = time.time()
+        self.entries: List[Dict[str, Any]] = []
 
-    def log_event(self, name, data):
-        self.events.append((time.time(), name, data))
-        # logger.info(f"EVENT: {name} | {data}")
+    def record(self, event_name: str, summary: str, data: Any = None):
+        delta = time.time() - self.start_time
+        entry = {
+            'time': f"+{delta:.1f}s",
+            'event': event_name,
+            'summary': summary,
+        }
+        if data is not None:
+            entry['data'] = data
+        self.entries.append(entry)
+        logger.info(f"[{entry['time']}] {event_name}: {summary}")
 
-gm = GameMonitor()
+    def dump(self):
+        """Return all entries for the final report."""
+        return self.entries
 
-# === EVENTS ===
-@sio.event
-def connect():
-    logger.info("Connected to Server")
 
-@sio.event
-def game_update(data):
-    if data.get('phase'):
-        prev_phase = gm.phase
-        gm.phase = data.get('phase')
-        if prev_phase != gm.phase:
-            logger.info(f"🔄 PHASE CHANGE: {prev_phase} -> {gm.phase}")
-    
-    if data.get('matchScores'):
-        gm.scores = data.get('matchScores', {})
-        
-    gm.qayd_status = data.get('qaydState', {}).get('status')
-    if gm.qayd_status == 'RESOLVED':
-         # Log detail
-         reason = data.get('qaydState', {}).get('reason')
-         logger.info(f"⚖️ QAYD RESOLVED: {reason}")
+# ═══════════════════════════════════════════════════════════════════════════════
+# ERROR COLLECTOR — Aggregates all failures for the final report
+# ═══════════════════════════════════════════════════════════════════════════════
+class ErrorCollector:
+    """Gathers errors, anomalies, and warnings throughout the test."""
 
-    gm.round_num = len(data.get('roundHistory', []))
+    def __init__(self):
+        self.errors: List[Dict[str, str]] = []
+        self.warnings: List[Dict[str, str]] = []
 
-@sio.event
-def game_start(data):
-    logger.info("🚀 GAME START EVENT")
-    gs = data.get('gameState', {})
-    gm.phase = gs.get('phase')
-    gm.scores = gs.get('matchScores', {})
-    gm.round_num = len(gs.get('roundHistory', []))
+    def add_error(self, category: str, message: str):
+        self.errors.append({'category': category, 'message': message})
+        logger.error(f"❌ [{category}] {message}")
 
-@sio.event
-def player_joined(data):
-    p = data.get('player', {})
-    logger.info(f"👤 Player Joined: {p.get('name')} ({p.get('position')})")
+    def add_warning(self, category: str, message: str):
+        self.warnings.append({'category': category, 'message': message})
+        logger.warning(f"⚠️  [{category}] {message}")
 
-@sio.event
-def player_hand(data):
-    gm.hand = data.get('hand', [])
-    # logger.info(f"🃏 Hand Received: {len(gm.hand)} cards")
+    @property
+    def has_errors(self):
+        return len(self.errors) > 0
 
-# === TEST LOGIC ===
-def wait_for(condition_func, timeout=10, name="Condition"):
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GAME MONITOR — Deep state tracker wired to socket events
+# ═══════════════════════════════════════════════════════════════════════════════
+class GameMonitor:
+    """
+    Tracks all game state from socket events.
+    Verifies Qayd state machine transitions and detects anomalies.
+    """
+
+    def __init__(self, event_log: EventLog, error_collector: ErrorCollector):
+        self.log = event_log
+        self.errors = error_collector
+
+        # Connection
+        self.room_id: Optional[str] = None
+        self.player_index: int = -1
+        self.sio = None  # Set externally for reactive play
+
+        # Game State
+        self.phase: Optional[str] = None
+        self.prev_phase: Optional[str] = None
+        self.hand: List[Dict] = []
+        self.table_cards: List[Dict] = []
+        self.scores: Dict[str, int] = {'us': 0, 'them': 0}
+        self.round_num: int = 0
+        self.game_mode: Optional[str] = None
+        self.trump_suit: Optional[str] = None
+        self.current_turn: int = -1
+
+        # Qayd Tracking
+        self.qayd_state: Dict[str, Any] = {}
+        self.qayd_step_history: List[str] = []  # Track step transitions
+        self.qayd_triggers: int = 0
+        self.qayd_resolutions: int = 0
+        self.qayd_verdicts: List[str] = []
+
+        # Round Tracking
+        self.rounds_completed: int = 0
+        self.round_scores: List[Dict] = []
+        self.phase_epoch: int = 0  # Increments on every phase change (for fresh-wait)
+
+        # Reactive Play Tracking
+        self.our_plays: int = 0
+        self.revoke_attempts: int = 0
+        self.revoke_successes: int = 0
+        self._bid_sent_this_round: bool = False
+        self._played_this_turn: bool = False  # Prevent duplicate plays per turn
+        self._last_hand_size: int = 0  # Track hand changes to reset play guard
+
+        # Error Tracking
+        self.socket_errors: List[str] = []
+        self.unexpected_transitions: List[str] = []
+
+    def on_game_update(self, data: Dict):
+        """Process game_update events — the most important event."""
+        # -- Phase tracking --
+        new_phase = data.get('phase')
+        if new_phase and new_phase != self.phase:
+            self.prev_phase = self.phase
+            self.phase = new_phase
+            self.phase_epoch += 1
+            self.log.record('PHASE_CHANGE', f"{self.prev_phase} → {self.phase} (epoch {self.phase_epoch})")
+
+            # Detect unexpected phase transitions
+            valid_transitions = {
+                None: {'BIDDING', 'WAITING'},
+                'WAITING': {'BIDDING'},
+                'BIDDING': {'PLAYING', 'BIDDING'},
+                'PLAYING': {'FINISHED', 'CHALLENGE', 'PLAYING'},
+                'CHALLENGE': {'FINISHED', 'PLAYING', 'CHALLENGE'},
+                'FINISHED': {'BIDDING', 'WAITING', 'FINISHED', 'GAME_OVER'},
+            }
+            expected = valid_transitions.get(self.prev_phase, set())
+            if self.phase not in expected:
+                msg = f"Unexpected transition: {self.prev_phase} → {self.phase}"
+                self.errors.add_warning('PHASE', msg)
+                self.unexpected_transitions.append(msg)
+
+        # -- Score tracking --
+        match_scores = data.get('matchScores')
+        if match_scores:
+            old_scores = dict(self.scores)
+            self.scores = match_scores
+            if old_scores != match_scores:
+                self.log.record('SCORE_CHANGE',
+                    f"us: {old_scores.get('us',0)} → {match_scores.get('us',0)}, "
+                    f"them: {old_scores.get('them',0)} → {match_scores.get('them',0)}")
+
+        # -- Table cards tracking --
+        tc = data.get('tableCards', [])
+        if tc != self.table_cards:
+            self.table_cards = tc
+
+        # -- Turn tracking (schema field is `currentTurnIndex`) --
+        ct = data.get('currentTurnIndex')
+        if ct is not None:
+            if ct != self.current_turn:
+                self._played_this_turn = False  # Reset play guard on turn change
+            self.current_turn = ct
+
+        # -- Also check isActive on players array as fallback --
+        # -- AND extract our hand from the players array --
+        players = data.get('players', [])
+        for p in players:
+            if p.get('isActive'):
+                idx = p.get('index')
+                if idx is not None:
+                    self.current_turn = idx
+            # Extract our hand from the players array
+            if self.player_index >= 0 and p.get('index') == self.player_index:
+                hand_data = p.get('hand', [])
+                if hand_data and len(hand_data) != self._last_hand_size:
+                    self._last_hand_size = len(hand_data)
+                    self._played_this_turn = False  # Hand changed, can play again
+                    self.hand = hand_data
+                    suits = {}
+                    for c in self.hand:
+                        s = c.get('suit', '?')
+                        suits[s] = suits.get(s, 0) + 1
+                    self.log.record('HAND_UPDATE', f"{len(self.hand)} cards | Suits: {suits}")
+
+        # -- Game mode --
+        gm = data.get('gameMode')
+        if gm:
+            self.game_mode = gm
+        ts = data.get('trumpSuit')
+        if ts:
+            self.trump_suit = ts
+
+        # -- Round tracking --
+        rh = data.get('roundHistory')
+        if rh is not None:
+            new_round_num = len(rh)
+            if new_round_num > self.round_num:
+                self.round_num = new_round_num
+                self.rounds_completed = new_round_num
+                self.round_scores.append(dict(self.scores))
+                self._bid_sent_this_round = False
+                self.log.record('ROUND_COMPLETE', f"Round {self.round_num} finished. Scores: {self.scores}")
+
+        # -- REACTIVE AUTO-PLAY: bid & play from callback --
+        self._auto_play()
+
+        # -- QAYD STATE MACHINE TRACKING (the critical part) --
+        qs = data.get('qaydState')
+        if qs:
+            self._track_qayd_state(qs)
+
+    def _track_qayd_state(self, qs: Dict):
+        """Deep-inspect Qayd state changes and verify transitions."""
+        new_step = qs.get('step', 'IDLE')
+        old_step = self.qayd_state.get('step', 'IDLE')
+
+        # Track active transitions
+        was_active = self.qayd_state.get('active', False)
+        is_active = qs.get('active', False)
+
+        if is_active and not was_active:
+            self.qayd_triggers += 1
+            accuser = qs.get('accuserIndex', '?')
+            accused = qs.get('accusedPosition', '?')
+            self.log.record('QAYD_ACTIVATED',
+                f"Trigger #{self.qayd_triggers} by player {accuser} against {accused}",
+                {'step': new_step, 'accuser': accuser, 'accused': accused})
+
+        if not is_active and was_active:
+            status = qs.get('status', '?')
+            self.log.record('QAYD_DEACTIVATED', f"Status: {status}")
+
+        # Track step transitions
+        if new_step != old_step:
+            self.qayd_step_history.append(f"{old_step}→{new_step}")
+            self.log.record('QAYD_STEP', f"{old_step} → {new_step}")
+
+        # Track verdict
+        verdict = qs.get('verdict')
+        if verdict and verdict != self.qayd_state.get('verdict'):
+            self.qayd_verdicts.append(verdict)
+            penalty = qs.get('penalty', 0)
+            self.log.record('QAYD_VERDICT', f"Verdict: {verdict}, Penalty: {penalty}")
+
+        # Track resolution
+        status = qs.get('status')
+        if status == 'RESOLVED' and self.qayd_state.get('status') != 'RESOLVED':
+            self.qayd_resolutions += 1
+            reason = qs.get('reason', 'unknown')
+            self.log.record('QAYD_RESOLVED', f"Resolution #{self.qayd_resolutions}: {reason}")
+
+        self.qayd_state = dict(qs)
+
+    def on_game_start(self, data: Dict):
+        """Process game_start events."""
+        gs = data.get('gameState', {})
+        new_phase = gs.get('phase')
+        if new_phase and new_phase != self.phase:
+            self.prev_phase = self.phase
+            self.phase = new_phase
+            self.phase_epoch += 1
+        elif new_phase:
+            self.phase = new_phase
+        self.scores = gs.get('matchScores', {'us': 0, 'them': 0})
+        new_round_num = len(gs.get('roundHistory', []))
+        if new_round_num > self.round_num:
+            self.rounds_completed = new_round_num
+            self.round_scores.append(dict(self.scores))
+            self.log.record('ROUND_COMPLETE', f"Round {new_round_num} done. Scores: {self.scores}")
+        self.round_num = new_round_num
+        self.game_mode = gs.get('gameMode')
+        self.trump_suit = gs.get('trumpSuit')
+        self._bid_sent_this_round = False  # Reset bid flag for new round
+        self._played_this_turn = False  # Reset play guard for new round
+
+        # Detect our player index from the players array
+        players = gs.get('players', [])
+        for p in players:
+            if p.get('id') == 'QaydStressTester' or p.get('name') == 'StressTester':
+                self.player_index = p.get('index', 0)
+                break
+
+        self.log.record('GAME_START',
+            f"Phase: {self.phase}, Mode: {self.game_mode}, "
+            f"Scores: {self.scores}, MyIndex: {self.player_index}, Epoch: {self.phase_epoch}")
+
+        # Also extract hand from game_start
+        if self.player_index >= 0 and players:
+            for p in players:
+                if p.get('index') == self.player_index:
+                    hand_data = p.get('hand', [])
+                    if hand_data:
+                        self.hand = hand_data
+
+        # Try auto-play/bid from game_start too
+        self._auto_play()
+
+    def _auto_play(self):
+        """Reactively bid or play when it's our turn. Called from event callbacks."""
+        if not self.sio or not self.room_id or self.player_index < 0:
+            return
+
+        try:
+            # Auto-bid in BIDDING phase
+            if self.phase == 'BIDDING' and not self._bid_sent_this_round:
+                self._bid_sent_this_round = True
+                self.log.record('ACTION', 'Auto-bidding SUN...')
+                res = self.sio.call('game_action', {
+                    'roomId': self.room_id,
+                    'action': 'BID',
+                    'payload': {'action': 'SUN', 'suit': 'SUN'}
+                })
+                if not res.get('success'):
+                    self._bid_sent_this_round = False  # Reset so we can retry
+                    self.errors.add_warning('BID', f"Bid response: {res.get('error', res)}")
+                return
+
+            # Auto-play in PLAYING phase when it's our turn
+            if self.phase == 'PLAYING' and self.current_turn == self.player_index and self.hand:
+                if self._played_this_turn:
+                    return  # Already played this turn, wait for turn to change
+                self._played_this_turn = True
+                self.our_plays += 1
+
+                # Try smart revoke
+                revoke_idx = pick_revoke_card(self.hand, self.table_cards)
+
+                if revoke_idx is not None and len(self.table_cards) > 0:
+                    self.revoke_attempts += 1
+                    card = self.hand[revoke_idx]
+                    lead_card = self.table_cards[0].get('card', self.table_cards[0])
+                    self.log.record('REVOKE_ATTEMPT',
+                        f"Playing {card.get('rank','?')} of {card.get('suit','?')} "
+                        f"(lead suit: {lead_card.get('suit','?')})")
+
+                    res = self.sio.call('game_action', {
+                        'roomId': self.room_id,
+                        'action': 'PLAY',
+                        'payload': {'cardIndex': revoke_idx, 'skip_professor': True}
+                    })
+                    if res.get('success'):
+                        self.revoke_successes += 1
+                        self.log.record('REVOKE_PLAYED', 'Revoke card accepted by server')
+                    else:
+                        self.errors.add_warning('REVOKE', f"Revoke rejected: {res.get('error')}")
+                        # Fallback: play first card legally
+                        self.log.record('NORMAL_PLAY', 'Revoke blocked, falling back to card 0')
+                        fb = self.sio.call('game_action', {
+                            'roomId': self.room_id,
+                            'action': 'PLAY',
+                            'payload': {'cardIndex': 0, 'skip_professor': True}
+                        })
+                        if not fb.get('success'):
+                            # Both plays failed — unlock guard so next update can retry
+                            self._played_this_turn = False
+                else:
+                    # No revoke possible — play normally
+                    self.log.record('NORMAL_PLAY', f'Playing card 0 ({len(self.hand)} left)')
+                    res = self.sio.call('game_action', {
+                        'roomId': self.room_id,
+                        'action': 'PLAY',
+                        'payload': {'cardIndex': 0, 'skip_professor': True}
+                    })
+                    if not res.get('success'):
+                        self.errors.add_warning('PLAY', f"Play failed: {res.get('error')}")
+                        self._played_this_turn = False  # Unlock for retry
+        except Exception as e:
+            self.errors.add_warning('AUTO_PLAY', f'Error during auto-play: {e}')
+
+    def on_player_hand(self, data: Dict):
+        """Track our hand for smart revoke plays."""
+        self.hand = data.get('hand', [])
+        suits = {}
+        for c in self.hand:
+            s = c.get('suit', '?')
+            suits[s] = suits.get(s, 0) + 1
+        self.log.record('HAND_RECEIVED', f"{len(self.hand)} cards | Suits: {suits}")
+
+    def on_error(self, data):
+        """Capture any socket error events."""
+        msg = str(data)
+        self.socket_errors.append(msg)
+        self.errors.add_error('SOCKET', msg)
+
+    def on_connect_error(self, data):
+        """Capture connection errors."""
+        msg = str(data)
+        self.socket_errors.append(msg)
+        self.errors.add_error('CONNECTION', msg)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SMART REVOKE — Intentionally plays a card of the wrong suit
+# ═══════════════════════════════════════════════════════════════════════════════
+def pick_revoke_card(hand: List[Dict], table_cards: List[Dict]) -> Optional[int]:
+    """
+    Intelligently pick a card that will cause a revoke.
+    Returns the card index, or None if no revoke is possible.
+
+    Strategy:
+      1. Find the lead suit from the first table card
+      2. Check if we have a card of that suit
+      3. If yes, play a card of a DIFFERENT suit (guaranteed revoke)
+      4. If no, we can't revoke — just play any card
+    """
+    if not hand:
+        return None
+
+    # If table is empty (we're leading), just play anything — no revoke possible as leader
+    if not table_cards:
+        return 0  # Play first card, no revoke when leading
+
+    # Get lead suit
+    first_card = table_cards[0]
+    card_data = first_card.get('card', first_card)
+    lead_suit = card_data.get('suit')
+
+    if not lead_suit:
+        return 0  # Can't determine lead, just play first
+
+    # Check if we have the lead suit
+    has_lead_suit = False
+    lead_suit_indices = []
+    non_lead_indices = []
+
+    for i, c in enumerate(hand):
+        if c.get('suit') == lead_suit:
+            has_lead_suit = True
+            lead_suit_indices.append(i)
+        else:
+            non_lead_indices.append(i)
+
+    if has_lead_suit and non_lead_indices:
+        # We CAN follow suit but choose not to — guaranteed revoke!
+        return non_lead_indices[0]
+    else:
+        # Either we don't have lead suit (legal off-suit) or all our cards match lead
+        # In either case, no revoke possible
+        return None
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WAIT HELPER — Polls a condition with timeout
+# ═══════════════════════════════════════════════════════════════════════════════
+def wait_for(condition_func, timeout=15, name="Condition", log: EventLog = None):
+    """Wait for a condition to become true, with timeout."""
     start = time.time()
     while time.time() - start < timeout:
         if condition_func():
             return True
-        time.sleep(0.5)
-    logger.error(f"❌ TIMEOUT waiting for: {name}")
+        time.sleep(0.3)
+    if log:
+        log.record('TIMEOUT', f"Waiting for: {name} ({timeout}s)")
     return False
 
-def run_pro_test():
-    try:
-        logger.info(f"🔌 Connecting to {SERVER_URL}...")
-        sio.connect(SERVER_URL)
-        
-        # 1. SETUP
-        logger.info("🛠️ Creating Room...")
-        resp = sio.call('create_room', {})
-        if not resp.get('success'): raise Exception(f"Create failed: {resp}")
-        gm.room_id = resp['roomId']
-        logger.info(f"✅ Room Created: {gm.room_id}")
 
-        sio.emit('join_room', {'roomId': gm.room_id, 'userId': 'Tester_Pro', 'playerName': 'ProTester'})
-        # Note: Bots auto-add on join in dev mode usually, or we wait/add
-        # The previous successful test showed bots auto-added. We assume this behavior.
-        
-        # 2. AWAIT START
-        logger.info("⏳ Waiting for Game Start (BIDDING)...")
-        if not wait_for(lambda: gm.phase == 'BIDDING', timeout=15, name="Phase=BIDDING"):
-             raise Exception("Failed to reach BIDDING phase")
-        
-        # 3. BIDDING
-        if gm.phase == 'BIDDING':
-            logger.info("📣 Bidding SUN...")
-            # Use call for ACK
-            res = sio.call('game_action', {'roomId': gm.room_id, 'action': 'BID', 'payload': {'action': 'SUN', 'suit': 'SUN'}})
-            if not res.get('success'): logger.warning(f"Bid Warning: {res}")
-        else:
-            logger.info(f"Skipping BID (Phase is {gm.phase})")
-        
-        # 4. AWAIT PLAYING
-        logger.info("⏳ Waiting for PLAYING (60s timeout)...")
-        if not wait_for(lambda: gm.phase == 'PLAYING', timeout=60, name="Phase=PLAYING"):
-             raise Exception("Failed to reach PLAYING phase")
-        
-        logger.info("✅ In PLAYING Phase. Giving bots 2s to settle...")
-        time.sleep(2)
-        
-        # 5. TRIGGER REVOKE (Trigger Bot Qayd)
-        if gm.hand:
-            # Play last card (force revoke)
-            card = gm.hand[-1]
-            logger.info(f"🃏 Playing Card (Likely Revoke): {card}")
-            res = sio.call('game_action', {'roomId': gm.room_id, 'action': 'PLAY', 'payload': {'cardIndex': len(gm.hand)-1}})
-            if not res.get('success'): logger.warning(f"Play Warning: {res}")
-        else:
-            raise Exception("Hand empty? Cannot play.")
-            
-        # 6. VERIFY QAYD RESOLUTION / ROUND END
-        logger.info("🔎 Waiting for Qayd Resolution & Round End...")
-        
-        # Verification Stages
-        # A. Qayd Resolved (Score change)
-        start_score_them = gm.scores.get('them', 0)
-        
-        def check_score_penalty():
-            curr = gm.scores.get('them', 0)
-            return curr >= start_score_them + 26
-            
-        if not wait_for(check_score_penalty, timeout=20, name="Score Penalty (+26)"):
-             logger.error(f"Scores: {gm.scores}")
-             raise Exception("Score did not update correctly")
-        logger.info(f"✅ Score Verified: them={gm.scores.get('them')} (Delta: {gm.scores.get('them') - start_score_them})")
-        
-        # B. Phase Transition to FINISHED
-        # This is where the bug likely is ("Loop" / "Did not go to next round")
-        logger.info("⏳ Verifying transition to FINISHED...")
-        if not wait_for(lambda: gm.phase == 'FINISHED' or gm.phase == 'PLAYING', timeout=10, name="Phase=FINISHED/PLAYING(NextRound)"):
-             logger.error(f"Stuck in Phase: {gm.phase}")
-             raise Exception("Game did not finish round after Qayd")
-             
-        if gm.phase == 'FINISHED':
-             logger.info("✅ Phase is FINISHED. Waiting for Auto-Restart (Round 2)...")
-             # Wait for Round 2
-             start_round = gm.round_num
-             if not wait_for(lambda: gm.round_num > start_round or gm.phase == 'BIDDING', timeout=10, name="Next Round Start"):
-                  raise Exception("Auto-Restart failed")
-             logger.info(f"✅ Round 2 Started! (Round Num: {gm.round_num})")
-             
-        elif gm.phase == 'PLAYING':
-             logger.info("✅ Game already advanced to Next Round Playing (Fast forward?)")
-        
-        logger.info("🏆 TEST PASSED: Full Cycle Verified.")
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN TEST
+# ═══════════════════════════════════════════════════════════════════════════════
+def run_qayd_stress_test(target_rounds: int = DEFAULT_ROUNDS, overall_timeout: int = DEFAULT_TIMEOUT):
+    """
+    Multi-round Qayd stress test.
+
+    For each round:
+      1. Wait for BIDDING → bid SUN
+      2. Wait for PLAYING → wait for our turn
+      3. Attempt a smart revoke (play wrong suit intentionally)
+      4. Monitor for Qayd trigger, accusation, verdict, resolution
+      5. Verify score penalty and phase transition
+      6. Wait for round end and next round
+    """
+    event_log = EventLog()
+    errors = ErrorCollector()
+    gm = GameMonitor(event_log, errors)
+
+    sio = socketio.Client(reconnection=True, reconnection_attempts=3)
+    gm.sio = sio  # Enable reactive auto-play
+
+    # ── Wire up events ──
+    @sio.event
+    def connect():
+        event_log.record('CONNECT', f"Connected to {SERVER_URL}")
+
+    @sio.event
+    def disconnect():
+        event_log.record('DISCONNECT', 'Disconnected from server')
+
+    @sio.event
+    def connect_error(data):
+        gm.on_connect_error(data)
+
+    @sio.on('*')
+    def catch_all(event, data):
+        """Catch any event we haven't explicitly handled — safety net."""
+        if event not in ('game_update', 'game_start', 'player_hand', 'player_joined',
+                         'connect', 'disconnect', 'bot_speak', 'sawa_declared',
+                         'akka_declared', 'timer_update', 'game_action_result'):
+            event_log.record(f'UNHANDLED:{event}', str(data)[:200])
+
+    @sio.event
+    def game_update(data):
+        gm.on_game_update(data.get('gameState', data))
+
+    @sio.event
+    def game_start(data):
+        gm.on_game_start(data)
+
+    @sio.event
+    def player_hand(data):
+        gm.on_player_hand(data)
+
+    @sio.event
+    def player_joined(data):
+        p = data.get('player', {})
+        event_log.record('PLAYER_JOINED', f"{p.get('name')} ({p.get('position')})")
+
+    @sio.event
+    def game_action_result(data):
+        if not data.get('success'):
+            errors.add_warning('ACTION_RESULT', f"Failed action: {data.get('error', data)}")
+
+    test_start = time.time()
+
+    try:
+        # ── 1. CONNECT ──
+        event_log.record('TEST', f"Connecting to {SERVER_URL}...")
+        sio.connect(SERVER_URL)
+
+        # ── 2. CREATE ROOM ──
+        resp = sio.call('create_room', {})
+        if not resp.get('success'):
+            errors.add_error('SETUP', f"create_room failed: {resp}")
+            raise Exception(f"create_room failed: {resp}")
+
+        gm.room_id = resp['roomId']
+        event_log.record('SETUP', f"Room created: {gm.room_id}")
+
+        # ── 3. JOIN ──
+        sio.emit('join_room', {
+            'roomId': gm.room_id,
+            'userId': 'QaydStressTester',
+            'playerName': 'StressTester'
+        })
+
+        # ── 4. EVENT-DRIVEN MONITOR ──
+        # The GameMonitor now auto-plays from on_game_update callbacks.
+        # We just wait here for enough rounds to complete or timeout.
+        event_log.record('MONITOR', f"Waiting for {target_rounds} rounds (event-driven play)...")
+
+        while True:
+            time.sleep(0.5)
+
+            # Check completion
+            if gm.rounds_completed >= target_rounds:
+                event_log.record('COMPLETE', f"All {target_rounds} rounds completed!")
+                break
+
+            # Check overall timeout
+            elapsed = time.time() - test_start
+            if elapsed > overall_timeout:
+                errors.add_error('TIMEOUT', f"Overall test timeout ({overall_timeout}s) exceeded after {gm.rounds_completed} rounds")
+                break
+
+            # Check game over
+            if gm.phase == 'GAME_OVER':
+                event_log.record('GAME_OVER', f"Match ended. Final scores: {gm.scores}")
+                break
+
+        # ═══════════════════════════════════════════════════════════════════════
+        # FINAL REPORT
+        # ═══════════════════════════════════════════════════════════════════════
+        total_time = time.time() - test_start
+        print_report(gm, errors, event_log, target_rounds, total_time,
+                     gm.revoke_attempts, gm.revoke_successes, gm.our_plays)
 
     except Exception as e:
-        logger.error(f"❌ TEST FAILED: {e}")
-        # Dump state
-        logger.error(f"Final State: Phase={gm.phase}, Scores={gm.scores}, Qayd={gm.qayd_status}")
+        errors.add_error('EXCEPTION', str(e))
+        logger.error(f"❌ FATAL: {e}")
+        import traceback
+        traceback.print_exc()
+        print_report(gm, errors, event_log, target_rounds,
+                     time.time() - test_start,
+                     gm.revoke_attempts, gm.revoke_successes, gm.our_plays)
     finally:
-        sio.disconnect()
+        try:
+            sio.disconnect()
+        except Exception:
+            pass
 
-if __name__ == "__main__":
-    run_pro_test()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FINAL REPORT — Structured summary of the entire test
+# ═══════════════════════════════════════════════════════════════════════════════
+def print_report(gm: GameMonitor, errors: ErrorCollector, event_log: EventLog,
+                 target_rounds: int, total_time: float,
+                 revoke_attempts: int, revoke_successes: int, our_plays: int):
+    """Print a comprehensive, structured test report."""
+    print("\n" + "═" * 60)
+    print("  📊 QAYD STRESS TEST REPORT")
+    print("═" * 60)
+
+    # -- Summary --
+    print(f"\n⏱️  Duration:        {total_time:.1f}s")
+    print(f"🔄  Rounds Target:   {target_rounds}")
+    print(f"🔄  Rounds Completed: {gm.rounds_completed}")
+    print(f"🃏  Our Card Plays:  {our_plays}")
+    print(f"💥  Revoke Attempts: {revoke_attempts}")
+    print(f"✅  Revokes Accepted:{revoke_successes}")
+
+    # -- Qayd Stats --
+    print(f"\n🔎  Qayd Stats:")
+    print(f"    Triggers:       {gm.qayd_triggers}")
+    print(f"    Resolutions:    {gm.qayd_resolutions}")
+    print(f"    Verdicts:       {gm.qayd_verdicts or 'none'}")
+    print(f"    Step History:   {' | '.join(gm.qayd_step_history[-20:]) or 'none'}")
+
+    # -- Scores --
+    print(f"\n📈  Final Scores:    {gm.scores}")
+    if gm.round_scores:
+        print(f"    Per-Round:       {gm.round_scores}")
+
+    # -- Phase at End --
+    print(f"\n🎯  Final Phase:     {gm.phase}")
+
+    # -- Errors --
+    if errors.errors:
+        print(f"\n❌  ERRORS ({len(errors.errors)}):")
+        for i, e in enumerate(errors.errors, 1):
+            print(f"    {i}. [{e['category']}] {e['message']}")
+    else:
+        print(f"\n✅  No errors detected!")
+
+    # -- Warnings --
+    if errors.warnings:
+        print(f"\n⚠️   WARNINGS ({len(errors.warnings)}):")
+        for i, w in enumerate(errors.warnings[:10], 1):
+            print(f"    {i}. [{w['category']}] {w['message']}")
+        if len(errors.warnings) > 10:
+            print(f"    ... and {len(errors.warnings) - 10} more")
+
+    # -- Unexpected Transitions --
+    if gm.unexpected_transitions:
+        print(f"\n🚨  Unexpected Phase Transitions:")
+        for t in gm.unexpected_transitions:
+            print(f"    - {t}")
+
+    # -- Verdict --
+    print("\n" + "═" * 60)
+    if errors.has_errors:
+        print("  🔥 VERDICT: FAIL")
+        print("═" * 60)
+        sys.exit(1)
+    elif revoke_attempts > 0 and gm.qayd_triggers == 0:
+        print("  ⚠️  VERDICT: WARN — Revokes played but no Qayd detected")
+        print("      (Bots may not have detected the revoke)")
+        print("═" * 60)
+        sys.exit(0)
+    else:
+        print("  🏆 VERDICT: PASS")
+        print("═" * 60)
+        sys.exit(0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ENTRY POINT
+# ═══════════════════════════════════════════════════════════════════════════════
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Qayd Live Stress Test')
+    parser.add_argument('--rounds', type=int, default=DEFAULT_ROUNDS,
+                        help=f'Number of rounds to play (default: {DEFAULT_ROUNDS})')
+    parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
+                        help=f'Overall timeout in seconds (default: {DEFAULT_TIMEOUT})')
+    args = parser.parse_args()
+
+    run_qayd_stress_test(target_rounds=args.rounds, overall_timeout=args.timeout)

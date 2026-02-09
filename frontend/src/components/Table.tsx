@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import Card from './Card';
 import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
-import { ProfessorOverlay } from './overlays/ProfessorOverlay';
-import { ForensicOverlay } from './overlays/ForensicOverlay';
+
+
 import { QaydOverlay } from './overlays/QaydOverlay';
 import { useGameTension } from '../hooks/useGameTension';
 import { HeartbeatLayer } from './effects/HeartbeatLayer';
@@ -417,8 +417,7 @@ export default function Table({
                     />
                 )}
             </AnimatePresence>
-            {/* TODO: Restore War Room / Professor Overlay logic */}
-            {/* <ProfessorOverlay intervention={null} onUndo={() => {}} onInsist={() => {}} /> */}
+
             {showDirector && (
                 <DirectorOverlay
                     gameState={gameState}

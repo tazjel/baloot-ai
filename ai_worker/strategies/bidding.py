@@ -169,10 +169,11 @@ class BiddingStrategy:
             if simulated_decision == "SUN":
                  return {"action": "SUN", "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
             elif simulated_decision == "HOKUM":
-                 # Which suit?
-                 best_s = oracle_res.get('best_suit')
-                 if best_s:
-                      return {"action": "HOKUM", "suit": best_s, "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
+                 # Respect existing Hokum bid — same guard as heuristic path
+                 if not has_hokum_bid:
+                      best_s = oracle_res.get('best_suit')
+                      if best_s:
+                           return {"action": "HOKUM", "suit": best_s, "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
 
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}

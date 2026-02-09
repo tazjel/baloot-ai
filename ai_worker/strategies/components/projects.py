@@ -74,17 +74,17 @@ class ProjectStrategy(StrategyComponent):
         if ctx.akka_state and ctx.akka_state.get('claimer') == ctx.position:
             return None
 
-        # --- SPAM PROTECTION (Client-Side Lockout) ---
+        # --- SPAM PROTECTION (Once per Trick per Player) ---
+        # Akka cascades across tricks (Ace gone → 10 is Akka, then King, etc.)
+        # So we only block re-declaration on the SAME trick.
         current_round = len(ctx.raw_state.get('pastRoundResults', []))
         current_trick = len(ctx.raw_state.get('roundHistory', []))
 
         cooldown = self._akka_cooldowns.get(ctx.player_index)
 
         if cooldown:
+            # Block if already declared this exact trick
             if cooldown.get('round') == current_round and cooldown.get('trick') == current_trick:
-                return None
-
-            if time.time() - cooldown.get('time', 0) < 1.0:
                 return None
 
         # Gather all played cards (Memory + Table)
@@ -136,7 +136,6 @@ class ProjectStrategy(StrategyComponent):
             self._akka_cooldowns[ctx.player_index] = {
                 'round': current_round,
                 'trick': current_trick,
-                'time': time.time()
             }
             return {"action": "AKKA", "reasoning": "Declaring Master (Akka)"}
 

@@ -65,14 +65,16 @@ class PlayingPhase:
                          contract_variant=contract_variant
                      )
                      
-                     if not metadata: metadata = {}
+                     # Ensure we don't overwrite existing metadata (deep merge if needed, but shallow is ok for these keys)
+                     if metadata is None: metadata = {}
+                     
                      metadata['is_illegal'] = True
                      metadata['illegal_reason'] = details.get('reason', 'Rule Violation')
                      metadata['violation_type'] = details.get('violation_type')
                      metadata['proof_hint'] = details.get('proof_hint') # Crucial for Bot
                  except Exception as e:
                      logger.error(f"Error getting violation details: {e}")
-                     if not metadata: metadata = {}
+                     if metadata is None: metadata = {}
                      metadata['is_illegal'] = True
                      metadata['illegal_reason'] = 'Rule Violation (Unknown)'
 

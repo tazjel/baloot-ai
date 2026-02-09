@@ -1,12 +1,21 @@
 
 import time
 import logging
+import os
 from ai_worker.agent import bot_agent
 from ai_worker.personality import BALANCED, AGGRESSIVE, CONSERVATIVE
 from server.schemas.game import GameStateModel
 from server.room_manager import room_manager # Needed for persistence
 
 logger = logging.getLogger(__name__)
+
+# ── Bot Speed Configuration ──────────────────────────────────────────────────
+# Control via environment variables or change defaults here.
+# Set BALOOT_BOT_SPEED=fast for quick testing, or BALOOT_BOT_SPEED=normal for gameplay.
+_speed = os.environ.get('BALOOT_BOT_SPEED', 'normal').lower()
+BOT_TURN_DELAY   = 0.5 if _speed == 'fast' else 1.5   # Delay between bot actions
+QAYD_RESULT_DELAY = 1.0 if _speed == 'fast' else 3.0   # Qayd result display time
+SAWA_DELAY        = 0.2 if _speed == 'fast' else 0.5   # Sawa response delay
 
 def broadcast_game_update(sio, game, room_id):
     """Helper to emit validated game state with fallback"""
@@ -70,6 +79,23 @@ def _sherlock_log(msg):
     with open('logs/sherlock_debug.log', 'a', encoding='utf-8') as f:
         f.write(f"{datetime.datetime.now().isoformat()} {msg}\n")
 
+def _clear_illegal_flags_on_game(game):
+    """
+    Clear is_illegal flags on the LIVE game object's table_cards and round_history.
+    This prevents re-detection of the same crime through the serialization pathway
+    (Bug 3 fix: ForensicScanner clears flags on serialized copies, not the original).
+    """
+    # Clear on table_cards
+    for tc in game.table_cards:
+        meta = tc.get('metadata')
+        if meta and meta.get('is_illegal'):
+            meta['is_illegal'] = False
+    # Clear on round_history
+    for trick in game.round_history:
+        for meta in (trick.get('metadata') or []):
+            if meta and meta.get('is_illegal'):
+                meta['is_illegal'] = False
+
 def run_sherlock_scan(sio, game, room_id):
     """
     Independent Watchdog process.
@@ -78,9 +104,11 @@ def run_sherlock_scan(sio, game, room_id):
     """
     try:
         _sherlock_log(f"Scan invoked. Phase={game.phase}, Locked={game.is_locked}, Qayd={game.qayd_state.get('active')}")
-        # Skip if not in PLAYING phase
-        if game.phase != "PLAYING":
-            _sherlock_log(f"SKIP: Phase is {game.phase}, not PLAYING")
+        # Skip if not in PLAYING or FINISHED phase
+        # FINISHED is allowed because the trick may have just resolved (race condition:
+        # the illegal card is now in round_history, table_cards is clear, and the round ended)
+        if game.phase not in ("PLAYING", "FINISHED"):
+            _sherlock_log(f"SKIP: Phase is {game.phase}, not PLAYING/FINISHED")
             return
         # Skip if Qayd already active or recently resolved
         if game.qayd_state.get('active'):
@@ -99,16 +127,24 @@ def run_sherlock_scan(sio, game, room_id):
         try:
             state = game.get_game_state()
             
-            # Check for illegal cards in table
-            table_illegals = [tc for tc in state.get('tableCards', []) if (tc.get('metadata') or {}).get('is_illegal')]
-            _sherlock_log(f"Table cards: {len(state.get('tableCards', []))}, Illegal: {len(table_illegals)}")
+            # Check for illegal cards in table (live game object)
+            live_table_illegals = [i for i, tc in enumerate(game.table_cards) if (tc.get('metadata') or {}).get('is_illegal')]
+            # Check for illegal cards in round_history (live game object)  
+            live_history_illegals = []
+            for ti, trick in enumerate(game.round_history):
+                for ci, meta in enumerate(trick.get('metadata') or []):
+                    if meta and meta.get('is_illegal'):
+                        live_history_illegals.append((ti, ci))
+            _sherlock_log(f"Live table illegals: {live_table_illegals}, Live history illegals: {live_history_illegals}")
+            _sherlock_log(f"Table cards: {len(state.get('tableCards', []))}, Serialized table illegals: {len([tc for tc in state.get('tableCards', []) if (tc.get('metadata') or {}).get('is_illegal')])}")
+
             
             for player in game.players:
                 if not player.is_bot:
                     continue
                     
                 # Re-check guards (state may have changed from prior bot)
-                if game.phase != "PLAYING" or game.qayd_state.get('active') or game.is_locked:
+                if game.phase not in ("PLAYING", "FINISHED") or game.qayd_state.get('active') or game.is_locked:
                     break
                 
                 decision = bot_agent.get_decision(state, player.index)
@@ -122,7 +158,10 @@ def run_sherlock_scan(sio, game, room_id):
                     _sherlock_log(f"  Trigger result: {res}")
                     
                     if res.get('success'):
-                        _sherlock_log(f"Qayd triggered OK. Re-querying bot for accusation...")
+                        # Clear is_illegal flags on the LIVE game object to prevent
+                        # future scans from re-detecting the same crime (Bug 3 fix)
+                        _clear_illegal_flags_on_game(game)
+                        _sherlock_log(f"Qayd triggered OK. Cleared is_illegal flags. Re-querying bot for accusation...")
                         room_manager.save_game(game)
                         broadcast_game_update(sio, game, room_id)
                         
@@ -145,7 +184,7 @@ def run_sherlock_scan(sio, game, room_id):
                             # Auto-confirm after delay (don't rely on frontend timer)
                             if acc_res.get('success') and game.qayd_state.get('step') == 'RESULT':
                                 _sherlock_log(f"  Auto-confirming verdict after 3s delay...")
-                                sio.sleep(3)  # Let frontend show the result (gevent-safe)
+                                sio.sleep(QAYD_RESULT_DELAY)  # Let frontend show the result (gevent-safe)
                                 _sherlock_log(f"  Calling handle_qayd_confirm()...")
                                 confirm_res = game.handle_qayd_confirm()
                                 _sherlock_log(f"  Confirm result: {confirm_res}, phase={game.phase}")
@@ -199,7 +238,7 @@ def handle_sawa_responses(sio, game, room_id):
     """Trigger all bots to respond to a Sawa claim"""
     logger.info(f"Starting Sawa Responses for Room {room_id}")
     try:
-        sio.sleep(0.5)
+        sio.sleep(SAWA_DELAY)
         
         if not game.sawa_state['active']: 
              return
@@ -267,7 +306,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
             return
 
         # 2. Throttle Bot Loop (Prevent Freeze)
-        sio.sleep(1.5) 
+        sio.sleep(BOT_TURN_DELAY) 
         
         if game.phase == "FINISHED": return
             

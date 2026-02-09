@@ -1,0 +1,640 @@
+{
+    "id": "exam_1770643512_2bfcd53b",
+    "title": "Professor's Exam: HOKUM Blunder",
+    "description": "You played 7\u2663. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        "HOKUM",
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "2bfcd53b",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "tzOb3HK4FVe5FCreAAAD",
+                "name": "Me",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2666",
+                        "rank": "10",
+                        "id": "10\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "7",
+                        "id": "7\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "10",
+                        "id": "10\u2663",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770643419341",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770643419341",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770643419341",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [
+            {
+                "playerId": "BOT_1_1770643419341",
+                "card": {
+                    "suit": "\u2663",
+                    "rank": "J",
+                    "id": "J\u2663",
+                    "value": 0
+                },
+                "playedBy": "Top",
+                "metadata": {
+                    "reasoning": "Hokum Lead"
+                }
+            },
+            {
+                "playerId": "BOT_2_1770643419341",
+                "card": {
+                    "suit": "\u2663",
+                    "rank": "Q",
+                    "id": "Q\u2663",
+                    "value": 0
+                },
+                "playedBy": "Left",
+                "metadata": {
+                    "reasoning": "Ducking"
+                }
+            }
+        ],
+        "currentTurnIndex": 0,
+        "gameMode": "HOKUM",
+        "trumpSuit": "\u2666",
+        "bid": {
+            "type": "HOKUM",
+            "bidder": "Left",
+            "doubled": false,
+            "suit": "\u2666",
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 0,
+            "them": 52
+        },
+        "analytics": {
+            "winProbability": [
+                {
+                    "trick": 1,
+                    "us": 0.5789473684210527
+                },
+                {
+                    "trick": 1,
+                    "us": 0.36184210526315785
+                },
+                {
+                    "trick": 1,
+                    "us": 0.4111842105263158
+                },
+                {
+                    "trick": 2,
+                    "us": 0.3651315789473684
+                },
+                {
+                    "trick": 3,
+                    "us": 0.2894736842105263
+                },
+                {
+                    "trick": 4,
+                    "us": 0.23026315789473684
+                },
+                {
+                    "trick": 5,
+                    "us": 0.28289473684210525
+                }
+            ],
+            "blunders": {}
+        },
+        "floorCard": null,
+        "dealerIndex": 1,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 3.312676429748535,
+            "duration": 5,
+            "elapsed": 1.6873235702514648,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": {
+            "cards": [
+                {
+                    "card": {
+                        "suit": "\u2660",
+                        "rank": "7",
+                        "id": "7\u2660",
+                        "value": 0
+                    },
+                    "playedBy": "Left"
+                },
+                {
+                    "card": {
+                        "suit": "\u2660",
+                        "rank": "K",
+                        "id": "K\u2660",
+                        "value": 0
+                    },
+                    "playedBy": "Bottom"
+                },
+                {
+                    "card": {
+                        "suit": "\u2660",
+                        "rank": "J",
+                        "id": "J\u2660",
+                        "value": 0
+                    },
+                    "playedBy": "Right"
+                },
+                {
+                    "card": {
+                        "suit": "\u2660",
+                        "rank": "10",
+                        "id": "10\u2660",
+                        "value": 0
+                    },
+                    "playedBy": "Top"
+                }
+            ],
+            "winner": "Top",
+            "metadata": [
+                {
+                    "reasoning": "Hokum Lead"
+                },
+                {
+                    "cardId": "K\u2660"
+                },
+                {
+                    "reasoning": "Beat Enemy"
+                },
+                {
+                    "reasoning": "Partner Winning - Feeding"
+                }
+            ]
+        },
+        "roundHistory": [
+            {
+                "roundNumber": 1,
+                "qayd": true,
+                "winner": "them",
+                "us": {
+                    "result": 0,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                },
+                "them": {
+                    "result": 26,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                }
+            },
+            {
+                "roundNumber": 2,
+                "qayd": true,
+                "winner": "them",
+                "us": {
+                    "result": 0,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                },
+                "them": {
+                    "result": 26,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                }
+            }
+        ],
+        "currentRoundTricks": [
+            {
+                "winner": "Top",
+                "points": 25,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "A",
+                            "id": "A\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "10",
+                            "id": "10\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "K",
+                            "id": "K\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "9",
+                            "id": "9\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    }
+                ],
+                "playedBy": [
+                    "Top",
+                    "Left",
+                    "Bottom",
+                    "Right"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Leading Master Card"
+                    },
+                    {
+                        "reasoning": "Ducking"
+                    },
+                    {
+                        "cardId": "K\u2665"
+                    },
+                    {
+                        "reasoning": "Beat Enemy"
+                    }
+                ]
+            },
+            {
+                "winner": "Left",
+                "points": 14,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "8",
+                            "id": "8\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "A",
+                            "id": "A\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "7",
+                            "id": "7\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "Q",
+                            "id": "Q\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    }
+                ],
+                "playedBy": [
+                    "Top",
+                    "Left",
+                    "Bottom",
+                    "Right"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Hokum Lead"
+                    },
+                    {
+                        "reasoning": "Eating with Trump"
+                    },
+                    {
+                        "cardId": "7\u2665"
+                    },
+                    {
+                        "reasoning": "Partner Winning - Feeding"
+                    }
+                ]
+            },
+            {
+                "winner": "Left",
+                "points": 23,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "J",
+                            "id": "J\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "8",
+                            "id": "8\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "Q",
+                            "id": "Q\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "8",
+                            "id": "8\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    }
+                ],
+                "playedBy": [
+                    "Left",
+                    "Bottom",
+                    "Right",
+                    "Top"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Smart Sahn (Drawing Trumps)"
+                    },
+                    {
+                        "cardId": "8\u2666"
+                    },
+                    {
+                        "reasoning": "Partner Winning - Feeding"
+                    },
+                    {
+                        "reasoning": "Smart Trash"
+                    }
+                ]
+            },
+            {
+                "winner": "Left",
+                "points": 18,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "9",
+                            "id": "9\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "K",
+                            "id": "K\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "7",
+                            "id": "7\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "9",
+                            "id": "9\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    }
+                ],
+                "playedBy": [
+                    "Left",
+                    "Bottom",
+                    "Right",
+                    "Top"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Smart Sahn (Drawing Trumps)"
+                    },
+                    {
+                        "cardId": "K\u2666"
+                    },
+                    {
+                        "reasoning": "Partner Winning - Feeding"
+                    },
+                    {
+                        "reasoning": "Smart Trash"
+                    }
+                ]
+            },
+            {
+                "winner": "Top",
+                "points": 16,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "7",
+                            "id": "7\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "K",
+                            "id": "K\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "J",
+                            "id": "J\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "10",
+                            "id": "10\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    }
+                ],
+                "playedBy": [
+                    "Left",
+                    "Bottom",
+                    "Right",
+                    "Top"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Hokum Lead"
+                    },
+                    {
+                        "cardId": "K\u2660"
+                    },
+                    {
+                        "reasoning": "Beat Enemy"
+                    },
+                    {
+                        "reasoning": "Partner Winning - Feeding"
+                    }
+                ]
+            }
+        ],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "responses": {},
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {
+            "active": false
+        },
+        "challengeActive": false,
+        "timerStartTime": 1770643510.508966,
+        "turnDuration": 30,
+        "serverTime": 1770643512.1962895,
+        "akkaState": null,
+        "gameId": "2bfcd53b",
+        "settings": {},
+        "resolvedCrimes": [
+            "1_2",
+            "0_3"
+        ]
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "10\u2663"
+        ]
+    }
+}
