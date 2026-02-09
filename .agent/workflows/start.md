@@ -8,5 +8,5 @@ This workflow ensures a clean slate by terminating existing processes before lau
 1. **Execute Restart Script**
    // turbo
    ```powershell
-   scripts/restart_game.ps1
+   scripts/launch/restart_game.ps1
    ```

@@ -81,26 +81,12 @@ class MCTSSolver:
                      state.apply_move(move)
                      node = self._expand(node, move, state)
                 
-            # 3. Simulation (Rollout)
-            # Optimized rollout?
-            # For now standard random
-            steps = 0
-            while not state.is_terminal():
-                legal = state.get_legal_moves()
-                if not legal: 
-                    # Terminal but is_terminal returned false?
-                    # This happens if round ends but FastGame logic didn't set is_finished?
-                    # FastGame sets is_finished only when ALL hands empty.
-                    break
-                
-                try:
-                    move_idx = random.choice(legal)
-                except Exception as e:
-                    # Catch-all for any random.choice failure (IndexError, ValueError, etc)
-                    # print(f"MCTS Choice Error: {e} | Legal: {legal}")
-                    break
-                    
-                state.apply_move(move_idx)
+            # 3. Simulation (Rollout) — using smart heuristic policy
+            # play_greedy() understands partner relationships, finessing, and point management
+            try:
+                state.play_greedy()
+            except Exception:
+                pass  # If greedy rollout fails, we still backprop partial state
                 
             # 4. Backpropagation
             # Calculate reward from 'us' perspective

@@ -31,8 +31,15 @@ class CardMemory:
         self.partners_aces = set() 
         self.turn_history = [] 
         # Proof-Based Qayd: Track suspected crimes until proof is found
-        # Structure: [{'player': 'Right', 'trick_idx': 2, 'crime_card': {...}, 'void_suit': 'H'}, ...]
         self.suspected_crimes = [] 
+        
+        # BAYESIAN VOID TRACKING: Probabilistic suit estimation per player
+        # {player_pos: {suit: probability_0_to_1}}
+        self.suit_probability = {}
+        # Track cards remaining per player for precise endgame counting
+        self.cards_remaining = {}  # {player_pos: int}
+        # Track cards played per suit per player for probability updates
+        self.suit_play_count = {}  # {player_pos: {suit: int}}
 
     def mark_played(self, card_str):
         self.played_cards.add(card_str)
@@ -129,6 +136,9 @@ class CardMemory:
                            self.mark_void(player_pos, trump)
                            logger.info(f"[MEMORY] Inferring VOID: Player {player_pos} has no {trump} (Failed to cut {led_suit})")
 
+        # BAYESIAN UPDATE: Build probabilistic suit distributions
+        self._update_bayesian_probabilities(game_state)
+
     def mark_void(self, player_ref, suit):
         # player_ref can be int index or string position
         if suit in SUITS:
@@ -192,6 +202,72 @@ class CardMemory:
     def get_unproven_suspects(self):
         """Get suspected crimes that haven't been proven yet."""
         return [s for s in self.suspected_crimes if not s['proven']]
+
+    # ========= BAYESIAN VOID TRACKING =========
+
+    def _update_bayesian_probabilities(self, game_state):
+        """
+        Build probabilistic suit distributions for each player.
+        Uses remaining cards + known voids to estimate likely holdings.
+        """
+        positions = ['Bottom', 'Right', 'Top', 'Left']
+        tricks_history = game_state.get('currentRoundTricks', [])
+        table_cards = game_state.get('tableCards', [])
+        total_tricks = len(tricks_history)
+
+        # Count remaining cards per player
+        for pos in positions:
+            cards_left = 8 - total_tricks
+            # Subtract cards played in current trick
+            for tc in table_cards:
+                if tc.get('playedBy') == pos:
+                    cards_left -= 1
+            self.cards_remaining[pos] = max(0, cards_left)
+
+        # Count remaining unplayed cards per suit
+        remaining_per_suit = {}
+        for s in SUITS:
+            remaining_per_suit[s] = len(self.get_remaining_in_suit(s))
+
+        total_remaining = sum(remaining_per_suit.values())
+        if total_remaining == 0:
+            return
+
+        # Calculate probabilities for each player
+        for pos in positions:
+            if pos not in self.suit_probability:
+                self.suit_probability[pos] = {}
+            
+            player_cards = self.cards_remaining.get(pos, 0)
+            if player_cards == 0:
+                # No cards left — zero probability for everything
+                for s in SUITS:
+                    self.suit_probability[pos][s] = 0.0
+                continue
+
+            for s in SUITS:
+                if self.is_void(pos, s):
+                    # Known void — probability is 0
+                    self.suit_probability[pos][s] = 0.0
+                else:
+                    # Estimate probability based on remaining cards
+                    # P(has suit) ≈ remaining_in_suit / total_remaining * player_cards
+                    if remaining_per_suit[s] > 0 and total_remaining > 0:
+                        # Bayesian estimate: given N remaining cards dealt to ~3 players,
+                        # probability at least 1 of their cards is this suit
+                        prob = 1.0 - ((1.0 - remaining_per_suit[s] / total_remaining) ** player_cards)
+                        self.suit_probability[pos][s] = min(1.0, prob)
+                    else:
+                        self.suit_probability[pos][s] = 0.0
+
+    def get_suit_probability(self, player_pos, suit):
+        """Get estimated probability that a player holds at least one card of a suit."""
+        return self.suit_probability.get(player_pos, {}).get(suit, 0.5)
+
+    def get_likely_holdings(self, player_pos, threshold=0.3):
+        """Get suits a player likely still holds (probability > threshold)."""
+        probs = self.suit_probability.get(player_pos, {})
+        return {s: p for s, p in probs.items() if p > threshold}
 
     def is_master(self, rank, suit, mode, trump):
         """

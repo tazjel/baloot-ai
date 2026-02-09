@@ -158,15 +158,30 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
          card_options.sort(key=lambda x: len(x[1]))
          
          for card, options in card_options:
-              # Filter options to those who STILL have room
-              valid_opts = [idx for idx in options if len(temp_hands[idx]) < target_counts[idx]]
-              
-              if not valid_opts:
-                   fail_attempt = True
-                   break
-                   
-              chosen_idx = random.choice(valid_opts)
-              temp_hands[chosen_idx].append(card)
+               # Filter options to those who STILL have room
+               valid_opts = [idx for idx in options if len(temp_hands[idx]) < target_counts[idx]]
+               
+               if not valid_opts:
+                    fail_attempt = True
+                    break
+               
+               # BAYESIAN WEIGHTING: Prefer assigning cards to players
+               # who are more likely to hold that suit
+               if len(valid_opts) > 1 and hasattr(ctx.memory, 'suit_probability') and ctx.memory.suit_probability:
+                    weights = []
+                    for idx in valid_opts:
+                        pos = player_positions[idx]
+                        prob = ctx.memory.get_suit_probability(pos, card.suit)
+                        weights.append(max(0.1, prob))  # Floor at 0.1 to avoid zero-weight
+                    total_w = sum(weights)
+                    if total_w > 0:
+                        weights = [w / total_w for w in weights]
+                        chosen_idx = random.choices(valid_opts, weights=weights, k=1)[0]
+                    else:
+                        chosen_idx = random.choice(valid_opts)
+               else:
+                    chosen_idx = random.choice(valid_opts)
+               temp_hands[chosen_idx].append(card)
               
          if not fail_attempt:
               hands = temp_hands

@@ -96,7 +96,9 @@ class SunStrategy(StrategyComponent):
 
         for i, c in enumerate(ctx.hand):
             score = 0
-            if ctx.is_master_card(c):
+            is_master = ctx.is_master_card(c)
+            
+            if is_master:
                 score += 100
 
             rank = c.rank
@@ -109,6 +111,42 @@ class SunStrategy(StrategyComponent):
             if rank in ['7', '8']: score += 2
             if rank in ['Q', 'J'] and not any(x.rank in ['A', 'K'] and x.suit == c.suit for x in ctx.hand):
                 score -= 10
+
+            # CARD COUNTING: Check remaining cards in this suit
+            if ctx.memory:
+                remaining_in_suit = ctx.memory.get_remaining_in_suit(c.suit)
+                remaining_ranks = [r['rank'] for r in remaining_in_suit if r['rank'] != c.rank]
+                
+                # Penalize leading non-master cards into suits with higher remaining cards
+                if not is_master and remaining_ranks:
+                    # Check if opponents might have the master card
+                    higher_exists = False
+                    for r in remaining_ranks:
+                        try:
+                            if ORDER_SUN.index(r) > ORDER_SUN.index(c.rank):
+                                higher_exists = True
+                                break
+                        except ValueError:
+                            continue
+                    if higher_exists:
+                        score -= 15  # Penalty for leading into a losing position
+                
+                # BONUS: If suit has only 1-2 remaining cards and we have the master,
+                # leading it extracts value and clears the suit
+                if is_master and len(remaining_in_suit) <= 3:
+                    score += 10  # Extraction bonus
+
+            # VOID DANGER: Avoid leading suits where opponents are void
+            my_team = ctx.team
+            for p in ctx.raw_state.get('players', []):
+                if p.get('team') != my_team:
+                    if ctx.is_player_void(p.get('position'), c.suit):
+                        score -= 30  # Major penalty
+                        break
+
+            # SUIT LENGTH: Prefer leading from long suits (more control)
+            suit_count = sum(1 for x in ctx.hand if x.suit == c.suit)
+            score += suit_count * 3
 
             if score > max_score:
                 max_score = score
@@ -131,6 +169,18 @@ class SunStrategy(StrategyComponent):
 
         partner_pos = self._get_partner_pos(ctx.player_index)
         is_partner_winning = (winner_pos == partner_pos)
+        
+        # POSITIONAL AWARENESS
+        is_last_to_play = (len(ctx.table_cards) == 3)
+        
+        # TRICK VALUE: Calculate how many points are on the table
+        trick_points = 0
+        for tc in ctx.table_cards:
+            tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+            if isinstance(tc_card, dict):
+                trick_points += POINT_VALUES_SUN.get(tc_card.get('rank', ''), 0)
+            elif hasattr(tc_card, 'rank'):
+                trick_points += POINT_VALUES_SUN.get(tc_card.rank, 0)
 
         if is_partner_winning:
             safe_feeds = []
@@ -147,7 +197,8 @@ class SunStrategy(StrategyComponent):
                 best_idx = self._find_highest_point_card_sun(ctx, safe_feeds)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Partner winning - Safe Feed"}
             else:
-                best_idx = self._find_best_winner_sun(ctx, overtaking_feeds)
+                # Forced to overtake — play lowest to preserve cards
+                best_idx = self._find_lowest_rank_card_sun(ctx, overtaking_feeds)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Overtaking Partner (Forced)"}
         else:
             winners = []
@@ -157,11 +208,19 @@ class SunStrategy(StrategyComponent):
                     winners.append(idx)
 
             if winners:
-                best_idx = self._find_best_winner_sun(ctx, winners)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Cutting Enemy"}
+                if is_last_to_play:
+                    # 4TH SEAT: Guaranteed win — finesse with lowest winner
+                    best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                    return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat Finesse"}
+                else:
+                    # NOT LAST: Finesse, save high cards
+                    best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                    return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Finesse (Lowest Winner)"}
             else:
-                best_idx = self._find_lowest_rank_card_sun(ctx, follows)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ducking (Can't Win)"}
+                # DUCKING — POINT PROTECTION: Don't waste 10s and Aces when we can't win
+                # Play the card with the LOWEST point value to minimize loss
+                best_idx = self._find_lowest_point_card_sun(ctx, follows)
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ducking (Point Protection)"}
 
     # --- Heuristic Helpers ---
 
@@ -193,6 +252,18 @@ class SunStrategy(StrategyComponent):
             strength = ORDER_SUN.index(ctx.hand[i].rank)
             if strength < min_strength:
                 min_strength = strength
+                best_i = i
+        return best_i
+
+    def _find_lowest_point_card_sun(self, ctx, indices):
+        """Find card with lowest point value — protects 10s and Aces when ducking."""
+        best_i = indices[0]
+        min_pts = 999
+        for i in indices:
+            rank = ctx.hand[i].rank
+            pts = POINT_VALUES_SUN.get(rank, 0)
+            if pts < min_pts:
+                min_pts = pts
                 best_i = i
         return best_i
 

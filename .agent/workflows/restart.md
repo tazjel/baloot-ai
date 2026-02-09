@@ -8,5 +8,5 @@ It deliberately closes existing game console windows ("Baloot Backend", "Baloot 
 1. **Restart Game Stack**
    // turbo
    ```powershell
-   powershell -ExecutionPolicy Bypass -File ./scripts/launch_ww.ps1
+   powershell -ExecutionPolicy Bypass -File ./scripts/launch/launch_ww.ps1
    ```

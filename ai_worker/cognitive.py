@@ -88,25 +88,24 @@ class CognitiveOptimizer:
 
     def _calculate_budget(self, ctx: BotContext) -> int:
         """
-        Dynamic Difficulty Adjustment (DDA).
-        Adjusts simulation budget based on score difference.
+        Adaptive MCTS budget based on game state complexity.
+        Always plays at full strength — no mercy rule.
         """
-        base_budget = 2000
+        base_budget = 3000
         
-        # Get scores
+        # ENDGAME BOOST: When fewer cards remain, precision matters more.
+        # Increase budget for deeper search in critical endgame tricks.
+        cards_left = len(ctx.hand)
+        if cards_left <= 2:
+            base_budget = 5000  # Final tricks are decisive
+        elif cards_left <= 4:
+            base_budget = 4000  # Endgame phase
+        
+        # PANIC RULE: If we are losing big, max effort.
         scores = ctx.raw_state.get('matchScores', {'us': 0, 'them': 0})
-        us_score = scores.get('us', 0)
-        them_score = scores.get('them', 0)
-        
-        diff = us_score - them_score
-        
-        # MERCY RULE: If we are winning big, play dumb.
-        if diff > 50:
-            return 500
-            
-        # PANIC RULE: If we are losing big, try harder.
+        diff = scores.get('us', 0) - scores.get('them', 0)
         if diff < -50:
-            return 5000
+            base_budget = 5000
             
         return base_budget
 

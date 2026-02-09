@@ -1,0 +1,503 @@
+{
+    "id": "exam_1770666690_a21f843c",
+    "title": "Professor's Exam: HOKUM Blunder",
+    "description": "You played 7\u2665. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        "HOKUM",
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "a21f843c",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "-VaabsOWys99mzhhAAAB",
+                "name": "Me",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2665",
+                        "rank": "7",
+                        "id": "7\u2665",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2660",
+                        "rank": "8",
+                        "id": "8\u2660",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "8",
+                        "id": "8\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "Q",
+                        "id": "Q\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "8",
+                        "id": "8\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "J",
+                        "id": "J\u2663",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "Q",
+                        "id": "Q\u2663",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770666609877",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770666609877",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770666609877",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [],
+        "currentTurnIndex": 0,
+        "gameMode": "HOKUM",
+        "trumpSuit": "\u2665",
+        "bid": {
+            "type": "HOKUM",
+            "bidder": "Right",
+            "doubled": false,
+            "suit": "\u2665",
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 3,
+            "them": 13
+        },
+        "analytics": {
+            "winProbability": [
+                {
+                    "trick": 1,
+                    "us": 0.4243421052631579
+                },
+                {
+                    "trick": 2,
+                    "us": 0.3092105263157895
+                },
+                {
+                    "trick": 3,
+                    "us": 0.29605263157894735
+                },
+                {
+                    "trick": 4,
+                    "us": 0.3519736842105263
+                },
+                {
+                    "trick": 5,
+                    "us": 0.40460526315789475
+                },
+                {
+                    "trick": 6,
+                    "us": 0.3486842105263158
+                },
+                {
+                    "trick": 7,
+                    "us": 0.3026315789473684
+                },
+                {
+                    "trick": 8,
+                    "us": 0.21710526315789475
+                },
+                {
+                    "trick": 1,
+                    "us": 0.5361842105263158
+                }
+            ],
+            "blunders": {}
+        },
+        "floorCard": null,
+        "dealerIndex": 3,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 2.0135247707366943,
+            "duration": 5,
+            "elapsed": 2.9864752292633057,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": {
+            "cards": [
+                {
+                    "card": {
+                        "suit": "\u2663",
+                        "rank": "A",
+                        "id": "A\u2663",
+                        "value": 0
+                    },
+                    "playedBy": "Bottom"
+                },
+                {
+                    "card": {
+                        "suit": "\u2663",
+                        "rank": "9",
+                        "id": "9\u2663",
+                        "value": 0
+                    },
+                    "playedBy": "Right"
+                },
+                {
+                    "card": {
+                        "suit": "\u2663",
+                        "rank": "10",
+                        "id": "10\u2663",
+                        "value": 0
+                    },
+                    "playedBy": "Top"
+                },
+                {
+                    "card": {
+                        "suit": "\u2663",
+                        "rank": "7",
+                        "id": "7\u2663",
+                        "value": 0
+                    },
+                    "playedBy": "Left"
+                }
+            ],
+            "winner": "Bottom",
+            "metadata": [
+                {},
+                {
+                    "reasoning": "Beat Enemy",
+                    "declarations": [
+                        {
+                            "type": "HUNDRED",
+                            "rank": "K",
+                            "score": 100,
+                            "kind": "4KIND",
+                            "cards": [
+                                {
+                                    "suit": "\u2665",
+                                    "rank": "K",
+                                    "id": "K\u2665",
+                                    "value": 0
+                                },
+                                {
+                                    "suit": "\u2660",
+                                    "rank": "K",
+                                    "id": "K\u2660",
+                                    "value": 0
+                                },
+                                {
+                                    "suit": "\u2666",
+                                    "rank": "K",
+                                    "id": "K\u2666",
+                                    "value": 0
+                                },
+                                {
+                                    "suit": "\u2663",
+                                    "rank": "K",
+                                    "id": "K\u2663",
+                                    "value": 0
+                                }
+                            ]
+                        },
+                        {
+                            "type": "SIRA",
+                            "rank": "K",
+                            "score": 20,
+                            "kind": "SEQ",
+                            "cards": [
+                                {
+                                    "suit": "\u2665",
+                                    "rank": "K",
+                                    "id": "K\u2665",
+                                    "value": 0
+                                },
+                                {
+                                    "suit": "\u2665",
+                                    "rank": "Q",
+                                    "id": "Q\u2665",
+                                    "value": 0
+                                },
+                                {
+                                    "suit": "\u2665",
+                                    "rank": "J",
+                                    "id": "J\u2665",
+                                    "value": 0
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "reasoning": "Partner Winning - Feeding"
+                },
+                {
+                    "reasoning": "Ducking"
+                }
+            ]
+        },
+        "roundHistory": [
+            {
+                "roundNumber": 1,
+                "bid": {
+                    "type": "HOKUM",
+                    "bidder": "Right",
+                    "doubled": false,
+                    "suit": "\u2663",
+                    "level": 1,
+                    "variant": null,
+                    "isAshkal": false,
+                    "isTentative": false
+                },
+                "us": {
+                    "aklat": 33,
+                    "ardh": 0,
+                    "projectPoints": 0,
+                    "abnat": 33,
+                    "result": 3,
+                    "isKaboot": false,
+                    "multiplierApplied": 1,
+                    "projects": []
+                },
+                "them": {
+                    "aklat": 119,
+                    "ardh": 10,
+                    "projectPoints": 0,
+                    "abnat": 129,
+                    "result": 13,
+                    "isKaboot": false,
+                    "multiplierApplied": 1,
+                    "projects": []
+                },
+                "winner": "them",
+                "baida": false,
+                "project": "HOKUM"
+            }
+        ],
+        "currentRoundTricks": [
+            {
+                "winner": "Bottom",
+                "points": 21,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "A",
+                            "id": "A\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "9",
+                            "id": "9\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "10",
+                            "id": "10\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "7",
+                            "id": "7\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    }
+                ],
+                "playedBy": [
+                    "Bottom",
+                    "Right",
+                    "Top",
+                    "Left"
+                ],
+                "metadata": [
+                    {},
+                    {
+                        "reasoning": "Beat Enemy",
+                        "declarations": [
+                            {
+                                "type": "HUNDRED",
+                                "rank": "K",
+                                "score": 100,
+                                "kind": "4KIND",
+                                "cards": [
+                                    {
+                                        "suit": "\u2665",
+                                        "rank": "K",
+                                        "id": "K\u2665",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2660",
+                                        "rank": "K",
+                                        "id": "K\u2660",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2666",
+                                        "rank": "K",
+                                        "id": "K\u2666",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2663",
+                                        "rank": "K",
+                                        "id": "K\u2663",
+                                        "value": 0
+                                    }
+                                ]
+                            },
+                            {
+                                "type": "SIRA",
+                                "rank": "K",
+                                "score": 20,
+                                "kind": "SEQ",
+                                "cards": [
+                                    {
+                                        "suit": "\u2665",
+                                        "rank": "K",
+                                        "id": "K\u2665",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2665",
+                                        "rank": "Q",
+                                        "id": "Q\u2665",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2665",
+                                        "rank": "J",
+                                        "id": "J\u2665",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "reasoning": "Partner Winning - Feeding"
+                    },
+                    {
+                        "reasoning": "Ducking"
+                    }
+                ]
+            }
+        ],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {
+            "active": false
+        },
+        "challengeActive": false,
+        "timerStartTime": 1770666687.0466926,
+        "turnDuration": 30,
+        "serverTime": 1770666690.0331678,
+        "akkaState": null,
+        "gameId": "a21f843c",
+        "settings": {},
+        "resolvedCrimes": []
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "J\u2663"
+        ]
+    }
+}

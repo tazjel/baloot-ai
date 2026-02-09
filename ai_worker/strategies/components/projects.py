@@ -1,8 +1,11 @@
 import time
+import logging
 
 from ai_worker.strategies.components.base import StrategyComponent
 from ai_worker.bot_context import BotContext
 from game_engine.models.constants import ORDER_SUN
+
+_log = logging.getLogger('ai_worker.projects')
 
 
 class ProjectStrategy(StrategyComponent):
@@ -60,13 +63,13 @@ class ProjectStrategy(StrategyComponent):
         )
 
         if eligible:
-
+            _log.info(f"[SAWA] {ctx.position} ELIGIBLE — {len(ctx.hand)} cards left, declaring Sawa!")
             return {
                 "action": "SAWA",
                 "reasoning": f"Sawa! All {len(ctx.hand)} remaining cards are guaranteed winners."
             }
 
-
+        _log.debug(f"[SAWA] {ctx.position} checked ({len(ctx.hand)} cards, {len(played_cards)} played) - not eligible")
         return None
 
     def check_akka(self, ctx: BotContext) -> dict | None:
@@ -146,8 +149,10 @@ class ProjectStrategy(StrategyComponent):
                 'round': current_round,
                 'trick': current_trick,
             }
+            _log.info(f"[AKKA] {ctx.position} ELIGIBLE — declaring Akka (Master)!")
             return {"action": "AKKA", "reasoning": "Declaring Master (Akka)"}
 
+        _log.debug(f"[AKKA] {ctx.position} checked ({len(ctx.hand)} cards, {len(played)} played, trump={ctx.trump}) — not eligible")
         return None
 
     @staticmethod

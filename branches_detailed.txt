@@ -1,9 +1,0 @@
-fix/rebuild-qayd-stable|2026-02-06|Fix Dashboard crashes (Timeline/Watchdog/Ops) and finalize Qayd repairs
-festive-driscoll|2026-02-06|fix(qayd): eliminate Ghost Menu, Qayd Loop, and pickle split-brain bugs
-hopeful-euclid|2026-02-05|fix(qayd): harden global lock decorator and add stabilization tests
-backup/post-overhaul-chaos|2026-02-04|Fix Kawesh redeal logic and phase validation
-debug/qayd-freeze|2026-02-04|Fix Kawesh redeal logic and phase validation
-main|2026-02-04|wip: checkpoint before Kammelna Qayd overhaul
-amazing-hamilton|2026-02-01|feat(infra): Security Hardening & Architecture Formalization
-distracted-haibt|2026-02-01|feat(infra): Security Hardening & Architecture Formalization
-distracted-wozniak|2026-02-01|feat(infra): Security Hardening & Architecture Formalization

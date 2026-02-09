@@ -78,8 +78,77 @@ class PlayingStrategy:
                     decision['reasoning'] += " (Legality Override)"
 
     def get_endgame_decision(self, ctx: BotContext):
-        """Simple endgame check: all aces in Sun mode."""
-        all_aces = all(c.rank == 'A' for c in ctx.hand)
-        if all_aces and ctx.mode == 'SUN':
-            return {"action": "PLAY", "cardIndex": 0, "reasoning": "Endgame Solver: All Masters"}
+        """Smart endgame solver for last few tricks."""
+        hand_size = len(ctx.hand)
+        
+        # 1. LAST TRICK: Only one card — play it
+        if hand_size == 1:
+            return {"action": "PLAY", "cardIndex": 0, "reasoning": "Endgame: Last Card"}
+        
+        # Only activate for endgame (≤3 cards)
+        if hand_size > 3:
+            return None
+        
+        # 2. ALL MASTERS: If every card is a master, lead highest-value first
+        all_masters = all(ctx.is_master_card(c) for c in ctx.hand)
+        if all_masters and not ctx.table_cards:
+            # Leading — play highest point value master first to extract max points
+            from game_engine.models.constants import POINT_VALUES_SUN, POINT_VALUES_HOKUM
+            pv = POINT_VALUES_HOKUM if ctx.mode == 'HOKUM' else POINT_VALUES_SUN
+            
+            best_idx = 0
+            best_pts = -1
+            for i, c in enumerate(ctx.hand):
+                pts = pv.get(c.rank, 0)
+                if pts > best_pts:
+                    best_pts = pts
+                    best_idx = i
+            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Endgame: Cashing Masters (Highest Value)"}
+        
+        # 3. HOKUM ENDGAME: If we hold all remaining trumps + side masters,
+        #    lead trumps first to clear, then cash side masters
+        if ctx.mode == 'HOKUM' and not ctx.table_cards:
+            trump = ctx.trump
+            my_trumps = [i for i, c in enumerate(ctx.hand) if c.suit == trump]
+            my_non_trumps = [i for i, c in enumerate(ctx.hand) if c.suit != trump]
+            
+            if my_trumps and my_non_trumps:
+                # Check if all non-trumps are masters
+                non_trump_all_masters = all(ctx.is_master_card(ctx.hand[i]) for i in my_non_trumps)
+                if non_trump_all_masters:
+                    # Check if opponents might still have trumps
+                    opponents_have_trump = False
+                    my_team = ctx.team
+                    for p in ctx.raw_state.get('players', []):
+                        if p.get('team') != my_team:
+                            if not ctx.is_player_void(p.get('position'), trump):
+                                opponents_have_trump = True
+                                break
+                    
+                    if opponents_have_trump:
+                        # Lead trump to clear enemy trumps, then cash side masters
+                        from game_engine.models.constants import ORDER_HOKUM
+                        best_trump = my_trumps[0]
+                        best_strength = -1
+                        for i in my_trumps:
+                            try:
+                                s = ORDER_HOKUM.index(ctx.hand[i].rank)
+                                if s > best_strength:
+                                    best_strength = s
+                                    best_trump = i
+                            except ValueError:
+                                continue
+                        return {"action": "PLAY", "cardIndex": best_trump, "reasoning": "Endgame: Drawing Trump Before Cashing"}
+                    else:
+                        # No enemy trumps — cash highest-value side master
+                        from game_engine.models.constants import POINT_VALUES_SUN
+                        best_idx = my_non_trumps[0]
+                        best_pts = -1
+                        for i in my_non_trumps:
+                            pts = POINT_VALUES_SUN.get(ctx.hand[i].rank, 0)
+                            if pts > best_pts:
+                                best_pts = pts
+                                best_idx = i
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Endgame: Cashing Side Master"}
+        
         return None

@@ -38,3 +38,11 @@ We recently fixed a bug where Qayd (Challenges) caused infinite loops.
 ---
 
 **(Note to User: Attach `game_engine/logic/project_manager.py`, `game_engine/logic/game.py`, and `ai_worker/agent.py` when you send this prompt.)**
+
+## Allowed Terminal Commands (User Defined)
+- `Get-Content`
+- `git status`
+- `python -m server.main`
+- `npm run dev`
+- `python`
+- `Select-Object`

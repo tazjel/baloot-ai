@@ -7,5 +7,5 @@ This workflow executes the master launch script which handles Docker checks, Red
 1. **Launch Full Stack**
    // turbo
    ```powershell
-   powershell -ExecutionPolicy Bypass -File ./scripts/launch_ww.ps1
+   powershell -ExecutionPolicy Bypass -File ./scripts/launch/launch_ww.ps1
    ```

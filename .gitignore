@@ -5,6 +5,10 @@
 *.pem
 *.key
 
+# Ephemeral artifacts
+diagnostics/
+logs/
+
 # Python
 __pycache__/
 *.pyc
