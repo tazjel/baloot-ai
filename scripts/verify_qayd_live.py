@@ -1,17 +1,19 @@
 """
-verify_qayd_live.py — Comprehensive Qayd (Forensic Challenge) Live Test
+verify_qayd_live.py — Comprehensive Qayd & Sawa Live Test
 ========================================================================
 
 Multi-round, event-driven stress test that verifies:
-  1. Revoke detection (is_illegal flags)
-  2. Qayd state machine transitions (IDLE → MAIN_MENU → RESULT → RESOLVED)
-  3. Score penalty application
-  4. Phase transitions (PLAYING → CHALLENGE → FINISHED → BIDDING)
-  5. Multi-round cycling without freezes or errors
-  6. Socket/server error capture
+  1. Revoke detection (is_illegal flags)                 [qayd mode]
+  2. Qayd state machine transitions                       [qayd mode]
+  3. Score penalty application                            [qayd mode]
+  4. Sawa (Grand Slam) claim / accept / refuse            [sawa mode]
+  5. Sawa challenge mode (claimer must win ALL tricks)    [sawa mode]
+  6. Phase transitions (PLAYING → CHALLENGE → FINISHED → BIDDING)
+  7. Multi-round cycling without freezes or errors
+  8. Socket/server error capture
 
 Usage:
-  python scripts/verify_qayd_live.py [--rounds N] [--timeout T]
+  python scripts/verify_qayd_live.py [--mode qayd|sawa|all] [--rounds N] [--timeout T]
 """
 
 import socketio
@@ -96,12 +98,13 @@ class ErrorCollector:
 class GameMonitor:
     """
     Tracks all game state from socket events.
-    Verifies Qayd state machine transitions and detects anomalies.
+    Verifies Qayd/Sawa state machine transitions and detects anomalies.
     """
 
-    def __init__(self, event_log: EventLog, error_collector: ErrorCollector):
+    def __init__(self, event_log: EventLog, error_collector: ErrorCollector, test_mode: str = 'qayd'):
         self.log = event_log
         self.errors = error_collector
+        self.test_mode = test_mode  # 'qayd', 'sawa', or 'all'
 
         # Connection
         self.room_id: Optional[str] = None
@@ -125,6 +128,17 @@ class GameMonitor:
         self.qayd_triggers: int = 0
         self.qayd_resolutions: int = 0
         self.qayd_verdicts: List[str] = []
+
+        # Sawa Tracking
+        self.sawa_state: Dict[str, Any] = {}
+        self.sawa_step_history: List[str] = []  # e.g. NONE→PENDING, PENDING→ACCEPTED
+        self.sawa_claims: int = 0
+        self.sawa_accepted: int = 0
+        self.sawa_refused: int = 0
+        self.sawa_invalid: int = 0  # Claims rejected by server (not eligible)
+        self.sawa_challenge_wins: int = 0
+        self.sawa_challenge_losses: int = 0
+        self._sawa_claim_sent_this_turn: bool = False  # Prevent duplicate claims
 
         # Round Tracking
         self.rounds_completed: int = 0
@@ -188,6 +202,7 @@ class GameMonitor:
         if ct is not None:
             if ct != self.current_turn:
                 self._played_this_turn = False  # Reset play guard on turn change
+                self._sawa_claim_sent_this_turn = False  # Reset sawa guard on turn change
             self.current_turn = ct
 
         # -- Also check isActive on players array as fallback --
@@ -238,6 +253,11 @@ class GameMonitor:
         if qs:
             self._track_qayd_state(qs)
 
+        # -- SAWA STATE TRACKING --
+        ss = data.get('sawaState')
+        if ss:
+            self._track_sawa_state(ss)
+
     def _track_qayd_state(self, qs: Dict):
         """Deep-inspect Qayd state changes and verify transitions."""
         new_step = qs.get('step', 'IDLE')
@@ -280,6 +300,40 @@ class GameMonitor:
 
         self.qayd_state = dict(qs)
 
+    def _track_sawa_state(self, ss: Dict):
+        """Deep-inspect Sawa state changes and verify transitions."""
+        new_status = ss.get('status', 'NONE')
+        old_status = self.sawa_state.get('status', 'NONE')
+
+        # Track status transitions
+        if new_status != old_status:
+            self.sawa_step_history.append(f"{old_status}→{new_status}")
+            self.log.record('SAWA_STATUS', f"{old_status} → {new_status}")
+
+            if new_status == 'PENDING':
+                claimer = ss.get('claimer', '?')
+                valid = ss.get('valid', '?')
+                cards_left = ss.get('cards_left', '?')
+                self.log.record('SAWA_CLAIMED', f"Claimer: {claimer}, Valid: {valid}, Cards: {cards_left}",
+                    {'claimer': claimer, 'valid': valid, 'cards_left': cards_left})
+
+            elif new_status == 'PENDING_TIMER':
+                claimer = ss.get('claimer', '?')
+                valid = ss.get('valid', '?')
+                self.log.record('SAWA_TIMER', f"3s timer started for {claimer} (valid={valid})")
+
+            elif new_status == 'RESOLVED':
+                self.sawa_accepted += 1
+                self.log.record('SAWA_RESOLVED', 'Sawa resolved — round ended!')
+
+            elif new_status == 'PENALTY':
+                self.sawa_refused += 1
+                penalty_team = ss.get('penalty_team', '?')
+                self.log.record('SAWA_PENALTY',
+                    f"Sawa penalty applied to team: {penalty_team}")
+
+        self.sawa_state = dict(ss)
+
     def on_game_start(self, data: Dict):
         """Process game_start events."""
         gs = data.get('gameState', {})
@@ -301,6 +355,7 @@ class GameMonitor:
         self.trump_suit = gs.get('trumpSuit')
         self._bid_sent_this_round = False  # Reset bid flag for new round
         self._played_this_turn = False  # Reset play guard for new round
+        self._sawa_claim_sent_this_turn = False  # Reset sawa guard for new round
 
         # Detect our player index from the players array
         players = gs.get('players', [])
@@ -344,55 +399,106 @@ class GameMonitor:
                     self.errors.add_warning('BID', f"Bid response: {res.get('error', res)}")
                 return
 
+            # Skip play actions if Sawa is active (PENDING or PENDING_TIMER)
+            if self.sawa_state.get('active') and self.sawa_state.get('status') in ('PENDING', 'PENDING_TIMER'):
+                return
+
             # Auto-play in PLAYING phase when it's our turn
             if self.phase == 'PLAYING' and self.current_turn == self.player_index and self.hand:
                 if self._played_this_turn:
                     return  # Already played this turn, wait for turn to change
+
+                # ── SAWA MODE: Try claiming Sawa when table is empty AND ≤ 4 cards ──
+                if self.test_mode in ('sawa', 'all') and len(self.table_cards) == 0 and len(self.hand) <= 4:
+                    if not self._sawa_claim_sent_this_turn:
+                        self._sawa_claim_sent_this_turn = True
+                        self.sawa_claims += 1
+                        self.log.record('SAWA_ATTEMPT',
+                            f"Claiming SAWA (attempt #{self.sawa_claims}, "
+                            f"{len(self.hand)} cards in hand)")
+
+                        res = self.sio.call('game_action', {
+                            'roomId': self.room_id,
+                            'action': 'SAWA',
+                            'payload': {}
+                        })
+
+                        if res.get('success'):
+                            if res.get('sawa_resolved'):
+                                self.log.record('SAWA_RESOLVED',
+                                    'Sawa INSTANTLY resolved by server! Round ended.')
+                            elif res.get('sawa_penalty'):
+                                self.log.record('SAWA_PENALTY',
+                                    'Sawa was INVALID — penalty applied!')
+                            elif res.get('sawa_pending_timer'):
+                                self.log.record('SAWA_TIMER',
+                                    f"Sawa pending — {res.get('timer_seconds', 3)}s timer started")
+                            else:
+                                self.log.record('SAWA_CLAIMED', 'Sawa claim accepted by server')
+                            return  # Don't play a card — wait for sawa resolution
+                        else:
+                            self.sawa_invalid += 1
+                            self.log.record('SAWA_REJECTED',
+                                f"Server rejected Sawa: {res.get('error', 'unknown')}")
+                            # Fall through to normal play below
+
                 self._played_this_turn = True
                 self.our_plays += 1
 
-                # Try smart revoke
-                revoke_idx = pick_revoke_card(self.hand, self.table_cards)
+                # ── QAYD MODE: Try smart revoke ──
+                if self.test_mode in ('qayd', 'all'):
+                    revoke_idx = pick_revoke_card(self.hand, self.table_cards)
 
-                if revoke_idx is not None and len(self.table_cards) > 0:
-                    self.revoke_attempts += 1
-                    card = self.hand[revoke_idx]
-                    lead_card = self.table_cards[0].get('card', self.table_cards[0])
-                    self.log.record('REVOKE_ATTEMPT',
-                        f"Playing {card.get('rank','?')} of {card.get('suit','?')} "
-                        f"(lead suit: {lead_card.get('suit','?')})")
+                    if revoke_idx is not None and len(self.table_cards) > 0:
+                        self.revoke_attempts += 1
+                        card = self.hand[revoke_idx]
+                        lead_card = self.table_cards[0].get('card', self.table_cards[0])
+                        self.log.record('REVOKE_ATTEMPT',
+                            f"Playing {card.get('rank','?')} of {card.get('suit','?')} "
+                            f"(lead suit: {lead_card.get('suit','?')})")
 
-                    res = self.sio.call('game_action', {
-                        'roomId': self.room_id,
-                        'action': 'PLAY',
-                        'payload': {'cardIndex': revoke_idx, 'skip_professor': True}
-                    })
-                    if res.get('success'):
-                        self.revoke_successes += 1
-                        self.log.record('REVOKE_PLAYED', 'Revoke card accepted by server')
-                    else:
-                        self.errors.add_warning('REVOKE', f"Revoke rejected: {res.get('error')}")
-                        # Fallback: play first card legally
-                        self.log.record('NORMAL_PLAY', 'Revoke blocked, falling back to card 0')
-                        fb = self.sio.call('game_action', {
+                        res = self.sio.call('game_action', {
                             'roomId': self.room_id,
                             'action': 'PLAY',
-                            'payload': {'cardIndex': 0, 'skip_professor': True}
+                            'payload': {'cardIndex': revoke_idx, 'skip_professor': True}
                         })
-                        if not fb.get('success'):
-                            # Both plays failed — unlock guard so next update can retry
-                            self._played_this_turn = False
-                else:
-                    # No revoke possible — play normally
-                    self.log.record('NORMAL_PLAY', f'Playing card 0 ({len(self.hand)} left)')
-                    res = self.sio.call('game_action', {
-                        'roomId': self.room_id,
-                        'action': 'PLAY',
-                        'payload': {'cardIndex': 0, 'skip_professor': True}
-                    })
-                    if not res.get('success'):
-                        self.errors.add_warning('PLAY', f"Play failed: {res.get('error')}")
-                        self._played_this_turn = False  # Unlock for retry
+                        if res.get('success'):
+                            self.revoke_successes += 1
+                            self.log.record('REVOKE_PLAYED', 'Revoke card accepted by server')
+                        else:
+                            self.errors.add_warning('REVOKE', f"Revoke rejected: {res.get('error')}")
+                            # Fallback: play first card legally
+                            self.log.record('NORMAL_PLAY', 'Revoke blocked, falling back to card 0')
+                            fb = self.sio.call('game_action', {
+                                'roomId': self.room_id,
+                                'action': 'PLAY',
+                                'payload': {'cardIndex': 0, 'skip_professor': True}
+                            })
+                            if not fb.get('success'):
+                                # Both plays failed — unlock guard so next update can retry
+                                self._played_this_turn = False
+                        return
+
+                # Normal play (sawa-only mode, or no revoke possible)
+                # In sawa mode, play legally (match lead suit) to avoid Qayd ending rounds early
+                card_idx = 0
+                if self.test_mode == 'sawa' and self.table_cards:
+                    lead_card = self.table_cards[0].get('card', self.table_cards[0])
+                    lead_suit = lead_card.get('suit', '')
+                    for i, c in enumerate(self.hand):
+                        if c.get('suit') == lead_suit:
+                            card_idx = i
+                            break
+
+                self.log.record('NORMAL_PLAY', f'Playing card {card_idx} ({len(self.hand)} left)')
+                res = self.sio.call('game_action', {
+                    'roomId': self.room_id,
+                    'action': 'PLAY',
+                    'payload': {'cardIndex': card_idx, 'skip_professor': True}
+                })
+                if not res.get('success'):
+                    self.errors.add_warning('PLAY', f"Play failed: {res.get('error')}")
+                    self._played_this_turn = False  # Unlock for retry
         except Exception as e:
             self.errors.add_warning('AUTO_PLAY', f'Error during auto-play: {e}')
 
@@ -486,21 +592,27 @@ def wait_for(condition_func, timeout=15, name="Condition", log: EventLog = None)
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN TEST
 # ═══════════════════════════════════════════════════════════════════════════════
-def run_qayd_stress_test(target_rounds: int = DEFAULT_ROUNDS, overall_timeout: int = DEFAULT_TIMEOUT):
+def run_qayd_stress_test(target_rounds: int = DEFAULT_ROUNDS, overall_timeout: int = DEFAULT_TIMEOUT, test_mode: str = 'qayd'):
     """
-    Multi-round Qayd stress test.
+    Multi-round Qayd/Sawa stress test.
+
+    Modes:
+      qayd: Revoke stress test with Qayd detection
+      sawa: Sawa (Grand Slam) claim testing
+      all:  Both modes interleaved
 
     For each round:
       1. Wait for BIDDING → bid SUN
       2. Wait for PLAYING → wait for our turn
-      3. Attempt a smart revoke (play wrong suit intentionally)
-      4. Monitor for Qayd trigger, accusation, verdict, resolution
-      5. Verify score penalty and phase transition
+      3. [qayd] Attempt smart revoke | [sawa] Attempt Sawa claim
+      4. Monitor state transitions and resolutions
+      5. Verify score changes and phase transitions
       6. Wait for round end and next round
     """
     event_log = EventLog()
     errors = ErrorCollector()
-    gm = GameMonitor(event_log, errors)
+    gm = GameMonitor(event_log, errors, test_mode=test_mode)
+    logger.info(f"Test mode: {test_mode.upper()}")
 
     sio = socketio.Client(reconnection=True, reconnection_attempts=3)
     gm.sio = sio  # Enable reactive auto-play
@@ -517,6 +629,11 @@ def run_qayd_stress_test(target_rounds: int = DEFAULT_ROUNDS, overall_timeout: i
     @sio.event
     def connect_error(data):
         gm.on_connect_error(data)
+
+    @sio.on('sawa_declared')
+    def on_sawa_declared(data):
+        claimer = data.get('claimer', '?') if isinstance(data, dict) else str(data)
+        event_log.record('SAWA_DECLARED', f"Sawa declared by {claimer}")
 
     @sio.on('*')
     def catch_all(event, data):
@@ -624,8 +741,9 @@ def print_report(gm: GameMonitor, errors: ErrorCollector, event_log: EventLog,
                  target_rounds: int, total_time: float,
                  revoke_attempts: int, revoke_successes: int, our_plays: int):
     """Print a comprehensive, structured test report."""
+    mode_label = gm.test_mode.upper()
     print("\n" + "═" * 60)
-    print("  📊 QAYD STRESS TEST REPORT")
+    print(f"  📊 LIVE STRESS TEST REPORT  [Mode: {mode_label}]")
     print("═" * 60)
 
     # -- Summary --
@@ -633,15 +751,30 @@ def print_report(gm: GameMonitor, errors: ErrorCollector, event_log: EventLog,
     print(f"🔄  Rounds Target:   {target_rounds}")
     print(f"🔄  Rounds Completed: {gm.rounds_completed}")
     print(f"🃏  Our Card Plays:  {our_plays}")
-    print(f"💥  Revoke Attempts: {revoke_attempts}")
-    print(f"✅  Revokes Accepted:{revoke_successes}")
 
-    # -- Qayd Stats --
-    print(f"\n🔎  Qayd Stats:")
-    print(f"    Triggers:       {gm.qayd_triggers}")
-    print(f"    Resolutions:    {gm.qayd_resolutions}")
-    print(f"    Verdicts:       {gm.qayd_verdicts or 'none'}")
-    print(f"    Step History:   {' | '.join(gm.qayd_step_history[-20:]) or 'none'}")
+    # -- Qayd Stats (if applicable) --
+    if gm.test_mode in ('qayd', 'all'):
+        print(f"\n💥  Revoke Stats:")
+        print(f"    Attempts:       {revoke_attempts}")
+        print(f"    Accepted:       {revoke_successes}")
+        print(f"\n🔎  Qayd Stats:")
+        print(f"    Triggers:       {gm.qayd_triggers}")
+        print(f"    Resolutions:    {gm.qayd_resolutions}")
+        print(f"    Verdicts:       {gm.qayd_verdicts or 'none'}")
+        print(f"    Step History:   {' | '.join(gm.qayd_step_history[-20:]) or 'none'}")
+
+    # -- Sawa Stats (if applicable) --
+    if gm.test_mode in ('sawa', 'all'):
+        print(f"\n🏆  Sawa Stats:")
+        print(f"    Claims Sent:    {gm.sawa_claims}")
+        print(f"    Invalid/Rejected: {gm.sawa_invalid}")
+        print(f"    Resolved:       {gm.sawa_accepted}")
+        print(f"    Penalties:      {gm.sawa_refused}")
+        print(f"    Challenge Wins: {gm.sawa_challenge_wins}")
+        print(f"    Challenge Losses: {gm.sawa_challenge_losses}")
+        print(f"    Step History:   {' | '.join(gm.sawa_step_history[-20:]) or 'none'}")
+        if gm.sawa_state:
+            print(f"    Final State:    {gm.sawa_state}")
 
     # -- Scores --
     print(f"\n📈  Final Scores:    {gm.scores}")
@@ -679,9 +812,14 @@ def print_report(gm: GameMonitor, errors: ErrorCollector, event_log: EventLog,
         print("  🔥 VERDICT: FAIL")
         print("═" * 60)
         sys.exit(1)
-    elif revoke_attempts > 0 and gm.qayd_triggers == 0:
+    elif gm.test_mode in ('qayd', 'all') and revoke_attempts > 0 and gm.qayd_triggers == 0:
         print("  ⚠️  VERDICT: WARN — Revokes played but no Qayd detected")
         print("      (Bots may not have detected the revoke)")
+        print("═" * 60)
+        sys.exit(0)
+    elif gm.test_mode in ('sawa', 'all') and gm.sawa_claims > 0 and gm.sawa_claims == gm.sawa_invalid:
+        print("  ⚠️  VERDICT: WARN — All Sawa claims rejected (hand never eligible)")
+        print("      (This is expected behavior — Sawa requires a dominant hand)")
         print("═" * 60)
         sys.exit(0)
     else:
@@ -694,11 +832,13 @@ def print_report(gm: GameMonitor, errors: ErrorCollector, event_log: EventLog,
 # ENTRY POINT
 # ═══════════════════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Qayd Live Stress Test')
+    parser = argparse.ArgumentParser(description='Qayd & Sawa Live Stress Test')
+    parser.add_argument('--mode', type=str, default='qayd', choices=['qayd', 'sawa', 'all'],
+                        help='Test mode: qayd (revoke/forensic), sawa (grand slam), all (both)')
     parser.add_argument('--rounds', type=int, default=DEFAULT_ROUNDS,
                         help=f'Number of rounds to play (default: {DEFAULT_ROUNDS})')
     parser.add_argument('--timeout', type=int, default=DEFAULT_TIMEOUT,
                         help=f'Overall timeout in seconds (default: {DEFAULT_TIMEOUT})')
     args = parser.parse_args()
 
-    run_qayd_stress_test(target_rounds=args.rounds, overall_timeout=args.timeout)
+    run_qayd_stress_test(target_rounds=args.rounds, overall_timeout=args.timeout, test_mode=args.mode)

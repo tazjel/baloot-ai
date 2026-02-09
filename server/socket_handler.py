@@ -219,16 +219,17 @@ def game_action(sid, data):
     elif action == 'DOUBLE':
         result = game.handle_double(player.index)
     elif action == 'SAWA' or action == 'SAWA_CLAIM':
-        # Result of Sawa request
+        # Server-validated Sawa (Grand Slam) claim
         if hasattr(game, 'handle_sawa'):
              result = game.handle_sawa(player.index)
         else:
              result = {'success': False, 'error': 'Sawa not implemented backend'}
-    elif action == 'SAWA_RESPONSE':
-        if hasattr(game, 'handle_sawa_response'):
-             result = game.handle_sawa_response(player.index, payload.get('response')) # ACCEPT/REFUSE
+    elif action == 'SAWA_QAYD':
+        # Human opponent challenges a Sawa claim during 3s window
+        if hasattr(game, 'handle_sawa_qayd'):
+             result = game.handle_sawa_qayd(player.index)
         else:
-             result = {'success': False, 'error': 'Sawa Response not implemented'}
+             result = {'success': False, 'error': 'Sawa Qayd not implemented'}
 
     elif action == 'QAYD':
          # Legacy Qayd (Simple Claim) - Deprecated or used for simple reporting
@@ -304,10 +305,25 @@ def game_action(sid, data):
         # Broadcast Update to all clients
         broadcast_game_update(game, room_id)
         
-        # Trigger Bot Responses for Sawa
-        if action == 'SAWA' or action == 'SAWA_CLAIM':
-             sio.start_background_task(bot_orchestrator.handle_sawa_responses, sio, game, room_id)
+        # --- SAWA: Handle instant resolution or timer ---
+        if action in ('SAWA', 'SAWA_CLAIM'):
+            if result.get('sawa_resolved') or result.get('sawa_penalty'):
+                # Instant resolution — trigger auto-restart if round/match ended
+                if game.phase in ("FINISHED", "GAMEOVER"):
+                    sio.start_background_task(auto_restart_round, game, room_id)
+                    return result
+            elif result.get('sawa_pending_timer'):
+                # Human-vs-human: start 3-second timer background task
+                timer_seconds = result.get('timer_seconds', 3)
+                sio.start_background_task(_sawa_timer_task, sio, game, room_id, timer_seconds)
+                return result  # Don't trigger bot loop while timer is active
         
+        if action == 'SAWA_QAYD':
+            # Sawa challenge result — may have ended round
+            if game.phase in ("FINISHED", "GAMEOVER"):
+                sio.start_background_task(auto_restart_round, game, room_id)
+                return result
+
         # --- SHERLOCK WATCHDOG --- 
         bot_orchestrator._sherlock_log(f"SOCKET: Launching Sherlock scan after action '{action}' by {player.position}")
         sio.start_background_task(bot_orchestrator.run_sherlock_scan, sio, game, room_id)
@@ -398,6 +414,25 @@ def save_match_snapshot(game, room_id):
         debug_log(f"EXCEPTION: {e}")
         import traceback
         debug_log(traceback.format_exc())
+
+def _sawa_timer_task(sio_instance, game, room_id, timer_seconds=3):
+    """Background task: wait timer_seconds then auto-resolve pending Sawa."""
+    try:
+        sio_instance.sleep(timer_seconds)
+
+        # Check if Sawa is still pending (a human may have called SAWA_QAYD already)
+        if not game.sawa_state.get('active') or game.sawa_state.get('status') != 'PENDING_TIMER':
+            return  # Already resolved by human action
+
+        result = game.handle_sawa_timeout()
+        if result.get('success'):
+            room_manager.save_game(game)
+            broadcast_game_update(game, room_id)
+
+            if game.phase in ("FINISHED", "GAMEOVER"):
+                sio_instance.start_background_task(auto_restart_round, game, room_id)
+    except Exception as e:
+        logger.error(f"Sawa timer task error: {e}")
 
 def handle_bot_turn(game, room_id):
     # Wrapper

@@ -103,6 +103,25 @@ class AutoPilot:
                     return ActionResult.ok(action="PHANTOM_REPAIR")
                 return ActionResult.ok(action="WAIT", message=reason)
 
+            elif action == 'SAWA':
+                logger.info(f"AutoPilot: {player.name} declaring Sawa (Grand Slam)")
+                res = game.handle_sawa(player_index)
+                if res.get('success'):
+                    return ActionResult.ok(action="SAWA", **res)
+                # Sawa failed (shouldn't happen if AI checked correctly) — fall through to play
+                logger.warning(f"AutoPilot: Sawa rejected for {player.name}: {res.get('error')}")
+                card_idx = AutoPilot._find_valid_card(game, player_index)
+                return game.play_card(player_index, card_idx)
+
+            elif action == 'AKKA':
+                logger.info(f"AutoPilot: {player.name} declaring Akka")
+                res = game.handle_akka(player_index)
+                if res.get('success'):
+                    return ActionResult.ok(action="AKKA", **res)
+                # Akka failed — fall through to play
+                card_idx = AutoPilot._find_valid_card(game, player_index)
+                return game.play_card(player_index, card_idx)
+
             # ── Default: Play a card ─────────────────────────────────
             card_idx = AutoPilot._clamp_card_index(game, player_index, card_idx)
             logger.info(f"AutoPilot: {player.name} playing card index {card_idx}")

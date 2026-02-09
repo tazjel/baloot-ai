@@ -203,8 +203,13 @@ class Game(StateBridgeMixin):
         if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
         return r
 
-    def handle_sawa_response(self, pi, resp):
-        r = self.trick_manager.handle_sawa_response(pi, resp)
+    def handle_sawa_timeout(self):
+        r = self.trick_manager.handle_sawa_timeout()
+        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
+        return r
+
+    def handle_sawa_qayd(self, pi):
+        r = self.trick_manager.handle_sawa_qayd(pi)
         if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
         return r
 

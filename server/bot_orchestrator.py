@@ -234,30 +234,9 @@ def run_sherlock_scan(sio, game, room_id):
         if hasattr(game, '_sherlock_lock'):
             game._sherlock_lock = False
 
-def handle_sawa_responses(sio, game, room_id):
-    """Trigger all bots to respond to a Sawa claim"""
-    logger.info(f"Starting Sawa Responses for Room {room_id}")
-    try:
-        sio.sleep(SAWA_DELAY)
-        
-        if not game.sawa_state['active']: 
-             return
-
-        for p in game.players:
-            if p.is_bot:
-                decision = bot_agent.get_decision(game.get_game_state(), p.index)
-                
-                if decision and decision.get('action') == 'SAWA_RESPONSE':
-                    resp = decision.get('response')
-                    res = game.handle_sawa_response(p.index, resp)
-                    if res.get('success'):
-                         broadcast_game_update(sio, game, room_id)
-                         room_manager.save_game(game)
-                         
-                         if res.get('sawa_status') == 'REFUSED':
-                              break
-    except Exception as e:
-        logger.error(f"Error in handle_sawa_responses: {e}")
+# handle_sawa_responses REMOVED — Sawa is now server-validated.
+# The old ACCEPT/REFUSE flow is gone. handle_sawa() in trick_manager
+# resolves instantly vs bots. Human-vs-human uses a 3s timer in socket_handler.
 
 
 def bot_loop(sio, game, room_id, recursion_depth=0):
@@ -323,6 +302,17 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         
         if action == 'AKKA':
              res = game.handle_akka(current_idx)
+
+        elif action == 'SAWA':
+             # Bot claims Sawa — server validates and resolves instantly vs bots
+             res = game.handle_sawa(current_idx)
+             if res.get('success'):
+                  broadcast_game_update(sio, game, room_id)
+                  room_manager.save_game(game)
+                  if game.phase in ("FINISHED", "GAMEOVER"):
+                       from server.socket_handler import auto_restart_round
+                       sio.start_background_task(auto_restart_round, game, room_id)
+                  return  # Round ended or timer started, exit bot_loop
 
         elif action == 'QAYD_TRIGGER':
              res = game.handle_qayd_trigger(current_idx)

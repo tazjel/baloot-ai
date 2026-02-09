@@ -27,6 +27,13 @@ class ProjectStrategy(StrategyComponent):
         """Check if we are eligible for Sawa and should declare it."""
         from game_engine.logic.rules.sawa import check_sawa_eligibility
 
+        # Gate: Sawa only available with ≤ 4 cards and leading the trick (empty table)
+        if len(ctx.hand) > 4:
+            return None
+        if len(ctx.table_cards) > 0:
+            return None
+
+
         played_cards = set()
 
         # 1. From Round History (Truth)
@@ -53,10 +60,12 @@ class ProjectStrategy(StrategyComponent):
         )
 
         if eligible:
+
             return {
                 "action": "SAWA",
-                "reasoning": "I have a guaranteed win! (Sawa)"
+                "reasoning": f"Sawa! All {len(ctx.hand)} remaining cards are guaranteed winners."
             }
+
 
         return None
 
