@@ -91,13 +91,22 @@ def _sawa_timer_task(sio, game, room_id, timer_seconds=3):
 
 def auto_restart_round(sio, game, room_id):
     """Wait then start next round if match is not over"""
+    def _trace(msg):
+        import datetime
+        try:
+            with open('logs/sherlock_debug.log', 'a', encoding='utf-8') as f:
+                f.write(f"{datetime.datetime.now().isoformat()} [AUTO_RESTART] {msg}\n")
+        except: pass
+    
     try:
         # race condition guard
         if hasattr(game, 'is_restarting') and game.is_restarting:
+            _trace(f"SKIPPED (is_restarting=True) for room {room_id}")
             logger.info(f"auto_restart_round: SKIPPED (is_restarting=True) for room {room_id}")
             return
 
         game.is_restarting = True
+        _trace(f"ENTERED. Phase={game.phase}, room={room_id}")
         sio.sleep(0.5)  # Fast restart
 
         # HELPER: Save to Archive
@@ -120,19 +129,23 @@ def auto_restart_round(sio, game, room_id):
             except Exception as db_err:
                 logger.error(f"Failed to archive match to DB: {db_err}")
 
-        print(f"Checking auto-restart for room {room_id}. Phase: {game.phase}")
+        _trace(f"Phase check: {game.phase}")
 
         if game.phase == "FINISHED":
-            print(f"Auto-restarting round for room {room_id}. Current scores: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
+            _trace(f"FINISHED — calling save_to_archive + start_game")
 
             # Save Progress
             save_to_archive()
 
             if game.start_game():
+                _trace(f"start_game() OK! New phase={game.phase}, emitting game_start")
                 sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                 game.is_restarting = False  # Reset BEFORE bot loop
+                _trace(f"Calling handle_bot_turn")
                 handle_bot_turn(sio, game, room_id)
                 return
+            else:
+                _trace(f"start_game() returned False!")
         elif game.phase == "GAMEOVER":
             print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
 

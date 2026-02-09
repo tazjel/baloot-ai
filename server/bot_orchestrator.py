@@ -194,9 +194,13 @@ def run_sherlock_scan(sio, game, room_id):
                                     broadcast_game_update(sio, game, room_id)
                                     
                                     if game.phase in ("FINISHED", "GAMEOVER"):
+                                        _sherlock_log(f"  Phase is {game.phase}, calling auto_restart_round. is_restarting={getattr(game, 'is_restarting', 'N/A')}")
                                         sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                                         from server.socket_handler import auto_restart_round
                                         sio.start_background_task(auto_restart_round, game, room_id)
+                                        _sherlock_log(f"  auto_restart_round bg task launched")
+                                    else:
+                                        _sherlock_log(f"  Phase is {game.phase}, NOT calling auto_restart")
                         else:
                             _sherlock_log(f"  Follow-up was NOT QAYD_ACCUSATION, was: {follow_up}")
                         
@@ -249,6 +253,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         if not game or not game.players: return
             
         if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION"]:
+            _sherlock_log(f"[BOT_LOOP] EXIT: phase={game.phase} not in allowed phases. depth={recursion_depth}")
             return
         
         if game.current_turn < 0 or game.current_turn >= len(game.players): return
@@ -272,6 +277,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
                  is_reporter = False
             
             if not is_reporter:
+                _sherlock_log(f"[BOT_LOOP] EXIT: qayd active, bot {next_idx} is not reporter ({reporter_pos}). depth={recursion_depth}")
                 return  # Other bots wait
             
             # Reporter continues to investigation
@@ -281,6 +287,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         # if not game.players[next_idx].is_bot: ... checks below
 
         if not game.players[next_idx].is_bot:
+            _sherlock_log(f"[BOT_LOOP] EXIT: player {next_idx} ({game.players[next_idx].name}) is human. phase={game.phase}. depth={recursion_depth}. timer_start={game.timer_start}")
             broadcast_game_update(sio, game, room_id)
             return
 
