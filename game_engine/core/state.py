@@ -212,3 +212,4 @@ class GameState(BaseModel):
         self.sawaFailedKhasara = False
         self.akkaState = AkkaState()
         self.graveyardSeen = []
+        self.resolved_crimes.clear()  # Reset Qayd ledger — trick indices restart at 0 each round
