@@ -1,4 +1,4 @@
-from game_engine.models.constants import SUITS, BiddingPhase, BidType
+from game_engine.models.constants import SUITS, BiddingPhase, BidType, ORDER_SUN, ORDER_HOKUM
 from ai_worker.bot_context import BotContext
 import logging
 
@@ -6,16 +6,14 @@ logger = logging.getLogger(__name__)
 
 class BiddingStrategy:
     def get_decision(self, ctx: BotContext):
-        # 1. KAWESH CHECK (TODO: Move Kawesh logic here if needed, or keep in agent)
-        # For now we assume standard bidding flow
-        
+        # 1. Phase Dispatch
         phase = ctx.bidding_phase
         if phase == BiddingPhase.DOUBLING:
              return self.get_doubling_decision(ctx)
         elif phase == BiddingPhase.VARIANT_SELECTION:
              return self.get_variant_decision(ctx)
         elif phase == BiddingPhase.GABLAK_WINDOW:
-             return {"action": "PASS", "reasoning": "Bot Gablak not implemented"}
+             return self._get_gablak_decision(ctx)
 
         # 2. Score Calculation
         sun_score = self.calculate_sun_strength(ctx.hand)
@@ -43,7 +41,7 @@ class BiddingStrategy:
         
         # 5. Decision Thresholds
         
-        # Partner Awareness: If partner currently holds the bid, raise thresholds significantly
+        # Partner Awareness: If partner currently holds the bid, raise thresholds
         current_bid = ctx.raw_state.get('bid', {})
         partner_has_proposal = False
         has_hokum_bid = False
@@ -54,34 +52,29 @@ class BiddingStrategy:
              if current_bid.get('type') == 'HOKUM':
                   has_hokum_bid = True
         
-        # Position Awareness: If Dealer (Last to speak), lower thresholds slightly to avoid pass-out
+        # Position Awareness: Dealer = Last to speak
         is_last_to_speak = ctx.is_dealer
         
-        # Base Thresholds
-        base_sun = 18
-        base_hokum = 14
-        base_ashkal = 20 # Implicit in logic below
+        # Base Thresholds (tuned for new scoring system)
+        base_sun = 22
+        base_hokum = 18
         
-        # Apply Personality Bias (Positive bias = Lower threshold = More Aggressive)
+        # Apply Personality Bias
         sun_threshold = base_sun - ctx.personality.sun_bias
         hokum_threshold = base_hokum - ctx.personality.hokum_bias
-        
         
         # Adjustments
         if partner_has_proposal:
              # Only take over partner if very strong
-             sun_threshold += 6 
-             hokum_threshold += 5
+             sun_threshold += 8 
+             hokum_threshold += 6
         elif is_last_to_speak and ctx.bidding_round == 2 and not current_bid:
-             # Force Bid in very last speaker of R2 to prevent infinite Pass Out loops
-             # If we get here, it means we must bid something.
-             sun_threshold = -999 
-             hokum_threshold = -999
+             # Force Bid in last speaker of R2 to prevent infinite Pass Out
+             sun_threshold -= 8
+             hokum_threshold -= 8
 
-        
+        # Ashkal Check
         if can_ashkal:
-             # Strong Project Override
-             # Check for 4-of-a-kind (A, 10, K, Q)
              ranks = [c.rank for c in ctx.hand]
              has_strong_project = False
              
@@ -92,202 +85,372 @@ class BiddingStrategy:
              if ranks.count('Q') == 4: has_strong_project = True
              
              if has_strong_project:
-                  if not (ctx.floor_card and ctx.floor_card.rank == 'A'): # Still respect Ace rule
+                  if not (ctx.floor_card and ctx.floor_card.rank == 'A'):
                        return {"action": "ASHKAL", "reasoning": "Forced Ashkal: Strong Project"}
 
-             if sun_score >= (sun_threshold + 2 - ctx.personality.ashkal_bias): # Normal Ashkal needs to be solid
+             if sun_score >= (sun_threshold + 4 - ctx.personality.ashkal_bias):
                   if not (ctx.floor_card and ctx.floor_card.rank == 'A'):
-                       return {"action": "ASHKAL", "reasoning": "Strong Sun Hand + Dealer Privilege"}
+                       return {"action": "ASHKAL", "reasoning": f"Strong Sun Hand + Dealer Privilege (Score {sun_score})"}
         
         # 6. Defensive / Psychological Logic
         scores = ctx.raw_state.get('matchScores', {'us': 0, 'them': 0})
         them_score = scores.get('them', 0)
+        us_score = scores.get('us', 0)
         
         is_danger_zone = them_score >= 120
         is_critical_zone = them_score >= 135
         
-        # If in critical zone, lower thresholds to prevent clear pass-out win
         if is_critical_zone:
-             sun_threshold -= 3
-             hokum_threshold -= 3
+             sun_threshold -= 4
+             hokum_threshold -= 4
              
         # "Suicide Bid" / Project Denial
-        # If opponents bid SUN and are winning, they might have 400/100. 
-        # We must interrupt to invalid their projects, even if we eat Khasara.
         if current_bid:
              bidder_pos = current_bid.get('bidder')
              if bidder_pos != self._get_partner_pos_name(ctx.position):
                   # Opponents bidding
                   if is_critical_zone or (them_score >= 100):
-                       # If they bid SUN, they are dangerous
                        if current_bid.get('type') == 'SUN':
-                            # Aggressively try to steal with Hokum
-                            hokum_threshold -= 6 
-                            # If we have a vaguely playable suit, do it.
-                            if best_hokum_score > 10: 
-                                 # Ensure we bid HOKUM if possible
-                                 # Logic below will pick it if score > threshold
-                                 pass
-                                 
-        # logger.info(f"Bid Logic: P{ctx.player_index} (Dealer? {is_last_to_speak}). SunScore: {sun_score} vs {sun_threshold}. Hokum: {best_hokum_score} vs {hokum_threshold}")
-
-        simulated_decision = None
-        # ORACLE CHECK (Experimental) from ai_worker.strategies.oracle_bidding import OracleBiddingStrategy
-        try:
-             # Only check if impactful (e.g. not a total pass hand)
-             # Or check every time to build logs? Let's check if score > 10
-             if sun_score > 12 or best_hokum_score > 10:
-                 from ai_worker.strategies.oracle_bidding import OracleBiddingStrategy
-                 oracle = OracleBiddingStrategy()
-                 oracle_res = oracle.evaluate_hand(ctx)
-                 
-                 # New API Usage
-                 best_bid = oracle_res.get('best_bid')
-                 confidence = oracle_res.get('confidence', 0)
-                 
-                 if best_bid in ['SUN', 'HOKUM']:
-                      simulated_decision = best_bid
-                      
-                      # Override Action if high confidence?
-                      # Or just log for now?
-                      # Implementation Plan says: "If Oracle is confident (WinProb > 60%), use its bid."
-                      # The Oracle internal logic already checks > 60% to return best_bid.
-                      # So if best_bid is presented, we trust it.
-                      
-                      pass
-                      
-                 # Log comparison
-                 if simulated_decision:
-                      logger.info(f"[ORACLE vs HEURISTIC] Heuristic: SunScore {sun_score}. Oracle: {simulated_decision} (Conf {confidence:.2%})")
-
-        except Exception as e:
-            logger.error(f"Oracle Fail: {e}")
-
-        if simulated_decision:
-            # If Oracle suggests a bid, use it.
-            # But ensure we respect legal constraints (should be handled by Oracle checking world distribution, but verify suit exists?)
-            if simulated_decision == "SUN":
-                 return {"action": "SUN", "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
-            elif simulated_decision == "HOKUM":
-                 # Respect existing Hokum bid — same guard as heuristic path
-                 if not has_hokum_bid:
-                      best_s = oracle_res.get('best_suit')
-                      if best_s:
-                           return {"action": "HOKUM", "suit": best_s, "reasoning": f"Oracle Strategy (Confidence {confidence:.2%})"}
-
+                            hokum_threshold -= 8
+        
+        # 7. Final Decision — Sun > Hokum priority
         if sun_score >= sun_threshold: 
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
             
-        # Only consider Hokum if nobody else has bid it yet
         if not has_hokum_bid:
             if best_hokum_score >= hokum_threshold and best_suit:
                  reason = f"Good {best_suit} Suit (Score {best_hokum_score})"
                  if is_critical_zone: reason += " [Defensive]"
                  return {"action": "HOKUM", "suit": best_suit, "reasoning": reason}
         
-        return {"action": "PASS", "reasoning": "Hand too weak"}
+        return {"action": "PASS", "reasoning": f"Hand too weak (Sun:{sun_score} Hokum:{best_hokum_score})"}
 
     def _get_partner_pos_name(self, my_pos):
-        # Map string positions? Or assuming standard Top/Bottom etc.
-        # ctx.position is a label 'Bottom', 'Right', 'Top', 'Left'
-        # Partner is opposite.
         pairs = {'Bottom': 'Top', 'Top': 'Bottom', 'Right': 'Left', 'Left': 'Right'}
         return pairs.get(my_pos, 'Unknown')
 
+    def _get_gablak_decision(self, ctx: BotContext):
+        """Handle Gablak window — steal bid if we have a strong hand."""
+        sun_score = self.calculate_sun_strength(ctx.hand)
+        
+        # Steal with Sun if we have a very strong hand
+        if sun_score >= 28:
+            return {"action": "SUN", "reasoning": f"Gablak Steal: Strong Sun ({sun_score})"}
+        
+        # Steal Hokum if we have dominant trump
+        for suit in SUITS:
+            if ctx.bidding_round == 1 and ctx.floor_card and suit != ctx.floor_card.suit:
+                continue
+            if ctx.bidding_round == 2 and ctx.floor_card and suit == ctx.floor_card.suit:
+                continue
+            score = self.calculate_hokum_strength(ctx.hand, suit)
+            if score >= 24:
+                return {"action": "HOKUM", "suit": suit, "reasoning": f"Gablak Steal: Strong {suit} ({score})"}
+        
+        return {"action": "PASS", "reasoning": "Waive Gablak"}
+
     def get_doubling_decision(self, ctx: BotContext):
-        return {"action": "PASS", "reasoning": "Conservative Play"}
+        """Smart doubling — punish bad bids."""
+        bid = ctx.raw_state.get('bid', {})
+        bid_type = bid.get('type')
+        bidder_pos = bid.get('bidder')
+        
+        # Am I on the defending team (opponent bid)?
+        partner_pos = self._get_partner_pos_name(ctx.position)
+        is_defending = (bidder_pos != ctx.position and bidder_pos != partner_pos)
+        
+        if not is_defending:
+            return {"action": "PASS", "reasoning": "Our team bid — no double"}
+        
+        # Evaluate our defensive strength
+        if bid_type == 'SUN':
+            # Count Aces (key to blocking Sun)
+            aces = sum(1 for c in ctx.hand if c.rank == 'A')
+            tens = sum(1 for c in ctx.hand if c.rank == '10')
+            
+            # 3+ Aces = they can't win most tricks
+            if aces >= 3:
+                return {"action": "DOUBLE", "reasoning": f"Punishing Sun: {aces} Aces"}
+            
+            # 2 Aces + strong supporting honors
+            if aces >= 2 and tens >= 2:
+                return {"action": "DOUBLE", "reasoning": f"Punishing Sun: {aces}A + {tens}×10"}
+                
+        elif bid_type == 'HOKUM':
+            trump = bid.get('suit')
+            if trump:
+                # Count our trumps
+                my_trumps = [c for c in ctx.hand if c.suit == trump]
+                trump_ranks = [c.rank for c in my_trumps]
+                
+                # Holding J or 9 of trump = we control the trump suit
+                has_j = 'J' in trump_ranks
+                has_9 = '9' in trump_ranks
+                
+                if has_j and has_9:
+                    return {"action": "DOUBLE", "reasoning": f"Punishing Hokum: We hold J+9 of {trump}"}
+                
+                if has_j and len(my_trumps) >= 3:
+                    return {"action": "DOUBLE", "reasoning": f"Trump wall: J + {len(my_trumps)} trumps"}
+        
+        return {"action": "PASS", "reasoning": "Not strong enough to double"}
 
     def get_variant_decision(self, ctx: BotContext):
-        # Default logic
         bid = ctx.raw_state.get('bid', {})
         trump_suit = bid.get('suit')
         if not trump_suit: return {"action": "OPEN"}
         
         trump_count = sum(1 for c in ctx.hand if c.suit == trump_suit)
-        if trump_count < 3:
-             return {"action": "CLOSED", "reasoning": "Weak Trumps"}
+        trump_ranks = [c.rank for c in ctx.hand if c.suit == trump_suit]
+        
+        # Strong trumps → OPEN (show confidence)
+        has_j = 'J' in trump_ranks
+        has_9 = '9' in trump_ranks
+        
+        if trump_count >= 4 or (has_j and has_9):
+            return {"action": "OPEN", "reasoning": "Strong Trumps — Show Confidence"}
+        elif trump_count <= 2:
+            return {"action": "CLOSED", "reasoning": "Weak Trumps — Hide Hand"}
         else:
-             return {"action": "OPEN", "reasoning": "Strong Trumps"}
+            # 3 trumps — check quality
+            if has_j or has_9:
+                return {"action": "OPEN", "reasoning": "Decent Trumps"}
+            return {"action": "CLOSED", "reasoning": "Average Trumps"}
 
+    # ═══════════════════════════════════════════════════
+    #  SUN STRENGTH EVALUATION
+    # ═══════════════════════════════════════════════════
+    
     def calculate_sun_strength(self, hand):
+        """
+        Advanced Sun hand evaluation.
+        Analyzes: quick tricks, suit quality, stoppers, distribution, projects.
+        Score roughly 0-50+. Threshold ~22 to bid.
+        """
         score = 0
-        ranks = [c.rank for c in hand]
-        suites = {}
+        
+        # Group cards by suit
+        suits = {}
         for c in hand:
-            suites.setdefault(c.suit, []).append(c.rank)
+            suits.setdefault(c.suit, []).append(c)
         
-        score += ranks.count('A') * 10
-        score += ranks.count('10') * 5
-        score += ranks.count('K') * 3
-        score += ranks.count('Q') * 2
+        # ── QUICK TRICKS ──
+        # Each suit is evaluated for guaranteed winning tricks
+        quick_tricks = 0
+        for s, cards in suits.items():
+            ranks = [c.rank for c in cards]
+            
+            if 'A' in ranks:
+                quick_tricks += 1  # Ace = 1 guaranteed trick
+                if 'K' in ranks:
+                    quick_tricks += 0.5  # A-K = 1.5 tricks (K protected by A)
+                if '10' in ranks:
+                    quick_tricks += 0.5  # A-10 = Ace protects 10
+            elif 'K' in ranks:
+                # Unprotected King — risky, only half a trick
+                if len(cards) >= 2:
+                    quick_tricks += 0.5  # K with length = some chance
+                # K alone in a suit = loser (opponent leads Ace)
         
-        if ranks.count('A') == 4: score += 20
-        for r in ['K', 'Q', 'J', '10']:
-             if ranks.count(r) == 4: score += 10
-             
-        # Length Bonus / Gap Penalty
-        for s, s_ranks in suites.items():
-            if len(s_ranks) > 3:
-                score += (len(s_ranks) - 3) * 2
+        score += quick_tricks * 6  # Each quick trick ≈ 6 points of score
+        
+        # ── HIGH CARD POINTS ──
+        rank_values = {'A': 5, '10': 4, 'K': 3, 'Q': 2, 'J': 1}
+        hcp = sum(rank_values.get(c.rank, 0) for c in hand)
+        score += hcp
+        
+        # ── SUIT QUALITY ──
+        for s, cards in suits.items():
+            ranks = [c.rank for c in cards]
+            length = len(cards)
             
-            if 'Q' in s_ranks and not ('K' in s_ranks or 'A' in s_ranks):
-                score -= 2
+            # Long suit bonus — 4+ cards in a suit creates extra tricks
+            if length >= 5:
+                score += 4  # Very long suit, lots of tricks
+            elif length >= 4:
+                score += 2  # Good length
             
-        # Projects (Re-enabled)
+            # Isolated honors penalty — Q or K alone in a suit
+            if length == 1:
+                if ranks[0] in ['K', 'Q']:
+                    score -= 3  # Bare King/Queen = loser
+                elif ranks[0] in ['10']:
+                    score -= 2  # Bare 10 = likely loser
+                elif ranks[0] in ['7', '8', '9']:
+                    score -= 1  # Singleton low = gets trumped (but this is Sun)
+            
+            # Honor combinations
+            if 'A' in ranks and 'K' in ranks and '10' in ranks:
+                score += 3  # A-K-10 = commanding suit
+            elif 'A' in ranks and 'K' in ranks:
+                score += 2  # A-K = solid control
+            elif 'K' in ranks and 'Q' in ranks:
+                score += 1  # K-Q = some control
+            
+            # Unguarded suits penalty (no honor at all in a 2-card suit)
+            if length == 2 and not any(r in ['A', 'K', 'Q'] for r in ranks):
+                score -= 1  # Doubleton with no honors
+        
+        # ── STOPPER COUNT ──
+        # Suits where we can stop opponent's leads
+        stoppers = 0
+        for s, cards in suits.items():
+            ranks = [c.rank for c in cards]
+            if 'A' in ranks:
+                stoppers += 1
+            elif 'K' in ranks and len(cards) >= 2:
+                stoppers += 1  # K with cover
+            elif 'Q' in ranks and len(cards) >= 3:
+                stoppers += 1  # Q with double cover
+        
+        if stoppers >= 4:
+            score += 4  # All suits stopped — safe Sun hand
+        elif stoppers >= 3:
+            score += 2
+        elif stoppers <= 1:
+            score -= 3  # Too many exposed suits
+        
+        # ── PROJECTS ──
         from game_engine.logic.utils import scan_hand_for_projects
-        # Utils scan returns list of dicts. We need to score them.
-        # Simplified scoring: 
-        projects = scan_hand_for_projects(hand, 'SUN') # Assume SUN for generic project power
+        projects = scan_hand_for_projects(hand, 'SUN')
         if projects:
              for p in projects:
-                  # p is {'type': ..., 'score': ...}
-                  score += p.get('score', 0)
+                  raw_val = p.get('score', 0)
+                  if raw_val >= 100:
+                      score += 6  # Strong project bonus
+                  elif raw_val >= 50:
+                      score += 3
         
-        return score
+        # ── 4-OF-A-KIND BONUSES ──
+        ranks_list = [c.rank for c in hand]
+        if ranks_list.count('A') >= 3: score += 4
+        if ranks_list.count('A') == 4: score += 8  # 4 Aces = dominant
+        if ranks_list.count('10') >= 3: score += 2
+        
+        return max(0, score)
 
+    # ═══════════════════════════════════════════════════
+    #  HOKUM STRENGTH EVALUATION
+    # ═══════════════════════════════════════════════════
+    
     def calculate_hokum_strength(self, hand, trump_suit):
+        """
+        Advanced Hokum hand evaluation.
+        Analyzes: trump power, trump length, distribution, side aces, losers.
+        Score roughly 0-50+. Threshold ~18 to bid.
+        """
         score = 0
-        suites = {}
-        for c in hand:
-            suites.setdefault(c.suit, []).append(c)
-
-        for c in hand:
-            r = c.rank
-            s = c.suit
-            if s == trump_suit:
-                if r == 'J': score += 12 
-                elif r == '9': score += 10 
-                elif r == 'A': score += 6
-                elif r == '10': score += 5
-                elif r in ['K', 'Q']: score += 2 
-                else: score += 1 
-            else:
-                if r == 'A': score += 8 # Increased from 5. Aces are critical.
-                elif r == 'K': score += 2 # Increased from 1.
-                
-        score += sum(1 for c in hand if c.suit == trump_suit) * 2
         
-        has_k = any(c.rank == 'K' and c.suit == trump_suit for c in hand)
-        has_q = any(c.rank == 'Q' and c.suit == trump_suit for c in hand)
-        if has_k and has_q: score += 5
-
-        # Project Bonus (Generic)
+        # Group cards by suit
+        suits = {}
+        for c in hand:
+            suits.setdefault(c.suit, []).append(c)
+        
+        my_trumps = suits.get(trump_suit, [])
+        trump_ranks = [c.rank for c in my_trumps]
+        trump_count = len(my_trumps)
+        
+        # ── TRUMP POWER ──
+        # J (20pts, rank 1) and 9 (14pts, rank 2) are the kings of Hokum
+        has_j = 'J' in trump_ranks
+        has_9 = '9' in trump_ranks
+        has_a = 'A' in trump_ranks
+        has_10 = '10' in trump_ranks
+        has_k = 'K' in trump_ranks
+        
+        # Individual trump values
+        if has_j:  score += 12  # Jack of trump = dominant
+        if has_9:  score += 10  # 9 of trump = second strongest
+        if has_a:  score += 5   # Ace of trump 
+        if has_10: score += 4   # 10 of trump (high points)
+        if has_k:  score += 2   # King of trump
+        
+        # ── TRUMP COMBOS ──
+        if has_j and has_9:
+            score += 6  # J-9 combo = near-unstoppable trump control
+        if has_j and has_9 and has_a:
+            score += 4  # J-9-A = completely dominant (extra bonus)
+        if has_j and has_a and not has_9:
+            score += 2  # J-A = strong but missing 9
+        
+        # ── TRUMP LENGTH ──
+        if trump_count >= 5:
+            score += 6  # 5+ trumps = can always ruff
+        elif trump_count >= 4:
+            score += 4  # 4 trumps = solid base
+        elif trump_count >= 3:
+            score += 2  # 3 trumps = minimum
+        elif trump_count == 2:
+            score -= 2  # Only 2 trumps = risky
+        elif trump_count <= 1:
+            score -= 8  # 0-1 trumps = terrible for Hokum
+        
+        # ── SIDE ACES ──
+        # Non-trump Aces = guaranteed tricks that don't cost trumps
+        side_aces = sum(1 for c in hand if c.rank == 'A' and c.suit != trump_suit)
+        score += side_aces * 5  # Each side Ace = 5 points (very valuable)
+        
+        # Side Kings with Aces = extra strength
+        for s, cards in suits.items():
+            if s == trump_suit: continue
+            ranks = [c.rank for c in cards]
+            if 'A' in ranks and 'K' in ranks:
+                score += 2  # A-K in same side suit = 2 tricks
+            elif 'A' in ranks and '10' in ranks:
+                score += 1  # A-10 in same side suit
+        
+        # ── DISTRIBUTION (Voids & Singletons) ──
+        # Short side suits = can ruff with trumps
+        for s in SUITS:
+            if s == trump_suit: continue
+            count = len(suits.get(s, []))
+            if count == 0:
+                score += 4  # Void = can ruff immediately
+            elif count == 1:
+                score += 2  # Singleton = ruff after 1 round
+                # Singleton Ace is best — win the trick then ruff next
+                singleton = suits[s][0] if suits.get(s) else None
+                if singleton and singleton.rank == 'A':
+                    score += 2  # Singleton Ace = win trick then void!
+        
+        # ── LOSER COUNT (inverted) ──
+        # Count expected losing cards
+        losers = 0
+        for s, cards in suits.items():
+            if s == trump_suit:
+                # Trump losers = cards below J-9-A that aren't in the top
+                for c in cards:
+                    if c.rank in ['7', '8']:
+                        losers += 0.5  # Low trumps sometimes lose
+            else:
+                ranks = [c.rank for c in cards]
+                length = len(cards)
+                if length == 0:
+                    continue  # Void = good
+                elif length == 1:
+                    if ranks[0] not in ['A']:
+                        losers += 1  # Singleton non-ace = loser
+                elif length >= 2:
+                    # Each card beyond the first that isn't A/K is a potential loser
+                    covered = 0
+                    if 'A' in ranks: covered += 1
+                    if 'K' in ranks and length >= 2: covered += 1
+                    losers += max(0, min(3, length - covered))  # Cap at 3 losers per suit
+        
+        # Low losers = strong hand
+        if losers <= 2:
+            score += 4
+        elif losers <= 3:
+            score += 2
+        elif losers >= 6:
+            score -= 4
+        
+        # ── PROJECTS ──
         from game_engine.logic.utils import scan_hand_for_projects
         projects = scan_hand_for_projects(hand, 'HOKUM')
         if projects:
              for p in projects:
-                  # Add 50% of project points to score
-                  # e.g. 100 project -> +10 score roughly
                   raw_val = p.get('score', 0)
-                  score += (raw_val / 10) 
-
+                  score += (raw_val / 10)  # 100-point project ≈ +10
         
-        # Distribution
-        from game_engine.models.constants import SUITS as ALL_SUITS
-        for s in ALL_SUITS:
-             if s == trump_suit: continue
-             count = len(suites.get(s, []))
-             if count == 0: score += 3
-             elif count == 1: score += 1
-        
-        return score
+        return max(0, score)
