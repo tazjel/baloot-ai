@@ -7,7 +7,7 @@
 - `agent.py`: Main `BotAgent` class (formerly `bot_agent.py`). Handles decision making, Redis interaction, and strategy delegation.
 - `memory.py`: `CardMemory` class (formerly `bot_memory.py`). Tracks played cards, void suits, and partner signals.
 - `dialogue_system.py`: Generates trash talk and dialogue using Gemini.
-- `strategies/`: Specific bidding and playing strategies.
+- `strategies/`: Specific bidding and playing strategies (heuristic-based, no Oracle/PIMC).
 - `signals/`: Collaborative Signaling Framework (Manager, Definitions, Emitter/Detector).
 - `data/`: Training data and scout analysis results (formerly `backend/data`).
 - `visionary/`: (See `game_engine/visionary`)
@@ -54,6 +54,7 @@ Refactored intofunctional groups:
 - `visionary/`: **Visionary Studio Tools** (`train_visionary_yolo.py`, `auto_label.py`, `generate_roi_dataset.py`, `test_visionary.py`).
 - `debugging/`: Tools for symptom analysis (`repro_crash.py`, `debug_screenshot.py`, `debug_yolo_prediction.py`).
 - Root: Workflow entry points (`run_nightly_scout.ps1`, `restart_server.ps1`).
+- `bot_iq_benchmark.py`: Headless AI benchmark (50 games, IQ scoring, decision analysis).
 
 ### `frontend/`
 **Purpose**: React/Vite Frontend.
