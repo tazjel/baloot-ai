@@ -376,16 +376,24 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
              
              # Fallback: Try playing the first card available
              # This prevents the game from freezing if the AI's complex move was rejected
+             # Re-check phase (may have transitioned since initial check)
              try:
                  fallback_res = {'success': False, 'error': 'Unknown Phase'}
+                 current_phase = game.phase  # Re-read fresh phase
                  
-                 if game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+                 if current_phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
                       # Fallback in auction is to PASS
                       fallback_res = game.handle_bid(current_idx, "PASS", None, reasoning="Fallback Pass")
                       
-                 elif game.phase == "PLAYING":
+                 elif current_phase == "PLAYING":
                       # Fallback in playing is random card
                       fallback_res = game.play_card(current_idx, 0, metadata={'reasoning': 'Fallback Random'})
+                 else:
+                      # Phase transitioned (e.g. BIDDING -> PLAYING during bot delay)
+                      # Just re-enter bot loop to pick up the new phase correctly
+                      logger.info(f"Bot fallback: phase is now '{current_phase}', re-entering bot loop.")
+                      sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
+                      return
 
                  if fallback_res.get('success'):
                       broadcast_game_update(sio, game, room_id)
