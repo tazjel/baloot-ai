@@ -1,9 +1,8 @@
 """
 Authentication routes: signup, signin, user profile, token_required decorator.
 """
-import bcrypt
 from py4web import action, request, response, abort
-from server.common import db
+from server.common import db, auth
 import server.auth_utils as auth_utils
 
 
@@ -30,7 +29,7 @@ def token_required(f):
 def user():
     """Protected endpoint returning user profile with league tier."""
     response.status = 200
-    user_record = db.app_user(request.user.get('user_id'))
+    user_record = db.auth_user(request.user.get('user_id'))
     points = user_record.league_points if user_record else 1000
 
     tier = "Bronze"
@@ -54,18 +53,26 @@ def signup():
 
     print(f"{email} is signing up!")
 
-    existing_user = db(db.app_user.email == email).select().first()
-    if existing_user:
-        response.status = 409
-        return {"error": "User already exists"}
+    fields = {
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "password": password
+    }
 
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    # Auth.register handles validation, hashing, and email verification sending
+    result = auth.register(fields, send=True)
 
-    user_id = db.app_user.insert(
-        first_name=first_name, last_name=last_name,
-        email=email, password=hashed_password
-    )
+    if result.get("errors"):
+        response.status = 400
+        # If email already exists, it will be in errors.
+        # We can map specific errors to status codes if needed.
+        if "email" in result["errors"]:
+            response.status = 409
+            return {"error": "User already exists", "details": result.get("errors")}
+        return {"error": "Validation failed", "details": result.get("errors")}
 
+    user_id = result.get("id")
     response.status = 201
     return {
         "message": "User registered successfully",
@@ -85,19 +92,43 @@ def signin():
     if not email or not password:
         return {"error": "Email and password are required"}
 
-    user = db(db.app_user.email == email).select().first()
+    user = db(db.auth_user.email == email).select().first()
 
     if not user:
         print("user not found!")
         response.status = 404
         return {"error": "User not found"}
 
-    if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-        token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
-        response.status = 200
-        return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
+    # Verify password using pydal validator (CRYPT)
+    requires = db.auth_user.password.requires
+    if not isinstance(requires, (list, tuple)):
+        requires = [requires]
 
-    return {"error": "Invalid credentials"}
+    # Find CRYPT validator
+    validator = None
+    from pydal.validators import CRYPT
+    for v in requires:
+        if isinstance(v, CRYPT):
+            validator = v
+            break
+
+    if not validator:
+        # Fallback if somehow CRYPT is not found (unlikely with Auth)
+        print("CRYPT validator not found!")
+        return {"error": "Server configuration error"}
+
+    try:
+        (hashed, error) = validator(password, user.password)
+        if error or hashed != user.password:
+            print(f"Password mismatch for {email}")
+            return {"error": "Invalid credentials"}
+    except Exception as e:
+        print(f"Error checking password: {e}")
+        return {"error": "Invalid credentials"}
+
+    token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
+    response.status = 200
+    return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
 
 
 def bind_auth(safe_mount):

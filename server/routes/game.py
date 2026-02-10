@@ -16,13 +16,13 @@ def save_score():
     score_them = data.get('scoreThem')
     user_id = request.user.get('user_id')
 
-    user = db.app_user(user_id)
+    user = db.auth_user(user_id)
     if not user:
         response.status = 404
         return {"error": "User not found"}
 
     db.game_result.insert(
-        user_email=user.email,
+        user_id=user.id,
         score_us=score_us,
         score_them=score_them,
         is_win=(score_us > score_them)
@@ -38,8 +38,18 @@ def save_score():
 @action('leaderboard', method=['GET'])
 @action.uses(db)
 def leaderboard():
-    top_players = db(db.app_user).select(orderby=~db.app_user.league_points, limitby=(0, 10))
-    return {"leaderboard": [p.as_dict() for p in top_players]}
+    top_players = db(db.auth_user).select(orderby=~db.auth_user.league_points, limitby=(0, 10))
+
+    # Safe serialization to avoid exposing password hashes
+    leaderboard_data = []
+    for p in top_players:
+        leaderboard_data.append({
+            "first_name": p.first_name,
+            "last_name": p.last_name,
+            "league_points": p.league_points
+        })
+
+    return {"leaderboard": leaderboard_data}
 
 
 @action('health')

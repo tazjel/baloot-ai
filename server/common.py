@@ -90,38 +90,44 @@ elif settings.SESSION_TYPE == "database":
 # #######################################################
 # Instantiate the object and actions that handle auth
 # #######################################################
-# auth = Auth(session, db, define_tables=False)
-# auth.use_username = True
-# auth.param.registration_requires_confirmation = settings.VERIFY_EMAIL
-# auth.param.registration_requires_approval = settings.REQUIRES_APPROVAL
-# auth.param.login_after_registration = settings.LOGIN_AFTER_REGISTRATION
-# auth.param.allowed_actions = settings.ALLOWED_ACTIONS
-# auth.param.login_expiration_time = 3600
-# auth.param.password_complexity = {"entropy": 50}
-# auth.param.block_previous_password_num = 3
-# auth.param.default_login_enabled = settings.DEFAULT_LOGIN_ENABLED
-# auth.define_tables()
-# auth.fix_actions()
+auth = Auth(session, db, define_tables=False)
+auth.use_username = False
+auth.param.registration_requires_confirmation = settings.VERIFY_EMAIL
+auth.param.registration_requires_approval = settings.REQUIRES_APPROVAL
+auth.param.login_after_registration = settings.LOGIN_AFTER_REGISTRATION
+auth.param.allowed_actions = settings.ALLOWED_ACTIONS
+auth.param.login_expiration_time = 3600
+auth.param.password_complexity = {"entropy": 50}
+auth.param.block_previous_password_num = 3
+auth.param.default_login_enabled = settings.DEFAULT_LOGIN_ENABLED
 
-# flash = auth.flash
+# Add extra fields to auth_user table
+auth.extra_auth_user_fields = [
+    Field('league_points', 'integer', default=1000)
+]
+
+auth.define_tables()
+auth.fix_actions()
+
+flash = auth.flash
 
 # #######################################################
 # Configure email sender for auth
 # #######################################################
-# if settings.SMTP_SERVER:
-#     auth.sender = Mailer(
-#         server=settings.SMTP_SERVER,
-#         sender=settings.SMTP_SENDER,
-#         login=settings.SMTP_LOGIN,
-#         tls=settings.SMTP_TLS,
-#         ssl=settings.SMTP_SSL,
-#     )
+if settings.SMTP_SERVER:
+    auth.sender = Mailer(
+        server=settings.SMTP_SERVER,
+        sender=settings.SMTP_SENDER,
+        login=settings.SMTP_LOGIN,
+        tls=settings.SMTP_TLS,
+        ssl=settings.SMTP_SSL,
+    )
 
 # #######################################################
 # Create a table to tag users as group members
 # #######################################################
-# if auth.db:
-#     groups = Tags(db.auth_user, "groups")
+if auth.db:
+    groups = Tags(db.auth_user, "groups")
 
 # #######################################################
 # Enable optional auth plugin
@@ -226,10 +232,10 @@ if settings.USE_CELERY:
 # #######################################################
 # Enable authentication
 # #######################################################
-# auth.enable(uses=(session, T, db), env=dict(T=T))
+auth.enable(uses=(session, T, db), env=dict(T=T))
 
 # #######################################################
 # Define convenience decorators
 # #######################################################
-# unauthenticated = ActionFactory(db, session, T, flash, auth)
-# authenticated = ActionFactory(db, session, T, flash, auth.user)
+unauthenticated = ActionFactory(db, session, T, flash, auth)
+authenticated = ActionFactory(db, session, T, flash, auth.user)

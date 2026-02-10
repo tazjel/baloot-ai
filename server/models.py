@@ -15,17 +15,17 @@ import datetime
 # db.commit()
 #
 # Define the user table (using default auth or matching legacy foo for now)
-db.define_table('app_user',
-                Field('first_name', required=True),
-                Field('last_name', required=True),
-                Field('email', unique=True, required=True),
-                Field('password', 'password', readable=False, required=True),
-                Field('league_points', 'integer', default=1000),
-                )
+# db.define_table('app_user',
+#                 Field('first_name', required=True),
+#                 Field('last_name', required=True),
+#                 Field('email', unique=True, required=True),
+#                 Field('password', 'password', readable=False, required=True),
+#                 Field('league_points', 'integer', default=1000),
+#                 )
 
 # Define game results table
 db.define_table('game_result',
-                Field('user_email'), # Simple linkage for now
+                Field('user_id', 'reference auth_user'), # Referenced user
                 Field('score_us', 'integer'),
                 Field('score_them', 'integer'),
                 Field('is_win', 'boolean'),
@@ -46,7 +46,7 @@ db.define_table('bot_training_data',
 # Define match archive for Replay Studio
 db.define_table('match_archive',
                 Field('game_id', unique=True, required=True),
-                Field('user_email'), # Optional linkage
+                Field('user_id', 'reference auth_user'), # Optional linkage
                 Field('history_json', 'text'), # Full JSON blob
                 Field('final_score_us', 'integer'),
                 Field('final_score_them', 'integer'),
