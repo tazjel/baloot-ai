@@ -19,6 +19,13 @@ class HokumStrategy(StrategyComponent):
 
         # Determine if we (or partner) bought the project.
         bidder_team = 'us' if ctx.bid_winner in [ctx.position, self._get_partner_pos(ctx.player_index)] else 'them'
+
+        # DEFENSIVE LEAD: When opponents won the bid, switch to defensive strategy
+        if bidder_team == 'them':
+            defensive = self._get_defensive_lead_hokum(ctx)
+            if defensive:
+                return defensive
+
         should_open_trump = (bidder_team == 'us')
 
         # SMART SAHN: Only open trumps if enemies still have them!
@@ -150,6 +157,73 @@ class HokumStrategy(StrategyComponent):
 
         return {"action": "PLAY", "cardIndex": best_card_idx, "reasoning": reason}
 
+    def _get_defensive_lead_hokum(self, ctx: BotContext):
+        """Defensive lead when OPPONENTS won the Hokum bid.
+        Strategy: Lead suits to create ruff opportunities, avoid feeding declarer."""
+        trump = ctx.trump
+        best_idx = 0
+        max_score = -100
+
+        # Suit analysis
+        suit_lengths = {}
+        for s in ['♠', '♥', '♦', '♣']:
+            suit_lengths[s] = sum(1 for c in ctx.hand if c.suit == s)
+
+        # Check how many trumps WE have
+        my_trump_count = suit_lengths.get(trump, 0)
+
+        for i, c in enumerate(ctx.hand):
+            score = 0
+            is_trump = (c.suit == trump)
+            is_master = ctx.is_master_card(c)
+            length = suit_lengths.get(c.suit, 0)
+
+            if is_trump:
+                # DON'T lead trumps on defense — that helps declarer!
+                # Exception: if we have J-9 (strongest trumps), lead to force their trumps out
+                if c.rank in ['J', '9'] and my_trump_count >= 3:
+                    score += 20  # We can afford to draw trumps with dominant position
+                else:
+                    score -= 40  # Don't waste trumps on defense
+            else:
+                # Non-trump leads
+                if is_master:
+                    # Cash masters immediately — before declarer can ruff them
+                    score += 70
+                    if length <= 2:
+                        score += 20  # Short-suit master = cash and get void fast
+
+                # PRIORITY: Lead SHORT suits to create ruff opportunities
+                if length == 1 and not is_master:
+                    score += 35  # Singleton — void yourself, ruff next time!
+                elif length == 2 and not is_master:
+                    score += 20  # Doubleton
+
+                # PENALTY: Don't lead bare honors into declarer's strength
+                if c.rank == 'K' and not any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand):
+                    score -= 25  # Bare King eaten by Ace
+                if c.rank in ['10', 'A'] and not is_master:
+                    score -= 10  # Don't gift big points
+
+                # BONUS: Lead suits where opponents are void (partner might ruff!)
+                my_team = ctx.team
+                partner_pos = self._get_partner_pos(ctx.player_index)
+                partner_might_ruff = False
+                for p in ctx.raw_state.get('players', []):
+                    if p.get('position') == partner_pos:
+                        if ctx.is_player_void(partner_pos, c.suit):
+                            # Partner is void in this suit and might have trumps!
+                            if not ctx.is_player_void(partner_pos, trump):
+                                partner_might_ruff = True
+                if partner_might_ruff:
+                    score += 40  # Feed partner a ruff opportunity!
+
+            if score > max_score:
+                max_score = score
+                best_idx = i
+
+        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Defensive Lead (Hokum)"}
+
     def _get_hokum_follow(self, ctx: BotContext):
         lead_suit = ctx.lead_suit
         winning_card = ctx.winning_card
@@ -158,8 +232,9 @@ class HokumStrategy(StrategyComponent):
 
         follows = [i for i, c in enumerate(ctx.hand) if c.suit == lead_suit]
 
-        # POSITIONAL AWARENESS
-        is_last_to_play = (len(ctx.table_cards) == 3)
+        # SEAT-AWARE POSITIONAL PLAY
+        seat = len(ctx.table_cards) + 1  # 2nd, 3rd, or 4th seat
+        is_last_to_play = (seat == 4)
         
         # TRICK VALUE: Calculate points on the table
         trick_points = 0
@@ -182,37 +257,44 @@ class HokumStrategy(StrategyComponent):
                 if winning_card.suit == trump:
                     over_trumps = [i for i in trumps if ctx._compare_ranks(ctx.hand[i].rank, winning_card.rank, 'HOKUM')]
                     if over_trumps:
-                        # Use lowest over-trump (economy)
                         best_idx = self._find_lowest_rank_card_hokum(ctx, over_trumps)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Over-trumping (Economy)"}
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Over-trumping (Economy)"}
                     else:
                         return self._get_trash_card(ctx)
                 else:
-                    # SMART TRUMPING: Consider trick value before spending trump
-                    # Don't waste high trumps (J, 9) on low-value tricks
+                    # SMART TRUMPING: Consider trick value and seat position
                     low_trumps = [i for i in trumps if ctx.hand[i].rank in ['7', '8', 'Q', 'K']]
                     high_trumps = [i for i in trumps if ctx.hand[i].rank in ['J', '9', 'A', '10']]
                     
-                    if trick_points >= 10 or not high_trumps:
-                        # Trick is worth it, or we only have high trumps — use lowest trump
+                    if seat == 4:
+                        # 4TH SEAT: Guaranteed win — use lowest trump always
                         best_idx = self._find_lowest_rank_card_hokum(ctx, trumps)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Eating with Trump"}
-                    elif low_trumps:
-                        # Low-value trick — use a cheap trump
-                        best_idx = self._find_lowest_rank_card_hokum(ctx, low_trumps)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Cheap Trump Eat"}
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat: Guaranteed Trump"}
+                    elif seat == 2:
+                        # 2ND SEAT: Conservative trumping — only trump high-value tricks
+                        if trick_points >= 10 or not high_trumps:
+                            if low_trumps:
+                                best_idx = self._find_lowest_rank_card_hokum(ctx, low_trumps)
+                                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Cheap Trump (Worth It)"}
+                            else:
+                                best_idx = self._find_lowest_rank_card_hokum(ctx, trumps)
+                                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Forced Trump"}
+                        else:
+                            # Low value, partner might handle it — discard instead
+                            return self._get_trash_card(ctx)
                     else:
-                        # Only have high trumps and trick is low-value
-                        # Still trump if we're last (guaranteed win)
-                        if is_last_to_play:
+                        # 3RD SEAT: Aggressive trumping
+                        if trick_points >= 10 or not high_trumps:
                             best_idx = self._find_lowest_rank_card_hokum(ctx, trumps)
-                            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Last Seat Trump"}
-                        # Otherwise consider if partner might still play after us and take it
-                        return self._get_trash_card(ctx)
+                            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Eating with Trump"}
+                        elif low_trumps:
+                            best_idx = self._find_lowest_rank_card_hokum(ctx, low_trumps)
+                            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Cheap Trump Eat"}
+                        else:
+                            return self._get_trash_card(ctx)
             
             # Partner winning or no trumps — discard smart
             if has_trumps and is_partner_winning:
-                # Partner is winning — don't trump, discard
                 return self._get_trash_card(ctx)
 
             return self._get_trash_card(ctx)
@@ -223,12 +305,11 @@ class HokumStrategy(StrategyComponent):
 
         if is_partner_winning:
             best_idx = self._find_highest_point_card_hokum(ctx, follows)
-            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Partner Winning - Feeding"}
+            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Partner Winning - Feeding"}
         else:
             if winning_card.suit == trump and lead_suit != trump:
-                # Enemy trumped — dump lowest points to minimize loss
                 best_idx = self._find_lowest_point_card_hokum(ctx, follows)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Enemy Trumping - Point Protection"}
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Enemy Trumping - Point Protection"}
 
             winners = []
             for idx in follows:
@@ -237,14 +318,33 @@ class HokumStrategy(StrategyComponent):
                     winners.append(idx)
 
             if winners:
-                # FINESSE: Use lowest winning card
-                best_idx = self._find_lowest_rank_card_hokum(ctx, winners)
-                reason = "4th Seat Finesse" if is_last_to_play else "Finesse (Lowest Winner)"
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": reason}
+                if seat == 4:
+                    # 4TH SEAT: Guaranteed win — finesse with lowest winner
+                    best_idx = self._find_lowest_rank_card_hokum(ctx, winners)
+                    return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat Finesse"}
+                elif seat == 3:
+                    # 3RD SEAT: Aggressive — use stronger card for important tricks
+                    if trick_points >= 10:
+                        best_idx = self._find_best_winner_hokum(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Securing Big Trick"}
+                    else:
+                        best_idx = self._find_lowest_rank_card_hokum(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Economy Win"}
+                else:
+                    # 2ND SEAT: Conservative — only commit masters or high-stakes
+                    master_winners = [i for i in winners if ctx.is_master_card(ctx.hand[i])]
+                    if master_winners:
+                        best_idx = self._find_lowest_rank_card_hokum(ctx, master_winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Playing Master"}
+                    elif trick_points >= 15:
+                        best_idx = self._find_lowest_rank_card_hokum(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: High-Stakes Commit"}
+                    else:
+                        best_idx = self._find_lowest_point_card_hokum(ctx, follows)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Ducking for Partner"}
             else:
-                # Can't win — POINT PROTECTION: dump lowest-value card
                 best_idx = self._find_lowest_point_card_hokum(ctx, follows)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ducking (Point Protection)"}
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Ducking (Point Protection)"}
 
     # --- Heuristic Helpers ---
 

@@ -79,6 +79,13 @@ class SunStrategy(StrategyComponent):
         return None
 
     def _get_sun_lead(self, ctx: BotContext):
+        # DEFENSIVE LEAD: When opponents won the bid, play defensively
+        bidder_team = 'us' if ctx.bid_winner in [ctx.position, self._get_partner_pos(ctx.player_index)] else 'them'
+        if bidder_team == 'them':
+            defensive = self._get_defensive_lead_sun(ctx)
+            if defensive:
+                return defensive
+
         # 0. Check for Collaborative Signals
         signal = self._check_partner_signals(ctx)
         if signal and signal['type'] == 'ENCOURAGE':
@@ -119,7 +126,6 @@ class SunStrategy(StrategyComponent):
                 
                 # Penalize leading non-master cards into suits with higher remaining cards
                 if not is_master and remaining_ranks:
-                    # Check if opponents might have the master card
                     higher_exists = False
                     for r in remaining_ranks:
                         try:
@@ -129,19 +135,18 @@ class SunStrategy(StrategyComponent):
                         except ValueError:
                             continue
                     if higher_exists:
-                        score -= 15  # Penalty for leading into a losing position
+                        score -= 15
                 
-                # BONUS: If suit has only 1-2 remaining cards and we have the master,
-                # leading it extracts value and clears the suit
+                # BONUS: If suit has only 1-2 remaining cards and we have the master
                 if is_master and len(remaining_in_suit) <= 3:
-                    score += 10  # Extraction bonus
+                    score += 10
 
             # VOID DANGER: Avoid leading suits where opponents are void
             my_team = ctx.team
             for p in ctx.raw_state.get('players', []):
                 if p.get('team') != my_team:
                     if ctx.is_player_void(p.get('position'), c.suit):
-                        score -= 30  # Major penalty
+                        score -= 30
                         break
 
             # SUIT LENGTH: Prefer leading from long suits (more control)
@@ -158,6 +163,62 @@ class SunStrategy(StrategyComponent):
 
         return {"action": "PLAY", "cardIndex": best_card_idx, "reasoning": reason}
 
+    def _get_defensive_lead_sun(self, ctx: BotContext):
+        """Defensive lead when OPPONENTS won the Sun bid.
+        Strategy: Lead short suits to create voids, attack weak spots."""
+        best_idx = 0
+        max_score = -100
+
+        # Calculate suit lengths
+        suit_lengths = {}
+        for s in ['♠', '♥', '♦', '♣']:
+            suit_lengths[s] = sum(1 for c in ctx.hand if c.suit == s)
+
+        for i, c in enumerate(ctx.hand):
+            score = 0
+            is_master = ctx.is_master_card(c)
+            length = suit_lengths.get(c.suit, 0)
+
+            # PRIORITY 1: Cash guaranteed masters — they can't lose
+            if is_master:
+                score += 80
+                # Bonus for masters in short suits (extract value then get void)
+                if length <= 2:
+                    score += 30
+
+            # PRIORITY 2: Lead SHORT suits to create voids for future tricks
+            if length == 1 and not is_master:
+                score += 25  # Singleton — lead to void yourself
+            elif length == 2:
+                score += 15  # Doubleton
+
+            # PRIORITY 3: Lead through declarer's WEAK suits
+            # Attack suits where opponents showed weakness (discards)
+            my_team = ctx.team
+            for p in ctx.raw_state.get('players', []):
+                if p.get('team') != my_team:
+                    # Bonus for leading suits where opponent is weak
+                    if ctx.memory:
+                        remaining = ctx.memory.get_remaining_in_suit(c.suit)
+                        if len(remaining) <= 2:  # Suit is nearly exhausted
+                            score += 10
+
+            # PENALTY: Don't lead unsupported honors (K without A, Q without K-A)
+            if c.rank == 'K' and not any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand):
+                score -= 20  # Bare King = gift to opponents
+            if c.rank == 'Q' and not any(x.rank in ['A', 'K'] and x.suit == c.suit for x in ctx.hand):
+                score -= 15
+
+            # PENALTY: Don't lead 10s and Aces into long contested suits (point hemorrhage)
+            if c.rank in ['A', '10'] and not is_master and length >= 3:
+                score -= 10
+
+            if score > max_score:
+                max_score = score
+                best_idx = i
+
+        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Defensive Lead (Sun)"}
+
     def _get_sun_follow(self, ctx: BotContext):
         lead_suit = ctx.lead_suit
         winning_card = ctx.winning_card
@@ -170,8 +231,9 @@ class SunStrategy(StrategyComponent):
         partner_pos = self._get_partner_pos(ctx.player_index)
         is_partner_winning = (winner_pos == partner_pos)
         
-        # POSITIONAL AWARENESS
-        is_last_to_play = (len(ctx.table_cards) == 3)
+        # SEAT-AWARE POSITIONAL PLAY
+        seat = len(ctx.table_cards) + 1  # 2nd, 3rd, or 4th seat
+        is_last_to_play = (seat == 4)
         
         # TRICK VALUE: Calculate how many points are on the table
         trick_points = 0
@@ -195,11 +257,10 @@ class SunStrategy(StrategyComponent):
 
             if safe_feeds:
                 best_idx = self._find_highest_point_card_sun(ctx, safe_feeds)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Partner winning - Safe Feed"}
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Partner winning - Safe Feed"}
             else:
-                # Forced to overtake — play lowest to preserve cards
                 best_idx = self._find_lowest_rank_card_sun(ctx, overtaking_feeds)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Overtaking Partner (Forced)"}
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Overtaking Partner (Forced)"}
         else:
             winners = []
             for idx in follows:
@@ -208,19 +269,39 @@ class SunStrategy(StrategyComponent):
                     winners.append(idx)
 
             if winners:
-                if is_last_to_play:
+                if seat == 4:
                     # 4TH SEAT: Guaranteed win — finesse with lowest winner
                     best_idx = self._find_lowest_rank_card_sun(ctx, winners)
                     return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat Finesse"}
+                elif seat == 3:
+                    # 3RD SEAT: Partner already played, one opponent left.
+                    # Play aggressively — use strongest winner to survive the last player
+                    if trick_points >= 10:
+                        # High-value trick — secure it with a strong card
+                        best_idx = self._find_best_winner_sun(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Securing High-Value Trick"}
+                    else:
+                        best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Economy Win"}
                 else:
-                    # NOT LAST: Finesse, save high cards
-                    best_idx = self._find_lowest_rank_card_sun(ctx, winners)
-                    return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Finesse (Lowest Winner)"}
+                    # 2ND SEAT: Be conservative — partner hasn't played yet.
+                    # Only commit if we have the master (guaranteed win)
+                    master_winners = [i for i in winners if ctx.is_master_card(ctx.hand[i])]
+                    if master_winners:
+                        best_idx = self._find_lowest_rank_card_sun(ctx, master_winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Playing Master"}
+                    elif trick_points >= 15:
+                        # High stakes — worth committing
+                        best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: High-Stakes Commit"}
+                    else:
+                        # Low stakes, duck and let partner handle it
+                        best_idx = self._find_lowest_point_card_sun(ctx, follows)
+                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Ducking for Partner"}
             else:
-                # DUCKING — POINT PROTECTION: Don't waste 10s and Aces when we can't win
-                # Play the card with the LOWEST point value to minimize loss
+                # Can't win — POINT PROTECTION
                 best_idx = self._find_lowest_point_card_sun(ctx, follows)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Ducking (Point Protection)"}
+                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Ducking (Point Protection)"}
 
     # --- Heuristic Helpers ---
 

@@ -43,6 +43,16 @@ class BotContext:
         self.is_dealer = (self.player_index == self.dealer_index)
         self.akka_state = game_state.get('akkaState', None)
         
+        # Score-Aware Tactics
+        team_scores = game_state.get('teamScores', {'us': 0, 'them': 0})
+        match_scores = game_state.get('matchScores', {'us': 0, 'them': 0})
+        self.our_score = team_scores.get('us', 0)
+        self.their_score = team_scores.get('them', 0)
+        self.score_differential = self.our_score - self.their_score  # Positive = we're ahead
+        self.match_differential = match_scores.get('us', 0) - match_scores.get('them', 0)
+        self.is_desperate = self.score_differential < -50  # Behind badly, play aggressive
+        self.is_protecting = self.score_differential > 100  # Big lead, play safe
+        
         # Core Components
         from ai_worker.memory import CardMemory
         from ai_worker.mind_client import mind_client
