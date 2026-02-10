@@ -489,6 +489,8 @@ class Game(StateBridgeMixin):
             'bidding_engine': self.bidding_engine.to_dict() if self.bidding_engine else None,
             'floor_card': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
             'qayd_state': self.qayd_engine.state if self.qayd_engine else None,
+            'akka_state': (self.project_manager.akka_state if hasattr(self.project_manager, 'akka_state') else None) or self.akka_state,
+            'sawa_state': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else None,
         }
 
     @classmethod
@@ -565,6 +567,18 @@ class Game(StateBridgeMixin):
         if saved_qayd and saved_qayd.get('active'):
             game.qayd_engine.state.update(saved_qayd)
         game.qayd_state = game.qayd_engine.state
+
+        # Restore akka state
+        saved_akka = data.get('akka_state')
+        if saved_akka and saved_akka.get('active'):
+            game.project_manager.akka_state = saved_akka
+        game.akka_state = game.project_manager.akka_state
+
+        # Restore sawa state
+        saved_sawa = data.get('sawa_state')
+        if saved_sawa and saved_sawa.get('active'):
+            game.trick_manager.sawa_state.update(saved_sawa)
+        game.sawa_state = game.trick_manager.sawa_state
 
         game.phases = {
             GamePhase.BIDDING.value:   BiddingLogic(game),
