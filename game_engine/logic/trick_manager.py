@@ -196,9 +196,9 @@ class TrickManager:
 
         # --- BUILD PLAYED CARDS SET ---
         played_cards = set()
-        # From graveyard (most reliable)
-        if hasattr(self.game, 'graveyard') and hasattr(self.game.graveyard, 'played_set'):
-            played_cards = set(self.game.graveyard.played_set)
+        # From graveyard (most reliable, O(1) lookups)
+        if hasattr(self.game, 'graveyard') and hasattr(self.game.graveyard, 'seen'):
+            played_cards = set(self.game.graveyard.seen)
         else:
             # Fallback: from round history
             for trick in self.game.round_history:
