@@ -139,6 +139,180 @@ class TestScoringComprehensive(unittest.TestCase):
         self.assertEqual(res_us['result'], 22)
         self.assertEqual(res_them['result'], 30)
 
+    def test_baida_sun(self):
+        """SUN: US bids, US gets 65 raw, THEM gets 65+10 last=75.
+           US 65 → 13 GP, THEM 75 → 15 GP. Total = 28 but target is 26.
+           US is bidder and has fewer → Khasara → US=0, THEM=26."""
+        self.game.game_mode = 'SUN'
+        self.game.bid = {"type": "SUN", "bidder": "Bottom"}  # US
+
+        self.game.round_history = [
+            {'winner': 'Bottom', 'points': 65, 'cards': [], 'playedBy': []},
+            {'winner': 'Right', 'points': 65, 'cards': [], 'playedBy': []},
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # US bidder has fewer GP → Khasara
+        self.assertEqual(res_us['result'], 0, "US bidder with less should get Khasara")
+        self.assertTrue(res_them['result'] > 0)
+
+    def test_baida_hokum(self):
+        """HOKUM: THEM bids. THEM gets equivalent or fewer GP → Khasara.
+           US wins 86 raw (+10 last = 96), THEM wins 56.
+           US: 96/10=9 GP, THEM: 56/10=5 GP. Target=16, diff assigned to THEM.
+           THEM still ≤ US → Khasara: THEM=0, US=16."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Right"}  # THEM
+
+        self.game.round_history = [
+            {'winner': 'Bottom', 'points': 96, 'cards': [], 'playedBy': []},  # US last trick
+            {'winner': 'Right', 'points': 56, 'cards': [], 'playedBy': []},
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # THEM is bidder with fewer points → Khasara
+        self.assertEqual(res_them['result'], 0, "Bidder who loses should get Khasara")
+        self.assertTrue(res_us['result'] > 0, "Non-bidder should get all points")
+
+    def test_hokum_kaboot(self):
+        """Kaboot in HOKUM = 25 game points."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Bottom"}  # US
+
+        # US wins all tricks
+        self.game.round_history = [
+            {'winner': 'Bottom', 'points': 130, 'cards': [], 'playedBy': []},
+            {'winner': 'Top', 'points': 22, 'cards': [], 'playedBy': []},
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        self.assertTrue(res_us['isKaboot'])
+        self.assertEqual(res_us['result'], 25)
+        self.assertEqual(res_them['result'], 0)
+
+    def test_sun_kaboot(self):
+        """Kaboot in SUN = 44 game points."""
+        self.game.game_mode = 'SUN'
+        self.game.bid = {"type": "SUN", "bidder": "Right"}  # THEM
+
+        # THEM wins all tricks
+        self.game.round_history = [
+            {'winner': 'Right', 'points': 100, 'cards': [], 'playedBy': []},
+            {'winner': 'Left', 'points': 52, 'cards': [], 'playedBy': []},
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        self.assertTrue(res_them['isKaboot'])
+        self.assertEqual(res_them['result'], 44)
+        self.assertEqual(res_us['result'], 0)
+
+    def test_khasara_with_projects(self):
+        """Khasara: bidder's project points + card points go to opponent.
+           US bids HOKUM but gets few card points. Even with a project,
+           US ends up with fewer GP than THEM → Khasara."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Bottom"}  # US
+
+        # US gets almost nothing, THEM dominates
+        self.game.round_history = [
+            {'winner': 'Right', 'points': 130, 'cards': [], 'playedBy': []},
+            {'winner': 'Bottom', 'points': 12, 'cards': [], 'playedBy': []},
+            {'winner': 'Right', 'points': 10, 'cards': [], 'playedBy': []},  # THEM last trick
+        ]
+
+        # US has a project — but they'll lose it to Khasara
+        self.game.declarations = {
+            'Bottom': [{'type': 'SIRA', 'rank': 'K', 'suit': 'S', 'priority': 1, 'score': 20}],
+            'Right': [], 'Top': [], 'Left': []
+        }
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # US is bidder with far fewer points → Khasara
+        self.assertEqual(res_us['result'], 0, "Bidder should get 0 on Khasara")
+        self.assertTrue(res_them['result'] > 0, "Opponent gets all")
+
+    def test_both_teams_projects(self):
+        """Both teams have projects — scores reflect both."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Bottom"}  # US
+
+        self.game.round_history = [
+            {'winner': 'Bottom', 'points': 100, 'cards': [], 'playedBy': []},  # US
+            {'winner': 'Right', 'points': 52, 'cards': [], 'playedBy': []},    # THEM (last +10)
+        ]
+
+        self.game.declarations = {
+            'Bottom': [{'type': 'SIRA', 'rank': 'A', 'suit': 'S', 'priority': 1, 'score': 20}],
+            'Right': [{'type': 'SIRA', 'rank': 'K', 'suit': 'H', 'priority': 2, 'score': 20}],
+            'Top': [], 'Left': []
+        }
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # Both should have project points
+        self.assertEqual(res_us['projectPoints'], 20)
+        self.assertEqual(res_them['projectPoints'], 20)
+
+    def test_gahwa_doubling(self):
+        """Gahwa (doubling ≥ 100): requires one side to have 0 after Khasara.
+           US bids, THEM dominates → Khasara for US → THEM has all, US has 0.
+           Then Gahwa gives winner 152."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Bottom"}  # US
+        self.game.doubling_level = 100  # Gahwa!
+
+        # US loses badly → Khasara (US=0, THEM=all)
+        self.game.round_history = [
+            {'winner': 'Right', 'points': 130, 'cards': [], 'playedBy': []},
+            {'winner': 'Bottom', 'points': 12, 'cards': [], 'playedBy': []},
+            {'winner': 'Right', 'points': 10, 'cards': [], 'playedBy': []},  # THEM last trick
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # Gahwa: winner gets 152
+        self.assertEqual(res_them['result'], 152, "Gahwa winner should get 152")
+        self.assertEqual(res_us['result'], 0)
+
+    def test_x3_doubling_hokum(self):
+        """Triple doubling in HOKUM multiplies scores by 3."""
+        self.game.game_mode = 'HOKUM'
+        self.game.bid = {"type": "HOKUM", "bidder": "Bottom"}  # US
+        self.game.doubling_level = 3
+
+        self.game.round_history = [
+            {'winner': 'Bottom', 'points': 100, 'cards': [], 'playedBy': []},
+            {'winner': 'Right', 'points': 52, 'cards': [], 'playedBy': []},
+        ]
+
+        self.game.end_round()
+        res_us = self.game.past_round_results[-1]['us']
+        res_them = self.game.past_round_results[-1]['them']
+
+        # Normal result * 3
+        self.assertEqual(res_us['multiplierApplied'], 3)
+        self.assertEqual(res_them['multiplierApplied'], 3)
+
 
 if __name__ == '__main__':
     unittest.main()
+
