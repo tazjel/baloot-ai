@@ -28,10 +28,10 @@ def confirm_qayd():
     if not game:
         return {"error": "Game not found"}
 
-    if not hasattr(game, 'trick_manager'):
-        return {"error": "Game engine not initialized"}
+    if not hasattr(game, 'handle_qayd_confirm'):
+        return {"error": "Game engine not initialized (QaydEngine missing)"}
 
-    result = game.trick_manager.confirm_qayd()
+    result = game.handle_qayd_confirm()
     return result
 
 
@@ -94,9 +94,7 @@ def handle_qayd_trigger():
         response.status = status
         return result
     except Exception as e:
-        logger.error(f"Director Update Failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Director Update Failed: {e}")
         response.status = 500
         return {"error": str(e)}
 
@@ -125,9 +123,7 @@ def update_director_config():
         response.status = status
         return result
     except Exception as e:
-        logger.error(f"Director Update Failed: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception(f"Director Update Failed: {e}")
         response.status = 500
         return {"error": str(e)}
 

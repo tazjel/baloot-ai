@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { GameState, PlayerPosition, DeclaredProject } from '../types';
+import { GameState, GamePhase, DoublingLevel, PlayerPosition, DeclaredProject } from '../types';
 import socketService from '../services/SocketService';
+import { devLogger } from '../utils/devLogger';
 
 const INITIAL_GAME_STATE: GameState = {
     players: [],
     currentTurnIndex: 0,
-    phase: 'WAITING' as any,
+    phase: GamePhase.Waiting,
     tableCards: [],
     bid: { type: null, suit: null, bidder: null, doubled: false },
     teamScores: { us: 0, them: 0 },
@@ -13,7 +14,7 @@ const INITIAL_GAME_STATE: GameState = {
     dealerIndex: 3,
     biddingRound: 1,
     declarations: {},
-    doublingLevel: 'NORMAL' as any,
+    doublingLevel: DoublingLevel.NORMAL,
     isLocked: false,
     matchScores: { us: 0, them: 0 },
     roundHistory: [],
@@ -188,7 +189,7 @@ export const useGameSocket = (): UseGameSocketReturn => {
         }
 
         setIsSendingAction(true);
-        console.log(`[useGameSocket] Sending Action: ${action}`, payload);
+        devLogger.log('SOCKET', `Sending Action: ${action}`, payload);
 
         const wrappedCallback = (res: any) => {
             setIsSendingAction(false);
@@ -258,7 +259,7 @@ export const useGameSocket = (): UseGameSocketReturn => {
         });
 
         const cleanupStart = socketService.onGameStart((newGameState) => {
-            console.log("[useGameSocket] Received Game Start!", newGameState);
+            devLogger.log('SOCKET', 'Received Game Start!', newGameState);
             const rotatedState = rotateGameState(newGameState, myIndexRef.current);
             if (gameUpdateCallbackRef.current) {
                 gameUpdateCallbackRef.current(rotatedState);

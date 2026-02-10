@@ -6,7 +6,8 @@ edge cases, and stress testing.
 """
 
 from typing import Dict, List, Optional, Callable
-from server.game_logic import Game, SUITS, RANKS
+from game_engine.logic.game import Game
+from game_engine.models.constants import SUITS, RANKS
 from game_engine.models.card import Card
 import random
 

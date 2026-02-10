@@ -3,6 +3,7 @@ Background timer task for checking game timeouts.
 """
 import time
 import logging
+import traceback
 
 from server.room_manager import room_manager
 
@@ -85,8 +86,7 @@ def timer_background_task(sio, room_manager_instance):
                         sio.start_background_task(auto_restart_round, sio, game, room_id)
 
         except Exception as e:
-            logger.error(f"Error in timer_background_task: {e}")
-            import traceback
+            logger.exception(f"Error in timer_background_task: {e}")
             with open("logs/crash.log", "a") as f:
                 f.write(f"\n{time.time()} CRASH: {e}\n")
                 f.write(traceback.format_exc())

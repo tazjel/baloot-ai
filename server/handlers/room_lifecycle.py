@@ -29,29 +29,29 @@ def register(sio, connected_users):
                 token = params['token'][0]
 
         if not token:
-            print(f"Client connected (Guest): {sid}")
+            logger.info(f"Client connected (Guest): {sid}")
             return True  # Accepted as Guest
 
         user_data = auth_utils.verify_token(token)
         if not user_data:
-            print(f"Invalid Token for SID: {sid}")
+            logger.warning(f"Invalid Token for SID: {sid}")
             return False  # Reject connection
 
         # Success! Store in memory for instant access
         connected_users[sid] = user_data
-        print(f"Authorized {user_data.get('email')} (SID: {sid})")
+        logger.info(f"Authorized {user_data.get('email')} (SID: {sid})")
         return True
 
     @sio.event
     def disconnect(sid):
-        print(f"Client disconnected: {sid}")
+        logger.info(f"Client disconnected: {sid}")
         # Cleanup auth memory
         if sid in connected_users:
             del connected_users[sid]
 
     @sio.event
     def create_room(sid, data):
-        print(f"create_room called by {sid}")
+        logger.info(f"create_room called by {sid}")
 
         # Rate Limit: 5 per minute per SID (or IP if available)
         if not limiter.check_limit(f"create_room:{sid}", 5, 60):

@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from game_logic import Game, Card, Player
 
-from room_manager import RoomManager
+from server.room_manager import RoomManager
 from game_logic import ORDER_HOKUM, ORDER_SUN
 
 class TestAkkaLogic(unittest.TestCase):

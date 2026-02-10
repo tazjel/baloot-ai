@@ -110,7 +110,17 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
       }, 5000);
       return () => clearTimeout(t);
     }
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, verdictData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Timeout fallback: if RESULT step has no verdict after 10s, auto-cancel ─
+  useEffect(() => {
+    if (step === 'RESULT' && !verdictData) {
+      const t = setTimeout(() => {
+        onAction('QAYD_CANCEL');
+      }, 10000);
+      return () => clearTimeout(t);
+    }
+  }, [step, verdictData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Derived data ──────────────────────────────────────────────────────────
   const tricks: TrickRecord[] = useMemo(() => {
@@ -248,8 +258,24 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
               />
             )}
             {step === 'VIOLATION_SELECT' && (
-              <div className="flex items-center justify-center py-12 text-gray-500 font-tajawal">
-                اختر نوع المخالفة من الأعلى ↑
+              <div className="flex flex-col items-center gap-4 py-6 px-4">
+                <p className="text-gray-300 font-tajawal text-base mb-2">اختر نوع المخالفة</p>
+                <div className="flex flex-row-reverse flex-wrap justify-center gap-3">
+                  {violations.map(v => (
+                    <motion.button
+                      key={v.key}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleViolationSelect(v.key)}
+                      className="px-6 py-3 rounded-xl font-bold font-tajawal text-sm
+                                 bg-white/5 border border-white/10 text-gray-300
+                                 hover:bg-amber-500/20 hover:border-amber-500/50 hover:text-amber-400
+                                 transition-all shadow-sm"
+                    >
+                      {v.ar}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             )}
             {(step === 'SELECT_CARD_1' || step === 'SELECT_CARD_2') && (

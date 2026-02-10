@@ -7,7 +7,7 @@ from server.logging_utils import logger, log_event
 class TrickManager:
     def __init__(self, game):
         self.game = game
-        self.qayd_state = {'active': False, 'reporter': None, 'reason': None, 'target_play': None}
+        # NOTE: qayd_state is managed exclusively by QaydEngine. Do NOT store it here.
         self.sawa_state = {"active": False, "claimer": None, "status": "NONE", "challenge_active": False}
         self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
 
@@ -156,37 +156,6 @@ class TrickManager:
         if not winner_player.hand:
             self.game.end_round()
 
-    # --- QAYD (PENALTY) LOGIC ---
-    # NOTE: All Qayd logic has been moved to QaydEngine (qayd_engine.py).
-    # The methods below are DEPRECATED stubs kept only to prevent import errors.
-    # They redirect to QaydEngine via self.game.
-
-    def propose_qayd(self, reporter_index, crime_card=None, proof_card=None, qayd_type='REVOKE', crime_trick_idx=None, proof_trick_idx=None):
-        """DEPRECATED: Redirects to QaydEngine.trigger()."""
-        logger.warning("[DEPRECATED] propose_qayd called — redirecting to QaydEngine")
-        return self.game.handle_qayd_trigger(reporter_index)
-
-
-    def cancel_qayd(self):
-        """DEPRECATED: Redirects to QaydEngine.cancel()."""
-        logger.warning("[DEPRECATED] cancel_qayd called — redirecting to QaydEngine")
-        return self.game.handle_qayd_cancel()
-
-    def confirm_qayd(self):
-        """DEPRECATED: Redirects to QaydEngine.confirm()."""
-        logger.warning("[DEPRECATED] confirm_qayd called — redirecting to QaydEngine")
-        return self.game.handle_qayd_confirm()
-
-    def handle_qayd(self, reporter_index):
-        """DEPRECATED: Redirects to QaydEngine.trigger()."""
-        logger.warning("[DEPRECATED] handle_qayd called — redirecting to QaydEngine")
-        return self.game.handle_qayd_trigger(reporter_index)
-
-    def apply_khasara(self, loser_team, reason, points_override=None):
-        """DEPRECATED: Use game.apply_qayd_penalty() via QaydEngine instead."""
-        logger.warning("[DEPRECATED] apply_khasara called — redirecting to game.apply_qayd_penalty")
-        winner_team = 'us' if loser_team == 'them' else 'them'
-        self.game.apply_qayd_penalty(loser_team, winner_team)
 
     # --- SAWA LOGIC (Server-Validated, Fast Resolution) ---
     # Sawa = Grand Slam claim. Available only when hand ≤ 4 cards.
@@ -276,6 +245,19 @@ class TrickManager:
         })
 
         # --- RESOLUTION PATHS ---
+        # If claimer is a bot, we trust the AI — auto-resolve instantly
+        if player.is_bot:
+            if is_valid:
+                logger.info(f"[SAWA] VALID bot claim by {claimer_pos} — instant resolve (trusted AI)")
+                self._resolve_sawa_win()
+                return {"success": True, "sawa_resolved": True, "sawa_valid": True}
+            else:
+                # Bot made invalid Sawa (shouldn't happen but handle it)
+                logger.warning(f"[SAWA] INVALID bot claim by {claimer_pos} — instant penalty")
+                self._apply_sawa_penalty(claimer_pos, claimer_team)
+                return {"success": True, "sawa_penalty": True, "sawa_valid": False}
+
+        # Human claimer — use opponent-based resolution
         if is_valid:
             if not has_human_opponent:
                 # All-bot opponents → instant resolve

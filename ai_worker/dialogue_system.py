@@ -87,7 +87,7 @@ class DialogueSystem:
                  # Try direct text accessor if possible, but safe logic above covers most
                  try:
                      text = response.text
-                 except:
+                 except (AttributeError, ValueError):
                      pass
 
             if text:

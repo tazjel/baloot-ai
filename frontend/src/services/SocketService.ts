@@ -12,18 +12,45 @@ interface ApiResponse {
 
 class SocketService {
     public socket: Socket | null = null;
+    private connectionStatusCallbacks: ((status: 'connected' | 'disconnected' | 'reconnecting', attempt?: number) => void)[] = [];
+    private reconnectAttempt = 0;
+    private maxReconnectAttempts = 5;
 
     connect() {
         if (!this.socket) {
             this.socket = io(SERVER_URL, {
-                transports: ['websocket', 'polling'], // Try websocket first
+                transports: ['websocket', 'polling'],
                 reconnection: true,
+                reconnectionAttempts: this.maxReconnectAttempts,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 16000,
             });
             this.socket.on('connect', () => {
+                this.reconnectAttempt = 0;
                 devLogger.log('SOCKET', 'Connected to Game Server', { id: this.socket?.id });
+                this.emitConnectionStatus('connected');
             });
             this.socket.on('connect_error', (err) => {
                 devLogger.error('SOCKET', 'Connection Error', err);
+            });
+            this.socket.on('disconnect', (reason) => {
+                devLogger.log('SOCKET', 'Disconnected', { reason });
+                this.emitConnectionStatus('disconnected');
+            });
+            this.socket.io.on('reconnect_attempt', (attempt) => {
+                this.reconnectAttempt = attempt;
+                const delay = Math.min(1000 * Math.pow(2, attempt - 1), 16000);
+                devLogger.log('SOCKET', `Reconnecting (attempt ${attempt}/${this.maxReconnectAttempts}, backoff ${delay}ms)`);
+                this.emitConnectionStatus('reconnecting', attempt);
+            });
+            this.socket.io.on('reconnect', () => {
+                this.reconnectAttempt = 0;
+                devLogger.log('SOCKET', 'Reconnected successfully');
+                this.emitConnectionStatus('connected');
+            });
+            this.socket.io.on('reconnect_failed', () => {
+                devLogger.error('SOCKET', `Reconnection failed after ${this.maxReconnectAttempts} attempts`);
+                this.emitConnectionStatus('disconnected');
             });
         } else if (!this.socket.connected) {
             this.socket.connect();
@@ -111,7 +138,17 @@ class SocketService {
         };
     }
 
-    // Add more event wrappers here
+    // --- Connection Status Observer Pattern ---
+    private emitConnectionStatus(status: 'connected' | 'disconnected' | 'reconnecting', attempt?: number) {
+        this.connectionStatusCallbacks.forEach(cb => cb(status, attempt));
+    }
+
+    onConnectionStatus(callback: (status: 'connected' | 'disconnected' | 'reconnecting', attempt?: number) => void) {
+        this.connectionStatusCallbacks.push(callback);
+        return () => {
+            this.connectionStatusCallbacks = this.connectionStatusCallbacks.filter(cb => cb !== callback);
+        };
+    }
 }
 
 export default new SocketService();

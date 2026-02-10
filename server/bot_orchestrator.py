@@ -1,417 +1,240 @@
+"""
+server/bot_orchestrator.py — Bot turn orchestration.
 
+Manages bot decision-making and action execution using a strategy pattern.
+Each game phase (AKKA, SAWA, QAYD, BIDDING, PLAYING) is handled by a
+dedicated function rather than a monolithic if-elif chain.
+"""
 import time
 import logging
-import os
 from ai_worker.agent import bot_agent
-from ai_worker.personality import BALANCED, AGGRESSIVE, CONSERVATIVE
-from server.schemas.game import GameStateModel
-from server.room_manager import room_manager # Needed for persistence
+from server.broadcast import broadcast_game_update
+from server.room_manager import room_manager
+import server.settings as settings
+from server.logging_utils import GameLoggerAdapter
 
 logger = logging.getLogger(__name__)
 
-# ── Bot Speed Configuration ──────────────────────────────────────────────────
-# Control via environment variables or change defaults here.
-# Set BALOOT_BOT_SPEED=fast for quick testing, or BALOOT_BOT_SPEED=normal for gameplay.
-_speed = os.environ.get('BALOOT_BOT_SPEED', 'normal').lower()
-BOT_TURN_DELAY   = 0.5 if _speed == 'fast' else 1.5   # Delay between bot actions
-QAYD_RESULT_DELAY = 1.0 if _speed == 'fast' else 3.0   # Qayd result display time
-SAWA_DELAY        = 0.2 if _speed == 'fast' else 0.5   # Sawa response delay
+def _room_logger(room_id: str) -> GameLoggerAdapter:
+    """Create a logger adapter with room_id context for structured logging."""
+    return GameLoggerAdapter(logger, room_id=room_id)
 
-def broadcast_game_update(sio, game, room_id):
-    """Helper to emit validated game state with fallback"""
-    import json
-    try:
-        from server.schemas.game import GameStateModel
-        
-        # Get game state
-        state = game.get_game_state()
-        
-        # Validate JSON serializability BEFORE schema validation
-        try:
-            json.dumps(state)
-        except TypeError as json_err:
-            logger.error(f"[BROADCAST] State not JSON-serializable: {json_err}")
-            logger.error(f"[BROADCAST] Problematic state keys: {list(state.keys())}")
-            raise
-        
-        # Validate with schema
-        state_model = GameStateModel(**state)
-        sio.emit('game_update', {'gameState': state_model.model_dump(mode='json', by_alias=True)}, room=room_id)
-        
-    except Exception as e:
-        logger.critical(f"SCHEMA VALIDATION FAILED for Room {room_id}: {e}")
-        logger.error(f"[BROADCAST] Error type: {type(e).__name__}")
-        
-        # Fallback: try to send raw state (may still fail if not serializable)
-        try:
-            sio.emit('game_update', {'gameState': game.get_game_state()}, room=room_id)
-            logger.warning(f"[BROADCAST] Fallback succeeded for room {room_id}")
-        except Exception as fallback_err:
-            logger.critical(f"[BROADCAST] Fallback also failed: {fallback_err}")
-            # Send minimal error state as last resort
-            sio.emit('game_update', {
-                'error': 'State serialization failed',
-                'phase': game.phase,
-                'room_id': room_id
-            }, room=room_id)
 
-def handle_bot_speak(sio, game, room_id, player, action, result):
-    """Generate and emit bot dialogue"""
-    try:
-        # Determine Personality
-        personality = BALANCED 
-        if "khalid" in player.avatar: personality = AGGRESSIVE
-        elif "abu_fahad" in player.avatar: personality = CONSERVATIVE
-        elif "saad" in player.avatar: personality = BALANCED
+# ── Bot Speed Configuration (from centralized settings) ──────────
+BOT_TURN_DELAY    = settings.BOT_TURN_DELAY
+QAYD_RESULT_DELAY = settings.QAYD_RESULT_DELAY
+SAWA_DELAY        = settings.SAWA_DELAY
 
-        context = f"Did action: {action}."
-        if action == 'AKKA':
-             context += " I declared Akka (Highest Non-Trump). I command this suit!"
-        
-        # Trigger Voice/Chat via SIO or DialogueSystem (omitted for brevity/refactor scope)
-        # Keeping existing logic if it was simple or delegate
-    except Exception as e:
-        logger.error(f"Bot Speak Error: {e}")
+from server.sherlock_scanner import run_sherlock_scan, _sherlock_log
 
-def _sherlock_log(msg):
-    """Write debug line to sherlock_debug.log"""
-    import datetime
-    with open('logs/sherlock_debug.log', 'a', encoding='utf-8') as f:
-        f.write(f"{datetime.datetime.now().isoformat()} {msg}\n")
 
-def _clear_illegal_flags_on_game(game):
-    """
-    Clear is_illegal flags on the LIVE game object's table_cards and round_history.
-    This prevents re-detection of the same crime through the serialization pathway
-    (Bug 3 fix: ForensicScanner clears flags on serialized copies, not the original).
-    """
-    # Clear on table_cards
-    for tc in game.table_cards:
-        meta = tc.get('metadata')
-        if meta and meta.get('is_illegal'):
-            meta['is_illegal'] = False
-    # Clear on round_history
-    for trick in game.round_history:
-        for meta in (trick.get('metadata') or []):
-            if meta and meta.get('is_illegal'):
-                meta['is_illegal'] = False
+# ── Strategy Handlers ─────────────────────────────────────────────
 
-def run_sherlock_scan(sio, game, room_id):
-    """
-    Independent Watchdog process.
-    Allows ONE bot to detect an illegal move and trigger Qayd via QaydEngine.
-    All penalty logic goes through QaydEngine — NO direct penalty path.
-    """
-    try:
-        _sherlock_log(f"Scan invoked. Phase={game.phase}, Locked={game.is_locked}, Qayd={game.qayd_state.get('active')}")
-        # Skip if not in PLAYING or FINISHED phase
-        # FINISHED is allowed because the trick may have just resolved (race condition:
-        # the illegal card is now in round_history, table_cards is clear, and the round ended)
-        if game.phase not in ("PLAYING", "FINISHED"):
-            _sherlock_log(f"SKIP: Phase is {game.phase}, not PLAYING/FINISHED")
-            return
-        # Skip if Qayd already active or recently resolved
-        if game.qayd_state.get('active'):
-            _sherlock_log(f"SKIP: Qayd already active")
-            return
-        if game.is_locked:
-            _sherlock_log(f"SKIP: Game is locked")
-            return
+def _handle_akka(game, current_idx, decision):
+    """Handle bot Akka declaration."""
+    return game.handle_akka(current_idx)
 
-        # GLOBAL LOCK: Prevent race condition between bots
-        if hasattr(game, '_sherlock_lock') and game._sherlock_lock:
-            _sherlock_log(f"SKIP: Sherlock lock held")
-            return
-        game._sherlock_lock = True
-        
-        try:
-            state = game.get_game_state()
-            
-            # Check for illegal cards in table (live game object)
-            live_table_illegals = [i for i, tc in enumerate(game.table_cards) if (tc.get('metadata') or {}).get('is_illegal')]
-            # Check for illegal cards in round_history (live game object)  
-            live_history_illegals = []
-            for ti, trick in enumerate(game.round_history):
-                for ci, meta in enumerate(trick.get('metadata') or []):
-                    if meta and meta.get('is_illegal'):
-                        live_history_illegals.append((ti, ci))
-            _sherlock_log(f"Live table illegals: {live_table_illegals}, Live history illegals: {live_history_illegals}")
-            _sherlock_log(f"Table cards: {len(state.get('tableCards', []))}, Serialized table illegals: {len([tc for tc in state.get('tableCards', []) if (tc.get('metadata') or {}).get('is_illegal')])}")
 
-            
-            for player in game.players:
-                if not player.is_bot:
-                    continue
-                    
-                # Re-check guards (state may have changed from prior bot)
-                if game.phase not in ("PLAYING", "FINISHED") or game.qayd_state.get('active') or game.is_locked:
-                    break
-                
-                decision = bot_agent.get_decision(state, player.index)
-                action = decision.get('action')
-                _sherlock_log(f"Bot {player.name} decided: {action}")
-                
-                if action == 'QAYD_TRIGGER':
-                    _sherlock_log(f"QAYD_TRIGGER from {player.name}! Calling handle_qayd_trigger({player.index})")
-                    _sherlock_log(f"  Pre-trigger state: phase={game.phase}, locked={game.is_locked}, qayd_active={game.qayd_state.get('active')}")
-                    res = game.handle_qayd_trigger(player.index)
-                    _sherlock_log(f"  Trigger result: {res}")
-                    
-                    if res.get('success'):
-                        # Clear is_illegal flags on the LIVE game object to prevent
-                        # future scans from re-detecting the same crime (Bug 3 fix)
-                        _clear_illegal_flags_on_game(game)
-                        _sherlock_log(f"Qayd triggered OK. Cleared is_illegal flags. Re-querying bot for accusation...")
-                        room_manager.save_game(game)
-                        broadcast_game_update(sio, game, room_id)
-                        
-                        # Re-query same bot for accusation data now that Qayd is active
-                        state = game.get_game_state()  # Refresh state
-                        follow_up = bot_agent.get_decision(state, player.index)
-                        _sherlock_log(f"  Follow-up decision: action={follow_up.get('action')}")
-                        if follow_up.get('action') == 'QAYD_ACCUSATION':
-                            accusation_data = follow_up.get('accusation', {})
-                            _sherlock_log(f"  Accusation data: {accusation_data}")
-                            acc_res = game.handle_qayd_accusation(player.index, {
-                                'crime_card': accusation_data.get('crime_card'),
-                                'proof_card': accusation_data.get('proof_card'),
-                                'violation_type': accusation_data.get('violation_type', 'REVOKE'),
-                            })
-                            _sherlock_log(f"  Accusation result: {acc_res}")
-                            room_manager.save_game(game)
-                            broadcast_game_update(sio, game, room_id)
-                            
-                            # Auto-confirm after delay (don't rely on frontend timer)
-                            if acc_res.get('success') and game.qayd_state.get('step') == 'RESULT':
-                                _sherlock_log(f"  Auto-confirming verdict after 3s delay...")
-                                sio.sleep(QAYD_RESULT_DELAY)  # Let frontend show the result (gevent-safe)
-                                _sherlock_log(f"  Calling handle_qayd_confirm()...")
-                                confirm_res = game.handle_qayd_confirm()
-                                _sherlock_log(f"  Confirm result: {confirm_res}, phase={game.phase}")
-                                
-                                if confirm_res.get('success'):
-                                    room_manager.save_game(game)
-                                    broadcast_game_update(sio, game, room_id)
-                                    
-                                    if game.phase in ("FINISHED", "GAMEOVER"):
-                                        _sherlock_log(f"  Phase is {game.phase}, calling auto_restart_round. is_restarting={getattr(game, 'is_restarting', 'N/A')}")
-                                        sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
-                                        from server.socket_handler import auto_restart_round
-                                        sio.start_background_task(auto_restart_round, game, room_id)
-                                        _sherlock_log(f"  auto_restart_round bg task launched")
-                                    else:
-                                        _sherlock_log(f"  Phase is {game.phase}, NOT calling auto_restart")
-                        else:
-                            _sherlock_log(f"  Follow-up was NOT QAYD_ACCUSATION, was: {follow_up}")
-                        
-                        return
-                    else:
-                        _sherlock_log(f"  Trigger FAILED: {res.get('error')}")
-                
-                elif action == 'QAYD_ACCUSATION':
-                    logger.warning(f"[SHERLOCK] Bot {player.name} has accusation ready! Going atomic.")
-                    accusation_data = decision.get('accusation', {})
-                    res = game.handle_qayd_accusation(player.index, {
-                        'crime_card': accusation_data.get('crime_card'),
-                        'proof_card': accusation_data.get('proof_card'),
-                        'violation_type': accusation_data.get('violation_type', 'REVOKE'),
-                    })
-                    
-                    if res.get('success'):
-                        logger.info(f"[SHERLOCK] Atomic accusation succeeded. Verdict: {game.qayd_state.get('verdict')}")
-                        room_manager.save_game(game)
-                        broadcast_game_update(sio, game, room_id)
-                        
-                        if game.phase in ("FINISHED", "GAMEOVER"):
-                            sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
-                            from server.socket_handler import auto_restart_round
-                            sio.start_background_task(auto_restart_round, game, room_id)
-                        return
-                    else:
-                        logger.info(f"[SHERLOCK] Atomic accusation failed: {res.get('error')}")
-        finally:
-            game._sherlock_lock = False
-    except Exception as e:
-        import traceback
-        _sherlock_log(f"EXCEPTION: {e}\n{traceback.format_exc()}")
-        logger.error(f"Sherlock Watchdog Error: {e}")
-        if hasattr(game, '_sherlock_lock'):
-            game._sherlock_lock = False
+def _handle_sawa(sio, game, room_id, current_idx, decision):
+    """Handle bot Sawa claim. Returns True if round ended (caller should exit)."""
+    res = game.handle_sawa(current_idx)
+    if res.get('success'):
+        broadcast_game_update(sio, game, room_id)
+        room_manager.save_game(game)
+        if game.phase in ("FINISHED", "GAMEOVER"):
+            from server.handlers.game_lifecycle import auto_restart_round
+            sio.start_background_task(auto_restart_round, sio, game, room_id)
+        return res, True  # Signal: exit bot loop
+    return res, False
 
-# handle_sawa_responses REMOVED — Sawa is now server-validated.
-# The old ACCEPT/REFUSE flow is gone. handle_sawa() in trick_manager
-# resolves instantly vs bots. Human-vs-human uses a 3s timer in socket_handler.
 
+def _handle_qayd_trigger(sio, game, room_id, current_idx, decision, recursion_depth):
+    """Handle bot triggering Qayd investigation."""
+    res = game.handle_qayd_trigger(current_idx)
+    if res.get('success'):
+        broadcast_game_update(sio, game, room_id)
+        sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
+        return res, True  # Signal: exit bot loop
+    return res, False
+
+
+def _handle_qayd_accusation(game, current_idx, decision):
+    """Handle bot submitting Qayd accusation."""
+    logger.debug(f"Bot sending QAYD_ACCUSATION: {decision.get('accusation')}")
+    accusation_data = decision.get('accusation', {})
+    return game.handle_qayd_accusation(
+        current_idx,
+        {
+            'crime_card': accusation_data.get('crime_card'),
+            'proof_card': accusation_data.get('proof_card'),
+            'violation_type': accusation_data.get('violation_type', 'REVOKE'),
+        }
+    )
+
+
+def _handle_qayd_cancel(game):
+    """Handle bot cancelling Qayd."""
+    return game.handle_qayd_cancel()
+
+
+def _handle_bidding(game, current_idx, decision):
+    """Handle bot bidding action."""
+    action = (decision.get('action') or 'PASS').upper()
+    suit = decision.get('suit')
+    reasoning = decision.get('reasoning')
+    return game.handle_bid(current_idx, action, suit, reasoning=reasoning)
+
+
+def _handle_playing(game, current_idx, decision):
+    """Handle bot playing a card."""
+    card_idx = decision.get('cardIndex', 0)
+    reasoning = decision.get('reasoning')
+    metadata = {}
+    if reasoning:
+        metadata['reasoning'] = reasoning
+    if decision.get('declarations'):
+        metadata['declarations'] = decision['declarations']
+    return game.play_card(current_idx, card_idx, metadata=metadata)
+
+
+def _execute_fallback(sio, game, room_id, current_idx, recursion_depth):
+    """Fallback when primary action fails: PASS for bidding, card[0] for playing."""
+    if game.is_locked:
+        logger.info(f"[{room_id}] Bot action failed due to Game Lock (Qayd). Skipping fallback.")
+        return
+
+    current_phase = game.phase
+    fallback_res = {'success': False, 'error': 'Unknown Phase'}
+
+    if current_phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
+        fallback_res = game.handle_bid(current_idx, "PASS", None, reasoning="Fallback Pass")
+    elif current_phase == "PLAYING":
+        fallback_res = game.play_card(current_idx, 0, metadata={'reasoning': 'Fallback Random'})
+    else:
+        logger.info(f"[{room_id}] Bot fallback: phase is now '{current_phase}', re-entering bot loop.")
+        sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
+        return
+
+    if fallback_res.get('success'):
+        broadcast_game_update(sio, game, room_id)
+        room_manager.save_game(game)
+        sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
+    else:
+        logger.critical(f"[{room_id}] Bot Fallback Failed too: {fallback_res}. Game might be stuck.")
+
+
+# ── Action Dispatch Table ─────────────────────────────────────────
+
+# Maps action names to their handler functions.
+# Handlers that need sio/room_id receive them via bot_loop.
+ACTION_HANDLERS = {
+    'AKKA':             lambda **kw: (_handle_akka(kw['game'], kw['current_idx'], kw['decision']), False),
+    'QAYD_CANCEL':      lambda **kw: (_handle_qayd_cancel(kw['game']), False),
+}
+
+
+# ── Main Bot Loop ─────────────────────────────────────────────────
 
 def bot_loop(sio, game, room_id, recursion_depth=0):
-    """Background task to handle consecutive bot turns"""
+    """Background task to handle consecutive bot turns."""
+    rlog = _room_logger(room_id)
     try:
+        # Safety: prevent infinite recursion
         if recursion_depth > 500:
-             logger.warning(f"Bot Loop Safety Break (Depth {recursion_depth})")
-             return
-        
-        if not game or not game.players: return
-            
+            rlog.warning(f"Bot Loop Safety Break (Depth {recursion_depth})")
+            return
+
+        if not game or not game.players:
+            return
+
         if game.phase not in ["BIDDING", "PLAYING", "DOUBLING", "VARIANT_SELECTION"]:
             _sherlock_log(f"[BOT_LOOP] EXIT: phase={game.phase} not in allowed phases. depth={recursion_depth}")
             return
-        
-        if game.current_turn < 0 or game.current_turn >= len(game.players): return
-        
-        # 1. Define next_idx early
+
+        if game.current_turn < 0 or game.current_turn >= len(game.players):
+            return
+
         next_idx = game.current_turn
-        
-        # 2. Respect Qayd State (But allow REPORTER bot to continue investigation)
+
+        # ── Qayd Gate: only reporter bot may act during active Qayd ──
         qayd_state = game.qayd_state
         if qayd_state.get('active'):
             reporter_pos = qayd_state.get('reporter')
-            # Use next_idx safely
             if 0 <= next_idx < len(game.players):
                 current_player = game.players[next_idx]
-            
-                # Only the REPORTER can continue during Qayd
-                is_reporter = (current_player.position == reporter_pos or 
-                              str(next_idx) == str(reporter_pos) or
-                              next_idx == reporter_pos)
+                is_reporter = (current_player.position == reporter_pos or
+                               str(next_idx) == str(reporter_pos) or
+                               next_idx == reporter_pos)
             else:
-                 is_reporter = False
-            
+                is_reporter = False
+
             if not is_reporter:
                 _sherlock_log(f"[BOT_LOOP] EXIT: qayd active, bot {next_idx} is not reporter ({reporter_pos}). depth={recursion_depth}")
-                return  # Other bots wait
-            
-            # Reporter continues to investigation
-            logger.info(f"[QAYD] Reporter bot {current_player.name} continuing investigation...")
+                return
 
-        # next_idx is already defined now
-        # if not game.players[next_idx].is_bot: ... checks below
+            rlog.info(f"[QAYD] Reporter bot {current_player.name} continuing investigation...")
 
+        # ── Human check ──
         if not game.players[next_idx].is_bot:
             _sherlock_log(f"[BOT_LOOP] EXIT: player {next_idx} ({game.players[next_idx].name}) is human. phase={game.phase}. depth={recursion_depth}.")
             broadcast_game_update(sio, game, room_id)
             return
 
-        # 2. Throttle Bot Loop (Prevent Freeze)
-        sio.sleep(BOT_TURN_DELAY) 
-        
-        if game.phase == "FINISHED": return
-            
+        # ── Throttle ──
+        sio.sleep(BOT_TURN_DELAY)
+
+        if game.phase == "FINISHED":
+            return
+
         current_idx = game.current_turn
         current_player = game.players[current_idx]
-        
-        if not current_player.is_bot: return
-            
+
+        if not current_player.is_bot:
+            return
+
+        # ── Get AI Decision ──
         decision = bot_agent.get_decision(game.get_game_state(), current_idx)
-        
         action = decision.get('action')
-        reasoning = decision.get('reasoning')
         res = {'success': False}
-        
+
+        # ── Dispatch to strategy handler ──
+        should_exit = False
+
         if action == 'AKKA':
-             res = game.handle_akka(current_idx)
-
+            res = _handle_akka(game, current_idx, decision)
         elif action == 'SAWA':
-             # Bot claims Sawa — server validates and resolves instantly vs bots
-             res = game.handle_sawa(current_idx)
-             if res.get('success'):
-                  broadcast_game_update(sio, game, room_id)
-                  room_manager.save_game(game)
-                  if game.phase in ("FINISHED", "GAMEOVER"):
-                       from server.socket_handler import auto_restart_round
-                       sio.start_background_task(auto_restart_round, game, room_id)
-                  return  # Round ended or timer started, exit bot_loop
-
+            res, should_exit = _handle_sawa(sio, game, room_id, current_idx, decision)
         elif action == 'QAYD_TRIGGER':
-             res = game.handle_qayd_trigger(current_idx)
-             if res.get('success'):
-                  broadcast_game_update(sio, game, room_id)
-                  # Continue bot loop for accusation step
-                  sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
-                  return
-
+            res, should_exit = _handle_qayd_trigger(sio, game, room_id, current_idx, decision, recursion_depth)
         elif action == 'QAYD_ACCUSATION':
-             print(f"[DEBUG] Bot sending QAYD_ACCUSATION: {decision.get('accusation')}")
-             accusation_data = decision.get('accusation', {})
-             
-             res = game.handle_qayd_accusation(
-                 current_idx,
-                 {
-                     'crime_card': accusation_data.get('crime_card'),
-                     'proof_card': accusation_data.get('proof_card'),
-                     'violation_type': accusation_data.get('violation_type', 'REVOKE'),
-                 }
-             )
-
+            res = _handle_qayd_accusation(game, current_idx, decision)
         elif action == 'QAYD_CANCEL':
-             res = game.handle_qayd_cancel()
-
+            res = _handle_qayd_cancel(game)
         elif game.phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
-                action = action.upper() if action else "PASS"
-                suit = decision.get('suit')
-                res = game.handle_bid(current_idx, action, suit, reasoning=reasoning)
-                
+            res = _handle_bidding(game, current_idx, decision)
         elif game.phase == "PLAYING":
-                card_idx = decision.get('cardIndex', 0)
-                metadata = {}
-                if reasoning: metadata['reasoning'] = reasoning
-                if decision.get('declarations'): metadata['declarations'] = decision['declarations']
-                res = game.play_card(current_idx, card_idx, metadata=metadata)
-        
+            res = _handle_playing(game, current_idx, decision)
+
+        if should_exit:
+            return
+
+        # ── Post-action processing ──
         if res and res.get('success'):
-             broadcast_game_update(sio, game, room_id)
-             
-             # 3. Trigger Sherlock (Watchdog) to catch illegal moves IMMEDIATEY
-             sio.start_background_task(run_sherlock_scan, sio, game, room_id)
+            broadcast_game_update(sio, game, room_id)
+            sio.start_background_task(run_sherlock_scan, sio, game, room_id)
 
-             # sio.start_background_task(handle_bot_speak, sio, game, room_id, current_player, action, res) # Optional
+            if game.phase == "FINISHED":
+                room_manager.save_game(game)
+                return
 
-             if game.phase == "FINISHED":
-                  room_manager.save_game(game)
-                  return
-             
-             room_manager.save_game(game)
-             sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
+            room_manager.save_game(game)
+            sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
         else:
-             logger.error(f"Bot Action Failed: {res}. Attempting Fallback.")
-             
-             # CRITICAL: Don't attempt fallback if game is locked for Qayd
-             if game.is_locked:
-                 logger.info("Bot action failed due to Game Lock (Qayd). Skipping fallback.")
-                 return
-             
-             logger.error(f"Bot Action Failed: {res}. Attempting Fallback (Random Play).")
-             
-             # Fallback: Try playing the first card available
-             # This prevents the game from freezing if the AI's complex move was rejected
-             # Re-check phase (may have transitioned since initial check)
-             try:
-                 fallback_res = {'success': False, 'error': 'Unknown Phase'}
-                 current_phase = game.phase  # Re-read fresh phase
-                 
-                 if current_phase in ["BIDDING", "DOUBLING", "VARIANT_SELECTION"]:
-                      # Fallback in auction is to PASS
-                      fallback_res = game.handle_bid(current_idx, "PASS", None, reasoning="Fallback Pass")
-                      
-                 elif current_phase == "PLAYING":
-                      # Fallback in playing is random card
-                      fallback_res = game.play_card(current_idx, 0, metadata={'reasoning': 'Fallback Random'})
-                 else:
-                      # Phase transitioned (e.g. BIDDING -> PLAYING during bot delay)
-                      # Just re-enter bot loop to pick up the new phase correctly
-                      logger.info(f"Bot fallback: phase is now '{current_phase}', re-entering bot loop.")
-                      sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
-                      return
+            rlog.error(f"Bot Action Failed: {res}. Attempting Fallback.")
+            try:
+                _execute_fallback(sio, game, room_id, current_idx, recursion_depth)
+            except Exception as fe:
+                rlog.exception(f"Fallback Exception: {fe}")
 
-                 if fallback_res.get('success'):
-                      broadcast_game_update(sio, game, room_id)
-                      room_manager.save_game(game)
-                      sio.start_background_task(bot_loop, sio, game, room_id, recursion_depth + 1)
-                 else:
-                      logger.critical(f"Bot Fallback Failed too: {fallback_res}. Game might be stuck.")
-             except Exception as fe:
-                 logger.error(f"Fallback Exception: {fe}")
-            
     except Exception as e:
-        import traceback
-        logger.error(f"Critical Bot Loop Error: {e}")
-        logger.error(traceback.format_exc())
+        rlog.exception(f"Critical Bot Loop Error: {e}")

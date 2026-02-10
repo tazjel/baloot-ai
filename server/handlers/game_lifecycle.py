@@ -3,6 +3,7 @@ Game lifecycle handlers: auto-restart, match snapshots, sawa timer, bot turn dis
 """
 import time
 import logging
+import traceback
 
 import server.bot_orchestrator as bot_orchestrator
 from server.room_manager import room_manager
@@ -17,7 +18,8 @@ dialogue_system = DialogueSystem()
 
 def broadcast_game_update(sio, game, room_id):
     """Helper to emit validated game state with fallback"""
-    bot_orchestrator.broadcast_game_update(sio, game, room_id)
+    from server.broadcast import broadcast_game_update as _broadcast
+    _broadcast(sio, game, room_id)
 
 
 def handle_bot_turn(sio, game, room_id):
@@ -33,7 +35,7 @@ def save_match_snapshot(game, room_id):
             with open("logs/archive_debug.txt", "a") as f:
                 import datetime
                 f.write(f"{datetime.datetime.now()} - {msg}\n")
-        except:
+        except OSError:
             pass
 
     try:
@@ -63,9 +65,8 @@ def save_match_snapshot(game, room_id):
         logger.info(f"Match {room_id} snapshot archived to DB.")
         debug_log("SUCCESS: Saved to DB")
     except Exception as e:
-        logger.error(f"Snapshot Archive Failed: {e}")
+        logger.exception(f"Snapshot Archive Failed: {e}")
         debug_log(f"EXCEPTION: {e}")
-        import traceback
         debug_log(traceback.format_exc())
 
 
@@ -96,7 +97,7 @@ def auto_restart_round(sio, game, room_id):
         try:
             with open('logs/sherlock_debug.log', 'a', encoding='utf-8') as f:
                 f.write(f"{datetime.datetime.now().isoformat()} [AUTO_RESTART] {msg}\n")
-        except: pass
+        except OSError: pass
     
     try:
         # race condition guard
@@ -147,7 +148,7 @@ def auto_restart_round(sio, game, room_id):
             else:
                 _trace(f"start_game() returned False!")
         elif game.phase == "GAMEOVER":
-            print(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
+            logger.info(f"Match FINISHED for room {room_id} (152+ reached). Final score: US={game.match_scores['us']}, THEM={game.match_scores['them']}")
 
             # Save Final
             save_to_archive()

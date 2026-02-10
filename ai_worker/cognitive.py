@@ -73,7 +73,7 @@ class CognitiveOptimizer:
             try:
                 if self.dataset_logger:
                     self.dataset_logger.log_sample(ctx, best_idx, details)
-            except: 
+            except Exception:
                 pass
             
             return {

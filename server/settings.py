@@ -69,41 +69,12 @@ LOGGERS = [
     "debug:logs/debug.log"
 ]  # syntax "severity:filename" filename can be stderr or stdout
 
-# Disable default login when using OAuth
-DEFAULT_LOGIN_ENABLED = True
-
-# single sign on Google (will be used if provided)
-OAUTH2GOOGLE_CLIENT_ID = None
-OAUTH2GOOGLE_CLIENT_SECRET = None
-
-# Single sign on Google, with stored credentials for scopes (will be used if provided).
-# set it to something like os.path.join(APP_FOLDER, "private/credentials.json"
-OAUTH2GOOGLE_SCOPED_CREDENTIALS_FILE = None
-
-# single sign on Okta (will be used if provided. Please also add your tenant
-# name to py4web/utils/auth_plugins/oauth2okta.py. You can replace the XXX
-# instances with your tenant name.)
-OAUTH2OKTA_CLIENT_ID = None
-OAUTH2OKTA_CLIENT_SECRET = None
-
-# single sign on Google (will be used if provided)
-OAUTH2FACEBOOK_CLIENT_ID = None
-OAUTH2FACEBOOK_CLIENT_SECRET = None
-
-# single sign on GitHub (will be used if provided)
-OAUTH2GITHUB_CLIENT_ID = None
-OAUTH2GITHUB_CLIENT_SECRET = None
-
-# enable PAM
-USE_PAM = False
-
-# enable LDAP
-USE_LDAP = False
-LDAP_SETTINGS = {
-    "mode": "ad",  # Microsoft Active Directory
-    "server": "mydc.domain.com", # FQDN or IP of one Domain Controller
-    "base_dn": "cn=Users,dc=domain,dc=com", # base dn, i.e. where the users are located
-}
+# ── Bot Speed Configuration ──────────────────────────────────────
+# Set BALOOT_BOT_SPEED=fast for quick testing, or 'normal' for gameplay.
+_BOT_SPEED = os.environ.get('BALOOT_BOT_SPEED', 'normal').lower()
+BOT_TURN_DELAY    = 0.5 if _BOT_SPEED == 'fast' else 1.5   # Delay between bot actions
+QAYD_RESULT_DELAY = 1.0 if _BOT_SPEED == 'fast' else 3.0   # Qayd result display time
+SAWA_DELAY        = 0.2 if _BOT_SPEED == 'fast' else 0.5   # Sawa response delay
 
 # i18n settings
 T_FOLDER = required_folder(APP_FOLDER, "translations")

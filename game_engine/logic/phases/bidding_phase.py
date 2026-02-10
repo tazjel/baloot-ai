@@ -49,10 +49,9 @@ class BiddingPhase:
                 if winner:
                    self.game.complete_deal(winner['player_index'])
                 else:
-                   # All pass -> redeal
+                   # All pass -> redeal with a fresh bidding engine
                    logger.info("All players passed. Redealing.")
-                   self.game.reset_round_state()
-                   self.game.deal_initial_cards()
+                   self.game.start_game()
             else:
                  # Move to next turn
                  self.game.current_turn = self.game.bidding_engine.current_turn

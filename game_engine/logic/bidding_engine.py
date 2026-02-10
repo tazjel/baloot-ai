@@ -2,6 +2,8 @@
 import time
 import logging
 from enum import Enum, auto
+from typing import Optional
+from pydantic import BaseModel, ConfigDict
 from game_engine.logic.utils import is_kawesh_hand
 from game_engine.models.constants import BiddingPhase, BidType
 
@@ -10,16 +12,27 @@ logger = logging.getLogger(__name__)
 
 
 
-class ContractState:
-    def __init__(self):
-        self.type = None # HOKUM or SUN
-        self.suit = None # If HOKUM
-        self.bidder_idx = None
-        self.team = None # 'us' or 'them'
-        self.level = 1 # 1=Normal, 2=Doubled, 3=Triple, 4=Four, 100=Gahwa
-        self.variant = None # 'OPEN' or 'CLOSED' for Doubled Hokum
-        self.is_ashkal = False
-        self.round = 1 # 1 or 2 (Track when bid happened)
+class ContractState(BaseModel):
+    """Pydantic model for bidding contract state. Replaces the old raw-attribute class."""
+    model_config = ConfigDict(extra='forbid')
+
+    type: Optional[BidType] = None       # HOKUM or SUN
+    suit: Optional[str] = None           # If HOKUM (e.g. '♠')
+    bidder_idx: Optional[int] = None
+    team: Optional[str] = None           # 'us' or 'them'
+    level: int = 1                       # 1=Normal, 2=Doubled, 3=Triple, 4=Four, 100=Gahwa
+    variant: Optional[str] = None        # 'OPEN' or 'CLOSED' for Doubled Hokum
+    is_ashkal: bool = False
+    round: int = 1                       # 1 or 2 (Track when bid happened)
+
+    def to_dict(self) -> dict:
+        """Serialize to dict (JSON-safe)."""
+        return self.model_dump(mode='json')
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'ContractState':
+        """Deserialize from dict."""
+        return cls(**data)
 
     def __repr__(self):
         return f"<Contract {self.type} ({self.suit}) by {self.bidder_idx} Lvl:{self.level} {self.variant}>"
@@ -49,6 +62,58 @@ class BiddingEngine:
         self.has_bid_occurred = False # Track for Dealer Rotation (was Antigravity)
         
         logger.info(f"BiddingEngine Initialized. Dealer: {dealer_index}. Priority: {self.priority_queue}")
+
+    # ── Serialization ────────────────────────────────────────────────
+    def to_dict(self) -> dict:
+        """Serialize engine state for Redis persistence."""
+        return {
+            'dealer_index': self.dealer_index,
+            'floor_card': self.floor_card.to_dict() if self.floor_card else None,
+            'match_scores': self.match_scores,
+            'phase': self.phase.value,
+            'current_turn': self.current_turn,
+            'priority_queue': self.priority_queue,
+            'contract': self.contract.to_dict(),
+            'tentative_bid': self.tentative_bid,
+            'gablak_timer_start': self.gablak_timer_start,
+            'gablak_current_prio': self.gablak_current_prio,
+            'pre_gablak_phase': self.pre_gablak_phase.value if self.pre_gablak_phase else None,
+            'GABLAK_DURATION': self.GABLAK_DURATION,
+            'passed_players_r1': list(self.passed_players_r1),
+            'passed_players_r2': list(self.passed_players_r2),
+            'doubling_history': self.doubling_history,
+            'has_bid_occurred': self.has_bid_occurred,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict, players) -> 'BiddingEngine':
+        """Reconstruct engine from serialized dict + live player objects."""
+        from game_engine.models.card import Card
+        floor_card_d = data.get('floor_card')
+        floor_card = Card(floor_card_d['suit'], floor_card_d['rank']) if floor_card_d else None
+
+        engine = cls.__new__(cls)
+        engine.dealer_index = data['dealer_index']
+        engine.floor_card = floor_card
+        engine.players = players
+        engine.match_scores = data['match_scores']
+        engine.phase = BiddingPhase(data['phase'])
+        engine.current_turn = data['current_turn']
+        engine.priority_queue = data['priority_queue']
+        engine.contract = ContractState.from_dict(data['contract'])
+        engine.tentative_bid = data.get('tentative_bid')
+        engine.gablak_timer_start = data.get('gablak_timer_start', 0)
+        engine.gablak_current_prio = data.get('gablak_current_prio', 0)
+        pre_phase = data.get('pre_gablak_phase')
+        engine.pre_gablak_phase = BiddingPhase(pre_phase) if pre_phase else None
+        engine.GABLAK_DURATION = data.get('GABLAK_DURATION', 5)
+        engine.passed_players_r1 = set(data.get('passed_players_r1', []))
+        engine.passed_players_r2 = set(data.get('passed_players_r2', []))
+        engine.doubling_history = data.get('doubling_history', [])
+        engine.has_bid_occurred = data.get('has_bid_occurred', False)
+
+        logger.info(f"BiddingEngine Restored from dict. Phase: {engine.phase}. Turn: {engine.current_turn}")
+        return engine
 
     def get_state(self):
         return {

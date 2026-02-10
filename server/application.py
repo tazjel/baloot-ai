@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+import traceback
 import socketio
 from py4web.core import bottle
 from server.socket_handler import sio, timer_background_task
@@ -36,7 +37,6 @@ def create_app():
     except Exception as e:
         with open("logs/routes_dump.txt", "a") as f:
             f.write(f"CRITICAL: Failed to import controllers: {e}\n")
-            import traceback
             f.write(traceback.format_exc())
         raise
 

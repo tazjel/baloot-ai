@@ -62,7 +62,7 @@ export const QaydOverlay: React.FC<QaydOverlayProps> = ({
           const crime = normalizeCard(acc.crime_card);
           const proof = normalizeCard(acc.proof_card);
           // played_by might be on the wrapper or passed separately
-          const playedBy = (acc.crime_card as any)?.playedBy || 'Unknown';
+          const playedBy: PlayerPosition = (acc.crime_card && typeof acc.crime_card === 'object' && 'playedBy' in acc.crime_card) ? (acc.crime_card as { playedBy: PlayerPosition }).playedBy : 'Unknown' as PlayerPosition;
 
           if (crime) {
             onAccusation(

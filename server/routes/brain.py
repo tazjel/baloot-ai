@@ -73,12 +73,12 @@ def get_brain_memory():
                             "key": k,
                             "data": data
                         })
-                    except:
+                    except (ValueError, KeyError, TypeError):
                         pass
 
         return {"memory": memory}
     except Exception as e:
-        print(f"Error fetching brain memory: {e}")
+        logger.error(f"Error fetching brain memory: {e}")
         return {"error": str(e)}
 
 

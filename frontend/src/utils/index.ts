@@ -1,2 +1,4 @@
+// Barrel exports for frontend utils
 export * from './devLogger';
-// Tests excluded from barrel export
+export * from './gameLogic';
+export * from './animationUtils';

@@ -97,9 +97,9 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
         result = game.handle_qayd_select_proof(player.index, payload)
 
     elif action == 'QAYD_ACCUSATION':
-        print(f"[DEBUG] QAYD_ACCUSATION received: {payload.get('accusation')}")
+        logger.debug(f"QAYD_ACCUSATION received: {payload.get('accusation')}")
         result = game.handle_qayd_accusation(player.index, payload.get('accusation'))
-        print(f"[DEBUG] QAYD_ACCUSATION result: {result}")
+        logger.debug(f"QAYD_ACCUSATION result: {result}")
 
     elif action == 'QAYD_CONFIRM':
         logger.info(f"[SOCKET] QAYD_CONFIRM received")
@@ -133,7 +133,7 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
 
     # Log QAYD actions for debug
     if action.startswith('QAYD'):
-        print(f"[SOCKET] QAYD ACTION RECEIVED: {action} from {player.name} ({player.index})")
+        logger.debug(f"QAYD ACTION RECEIVED: {action} from {player.name} ({player.index})")
         logger.info(f"[SOCKET] QAYD ACTION RECEIVED: {action}")
 
     return result

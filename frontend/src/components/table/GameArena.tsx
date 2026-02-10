@@ -214,7 +214,7 @@ export default function GameArena({
                         {/* Sweeping Cards */}
                         {gameState.lastTrick && gameState.lastTrick.cards && gameState.lastTrick.cards.map((played, idx) => {
                             if (!played || !played.card) return null;
-                            const playerObj = players.find(p => p && p.position === (played as any)?.playedBy);
+                            const playerObj = players.find(p => p && p.position === played?.playedBy);
                             const pIdx = playerObj?.index ?? 0;
                             const { style } = getPlayedCardAnimation({
                                 playerIndex: pIdx,

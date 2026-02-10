@@ -19,7 +19,7 @@ def my_task():
         db._adapter.reconnect()
         # do something here
         db.commit()
-    except:
+    except Exception:
         # rollback on failure
         db.rollback()
 

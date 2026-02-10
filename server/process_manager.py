@@ -32,7 +32,7 @@ class Heartbeat:
         """Clean up on exit"""
         try:
             self.redis.delete(self.key)
-        except:
+        except Exception:
             pass
 
 class Reaper:

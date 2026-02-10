@@ -77,7 +77,7 @@ export default function QaydCardSelector({
                   </span>
                 </div>
 
-                <div className="flex justify-center gap-3">
+                <div className="flex flex-wrap justify-center gap-4">
                   {trick.cards.map((cardOrPlay: any, cardIdx: number) => {
                     const card: CardModel = cardOrPlay?.card ?? cardOrPlay;
                     const playedBy: string = cardOrPlay?.playedBy ?? trick.playedBy?.[cardIdx] ?? '';
@@ -96,9 +96,9 @@ export default function QaydCardSelector({
                         whileHover={{ y: -4 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => onCardClick(card, trickIdx, cardIdx, playedBy)}
-                        className={`relative cursor-pointer transition-all rounded-lg ${ringStyle}`}
+                        className={`relative cursor-pointer transition-all rounded-lg flex-shrink-0 ${ringStyle}`}
                       >
-                        <div className="w-[52px] h-[76px]">
+                        <div className="w-[56px] h-[80px]">
                           <CardVector card={card} className="w-full h-full rounded shadow-md" />
                         </div>
 

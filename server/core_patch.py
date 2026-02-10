@@ -17,7 +17,7 @@ def apply_py4web_patches():
             if not parts:
                 return module + ".py"
             return os.path.join(*parts)
-        except:
+        except (TypeError, ValueError, AttributeError):
             return module
             
     # Apply Patch

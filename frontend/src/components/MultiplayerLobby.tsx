@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, Play, Copy, Loader, Wifi } from 'lucide-react';
 import socketService from '../services/SocketService';
+import { devLogger } from '../utils/devLogger';
 
 interface MultiplayerLobbyProps {
     onBack: () => void;
@@ -56,7 +57,7 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ onBack, onGameStart
         socketService.joinRoom(code.toUpperCase(), playerName, (response: any) => {
             setIsConnecting(false);
             if (response.success) {
-                console.log("Joined Room:", response);
+                devLogger.log('LOBBY', 'Joined Room', response);
                 // We have joined! Now we wait for game start OR if full, server might send game_started separately
                 // But for now, our server sends immediate gamestate. 
                 // In a real lobby, we'd wait. 

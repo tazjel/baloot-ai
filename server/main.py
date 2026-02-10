@@ -1,5 +1,9 @@
 import os
 import sys
+import logging
+import traceback
+
+logger = logging.getLogger(__name__)
 
 # Ensure project root is in sys.path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +17,7 @@ from geventwebsocket.handler import WebSocketHandler
 from server.application import create_app
 
 def run():
-    print("Starting Python Game Server on port 3005 (Gevent)...")
+    logger.info("Starting Python Game Server on port 3005 (Gevent)...")
     
     try:
         app = create_app()
@@ -34,11 +38,10 @@ def run():
         server.serve_forever()
         
     except Exception as e:
-        import traceback
         with open("logs/crash.log", "a") as f:
              f.write(f"CRITICAL CRASH in serve_forever: {e}\n")
              f.write(traceback.format_exc())
-        print(f"CRITICAL CRASH: {e}")
+        logger.critical(f"CRITICAL CRASH: {e}", exc_info=True)
         raise
 
 if __name__ == '__main__':

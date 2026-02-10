@@ -185,8 +185,8 @@ def is_move_legal(
                        winning_strength = 100 + ORDER_HOKUM.index(winning_rank)
                        if played_strength <= winning_strength:
                            return False 
-                   except:
-                       return True # Soft fail?
+                   except ValueError:
+                       return True  # Cannot determine rank strength, allow the move
                        
               return True
 
@@ -212,8 +212,8 @@ def is_move_legal(
                               winning_strength = 100 + ORDER_HOKUM.index(winning_rank)
                               if played_strength <= winning_strength:
                                    return False
-                          except:
-                               pass
+                          except ValueError:
+                              pass  # Cannot determine rank strength
             return True
 
     return True

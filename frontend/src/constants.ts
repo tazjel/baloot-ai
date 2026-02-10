@@ -36,6 +36,23 @@ export const AVATARS = {
   LEFT: "https://picsum.photos/id/67/100/100"
 };
 
+// ── Centralized Player Configuration ──
+// Bot names and positions — single source of truth.
+import { PlayerPosition } from './types';
+
+export const BOT_PLAYERS = {
+  RIGHT: { position: PlayerPosition.Right, name: 'سالم', avatar: AVATARS.RIGHT },
+  TOP:   { position: PlayerPosition.Top, name: 'شريكي', avatar: AVATARS.TOP },
+  LEFT:  { position: PlayerPosition.Left, name: 'عمر', avatar: AVATARS.LEFT },
+} as const;
+
+export const INITIAL_PLAYERS = [
+  { position: PlayerPosition.Bottom, name: 'أنا', avatar: AVATARS.ME },
+  BOT_PLAYERS.RIGHT,
+  BOT_PLAYERS.TOP,
+  BOT_PLAYERS.LEFT,
+] as const;
+
 export const VISUAL_ASSETS = {
   CARDS: [
     { id: 'card_default', name: 'Royal Back', type: 'image', value: '/assets/royal_card_back.png' },

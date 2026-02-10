@@ -18,10 +18,11 @@ import { Settings, ShoppingBag, Smile } from 'lucide-react';
 import MultiplayerLobby from './components/MultiplayerLobby';
 
 import GameLayout from './components/GameLayout';
-import { useGameState } from './hooks/useGameState';
+import { useGameContext } from './contexts/GameContext';
 import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
+import FeatureErrorBoundary from './components/FeatureErrorBoundary';
 import { devLogger } from './utils/devLogger';
 
 
@@ -57,7 +58,7 @@ const App: React.FC = () => {
     roomId, // Phase VII
     updateSettings,
     isSendingAction // Added
-  } = useGameState();
+  } = useGameContext();
 
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
@@ -251,6 +252,7 @@ const App: React.FC = () => {
     content = (
       <div className="flex h-full w-full overflow-hidden bg-black font-tajawal text-white relative" dir="rtl">
         <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
+          <FeatureErrorBoundary featureName="الطاولة">
           <Table
             gameState={gameState}
             onPlayerAction={handlePlayerAction}
@@ -265,6 +267,7 @@ const App: React.FC = () => {
             isSendingAction={isSendingAction}
 
           />
+          </FeatureErrorBoundary>
 
 
         </div>
@@ -325,6 +328,7 @@ const App: React.FC = () => {
 
 
         {/* Round Results Modal */}
+        <FeatureErrorBoundary featureName="نتائج الجولة">
         <RoundResultsModal
           result={roundResultToShow}
           bidderTeam={gameState.bid?.bidder === PlayerPosition.Bottom || gameState.bid?.bidder === PlayerPosition.Top ? 'us' : gameState.bid?.bidder ? 'them' : null}
@@ -338,6 +342,7 @@ const App: React.FC = () => {
           }}
           onReview={() => setShowReviewModal(true)}
         />
+        </FeatureErrorBoundary>
 
 
       </div>

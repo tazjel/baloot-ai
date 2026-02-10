@@ -2,9 +2,12 @@
 Core game routes: save_score, leaderboard, health_check, catch_all (SPA).
 """
 import os
+import logging
 from py4web import action, request, response
 from server.common import db
 from server.routes.auth import token_required
+
+logger = logging.getLogger(__name__)
 
 
 @action('save_score', method=['POST'])
@@ -48,8 +51,8 @@ def health_check():
 
 
 def catch_all_v2(path=None):
-    print("default page being served")
-    print(f"DEBUG: catch_all_v2 ENTERED. File: {__file__}", flush=True)
+    logger.debug("catch_all_v2: serving default page")
+    logger.debug(f"catch_all_v2 ENTERED. File: {__file__}")
     SERVER_FOLDER = os.path.dirname(os.path.dirname(__file__))
     PROJECT_ROOT = os.path.dirname(SERVER_FOLDER)
     file_path = os.path.join(PROJECT_ROOT, 'static', 'build', 'index.html')
@@ -59,7 +62,7 @@ def catch_all_v2(path=None):
 
     with open(file_path, 'r', encoding='utf-8') as f:
         content = f.read()
-        print(f"DEBUG: catch_all_v2 serving index.html type={type(content)}", flush=True)
+        logger.debug(f"catch_all_v2 serving index.html type={type(content)}")
         response.headers['Content-Type'] = 'text/html'
         return [content]
 

@@ -95,8 +95,8 @@ class FastGame:
              if isinstance(c, dict):
                   try:
                        safe_hand.append(Card(c['suit'], c['rank']))
-                  except:
-                       pass # Discard broken dicts
+                  except (KeyError, TypeError):
+                      pass  # Discard broken card dicts
              elif hasattr(c, 'suit') and hasattr(c, 'rank'):
                   safe_hand.append(c)
              else:

@@ -2,9 +2,12 @@
 Authentication routes: signup, signin, user profile, token_required decorator.
 """
 import bcrypt
+import logging
 from py4web import action, request, response, abort
 from server.common import db
 import server.auth_utils as auth_utils
+
+logger = logging.getLogger(__name__)
 
 
 def token_required(f):
@@ -52,7 +55,7 @@ def signup():
     password = data.get('password')
     email = data.get('email')
 
-    print(f"{email} is signing up!")
+    logger.info(f"{email} is signing up!")
 
     existing_user = db(db.app_user.email == email).select().first()
     if existing_user:
@@ -80,7 +83,7 @@ def signin():
     email = data.get('email')
     password = data.get('password')
 
-    print("User is signing in!")
+    logger.info("User is signing in!")
 
     if not email or not password:
         return {"error": "Email and password are required"}
@@ -88,7 +91,7 @@ def signin():
     user = db(db.app_user.email == email).select().first()
 
     if not user:
-        print("user not found!")
+        logger.warning(f"Sign-in failed: user not found ({email})")
         response.status = 404
         return {"error": "User not found"}
 

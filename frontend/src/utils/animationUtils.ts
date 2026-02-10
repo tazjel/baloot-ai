@@ -1,11 +1,11 @@
-import { Player } from '../types';
+import { Player, PlayerPosition, CardModel, TableCardMetadata } from '../types';
 
 interface AnimationParams {
     playerIndex: number;
     isLatest: boolean;
     myIndex: number;
     players: Player[];
-    tableCards: any[]; // Using any because table structure might be complex
+    tableCards: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata }[];
 }
 
 /**
@@ -66,8 +66,7 @@ export const getPlayedCardAnimation = ({
     }
 
     // Z-Index Logic
-    // We try to find the player's card in the tableCards to see play order
-    const playOrder = tableCards.findIndex(c => (c as any).playedBy === players[playerIndex].position);
+    const playOrder = tableCards.findIndex(c => c.playedBy === players[playerIndex].position);
     const zIndex = 40 + (playOrder >= 0 ? playOrder : 0);
 
     // Telemetry for Verification
