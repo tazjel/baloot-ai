@@ -1,5 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { GameState } from "../types";
+import { devLogger } from "../utils/devLogger";
 
 const SERVER_URL = "http://localhost:3005"; // Direct connection to Backend (Bypasses Proxy)
 
@@ -19,10 +20,10 @@ class SocketService {
                 reconnection: true,
             });
             this.socket.on('connect', () => {
-                console.log('Connected to Game Server:', this.socket?.id);
+                devLogger.log('SOCKET', 'Connected to Game Server', { id: this.socket?.id });
             });
             this.socket.on('connect_error', (err) => {
-                console.error('Socket Connection Error:', err);
+                devLogger.error('SOCKET', 'Connection Error', err);
             });
         } else if (!this.socket.connected) {
             this.socket.connect();
@@ -52,16 +53,13 @@ class SocketService {
             return;
         }
         this.socket.emit('game_action', { roomId, action, payload }, (res: ApiResponse) => {
-            // @ts-ignore
-            import('../utils/devLogger').then(({ devLogger }) => {
-                if (res.success) devLogger.log('SOCKET', 'Action Success', { action });
-                else devLogger.error('SOCKET', 'Action Failed', { action, error: res.error });
-            });
+            if (res.success) devLogger.log('SOCKET', 'Action Success', { action });
+            else devLogger.error('SOCKET', 'Action Failed', { action, error: res.error });
 
             if (callback) {
                 callback(res);
             } else if (!res.success) {
-                console.error("Action Failed:", res.error);
+                devLogger.error('SOCKET', 'Action Failed (no callback)', { action, error: res.error });
             }
         });
     }
@@ -70,7 +68,7 @@ class SocketService {
         if (!this.socket) return;
         this.socket.emit('debug_action', { roomId, action, payload }, (res: ApiResponse) => {
             if (!res.success) {
-                console.error("Debug Action Failed:", res.error);
+                devLogger.error('SOCKET', 'Debug Action Failed', { action, error: res.error });
             }
         });
     }
@@ -79,8 +77,7 @@ class SocketService {
         if (!this.socket) return () => { };
 
         const handler = (data: { gameState: GameState }) => {
-            // @ts-ignore
-            import('../utils/devLogger').then(({ devLogger }) => devLogger.log('SOCKET', 'Game Update Received', { phase: data.gameState.phase, turn: data.gameState.currentTurnIndex }));
+            devLogger.log('SOCKET', 'Game Update Received', { phase: data.gameState.phase, turn: data.gameState.currentTurnIndex });
             callback(data.gameState)
         };
 

@@ -1,0 +1,694 @@
+{
+    "id": "exam_1770679115_79d13d03",
+    "title": "Professor's Exam: SUN Blunder",
+    "description": "You played A\u2663. The Professor found a better line. Can you find it?",
+    "difficulty": "Intermediate",
+    "tags": [
+        "Professor",
+        "SUN",
+        "Blunder"
+    ],
+    "initial_state": {
+        "roomId": "79d13d03",
+        "phase": "PLAYING",
+        "biddingPhase": "DOUBLING",
+        "players": [
+            {
+                "id": "k4eIqSHqoMnsCzxHAAAB",
+                "name": "Me",
+                "avatar": "https://picsum.photos/id/64/100/100",
+                "index": 0,
+                "hand": [
+                    {
+                        "suit": "\u2666",
+                        "rank": "7",
+                        "id": "7\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "9",
+                        "id": "9\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2666",
+                        "rank": "10",
+                        "id": "10\u2666",
+                        "value": 0
+                    },
+                    {
+                        "suit": "\u2663",
+                        "rank": "A",
+                        "id": "A\u2663",
+                        "value": 0
+                    }
+                ],
+                "score": 0,
+                "team": "us",
+                "position": "Bottom",
+                "isDealer": true,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": false,
+                "isActive": true,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_0_1770678962627",
+                "name": "Saad (Bot)",
+                "avatar": "avatar_saad",
+                "index": 1,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Right",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_1_1770678962627",
+                "name": "Khalid (Bot)",
+                "avatar": "avatar_khalid",
+                "index": 2,
+                "hand": [],
+                "score": 0,
+                "team": "us",
+                "position": "Top",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            },
+            {
+                "id": "BOT_2_1770678962627",
+                "name": "Abu Fahad (Bot)",
+                "avatar": "avatar_abu_fahad",
+                "index": 3,
+                "hand": [],
+                "score": 0,
+                "team": "them",
+                "position": "Left",
+                "isDealer": false,
+                "actionText": "",
+                "lastReasoning": "",
+                "isBot": true,
+                "isActive": false,
+                "strategy": "heuristic",
+                "profile": null
+            }
+        ],
+        "tableCards": [
+            {
+                "playerId": "BOT_1_1770678962627",
+                "card": {
+                    "suit": "\u2665",
+                    "rank": "8",
+                    "id": "8\u2665",
+                    "value": 0
+                },
+                "playedBy": "Top",
+                "metadata": {
+                    "reasoning": "Leading Master Card"
+                }
+            },
+            {
+                "playerId": "BOT_2_1770678962627",
+                "card": {
+                    "suit": "\u2660",
+                    "rank": "8",
+                    "id": "8\u2660",
+                    "value": 0
+                },
+                "playedBy": "Left",
+                "metadata": {
+                    "reasoning": "Smart Trash"
+                }
+            }
+        ],
+        "currentTurnIndex": 0,
+        "gameMode": "SUN",
+        "trumpSuit": null,
+        "bid": {
+            "type": "SUN",
+            "bidder": "Bottom",
+            "doubled": false,
+            "suit": null,
+            "level": 1,
+            "variant": null,
+            "isAshkal": false,
+            "isTentative": false
+        },
+        "teamScores": {
+            "us": 0,
+            "them": 0
+        },
+        "matchScores": {
+            "us": 0,
+            "them": 26
+        },
+        "analytics": {
+            "winProbability": [
+                {
+                    "trick": 1,
+                    "us": 0.32894736842105265
+                },
+                {
+                    "trick": 1,
+                    "us": 0.2532894736842105
+                },
+                {
+                    "trick": 2,
+                    "us": 0.14144736842105265
+                },
+                {
+                    "trick": 3,
+                    "us": 0.21052631578947367
+                },
+                {
+                    "trick": 1,
+                    "us": 0.1875
+                },
+                {
+                    "trick": 1,
+                    "us": 0.14802631578947367
+                },
+                {
+                    "trick": 2,
+                    "us": 0.06907894736842107
+                },
+                {
+                    "trick": 1,
+                    "us": 0.16118421052631576
+                },
+                {
+                    "trick": 2,
+                    "us": 0.07894736842105265
+                },
+                {
+                    "trick": 3,
+                    "us": 0.003289473684210509
+                },
+                {
+                    "trick": 4,
+                    "us": 0.0
+                },
+                {
+                    "trick": 1,
+                    "us": 0.4605263157894737
+                },
+                {
+                    "trick": 2,
+                    "us": 0.5723684210526316
+                },
+                {
+                    "trick": 3,
+                    "us": 0.6085526315789473
+                },
+                {
+                    "trick": 1,
+                    "us": 0.33223684210526316
+                },
+                {
+                    "trick": 2,
+                    "us": 0.26644736842105265
+                },
+                {
+                    "trick": 3,
+                    "us": 0.29605263157894735
+                },
+                {
+                    "trick": 4,
+                    "us": 0.375
+                }
+            ],
+            "blunders": {
+                "Bottom": 1
+            }
+        },
+        "floorCard": null,
+        "dealerIndex": 0,
+        "biddingRound": 1,
+        "declarations": {},
+        "timer": {
+            "remaining": 4.0531487464904785,
+            "duration": 5,
+            "elapsed": 0.9468512535095215,
+            "active": true
+        },
+        "isProjectRevealing": false,
+        "doublingLevel": 1,
+        "isLocked": false,
+        "strictMode": false,
+        "dealingPhase": 0,
+        "lastTrick": {
+            "cards": [
+                {
+                    "card": {
+                        "suit": "\u2665",
+                        "rank": "10",
+                        "id": "10\u2665",
+                        "value": 0
+                    },
+                    "playedBy": "Top"
+                },
+                {
+                    "card": {
+                        "suit": "\u2665",
+                        "rank": "9",
+                        "id": "9\u2665",
+                        "value": 0
+                    },
+                    "playedBy": "Left"
+                },
+                {
+                    "card": {
+                        "suit": "\u2660",
+                        "rank": "10",
+                        "id": "10\u2660",
+                        "value": 0
+                    },
+                    "playedBy": "Bottom"
+                },
+                {
+                    "card": {
+                        "suit": "\u2665",
+                        "rank": "K",
+                        "id": "K\u2665",
+                        "value": 0
+                    },
+                    "playedBy": "Right"
+                }
+            ],
+            "winner": "Top",
+            "metadata": [
+                {
+                    "reasoning": "Leading Master Card"
+                },
+                {
+                    "reasoning": "Ducking (Point Protection)"
+                },
+                {
+                    "cardId": "10\u2660"
+                },
+                {
+                    "reasoning": "Ducking (Point Protection)"
+                }
+            ]
+        },
+        "roundHistory": [
+            {
+                "roundNumber": 1,
+                "qayd": true,
+                "winner": "them",
+                "us": {
+                    "result": 0,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                },
+                "them": {
+                    "result": 26,
+                    "aklat": 0,
+                    "ardh": 0,
+                    "projects": [],
+                    "abnat": 0,
+                    "isKaboot": true
+                }
+            }
+        ],
+        "currentRoundTricks": [
+            {
+                "winner": "Right",
+                "points": 25,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "A",
+                            "id": "A\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "Q",
+                            "id": "Q\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "7",
+                            "id": "7\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "A",
+                            "id": "A\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    }
+                ],
+                "playedBy": [
+                    "Right",
+                    "Top",
+                    "Left",
+                    "Bottom"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Leading Master Card"
+                    },
+                    {
+                        "reasoning": "Ducking (Point Protection)",
+                        "declarations": [
+                            {
+                                "type": "HUNDRED",
+                                "rank": "Q",
+                                "score": 100,
+                                "kind": "4KIND",
+                                "cards": [
+                                    {
+                                        "suit": "\u2665",
+                                        "rank": "Q",
+                                        "id": "Q\u2665",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2660",
+                                        "rank": "Q",
+                                        "id": "Q\u2660",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2666",
+                                        "rank": "Q",
+                                        "id": "Q\u2666",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2663",
+                                        "rank": "Q",
+                                        "id": "Q\u2663",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "reasoning": "Partner winning - Safe Feed",
+                        "declarations": [
+                            {
+                                "type": "SIRA",
+                                "rank": "9",
+                                "score": 20,
+                                "kind": "SEQ",
+                                "cards": [
+                                    {
+                                        "suit": "\u2660",
+                                        "rank": "9",
+                                        "id": "9\u2660",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2660",
+                                        "rank": "8",
+                                        "id": "8\u2660",
+                                        "value": 0
+                                    },
+                                    {
+                                        "suit": "\u2660",
+                                        "rank": "7",
+                                        "id": "7\u2660",
+                                        "value": 0
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "cardId": "A\u2665",
+                        "is_illegal": true,
+                        "illegal_reason": "Must follow suit (\u2660)",
+                        "violation_type": "REVOKE",
+                        "proof_hint": {
+                            "suit": "\u2660",
+                            "rank": "10",
+                            "id": "10\u2660",
+                            "value": 0
+                        }
+                    }
+                ]
+            },
+            {
+                "winner": "Left",
+                "points": 20,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "K",
+                            "id": "K\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "Q",
+                            "id": "Q\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2666",
+                            "rank": "A",
+                            "id": "A\u2666",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "J",
+                            "id": "J\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    }
+                ],
+                "playedBy": [
+                    "Right",
+                    "Top",
+                    "Left",
+                    "Bottom"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Sun Lead"
+                    },
+                    {
+                        "reasoning": "Ducking (Point Protection)"
+                    },
+                    {
+                        "reasoning": "Overtaking Partner (Forced)"
+                    },
+                    {
+                        "cardId": "J\u2660",
+                        "is_illegal": true,
+                        "illegal_reason": "Must follow suit (\u2666)",
+                        "violation_type": "REVOKE",
+                        "proof_hint": {
+                            "suit": "\u2666",
+                            "rank": "7",
+                            "id": "7\u2666",
+                            "value": 0
+                        }
+                    }
+                ]
+            },
+            {
+                "winner": "Top",
+                "points": 9,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "7",
+                            "id": "7\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2663",
+                            "rank": "K",
+                            "id": "K\u2663",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "J",
+                            "id": "J\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "Q",
+                            "id": "Q\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    }
+                ],
+                "playedBy": [
+                    "Left",
+                    "Bottom",
+                    "Right",
+                    "Top"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Sun Lead"
+                    },
+                    {
+                        "cardId": "K\u2663"
+                    },
+                    {
+                        "reasoning": "Overtaking Partner (Forced)"
+                    },
+                    {
+                        "reasoning": "4th Seat Finesse"
+                    }
+                ]
+            },
+            {
+                "winner": "Top",
+                "points": 24,
+                "cards": [
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "10",
+                            "id": "10\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Top"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "9",
+                            "id": "9\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Left"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2660",
+                            "rank": "10",
+                            "id": "10\u2660",
+                            "value": 0
+                        },
+                        "playedBy": "Bottom"
+                    },
+                    {
+                        "card": {
+                            "suit": "\u2665",
+                            "rank": "K",
+                            "id": "K\u2665",
+                            "value": 0
+                        },
+                        "playedBy": "Right"
+                    }
+                ],
+                "playedBy": [
+                    "Top",
+                    "Left",
+                    "Bottom",
+                    "Right"
+                ],
+                "metadata": [
+                    {
+                        "reasoning": "Leading Master Card"
+                    },
+                    {
+                        "reasoning": "Ducking (Point Protection)"
+                    },
+                    {
+                        "cardId": "10\u2660"
+                    },
+                    {
+                        "reasoning": "Ducking (Point Protection)"
+                    }
+                ]
+            }
+        ],
+        "sawaState": {
+            "active": false,
+            "claimer": null,
+            "status": "NONE",
+            "challenge_active": false
+        },
+        "qaydState": {
+            "active": false
+        },
+        "challengeActive": false,
+        "timerStartTime": 1770679114.6853085,
+        "turnDuration": 30,
+        "serverTime": 1770679115.6321597,
+        "akkaState": null,
+        "gameId": "79d13d03",
+        "settings": {},
+        "resolvedCrimes": [
+            "0_1",
+            "1_1",
+            "2_3",
+            "0_3",
+            "1_3",
+            "4_1",
+            "0_2",
+            "3_2"
+        ]
+    },
+    "solution": {
+        "type": "sequence",
+        "data": [
+            "7\u2666"
+        ]
+    }
+}

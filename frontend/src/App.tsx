@@ -4,8 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Table from './components/Table';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
-import { ProfessorOverlay } from './components/overlays/ProfessorOverlay';
-import { GameState, GamePhase, PlayerPosition, Suit, RoundResult, ProfessorIntervention } from './types';
+import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
 
 import SettingsModal from './components/SettingsModal';
 import VictoryModal from './components/VictoryModal';
@@ -17,35 +16,27 @@ import MatchReviewModal from './components/MatchReviewModal'; // Added
 import VariantSelectionModal from './components/VariantSelectionModal'; // Added
 import { Settings, ShoppingBag, Smile } from 'lucide-react';
 import MultiplayerLobby from './components/MultiplayerLobby';
-import { AIAnalysisPanel } from './components/AIAnalysisPanel';
-import GameLayout from './components/GameLayout';
-import AIStudio from './components/AIStudio'; // Added
-import { VisionaryStudio } from './components/VisionaryStudio';
 
+import GameLayout from './components/GameLayout';
 import { useGameState } from './hooks/useGameState';
 import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
-import { submitTrainingData } from './services/trainingService';
-import AcademyPage from './pages/AcademyPage';
-import PuzzleArena from './components/Academy/PuzzleArena';
-import ReplayPage from './pages/ReplayPage';
+import { devLogger } from './utils/devLogger';
+
+
 
 
 const App: React.FC = () => {
   // ... existing hook calls ...
   useEffect(() => {
-    // @ts-ignore
-    import('./utils/devLogger').then(({ devLogger }) => devLogger.log('APP', 'App Component Mounted'));
+    devLogger.log('APP', 'App Component Mounted');
   }, []);
   // Phase VII: Connect logger to socket for remote telemetry
   useEffect(() => {
     if (socketService.socket) {
-      // @ts-ignore
-      import('./utils/devLogger').then(({ devLogger }) => {
-        devLogger.setSocket(socketService.socket);
-        devLogger.log('APP', 'Telemetry Connected');
-      });
+      devLogger.setSocket(socketService.socket);
+      devLogger.log('APP', 'Telemetry Connected');
     }
   }, [socketService.socket]);
 
@@ -72,7 +63,6 @@ const App: React.FC = () => {
   const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
   const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Settings UI
-  const [showMindMap, setShowMindMap] = useState(false); // Mind Map State (Lifted)
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
 
 
@@ -92,14 +82,9 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { card: 'card_default', table: 'table_default' };
   });
 
-  // Reporting Logic (AI Training)
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportCorrectMove, setReportCorrectMove] = useState("");
 
-  // Professor Mode State
-  const [profIntervention, setProfIntervention] = useState<ProfessorIntervention | null>(null);
-  const [pendingPlay, setPendingPlay] = useState<{ cardIndex: number, metadata?: any } | null>(null);
+
+
 
   useEffect(() => {
     localStorage.setItem('baloot_owned_items', JSON.stringify(ownedItems));
@@ -143,60 +128,12 @@ const App: React.FC = () => {
     // setIsDisputeModalOpen(true);
   };
 
-  // --- PROFESSOR MODE HANDLERS ---
-  const handleProfUndo = () => {
-    setProfIntervention(null);
-    setPendingPlay(null);
-  };
 
-  const handleProfContinue = () => {
-    if (pendingPlay) {
-      // Retry with skip flag
-      // We use the original handler but append skip_professor to payload
-      // Note: App doesn't modify payload deep usually, but let's do it right.
-      const newPayload = { ...pendingPlay, skip_professor: true };
-      if (roomId) {
-        // Determine card index again? No, it's in payload
-        socketService.sendAction(roomId, 'PLAY', newPayload);
-      } else {
-        handlePlayerAction('PLAY', newPayload);
-      }
-    }
-    setProfIntervention(null);
-    setPendingPlay(null);
-  };
-
-  const handlePlayerActionWithProfessor = (action: string, payload: any) => {
-    // Intercept PLAY if connected to server
-    if (action === 'PLAY' && roomId && !payload?.skip_professor && !userProfile.disableProfessor) {
-      // We initiate the action via SocketService manually to catch the 200 OK w/ Error Code
-      // Actually, 'sendAction' callback receives the response.
-
-      // We must bypass handlePlayerAction's internal sends to avoid double send if we want custom error handling.
-      // However, handlePlayerAction ALSO blocks duplicates.
-
-      // Let's call socketService directly.
-      socketService.sendAction(roomId, 'PLAY', payload, (res) => {
-        if (!res.success && res.error === 'PROFESSOR_INTERVENTION') {
-          setProfIntervention(res.intervention);
-          setPendingPlay(payload); // Contains cardIndex and metadata
-        } else if (!res.success) {
-          addSystemMessage(`Action Failed: ${res.error}`);
-        }
-      });
-      return;
-    }
-
-    // Default
-    handlePlayerAction(action, payload);
-  };
 
 
 
   // --- CONTENT RENDER ---
-  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY' | 'AI_STUDIO' | 'PUZZLE_LIST' | 'PUZZLE_BOARD' | 'REPLAY' | 'VISIONARY'>('LOBBY');
-  const [selectedPuzzleId, setSelectedPuzzleId] = useState<string | null>(null);
-  const [replayGameId, setReplayGameId] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY'>('LOBBY');
   const [errorObj, setErrorObj] = useState<string | null>(null);
 
   // Global Error Handler
@@ -241,15 +178,14 @@ const App: React.FC = () => {
     content = (
       <Lobby
         onStartGame={(settings) => {
-          console.log("App: onStartGame triggered");
-          import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Start Game Clicked', settings));
+          devLogger.log('LOBBY', 'Start Game Clicked', settings);
 
           handleDebugAction('TOGGLE_DEBUG', { enable: settings.isDebug });
 
           try {
             soundManager.playShuffleSound();
           } catch (e) {
-            console.warn("Sound play failed (interaction policy?):", e);
+            devLogger.error('LOBBY', 'Sound play failed (interaction policy?)', e);
           }
 
           // UNIFICATION: Use Python Backend for Single Player too
@@ -260,7 +196,7 @@ const App: React.FC = () => {
 
           // 1. Create Room (Hidden)
           socketService.createRoom((res) => {
-            import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Create Room Response', res));
+            devLogger.log('LOBBY', 'Create Room Response', res);
 
             if (res.success) {
               const rid = res.roomId as string;
@@ -268,101 +204,36 @@ const App: React.FC = () => {
               const myName = userProfile.firstName || 'Me';
 
               socketService.joinRoom(rid, myName, (joinRes) => {
-                import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Join Room Response', joinRes));
+                devLogger.log('LOBBY', 'Join Room Response', joinRes);
 
                 if (joinRes.success) {
                   try {
-                    console.log("Joining game with state:", joinRes.gameState);
+                    devLogger.log('LOBBY', 'Joining game with state', joinRes.gameState);
                     joinGame(rid, joinRes.yourIndex as number, joinRes.gameState as GameState);
                     updateSettings(settings);
                     setCurrentView('GAME');
 
-                    import('./utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Transitioning to GAME view'));
+                    devLogger.log('LOBBY', 'Transitioning to GAME view');
 
                   } catch (e) {
-                    console.error("Join Game Error:", e);
-                    setErrorObj("Join Error: " + e);
-                    import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Join Exception', { error: e.toString() }));
+                    devLogger.error('LOBBY', 'Join Exception', { error: String(e) });
+                    setErrorObj("Join Error: " + String(e));
                   }
 
                   // 3. Add Bots - HANDLED BY SERVER AUTOMATICALLY
                   // (See socket_handler.py:join_room which adds 3 bots for first player)
                 } else {
                   setErrorObj("Failed to join single player room: " + joinRes.error);
-                  import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Join Room Failed', joinRes));
+                  devLogger.error('LOBBY', 'Join Room Failed', joinRes);
                 }
               });
             } else {
               setErrorObj("Failed to create single player room: " + res.error);
-              import('./utils/devLogger').then(({ devLogger }) => devLogger.error('LOBBY', 'Create Room Failed', res));
+              devLogger.error('LOBBY', 'Create Room Failed', res);
             }
           });
         }}
         onMultiplayer={() => setCurrentView('MULTIPLAYER_LOBBY')}
-        onAIStudio={() => setCurrentView('AI_STUDIO')}
-        onAIClassroom={() => setCurrentView('PUZZLE_LIST')}
-        onReplay={() => {
-          setReplayGameId(""); // Start empty to show list
-          setCurrentView('REPLAY');
-        }}
-        onVisionary={() => setCurrentView('VISIONARY')}
-      />
-    );
-  } else if (currentView === 'VISIONARY') {
-    content = <VisionaryStudio onBack={() => setCurrentView('LOBBY')} />;
-  } else if (currentView === 'REPLAY') {
-    content = (
-      <ReplayPage
-        gameId={replayGameId || ""}
-        onBack={() => setCurrentView('LOBBY')}
-        onFork={(newId) => {
-          // Debugging user report: "Fork not working"
-          // Force ensure socket is connected
-          if (!socketService.socket || !socketService.socket.connected) {
-            socketService.connect();
-            // Wait a tiny bit? Or assume connect() is fast/async?
-            // We'll proceed, but if it fails, the callback will catch it.
-          }
-
-          // Join the forked game as a player
-          const myName = userProfile.firstName || 'Me';
-
-          import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Attempt Start', { newId }));
-
-          socketService.joinRoom(newId, myName, (joinRes) => {
-            if (joinRes.success) {
-              joinGame(newId, joinRes.yourIndex as number, joinRes.gameState as GameState);
-              setCurrentView('GAME');
-              import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Joined Successfully', joinRes));
-            } else {
-              const msg = "Failed to join forked game: " + joinRes.error;
-              setErrorObj(msg);
-              alert(msg); // Force user visibility
-              import('./utils/devLogger').then(({ devLogger }) => devLogger.log('REPLAY', 'Fork Join Error', joinRes));
-            }
-          });
-        }}
-        onLoadReplay={(id) => setReplayGameId(id)}
-      />
-    );
-
-  } else if (currentView === 'AI_STUDIO') {
-    content = <AIStudio onBack={() => setCurrentView('LOBBY')} />;
-  } else if (currentView === 'PUZZLE_LIST') {
-    content = (
-      <AcademyPage
-        onSelectPuzzle={(id) => {
-          setSelectedPuzzleId(id);
-          setCurrentView('PUZZLE_BOARD');
-        }}
-        onBack={() => setCurrentView('LOBBY')}
-      />
-    );
-  } else if (currentView === 'PUZZLE_BOARD') {
-    content = (
-      <PuzzleArena
-        id={selectedPuzzleId || ""}
-        onBack={() => setCurrentView('PUZZLE_LIST')}
       />
     );
   } else if (currentView === 'MULTIPLAYER_LOBBY') {
@@ -382,7 +253,7 @@ const App: React.FC = () => {
         <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
           <Table
             gameState={gameState}
-            onPlayerAction={handlePlayerActionWithProfessor}
+            onPlayerAction={handlePlayerAction}
             onChallenge={handleChallenge}
             onAddBot={addBot}
             onDebugAction={handleDebugAction}
@@ -392,78 +263,10 @@ const App: React.FC = () => {
             onFastForward={handleFastForward}
             onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
             isSendingAction={isSendingAction}
-            isPaused={!!profIntervention}
-            // Mind Map Props (Lifted)
-            showMindMap={showMindMap}
-            setShowMindMap={setShowMindMap}
+
           />
 
-          {/* AI Report Button (Only visible if game is active) */}
-          {gameState.phase === GamePhase.Playing && (
-            <button
-              onClick={() => setIsReportModalOpen(true)}
-              className="absolute top-20 left-4 z-50 bg-red-500/80 hover:bg-red-600 text-white p-2 rounded-full shadow-lg transition-all"
-              title="Report Bad Bot Move"
-            >
-              ⚠️
-            </button>
-          )}
 
-          {/* Report Modal */}
-          {isReportModalOpen && (
-            <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4">
-              <div className="bg-slate-800 rounded-xl p-6 w-full max-w-md text-right border border-slate-700" dir="rtl">
-                <h2 className="text-xl font-bold text-yellow-500 mb-4">تصحيح حركة البوت</h2>
-
-                <div className="mb-4">
-                  <label className="block text-slate-300 mb-2">الحركة الصحيحة</label>
-                  <input
-                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white"
-                    placeholder="مثال: A S"
-                    value={reportCorrectMove}
-                    onChange={e => setReportCorrectMove(e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-slate-300 mb-2">السبب</label>
-                  <textarea
-                    className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white h-24"
-                    placeholder="لماذا كان قرار البوت خاطئاً؟"
-                    value={reportReason}
-                    onChange={e => setReportReason(e.target.value)}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="px-4 py-2 text-slate-400 hover:text-white"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await submitTrainingData({
-                        contextHash: `live - ${Date.now()} `,
-                        gameState: JSON.stringify(gameState), // Capture current state
-                        badMove: "Unknown (User Reported)", // Ideally track last move
-                        correctMove: reportCorrectMove,
-                        reason: reportReason
-                      });
-                      addSystemMessage("شكراً! تم حفظ التصحيح.");
-                      setIsReportModalOpen(false);
-                      setReportReason("");
-                      setReportCorrectMove("");
-                    }}
-                    className="px-6 py-2 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold"
-                  >
-                    حفظ
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
 
@@ -494,7 +297,7 @@ const App: React.FC = () => {
 
         {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
 
-        {profIntervention && <ProfessorOverlay intervention={profIntervention} onUndo={handleProfUndo} onInsist={handleProfContinue} />}
+
         {isSettingsOpen && <SettingsModal
           settings={gameState.settings}
           equippedItems={equippedItems}
@@ -536,20 +339,15 @@ const App: React.FC = () => {
           onReview={() => setShowReviewModal(true)}
         />
 
-        {/* New Left-Side Analysis Panel */}
-        <AIAnalysisPanel
-          players={gameState.players}
-          gameId={gameState.gameId}
-          onOpenMindMap={() => setShowMindMap(true)}
-        />
+
       </div>
     );
   }
 
-  const isStudioMode = currentView === 'AI_STUDIO' || currentView === 'VISIONARY';
+
 
   return (
-    <GameLayout variant={isStudioMode ? 'studio' : 'mobile'}>
+    <GameLayout variant='mobile'>
       <ErrorBoundary>
         {content}
       </ErrorBoundary>

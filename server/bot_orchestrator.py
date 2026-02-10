@@ -287,7 +287,7 @@ def bot_loop(sio, game, room_id, recursion_depth=0):
         # if not game.players[next_idx].is_bot: ... checks below
 
         if not game.players[next_idx].is_bot:
-            _sherlock_log(f"[BOT_LOOP] EXIT: player {next_idx} ({game.players[next_idx].name}) is human. phase={game.phase}. depth={recursion_depth}. timer_start={game.timer_start}")
+            _sherlock_log(f"[BOT_LOOP] EXIT: player {next_idx} ({game.players[next_idx].name}) is human. phase={game.phase}. depth={recursion_depth}.")
             broadcast_game_update(sio, game, room_id)
             return
 

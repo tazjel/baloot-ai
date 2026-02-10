@@ -1,125 +1,62 @@
 
 import unittest
-from ai_worker.bot_context import BotContext
-from ai_worker.agent import bot_agent
 from game_engine.models.card import Card
+from game_engine.logic.rules.sawa import check_sawa_eligibility
 
 class TestSawaLogic(unittest.TestCase):
-    def setUp(self):
-        pass
-        
-    def _create_context(self, hand_strs, mode, trump=None, played_cards=None, sawa_claimer='Left'):
-        # Construct Mock State
-        if played_cards is None: played_cards = []
-        
-        # Determine Claimer Index vs My Index
-        # Me = 0 (Bottom)
-        # Left = 3
-        claimer_idx = 3 # Left
-        
-        state = {
-            'players': [
-                {'hand': [], 'position': 'Bottom', 'team': 'us', 'name': 'Bot'},
-                {'hand': [], 'position': 'Right', 'team': 'them', 'name': 'P2'},
-                {'hand': [], 'position': 'Top', 'team': 'us', 'name': 'P3'},
-                {'hand': [], 'position': 'Left', 'team': 'them', 'name': 'P4'}
-            ],
-            'phase': 'PLAYING',
-            'gameMode': mode,
-            'trumpSuit': trump,
-            'dealerIndex': 0,
-            'currentRoundTricks': [], # We'll mock played_cards via context override or raw state
-            'tableCards': [],
-            'sawaState': {
-                'active': True,
-                'status': 'PENDING',
-                'claimer': sawa_claimer,
-                'responses': {} # I haven't responded
-            }
-        }
-        
-        # Populate my hand
-        hand_dicts = []
-        for s in hand_strs:
-            hand_dicts.append({'rank': s[:-1], 'suit': s[-1]})
-        state['players'][0]['hand'] = hand_dicts
-        
-        # Create Context
-        ctx = BotContext(state, 0)
-        
-        # Inject Played Cards for is_master_card logic
-        # BotContext derives this from 'currentRoundTricks' and 'tableCards'.
-        # We can just override the set for testing.
-        ctx.played_cards = set(played_cards)
-        
-        return ctx
+    """
+    Test the server-validated Sawa (Grand Slam) eligibility logic.
+    
+    The old ACCEPT/REFUSE model (where bots evaluated opponent claims) 
+    has been removed. Sawa is now server-validated: the engine checks if 
+    the declaring player holds the top remaining cards in every suit.
+    """
 
-    def test_sawa_acceptance_weak_hand(self):
-        """I have weak cards. Should ACCEPT."""
-        # SUN Mode. Hand: 7H, 8D.
-        # Played: A, 10, K, Q of H and D are GONE.
-        # So 7 and 8 are masters? No. 
-        # Wait, if all higher cards are played, then 7 IS Master.
-        # Sawa Claim means THEY claim to win everything.
-        # If I have a Master, I win.
-        # So for ACCEPTANCE, I must NOT have a master.
-        # This implies higher cards are Still IN PLAY (held by others).
-        # e.g. I have 7H. Ace H is NOT played.
+    def test_sawa_eligible_master_sun(self):
+        """In SUN, holding the highest remaining cards = eligible."""
+        hand = [Card('♥', 'A'), Card('♦', 'A')]
+        played = set()  # Nothing played yet, A is highest in SUN
         
-        ctx = self._create_context(['7♥', '8♦'], 'SUN', played_cards=[])
-        # A♥ is unplayed. So 7♥ is NOT master.
-        
-        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
-        self.assertEqual(decision['response'], 'ACCEPT')
+        result = check_sawa_eligibility(hand, played, trump_suit=None, game_mode='SUN', phase='PLAYING')
+        self.assertTrue(result)
 
-    def test_sawa_refusal_master_sun(self):
-        """I have Ace in Sun. Should REFUSE."""
-        ctx = self._create_context(['A♥', '7♦'], 'SUN', played_cards=[])
-        # A♥ is Master.
+    def test_sawa_not_eligible_weak_hand(self):
+        """In SUN, holding 7 and 8 with higher cards still alive = NOT eligible."""
+        hand = [Card('♥', '7'), Card('♦', '8')]
+        played = set()  # A, 10, K, Q, J, 9 of each suit still alive
         
-        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
-        self.assertEqual(decision['response'], 'REFUSE')
-        self.assertIn('Master', decision['reasoning'])
+        result = check_sawa_eligibility(hand, played, trump_suit=None, game_mode='SUN', phase='PLAYING')
+        self.assertFalse(result)
 
-    def test_sawa_refusal_master_hokum_trump(self):
-        """I have Jack of Trump in Hokum. Should REFUSE."""
-        ctx = self._create_context(['J♠', '7♦'], 'HOKUM', trump='♠', played_cards=[])
-        # J♠ is Master Trump.
+    def test_sawa_eligible_after_cards_played(self):
+        """If all higher cards are burned, lower cards become masters."""
+        hand = [Card('♥', '9')]
+        # All cards above 9 in hearts are burned
+        played = {'A♥', '10♥', 'K♥', 'Q♥', 'J♥'}
         
-        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
-        self.assertEqual(decision['response'], 'REFUSE')
+        result = check_sawa_eligibility(hand, played, trump_suit=None, game_mode='SUN', phase='PLAYING')
+        self.assertTrue(result)
 
-    def test_sawa_refusal_master_hokum_nontrump(self):
-        """I have Ace of Hearts (Non-Trump) in Hokum. Should REFUSE (Safe Strategy)."""
-        ctx = self._create_context(['A♥', '7♦'], 'HOKUM', trump='♠', played_cards=[])
-        # A♥ is Master Non-Trump.
+    def test_sawa_not_eligible_gap_in_sequence(self):
+        """If there's a gap (missing card held by opponent), NOT eligible."""
+        hand = [Card('♥', 'A'), Card('♥', 'Q')]  # Missing 10 and K
+        played = set()  # 10 and K are alive, held by opponents
         
-        decision = bot_agent.referee._evaluate_sawa_refusal(ctx)
-        self.assertEqual(decision['response'], 'REFUSE')
+        result = check_sawa_eligibility(hand, played, trump_suit=None, game_mode='SUN', phase='PLAYING')
+        self.assertFalse(result)
 
-    def test_integration_sawa_response(self):
-        """Test the full get_decision flow"""
-        # Mock Sawa State
-        hand = ['A♥']
-        ctx = self._create_context(hand, 'SUN')
+    def test_sawa_eligible_hokum_trump_master(self):
+        """In HOKUM, Jack of trump is highest. Holding J+9 of trump = eligible."""
+        hand = [Card('♠', 'J'), Card('♠', '9')]
+        played = set()  # J is highest trump, 9 is second
         
-        # Inject context into bot call?
-        # bot_agent.get_decision takes (game_state, player_index).
-        # We need to construct the state.
-        
-        state = ctx.raw_state
-        idx = 0
-        
-        # Bot Agent creates its own context. We need to ensure logic holds.
-        # Since logic depends on is_master_card which depends on played_cards...
-        # We need to populate currentRoundTricks in state to match played_cards logic?
-        # Default create_context leaves played_cards empty. 
-        # A♥ is Master if played_cards empty.
-        
-        decision = bot_agent.get_decision(state, idx)
-        
-        self.assertEqual(decision['action'], 'SAWA_RESPONSE')
-        self.assertEqual(decision['response'], 'REFUSE')
+        result = check_sawa_eligibility(hand, played, trump_suit='♠', game_mode='HOKUM', phase='PLAYING')
+        self.assertTrue(result)
+
+    def test_sawa_empty_hand(self):
+        """Empty hand should NOT be eligible."""
+        result = check_sawa_eligibility([], set(), trump_suit=None, game_mode='SUN', phase='PLAYING')
+        self.assertFalse(result)
 
 if __name__ == '__main__':
     unittest.main()

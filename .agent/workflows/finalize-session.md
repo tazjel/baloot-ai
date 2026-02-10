@@ -2,31 +2,33 @@
 description: Update all documentation and record session lessons/tips for the next agent session (Alias for /finalize-session).
 ---
 
-# Finalize Session & Knowledge Transfer
+# Finalize Session
 
-This workflow ensures the codebase is clean, documentation is up-to-date, tests pass, and critical context is preserved.
+Wrap up the current session cleanly. Commit everything, leave a clear handoff.
 
-1.  **Verify System Health (Smoke Test)**:
-    - Ensure recent changes didn't break core game logic.
-    // turbo
-    python -m pytest tests/test_game_logic.py
+1. **Commit Outstanding Changes**
+   // turbo
+   ```powershell
+   git add -A && git status --short
+   ```
+   - If there are staged changes, commit with a descriptive message.
+   - Push to remote.
 
-2.  **Clean Up & Logs**:
-    - Truncate the main server log to save space for the next session.
-    // turbo
-    Write-Output "" > logs/server_manual.log
+2. **Update Handoff Note**
+   - Write/update `docs/agent/HANDOFF.md` with:
+     - **Session Date** and **Commits** (hash + one-liner)
+     - **What Was Done** (2-3 bullet points max)
+     - **What's Still Open** (specific next steps, not vague)
+     - **Known Gotchas** (anything the next agent should watch out for)
 
-3.  **Update "Brain" Artifacts**:
-    - **task.md**: Mark all completed items as `[x]`. Ensure the "Next Steps" section is populated.
-    - **walkthrough.md**: Add a final "Verification Results" section summarizing the last stable state (e.g., "Server running, New Game fixed").
+3. **Update CODEBASE_MAP.md** (only if new dirs/files were created)
+   // turbo
+   ```powershell
+   git diff --name-status HEAD~5 HEAD | Select-String "^A"
+   ```
+   - If new directories were added, update `CODEBASE_MAP.md` with their purpose.
 
-4.  **Update Persistent Knowledge**:
-    - **docs/agent/operations.md**: Add any specific "Common Pitfalls" found today.
-    - **.agent/knowledge/project_status.md** (if exists): Update the "Current Phase" or "Recent Achievements".
-    - **CODEBASE_MAP.md**: Update if any new directories were created (e.g., `ai_worker/professor.py`).
-
-5.  **Context for Next Agent**:
-    - Create a "Handover Note" in `task.md` or a new file if needed, explaining exactly where we left off (e.g., "Professor is debuggable, but UI needs polish").
-
-6.  **Final Polish**:
-    - **README.md**: If high-level features changed (e.g., "Added War Room"), update the features list.
+4. **Push Final**
+   ```powershell
+   git add -A && git commit -m "docs: session handoff" && git push
+   ```

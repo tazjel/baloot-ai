@@ -78,7 +78,7 @@ const CardVector: React.FC<CardVectorProps> = ({
         if (['2', '3'].includes(r as string)) {
             pips.push(<StandardPip top={top} left={mid} key="t" />);
             pips.push(<StandardPip top={bot} left={mid} key="b" invert />);
-            if (r === '3') pips.push(<StandardPip top={center} left={mid} key="c" />);
+            if ((r as string) === '3') pips.push(<StandardPip top={center} left={mid} key="c" />);
         }
         else if (['4', '5', '6', '7', '8', '9', '10'].includes(r as string) || r === Rank.Ten) {
             // Corners
@@ -109,7 +109,7 @@ const CardVector: React.FC<CardVectorProps> = ({
     };
 
     const isFace = ['J', 'Q', 'K'].includes(card.rank as string) || [Rank.Jack, Rank.Queen, Rank.King].includes(card.rank);
-    const isAce = card.rank === Rank.Ace || card.rank === 'A';
+    const isAce = card.rank === Rank.Ace || (card.rank as string) === 'A';
 
     // Rank Text
     const rankText = card.rank === Rank.Ten ? '10' :

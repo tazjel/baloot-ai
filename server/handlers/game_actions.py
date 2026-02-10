@@ -5,7 +5,6 @@ import logging
 
 import server.bot_orchestrator as bot_orchestrator
 from server.room_manager import room_manager
-from ai_worker.professor import professor
 from server.rate_limiter import limiter
 from server.handlers.game_lifecycle import (
     broadcast_game_update, handle_bot_turn,
@@ -141,21 +140,7 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
 
 
 def _handle_play(game, player, payload):
-    """Handle PLAY action with professor intervention check."""
-    skip_professor = payload.get('skip_professor', False)
-
-    intervention = None
-    if not skip_professor and not player.is_bot:
-        card_idx = payload.get('cardIndex')
-        intervention = professor.check_move(game, player.index, card_idx)
-
-    if intervention:
-        result = {'success': False, 'error': 'PROFESSOR_INTERVENTION', 'intervention': intervention}
-        game.pause_timer()
-        game.increment_blunder(player.index)
-        room_manager.save_game(game)
-        return result
-
+    """Handle PLAY action."""
     metadata = payload.get('metadata', {})
     if 'cardId' in payload:
         metadata['cardId'] = payload['cardId']

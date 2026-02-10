@@ -1,24 +1,19 @@
 import React, { useState } from 'react';
 import { GameSettings } from '../types';
-import { Clock, Shield, ShieldAlert, Play, Gamepad2, Brain, RefreshCcw } from 'lucide-react';
+import { Clock, Shield, ShieldAlert, Play, Gamepad2 } from 'lucide-react';
+import { devLogger } from '../utils/devLogger';
 
 interface LobbyProps {
     onStartGame: (settings: GameSettings) => void;
     onMultiplayer: () => void;
-    onAIStudio: () => void;
-    onAIClassroom: () => void;
-    onReplay: () => void;
-    onVisionary?: () => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, onAIClassroom, onReplay, onVisionary }) => {
+const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer }) => {
     const [turnDuration, setTurnDuration] = useState<number>(3);
     const [strictMode, setStrictMode] = useState<boolean>(true);
 
     const handleStart = () => {
-        console.log("Lobby: Start Game Button Clicked");
-        // @ts-ignore
-        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('LOBBY', 'Button Clicked', { turnDuration, strictMode }));
+        devLogger.log('LOBBY', 'Button Clicked', { turnDuration, strictMode });
         onStartGame({ turnDuration, strictMode, soundEnabled: true, gameSpeed: 'NORMAL' });
     };
 
@@ -116,42 +111,7 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, onAIStudio, o
                         <span>🌐 اللعب اونلاين (تجريبي)</span>
                     </button>
 
-                    <div className="grid grid-cols-2 gap-4 w-full max-w-md mt-3">
-                        <button
-                            onClick={onAIStudio}
-                            className="flex flex-col items-center justify-center gap-2 bg-purple-900/50 hover:bg-purple-800/50 p-6 rounded-xl border border-purple-500/30 transition-all text-purple-200"
-                        >
-                            <span className="text-3xl">🧠</span>
-                            <span className="font-bold">AI Studio</span>
-                        </button>
 
-                        <button
-                            onClick={onReplay}
-                            className="flex flex-col items-center justify-center gap-2 bg-cyan-900/50 hover:bg-cyan-800/50 p-6 rounded-xl border border-cyan-500/30 transition-all text-cyan-200"
-                        >
-                            <span className="text-3xl">🎥</span>
-                            <span className="font-bold">Replay Studio</span>
-                        </button>
-                    </div>
-
-                    {/* AI Classroom Button */}
-                    <button
-                        onClick={() => typeof onAIClassroom !== 'undefined' && onAIClassroom()}
-                        className="w-full py-3 bg-teal-900/20 border border-teal-500/30 hover:bg-teal-900/40 text-teal-400 font-bold rounded-full transition-all flex items-center justify-center gap-2 touch-target mt-3"
-                    >
-                        <Brain size={20} />
-                        <span>الفصل الدراسي (تدريب)</span>
-                    </button>
-
-                    {/* Visionary Studio Button */}
-                    <button
-                        // @ts-ignore
-                        onClick={() => onVisionary && onVisionary()}
-                        className="w-full py-3 bg-[#CDA434]/10 border border-[#CDA434]/30 hover:bg-[#CDA434]/20 text-[#CDA434] font-bold rounded-full transition-all flex items-center justify-center gap-2 touch-target mt-3"
-                    >
-                        <span className="text-xl">👁️</span>
-                        <span>Visionary Studio (Ingest)</span>
-                    </button>
 
                 </div>
             </div>

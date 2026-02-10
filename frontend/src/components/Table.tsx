@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import Card from './Card';
-import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone, Eye, EyeOff, LineChart as ChartIcon, Gavel } from 'lucide-react';
+import { TriangleAlert, ShieldAlert, Pause, Menu, Plus, Megaphone } from 'lucide-react';
 
 
 import { QaydOverlay } from './overlays/QaydOverlay';
@@ -18,7 +18,7 @@ import { soundManager } from '../services/SoundManager';
 import SawaModal from './SawaModal';
 import ActionBar from './ActionBar';
 import GablakTimer from './GablakTimer';
-import { DevLogSidebar } from './DevLogSidebar';
+
 import { useVoice, VoicePersonality } from '../hooks/useVoice';
 import socketService from '../services/SocketService';
 import HandFan from './HandFan';
@@ -29,9 +29,9 @@ import { useGameRules } from '../hooks/useGameRules';
 import PlayerAvatar from './table/PlayerAvatar';
 import ScoreBadge from './table/ScoreBadge';
 import ContractIndicator from './table/ContractIndicator';
-import { DirectorOverlay } from './DirectorOverlay'; // Commissioner
+
 import TurnTimer from './table/TurnTimer';
-import MindMapOverlay from './overlays/MindMapOverlay';
+import { devLogger } from '../utils/devLogger';
 
 interface TableProps {
     gameState: GameState;
@@ -47,9 +47,6 @@ interface TableProps {
     isSendingAction?: boolean;
 
     isPaused?: boolean;
-    // Mind Map Props (Lifted)
-    showMindMap?: boolean;
-    setShowMindMap?: (show: boolean) => void;
 }
 
 // Helper to map name/avatar to personality
@@ -74,9 +71,7 @@ export default function Table({
     onEmoteClick,
 
     isSendingAction = false,
-    isPaused = false,
-    showMindMap: propShowMindMap,
-    setShowMindMap: propSetShowMindMap
+    isPaused = false
 }: TableProps) {
     // --- HOOKS ---
     const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
@@ -85,49 +80,27 @@ export default function Table({
     const { speak } = useVoice();
     const [playerSpeech, setPlayerSpeech] = useState<Record<number, string | null>>({});
 
-    // Accessibility Mode
-    const [isAccessibilityMode, setIsAccessibilityMode] = useState(false);
 
     // Project Reveal Persistence
     const [showProjects, setShowProjects] = useState(false);
     const [showProfessor, setShowProfessor] = useState(false);
 
-    const [showDirector, setShowDirector] = useState(false); // Commissioner
 
-    // Use Prop if available, else local state (fallback)
-    const [localShowMindMap, setLocalShowMindMap] = useState(false);
-    const showMindMap = propShowMindMap !== undefined ? propShowMindMap : localShowMindMap;
-    const setShowMindMap = propSetShowMindMap || setLocalShowMindMap;
 
     const { tension, bpm } = useGameTension(gameState);
 
     // --- Qayd / Forensic Logic ---
     const handleAccusation = (crime: any, proof: any, type: string) => {
-        console.log('[Table] detailed: handleAccusation called', { crime, proof, type });
-        // @ts-ignore
-        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('FORENSIC', 'Accusation Submitted', { crime, proof, type }));
+        devLogger.log('FORENSIC', 'Accusation Submitted', { crime, proof, type });
         onPlayerAction('QAYD_ACCUSATION', { accusation: { crime_card: crime, proof_card: proof, violation_type: type } });
     };
 
     const handleQaydTrigger = () => {
-        console.log('[Table] detailed: handleQaydTrigger called');
-        // @ts-ignore
-        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('FORENSIC', 'Qayd Trigger Button Clicked'));
+        devLogger.log('FORENSIC', 'Qayd Trigger Button Clicked');
         onPlayerAction('QAYD_TRIGGER');
     };
 
-    const handleDirectorUpdate = async (config: any) => {
-        try {
-            await fetch(`${window.location.origin}/react-py4web/game/director/update`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-            // Ideally we should also optimistically update local state or wait for socket push
-        } catch (e) {
-            console.error("Director Update Failed", e);
-        }
-    };
+
 
     useEffect(() => {
         if (isProjectRevealing) {
@@ -186,17 +159,13 @@ export default function Table({
     const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
 
     const [showProjectModal, setShowProjectModal] = useState(false);
-    const [showAnalytics, setShowAnalytics] = useState(false);
+
 
     // Telemetry: Log Table Mount
     useEffect(() => {
-        // @ts-ignore
-        import('../utils/devLogger').then(({ devLogger }) => {
-            devLogger.log('TABLE', 'Table Component Mounted', { phase: gameState?.phase });
-        });
+        devLogger.log('TABLE', 'Table Component Mounted', { phase: gameState?.phase });
         return () => {
-            // @ts-ignore
-            import('../utils/devLogger').then(({ devLogger }) => devLogger.log('TABLE', 'Table Unmounted'));
+            devLogger.log('TABLE', 'Table Unmounted');
         };
     }, []);
 
@@ -273,9 +242,7 @@ export default function Table({
     const isMyTurn = currentTurnIndex === me.index;
 
     const handleCardClick = (idx: number) => {
-        // Raw Click Log
-        // @ts-ignore
-        import('../utils/devLogger').then(({ devLogger }) => devLogger.log('UI', 'Card Clicked Raw', { idx, phase, isMyTurn, currentTurnIndex }));
+        devLogger.log('UI', 'Card Clicked Raw', { idx, phase, isMyTurn, currentTurnIndex });
 
         if (phase === GamePhase.Playing && isMyTurn) {
             if (selectedCardIndex === idx) {
@@ -328,7 +295,7 @@ export default function Table({
     return (
         <div className="relative w-full h-full flex flex-col overflow-hidden select-none safe-area-top safe-area-bottom font-sans" style={{ background: '#F5F3EF' }}>
 
-            <DevLogSidebar />
+
 
             {/* --- ZONE 1: HUD - Phase 1 UI Elements --- */}
             <ScoreBadge matchScores={matchScores} />
@@ -376,32 +343,11 @@ export default function Table({
                 duration={5} 
             />
 
-            {/* Accessibility Toggle */}
-            <button
-                onClick={() => setIsAccessibilityMode(!isAccessibilityMode)}
-                className="absolute top-4 left-32 z-50 bg-white/20 hover:bg-white/40 backdrop-blur-md p-1.5 rounded-full border border-white/30 text-white transition-all shadow-lg"
-                title="Toggle Card Colors"
-            >
-                {isAccessibilityMode ? <Eye size={18} className="text-cyan-300" /> : <EyeOff size={18} />}
-            </button>
 
-            {/* Analytics Toggle (War Room) */}
-            <button
-                onClick={() => setShowAnalytics(!showAnalytics)}
-                className={`absolute top-4 left-44 z-50 p-1.5 rounded-full border transition-all shadow-lg ${showAnalytics ? 'bg-yellow-500/80 border-yellow-300 text-white' : 'bg-white/20 border-white/30 text-white hover:bg-white/40'}`}
-                title="Toggle War Room"
-            >
-                <ChartIcon size={18} />
-            </button>
 
-            {/* Commissioner Button */}
-            <button
-                onClick={() => setShowDirector(true)}
-                className={`absolute top-4 left-56 z-50 p-1.5 rounded-full border transition-all shadow-lg ${showDirector ? 'bg-amber-600 border-amber-400 text-white' : 'bg-white/20 border-white/30 text-white hover:bg-white/40'}`}
-                title="Commissioner's Desk"
-            >
-                <Gavel size={18} />
-            </button>
+
+
+
 
             {/* Analytics Overlay */}
             {/* Overlays */}
@@ -418,17 +364,7 @@ export default function Table({
                 )}
             </AnimatePresence>
 
-            {showDirector && (
-                <DirectorOverlay
-                    gameState={gameState}
-                    onClose={() => setShowDirector(false)}
-                    onUpdate={handleDirectorUpdate}
-                    onOpenMindMap={() => {
-                        setShowDirector(false);
-                        setShowMindMap(true); // Switch to Mind Map
-                    }}
-                />
-            )}
+
 
             {/* Qayd Trigger Button (Floating) - REMOVED to prevent ghost triggers during Bidding
                 Access via ActionBar -> Gavel Icon instead.
@@ -451,12 +387,7 @@ export default function Table({
                 />
             )}
 
-            <MindMapOverlay
-                gameId={gameState.gameId || (gameState as any).roomId}
-                players={gameState.players}
-                isOpen={showMindMap || false}
-                onClose={() => setShowMindMap(false)}
-            />
+
 
             {/* --- ZONE 2: ARENA (Fills remaining space) --- */}
             <div className="relative w-full flex-1 flex items-center justify-center perspective-1000 z-10 transition-all duration-500">

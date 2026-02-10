@@ -52,9 +52,6 @@ export interface Player {
   index: number; // Player index (0-3)
   isBot?: boolean; // Added for AI identification
 
-  // Director Configs
-  strategy?: 'heuristic' | 'mcts' | 'neural' | 'hybrid';
-  profile?: 'Aggressive' | 'Conservative' | 'Balanced';
 }
 
 export interface Bid {
@@ -166,16 +163,7 @@ export interface DeclaredProject {
   score?: number; // Added score for round result display
 }
 
-export interface ProfessorIntervention {
-  type: string;
-  message: string;
-  suggestion?: {
-    action: string;
-    cardIndex?: number;
-    reasoning?: string;
-  };
-  confidence: number;
-}
+
 
 export interface QaydState {
   active: boolean;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import App from '../App';
+import App from './App';
 import React from 'react';
 
 // Mocking required contexts or components if App depends on them and they fail directly

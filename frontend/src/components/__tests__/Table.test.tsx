@@ -56,10 +56,7 @@ vi.mock('../table/ContractIndicator', () => ({
     default: () => <div data-testid="contract-indicator" />
 }));
 
-// Mock DevLogSidebar to prevent its useEffect from crashing due to missing devLogger.getHistory
-vi.mock('../DevLogSidebar', () => ({
-    DevLogSidebar: () => <div data-testid="dev-log-sidebar" />
-}));
+
 
 vi.mock('../ActionBar', () => ({
     default: () => <div data-testid="action-bar" />
