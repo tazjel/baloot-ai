@@ -169,10 +169,13 @@ class QaydEngine:
 
     def select_crime_card(self, card_data: Dict) -> Dict[str, Any]:
         """Step 3 (SELECT_CARD_1) → Step 4 (SELECT_CARD_2). Also allows re-selection from SELECT_CARD_2."""
+        logger.info(f"[QAYD] select_crime_card called. step={self.state['step']}, card_data={card_data}")
         if self.state['step'] not in (QaydStep.SELECT_CARD_1, QaydStep.SELECT_CARD_2):
+            logger.warning(f"[QAYD] select_crime_card REJECTED: wrong step {self.state['step']}")
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
         if not self._validate_card_in_history(card_data):
+            logger.warning(f"[QAYD] select_crime_card REJECTED: card not in history. card_data={card_data}")
             return {'success': False, 'error': 'Card not found in round history'}
 
         # --- LEDGER CHECK (Prevent Double Jeopardy) ---
@@ -185,17 +188,22 @@ class QaydEngine:
                 return {'success': False, 'error': 'This play has already been challenged.'}
 
         self._update({'crime_card': card_data, 'step': QaydStep.SELECT_CARD_2})
+        logger.info(f"[QAYD] select_crime_card SUCCESS → step=SELECT_CARD_2")
         return {'success': True, 'qayd_state': self.state}
 
     def select_proof_card(self, card_data: Dict) -> Dict[str, Any]:
         """Step 4 (SELECT_CARD_2) → ADJUDICATION → RESULT."""
+        logger.info(f"[QAYD] select_proof_card called. step={self.state['step']}, card_data={card_data}")
         if self.state['step'] != QaydStep.SELECT_CARD_2:
+            logger.warning(f"[QAYD] select_proof_card REJECTED: wrong step {self.state['step']}")
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
         if not self._validate_card_in_history(card_data):
+            logger.warning(f"[QAYD] select_proof_card REJECTED: card not in history. card_data={card_data}")
             return {'success': False, 'error': 'Proof card not found in round history'}
 
         self._update({'proof_card': card_data, 'step': QaydStep.ADJUDICATION})
+        logger.info(f"[QAYD] select_proof_card → calling _adjudicate()")
         return self._adjudicate()
 
     def confirm(self) -> Dict[str, Any]:
@@ -372,31 +380,47 @@ class QaydEngine:
         trick_idx = card_data.get('trick_idx', -1)
         card_idx = card_data.get('card_idx', -1)
         player_pos = card_data.get('played_by')
+        
+        history_len = len(self.game.round_history)
+        table_len = len(self.game.table_cards)
+        logger.info(f"[QAYD] _validate_card_in_history: trick_idx={trick_idx}, card_idx={card_idx}, "
+                    f"played_by={player_pos}, history_len={history_len}, table_len={table_len}")
 
         # Case 1: Card in Hand (trick_idx == -1)
         if trick_idx == -1:
             if not player_pos:
+                logger.warning(f"[QAYD] Validation FAIL: trick_idx=-1 but no player_pos")
                 return False
             player = next((p for p in self.game.players if p.position == player_pos), None)
             if not player or not player.hand:
+                logger.warning(f"[QAYD] Validation FAIL: player {player_pos} not found or empty hand")
                 return False
-            return 0 <= card_idx < len(player.hand)
+            result = 0 <= card_idx < len(player.hand)
+            logger.info(f"[QAYD] Validation (hand): card_idx={card_idx}, hand_len={len(player.hand)}, result={result}")
+            return result
 
         # Case 2: Card currently on Table
-        if trick_idx == len(self.game.round_history):
-            return 0 <= card_idx < len(self.game.table_cards)
+        if trick_idx == history_len:
+            result = 0 <= card_idx < table_len
+            logger.info(f"[QAYD] Validation (table): card_idx={card_idx}, table_len={table_len}, result={result}")
+            return result
 
         # Case 3: Card in confirmed History
-        if 0 <= trick_idx < len(self.game.round_history):
+        if 0 <= trick_idx < history_len:
             trick = self.game.round_history[trick_idx]
             cards = trick.get('cards', [])
             if 0 <= card_idx < len(cards):
+                logger.info(f"[QAYD] Validation (history cards): OK. trick_idx={trick_idx}, card_idx={card_idx}, cards_len={len(cards)}")
                 return True
             played_by = trick.get('playedBy', [])
             if 0 <= card_idx < len(played_by):
+                logger.info(f"[QAYD] Validation (history playedBy): OK. trick_idx={trick_idx}, card_idx={card_idx}, played_by_len={len(played_by)}")
                 return True
+            logger.warning(f"[QAYD] Validation FAIL: trick_idx={trick_idx} in range but card_idx={card_idx} out of bounds. "
+                          f"cards_len={len(cards)}, playedBy_len={len(played_by)}")
             return False
 
+        logger.warning(f"[QAYD] Validation FAIL: trick_idx={trick_idx} out of range [0, {history_len})")
         return False
 
     def _calculate_penalty(self) -> int:

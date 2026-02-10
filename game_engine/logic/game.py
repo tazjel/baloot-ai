@@ -488,6 +488,7 @@ class Game(StateBridgeMixin):
             'turn_duration': self.turn_duration,
             'bidding_engine': self.bidding_engine.to_dict() if self.bidding_engine else None,
             'floor_card': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
+            'qayd_state': self.qayd_engine.state if self.qayd_engine else None,
         }
 
     @classmethod
@@ -559,6 +560,10 @@ class Game(StateBridgeMixin):
         game.project_manager = ProjectManager(game)
         game.challenge_phase = ChallengePhase(game)
         game.qayd_engine = QaydEngine(game)
+        # Restore qayd state from serialized data
+        saved_qayd = data.get('qayd_state')
+        if saved_qayd and saved_qayd.get('active'):
+            game.qayd_engine.state.update(saved_qayd)
         game.qayd_state = game.qayd_engine.state
 
         game.phases = {

@@ -73,6 +73,7 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
 
   // ─── Sync with server step ─────────────────────────────────────────────────
   useEffect(() => {
+    console.log('[QAYD-UI] Server step synced:', serverStep, '| verdict:', qaydState?.verdict);
     if (serverStep === 'RESULT' || serverStep === 'ADJUDICATION') {
       setStep('RESULT');
     }
@@ -155,12 +156,14 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
   const handleMenuSelect = (opt: MainMenuOption) => {
+    console.log('[QAYD-UI] Menu select:', opt);
     setMenuOption(opt);
     onAction('QAYD_MENU_SELECT', { option: opt });
     setStep('VIOLATION_SELECT');
   };
 
   const handleViolationSelect = (v: ViolationType) => {
+    console.log('[QAYD-UI] Violation select:', v);
     setViolation(v);
     onAction('QAYD_VIOLATION_SELECT', { violation_type: v });
     setStep('SELECT_CARD_1');
@@ -175,6 +178,7 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
     };
 
     if (step === 'SELECT_CARD_1') {
+      console.log('[QAYD-UI] Crime card selected:', { suit: card.suit, rank: card.rank, trickIdx, cardIdx, playedBy });
       setCrimeCard(sel);
       onAction('QAYD_SELECT_CRIME', {
         suit: card.suit, rank: card.rank,
@@ -182,6 +186,7 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
       });
       setStep('SELECT_CARD_2');
     } else if (step === 'SELECT_CARD_2') {
+      console.log('[QAYD-UI] Proof card selected:', { suit: card.suit, rank: card.rank, trickIdx, cardIdx, playedBy });
       setProofCard(sel);
       onAction('QAYD_SELECT_PROOF', {
         suit: card.suit, rank: card.rank,
