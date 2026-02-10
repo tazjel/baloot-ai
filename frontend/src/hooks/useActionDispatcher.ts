@@ -35,7 +35,7 @@ export const useActionDispatcher = ({
     // --- MAIN ACTION DISPATCHER ---
     const handlePlayerAction = (action: string, payload?: any) => {
         // Block duplicates except Qayd escape hatch
-        if (isSendingAction && action !== 'QAYD_CANCEL' && action !== 'QAYD_CONFIRM') return;
+        if (isSendingAction && !action.startsWith('QAYD')) return;
 
         // @ts-ignore - dynamic import for dev logger
         import('../utils/devLogger').then(({ devLogger }) => devLogger.log('HOOK', 'Player Action Triggered', { action, payload }));

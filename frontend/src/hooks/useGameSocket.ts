@@ -182,8 +182,8 @@ export const useGameSocket = (): UseGameSocketReturn => {
             return;
         }
 
-        // Block duplicate actions (except Qayd escape hatch)
-        if (isSendingAction && action !== 'QAYD_CANCEL' && action !== 'QAYD_CONFIRM') {
+        // Block duplicate actions (except all Qayd multi-step wizard actions)
+        if (isSendingAction && !action.startsWith('QAYD')) {
             console.warn("[useGameSocket] Action blocked - already sending");
             return;
         }
