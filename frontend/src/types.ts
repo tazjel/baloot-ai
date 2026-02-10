@@ -165,9 +165,11 @@ export interface DeclaredProject {
 
 
 
+export type QaydStep = 'IDLE' | 'MAIN_MENU' | 'VIOLATION_SELECT' | 'SELECT_CARD_1' | 'SELECT_CARD_2' | 'ADJUDICATION' | 'RESULT';
+
 export interface QaydState {
   active: boolean;
-  step?: string; // QaydStep: IDLE | MAIN_MENU | VIOLATION_SELECT | SELECT_CARD_1 | SELECT_CARD_2 | ADJUDICATION | RESULT
+  step?: QaydStep;
   reporter: PlayerPosition | null;
   reporter_is_bot?: boolean;
   menu_option?: string | null;
