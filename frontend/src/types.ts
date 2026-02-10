@@ -203,7 +203,13 @@ export interface GameState {
   roundHistory: RoundResult[];
 
   // Scored Tricks History
-  currentRoundTricks?: { cards: CardModel[] }[];
+  currentRoundTricks?: {
+    cards: (CardModel | { card: CardModel; playedBy: string })[];
+    playedBy?: string[];
+    winner?: string;
+    points?: number;
+    metadata?: any;
+  }[];
 
   floorCard: CardModel | null;
   deck: CardModel[];

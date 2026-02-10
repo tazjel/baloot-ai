@@ -209,7 +209,7 @@ export const useGameSocket = (): UseGameSocketReturn => {
             socketService.sendAction(roomId, 'SAWA_RESPONSE', payload, wrappedCallback);
         } else if (action === 'NEXT_ROUND') {
             socketService.sendAction(roomId, 'NEXT_ROUND', {}, wrappedCallback);
-        } else if (action === 'QAYD' || action === 'QAYD_TRIGGER' || action === 'QAYD_ACCUSATION' || action === 'QAYD_CANCEL' || action === 'QAYD_CONFIRM') {
+        } else if (action.startsWith('QAYD')) {
             socketService.sendAction(roomId, action, payload, wrappedCallback);
         } else if (action === 'DOUBLE') {
             console.warn("[useGameSocket] Doubling not fully implemented in Python yet.");
