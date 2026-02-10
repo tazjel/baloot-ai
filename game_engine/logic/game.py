@@ -450,6 +450,87 @@ class Game(StateBridgeMixin):
         self.handle_qayd_cancel()
         return {'success': True, 'action': 'ZOMBIE_REPAIR'}
 
+    # === JSON SERIALIZATION (replaces pickle) ===
+
+    def to_json(self) -> dict:
+        """Serialize the full game to a JSON-safe dict."""
+        player_dicts = []
+        for p in self.players:
+            player_dicts.append({
+                'id': p.id, 'name': p.name,
+                'index': p.index, 'avatar': getattr(p, 'avatar', None),
+            })
+
+        tc_dicts = []
+        for tc in self.table_cards:
+            card = tc.get('card') or tc
+            if hasattr(card, 'suit'):
+                card = {'suit': card.suit, 'rank': card.rank}
+            tc_dicts.append({'card': card, 'playedBy': tc.get('playedBy')})
+
+        return {
+            '_version': 2,
+            'state': self.state.model_dump(mode='json'),
+            'players': player_dicts,
+            'table_cards': tc_dicts,
+            'timer_paused': self.timer_paused,
+            'turn_duration': self.turn_duration,
+        }
+
+    @classmethod
+    def from_json(cls, data: dict) -> 'Game':
+        """Reconstruct a full Game object from a JSON dict."""
+        state_data = data['state']
+
+        game = cls.__new__(cls)
+        game.state = GameState(**state_data)
+        game._floor_card_obj = None
+        game.deck = Deck()
+
+        game.table_cards = []
+        for tc in data.get('table_cards', []):
+            card_d = tc.get('card', tc)
+            from game_engine.models.card import Card as CardModel
+            game.table_cards.append({
+                'card': CardModel(card_d['suit'], card_d['rank']),
+                'playedBy': tc.get('playedBy'),
+            })
+
+        game.timer = TimerManager(5)
+        game.timer_paused = data.get('timer_paused', False)
+        game.turn_duration = data.get('turn_duration', 30)
+        game.bidding_engine = None
+
+        game.players = []
+        for pd in data.get('players', []):
+            p = Player(pd['id'], pd['name'], pd['index'], game, avatar=pd.get('avatar'))
+            game.players.append(p)
+
+        game.graveyard = Graveyard()
+        game.trick_manager = TrickManager(game)
+        game.scoring_engine = ScoringEngine(game)
+        game.project_manager = ProjectManager(game)
+        game.challenge_phase = ChallengePhase(game)
+        game.qayd_engine = QaydEngine(game)
+        game.qayd_state = game.qayd_engine.state
+
+        game.phases = {
+            GamePhase.BIDDING.value:   BiddingLogic(game),
+            GamePhase.PLAYING.value:   PlayingLogic(game),
+            GamePhase.CHALLENGE.value: game.challenge_phase,
+        }
+
+        try:
+            from server.common import redis_client
+            from game_engine.core.recorder import TimelineRecorder
+            game.recorder = TimelineRecorder(redis_client)
+        except Exception:
+            game.recorder = None
+
+        return game
+
+    # --- Legacy pickle hooks (kept during transition) ---
+
     def __getstate__(self):
         s = self.__dict__.copy()
         for k in ('_sherlock_lock', 'timer_manager', 'recorder'): s.pop(k, None)

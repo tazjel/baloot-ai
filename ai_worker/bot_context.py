@@ -9,8 +9,14 @@ class BotContext:
         self.raw_state = game_state
         self.player_index = player_index
         self.personality = personality
-        
-        # Parse Player
+
+        self._parse_player(game_state, player_index)
+        self._parse_game_info(game_state)
+        self._parse_table(game_state)
+        self._build_memory(game_state)
+
+    def _parse_player(self, game_state: dict, player_index: int):
+        """Extract player identity, hand, and team from game state."""
         p_data = game_state['players'][player_index]
         self.hand = [Card(c['suit'], c['rank']) for c in p_data['hand']]
         self.position = p_data.get('position', 'Unknown')
@@ -18,84 +24,81 @@ class BotContext:
         self.team = p_data.get('team', 'Unknown')
         self.avatar = p_data.get('avatar', 'bot_1')
 
-        
-        # Parse Game Info
+    def _parse_game_info(self, game_state: dict):
+        """Extract phase, mode, trump, scores, and derived flags."""
         self.phase = game_state.get('phase')
         self.mode = game_state.get('gameMode')
         self.trump = game_state.get('trumpSuit')
         self.dealer_index = game_state.get('dealerIndex', 0)
         self.bidding_round = game_state.get('biddingRound', 1)
-        self.floor_card = None
-        if game_state.get('floorCard'):
-             fc = game_state['floorCard']
-             self.floor_card = Card(fc['suit'], fc['rank'])
-             
-        # Parse Table
-        self.table_cards = []
-        for tc in game_state.get('tableCards', []):
-             c = tc['card']
-             self.table_cards.append({
-                  'card': Card(c['suit'], c['rank']),
-                  'playedBy': tc['playedBy']
-             })
-             
-        # Derived
         self.is_dealer = (self.player_index == self.dealer_index)
         self.akka_state = game_state.get('akkaState', None)
-        
+
+        self.floor_card = None
+        if game_state.get('floorCard'):
+            fc = game_state['floorCard']
+            self.floor_card = Card(fc['suit'], fc['rank'])
+
         # Score-Aware Tactics
         team_scores = game_state.get('teamScores', {'us': 0, 'them': 0})
         match_scores = game_state.get('matchScores', {'us': 0, 'them': 0})
         self.our_score = team_scores.get('us', 0)
         self.their_score = team_scores.get('them', 0)
-        self.score_differential = self.our_score - self.their_score  # Positive = we're ahead
+        self.score_differential = self.our_score - self.their_score
         self.match_differential = match_scores.get('us', 0) - match_scores.get('them', 0)
-        self.is_desperate = self.score_differential < -50  # Behind badly, play aggressive
-        self.is_protecting = self.score_differential > 100  # Big lead, play safe
-        
-        # Core Components
-        from ai_worker.memory import CardMemory
-        from ai_worker.mind_client import mind_client
-        self.memory = CardMemory()
-        self.memory.populate_from_state(self.raw_state)
-        self.mind = mind_client # Use singleton
-        
-        # Play State
-        self.played_cards = self.memory.played_cards # Delegate to robust memory
-        # ... table_cards parsing remains for immediate context ...
-             
+        self.is_desperate = self.score_differential < -50
+        self.is_protecting = self.score_differential > 100
+
+    def _parse_table(self, game_state: dict):
+        """Parse table cards, determine lead suit, and find current trick winner."""
+        self.table_cards = []
+        for tc in game_state.get('tableCards', []):
+            c = tc['card']
+            self.table_cards.append({
+                'card': Card(c['suit'], c['rank']),
+                'playedBy': tc['playedBy']
+            })
+
         self.lead_suit = None
         self.lead_card = None
         self.winning_card = None
         self.winner_pos = None
-        
+
         if self.table_cards:
-             self.lead_card = self.table_cards[0]['card']
-             self.lead_suit = self.lead_card.suit
-             
-             # Determine current winner
-             best_idx = 0
-             best_card = self.lead_card
-             for i, tc in enumerate(self.table_cards):
-                  c = tc['card']
-                  beats = False
-                  # Simple beat check
-                  if self.mode == 'HOKUM':
-                       if c.suit == self.trump and best_card.suit != self.trump: beats = True
-                       elif c.suit == self.trump and best_card.suit == self.trump:
-                            beats = self._compare_ranks(c.rank, best_card.rank, 'HOKUM')
-                       elif c.suit == self.lead_suit and best_card.suit == self.lead_suit:
-                            beats = self._compare_ranks(c.rank, best_card.rank, 'SUN')
-                  else: # SUN
-                       if c.suit == self.lead_suit:
-                            beats = self._compare_ranks(c.rank, best_card.rank, 'SUN')
-                            
-                  if beats:
-                       best_card = c
-                       best_idx = i
-             
-             self.winning_card = best_card
-             self.winner_pos = self.table_cards[best_idx]['playedBy']
+            self.lead_card = self.table_cards[0]['card']
+            self.lead_suit = self.lead_card.suit
+
+            # Determine current winner
+            best_idx = 0
+            best_card = self.lead_card
+            for i, tc in enumerate(self.table_cards):
+                c = tc['card']
+                beats = False
+                if self.mode == 'HOKUM':
+                    if c.suit == self.trump and best_card.suit != self.trump: beats = True
+                    elif c.suit == self.trump and best_card.suit == self.trump:
+                        beats = self._compare_ranks(c.rank, best_card.rank, 'HOKUM')
+                    elif c.suit == self.lead_suit and best_card.suit == self.lead_suit:
+                        beats = self._compare_ranks(c.rank, best_card.rank, 'SUN')
+                else:  # SUN
+                    if c.suit == self.lead_suit:
+                        beats = self._compare_ranks(c.rank, best_card.rank, 'SUN')
+
+                if beats:
+                    best_card = c
+                    best_idx = i
+
+            self.winning_card = best_card
+            self.winner_pos = self.table_cards[best_idx]['playedBy']
+
+    def _build_memory(self, game_state: dict):
+        """Initialize card memory and populate from game history."""
+        from ai_worker.memory import CardMemory
+        from ai_worker.mind_client import mind_client
+        self.memory = CardMemory()
+        self.memory.populate_from_state(self.raw_state)
+        self.mind = mind_client
+        self.played_cards = self.memory.played_cards
 
     @property
     def bidding_phase(self) -> BiddingPhase:
@@ -139,14 +142,6 @@ class BotContext:
         # But memory stores by Position Name/Ref?
         # populate_from_state handles this.
         return self.memory.is_void(position, suit)
-        
-    def get_legal_moves(self):
-        """
-        Returns a list of indices of legal cards to play from hand.
-        Uses shared validation logic.
-        """
-        from game_engine.logic.validation import is_move_legal
-        
         
     @functools.cached_property
     def players_team_map(self) -> dict[str, str]:

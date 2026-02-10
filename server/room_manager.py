@@ -13,8 +13,6 @@ class RoomManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(RoomManager, cls).__new__(cls)
-            # Memory cache for very hot access (optional, but good for performance)
-            # key: room_id, value: { 'game': Game, 'timestamp': time }
             cls._instance._local_cache = {} 
         return cls._instance
 
@@ -26,7 +24,6 @@ class RoomManager:
         return room_id
 
     def get_game(self, room_id):
-        # PID used for process isolation tracking
         pid = os.getpid()
         if not room_id: return None
         
@@ -36,15 +33,13 @@ class RoomManager:
                 data = redis_store.get(f"game:{room_id}")
                 if data:
                     g = pickle.loads(data)
-                    # Sync local cache just in case, but Redis is truth
                     if self._instance: 
                         self._instance._local_cache[room_id] = g
                     return g
         except Exception as e:
             logger.error(f"[PID:{pid}] Redis GET Error {room_id}: {e}")
         
-        # 2. Fallback to Local Memory (Only if Redis fails or is missing)
-        # In a generic/stateless fleet, this will likely be a MISS, which is correct.
+        # 2. Fallback to Local Memory
         local = self._local_cache.get(room_id)
         if local:
              logger.warning(f"[PID:{pid}] Serving Local Stale Game {room_id} (Redis Miss)")
@@ -54,19 +49,15 @@ class RoomManager:
         pid = os.getpid()
         if not game: return
         try:
-            # Update Local Cache (ALWAYS)
             self._local_cache[game.room_id] = game
-            logger.info(f"[PID:{pid}] Local SAVE {game.room_id}")
             
             if redis_store:
-                # 1 Hour Expiry for active games
                 redis_store.setex(f"game:{game.room_id}", 3600, pickle.dumps(game))
                 logger.info(f"[PID:{pid}] Redis SAVE {game.room_id} -> OK")
             else:
                 logger.info(f"[PID:{pid}] Redis SAVE {game.room_id} -> SKIPPED (No RedisStore)")
         except Exception as e:
             logger.error(f"[PID:{pid}] Error saving game {game.room_id} to Redis: {e}")
-            pass
 
     def remove_room(self, room_id):
         if room_id in self._local_cache:
@@ -84,26 +75,24 @@ class RoomManager:
             keys = redis_store.keys("game:*")
             if keys:
                 redis_store.delete(*keys)
-                logger.warning(f"🧹 CLEARED {len(keys)} Zombie Games from Redis.")
+                logger.warning(f"CLEARED {len(keys)} Zombie Games from Redis.")
         except Exception as e:
             logger.error(f"Failed to clear Redis games: {e}")
         
     @property
     def games(self):
-        # Compatibility property for code iterating directly over .games
-        # Warning: This iterates ALL keys in Redis, which is slow.
-        # Should be avoided in high-performance paths.
         all_games = {}
         if not redis_store: return self._local_cache
         
         try:
             keys = redis_store.keys("game:*")
             for k in keys:
-                rid = k.decode('utf-8').split(":")[-1] # Decode key manually since client is binary
+                rid = k.decode('utf-8').split(":")[-1]
                 game = self.get_game(rid)
                 if game: all_games[rid] = game
             return all_games
-        except:
+        except Exception as e:
+             logger.error(f"Error listing Redis games: {e}")
              return self._local_cache
 
 # Global instance

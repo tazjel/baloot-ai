@@ -25,7 +25,7 @@ class SunStrategy(StrategyComponent):
             return None
 
         bidder_pos = bid.get('bidder')
-        partner_pos = self._get_partner_pos(ctx.player_index)
+        partner_pos = self.get_partner_pos(ctx.player_index)
 
         if bidder_pos != partner_pos:
             return None  # We only signal for partner's Ashkal
@@ -80,7 +80,7 @@ class SunStrategy(StrategyComponent):
 
     def _get_sun_lead(self, ctx: BotContext):
         # DEFENSIVE LEAD: When opponents won the bid, play defensively
-        bidder_team = 'us' if ctx.bid_winner in [ctx.position, self._get_partner_pos(ctx.player_index)] else 'them'
+        bidder_team = 'us' if ctx.bid_winner in [ctx.position, self.get_partner_pos(ctx.player_index)] else 'them'
         if bidder_team == 'them':
             defensive = self._get_defensive_lead_sun(ctx)
             if defensive:
@@ -226,9 +226,9 @@ class SunStrategy(StrategyComponent):
 
         follows = [i for i, c in enumerate(ctx.hand) if c.suit == lead_suit]
         if not follows:
-            return self._get_trash_card(ctx)
+            return self.get_trash_card(ctx)
 
-        partner_pos = self._get_partner_pos(ctx.player_index)
+        partner_pos = self.get_partner_pos(ctx.player_index)
         is_partner_winning = (winner_pos == partner_pos)
         
         # SEAT-AWARE POSITIONAL PLAY
@@ -256,10 +256,10 @@ class SunStrategy(StrategyComponent):
                     safe_feeds.append(idx)
 
             if safe_feeds:
-                best_idx = self._find_highest_point_card_sun(ctx, safe_feeds)
+                best_idx = self.find_highest_point_card(ctx, safe_feeds, POINT_VALUES_SUN)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Partner winning - Safe Feed"}
             else:
-                best_idx = self._find_lowest_rank_card_sun(ctx, overtaking_feeds)
+                best_idx = self.find_lowest_rank_card(ctx, overtaking_feeds, ORDER_SUN)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Overtaking Partner (Forced)"}
         else:
             winners = []
@@ -271,134 +271,37 @@ class SunStrategy(StrategyComponent):
             if winners:
                 if seat == 4:
                     # 4TH SEAT: Guaranteed win — finesse with lowest winner
-                    best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                    best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
                     return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat Finesse"}
                 elif seat == 3:
                     # 3RD SEAT: Partner already played, one opponent left.
                     # Play aggressively — use strongest winner to survive the last player
                     if trick_points >= 10:
                         # High-value trick — secure it with a strong card
-                        best_idx = self._find_best_winner_sun(ctx, winners)
+                        best_idx = self.find_best_winner(ctx, winners, ORDER_SUN)
                         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Securing High-Value Trick"}
                     else:
-                        best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                        best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
                         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Economy Win"}
                 else:
                     # 2ND SEAT: Be conservative — partner hasn't played yet.
                     # Only commit if we have the master (guaranteed win)
                     master_winners = [i for i in winners if ctx.is_master_card(ctx.hand[i])]
                     if master_winners:
-                        best_idx = self._find_lowest_rank_card_sun(ctx, master_winners)
+                        best_idx = self.find_lowest_rank_card(ctx, master_winners, ORDER_SUN)
                         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Playing Master"}
                     elif trick_points >= 15:
                         # High stakes — worth committing
-                        best_idx = self._find_lowest_rank_card_sun(ctx, winners)
+                        best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
                         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: High-Stakes Commit"}
                     else:
                         # Low stakes, duck and let partner handle it
-                        best_idx = self._find_lowest_point_card_sun(ctx, follows)
+                        best_idx = self.find_lowest_point_card(ctx, follows, POINT_VALUES_SUN)
                         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Ducking for Partner"}
             else:
                 # Can't win — POINT PROTECTION
-                best_idx = self._find_lowest_point_card_sun(ctx, follows)
+                best_idx = self.find_lowest_point_card(ctx, follows, POINT_VALUES_SUN)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Ducking (Point Protection)"}
-
-    # --- Heuristic Helpers ---
-
-    def _find_highest_point_card_sun(self, ctx, indices):
-        best_i = indices[0]
-        best_pts = -1
-        for i in indices:
-            rank = ctx.hand[i].rank
-            pts = POINT_VALUES_SUN.get(rank, 0)
-            if pts > best_pts:
-                best_pts = pts
-                best_i = i
-        return best_i
-
-    def _find_best_winner_sun(self, ctx, indices):
-        best_i = indices[0]
-        best_strength = -1
-        for i in indices:
-            strength = ORDER_SUN.index(ctx.hand[i].rank)
-            if strength > best_strength:
-                best_strength = strength
-                best_i = i
-        return best_i
-
-    def _find_lowest_rank_card_sun(self, ctx, indices):
-        best_i = indices[0]
-        min_strength = 999
-        for i in indices:
-            strength = ORDER_SUN.index(ctx.hand[i].rank)
-            if strength < min_strength:
-                min_strength = strength
-                best_i = i
-        return best_i
-
-    def _find_lowest_point_card_sun(self, ctx, indices):
-        """Find card with lowest point value — protects 10s and Aces when ducking."""
-        best_i = indices[0]
-        min_pts = 999
-        for i in indices:
-            rank = ctx.hand[i].rank
-            pts = POINT_VALUES_SUN.get(rank, 0)
-            if pts < min_pts:
-                min_pts = pts
-                best_i = i
-        return best_i
-
-    def _get_trash_card(self, ctx):
-        """Smart Trash Selection with Collaborative Signaling."""
-        from ai_worker.signals.manager import SignalManager
-        from game_engine.models.constants import SUITS
-
-        signal_mgr = SignalManager()
-        trump = ctx.trump if ctx.mode == 'HOKUM' else None
-
-        for s in SUITS:
-            if s == trump: continue
-
-            if signal_mgr.should_signal_encourage(ctx.hand, s, ctx.mode):
-                sig_card = signal_mgr.get_discard_signal_card(ctx.hand, s, ctx.mode)
-
-                if sig_card:
-                    for i, c in enumerate(ctx.hand):
-                        if c.suit == sig_card.suit and c.rank == sig_card.rank:
-                            return {
-                                "action": "PLAY",
-                                "cardIndex": i,
-                                "reasoning": f"Collaborative Signal: Encourage {s} (Discarding {c.rank})"
-                            }
-
-        # Fallback: Standard Trash Logic
-        best_idx = 0
-        min_value = 1000
-
-        for i, c in enumerate(ctx.hand):
-            score = 0
-
-            if c.rank == 'A': score += 20
-            elif c.rank == '10': score += 15
-            elif c.rank == 'K': score += 10
-            elif c.rank == 'Q': score += 5
-            elif c.rank == 'J': score += 2
-            elif c.rank == '9': score += 1
-            else: score += 0
-
-            if ctx.mode == 'HOKUM':
-                if c.suit == trump:
-                    score += 50
-                    if c.rank == 'J': score += 100
-                    if c.rank == '9': score += 80
-
-            if ctx.is_master_card(c): score += 30
-
-            if score < min_value:
-                min_value = score
-                best_idx = i
-
-        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Smart Trash"}
 
     def _check_partner_signals(self, ctx: BotContext):
         """Scans previous tricks to see if partner sent a signal."""
@@ -408,7 +311,7 @@ class SunStrategy(StrategyComponent):
         tricks = ctx.raw_state.get('currentRoundTricks', [])
         if not tricks: return None
 
-        partner_pos = self._get_partner_pos(ctx.player_index)
+        partner_pos = self.get_partner_pos(ctx.player_index)
         signal_mgr = SignalManager()
 
         last_trick = tricks[-1]
@@ -473,11 +376,3 @@ class SunStrategy(StrategyComponent):
                 return {'suits': target_suits, 'type': 'PREFER_OPPOSITE'}
 
         return None
-
-    # --- Shared Helpers ---
-
-    @staticmethod
-    def _get_partner_pos(my_idx):
-        partner_idx = (my_idx + 2) % 4
-        positions = ['Bottom', 'Right', 'Top', 'Left']
-        return positions[partner_idx]

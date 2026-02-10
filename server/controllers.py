@@ -12,21 +12,12 @@ logger = logging.getLogger(__name__)
 # --- Re-export all endpoint functions for backward compatibility ---
 from server.routes.auth import user, signup, signin, token_required
 from server.routes.game import save_score, leaderboard, health_check, catch_all_v2
-from server.routes.ai_studio import (
-    analyze_screenshot, ask_strategy, generate_scenario,
-    analyze_match, get_ai_thoughts, get_mind_inference
-)
 from server.routes.brain import (
     get_training_data, submit_training,
     get_brain_memory, delete_brain_memory
 )
 from server.routes.puzzles import get_puzzles, get_puzzle_detail
 from server.routes.qayd import confirm_qayd, handle_qayd_trigger, update_director_config
-from server.routes.visionary import (
-    visionary_ingest, get_dataset_image,
-    get_next_verification, submit_verification
-)
-from server.routes.replay import get_match_history
 
 
 # --- Explicit Binding for Custom Runner ---
@@ -70,20 +61,14 @@ def bind(app):
     # 2. Delegate to sub-module bind functions
     from server.routes.auth import bind_auth
     from server.routes.game import bind_game
-    from server.routes.ai_studio import bind_ai_studio
     from server.routes.brain import bind_brain
     from server.routes.puzzles import bind_puzzles
     from server.routes.qayd import bind_qayd
-    from server.routes.visionary import bind_visionary
-    from server.routes.replay import bind_replay
 
     bind_auth(safe_mount)
     bind_brain(safe_mount)
-    bind_ai_studio(safe_mount)
     bind_puzzles(safe_mount)
     bind_qayd(safe_mount)
-    bind_visionary(safe_mount)
-    bind_replay(safe_mount)
     bind_game(safe_mount)  # Must be last (catch-all route)
 
     setattr(app, '_main_controllers_bound', True)

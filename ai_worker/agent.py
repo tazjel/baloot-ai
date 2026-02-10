@@ -13,7 +13,6 @@ from ai_worker.memory import CardMemory
 
 # Core Architecture Modules
 from ai_worker.brain_client import BrainClient
-from ai_worker.referee_observer import RefereeObserver
 
 # Logging
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -38,7 +37,7 @@ class BotAgent:
 
         # Core Components
         self.brain = BrainClient()
-        self.referee = RefereeObserver()
+
         
     def get_decision(self, game_state, player_index):
         try:
@@ -76,10 +75,7 @@ class BotAgent:
              # Use Typed Context
              ctx = BotContext(game_state, player_index, personality=profile)
 
-             # 1. REFEREE: Check Mandatory Rules (Sawa/Qayd)
-             # 1.1 Sawa Response
-             if sawa_resp := self.referee.check_sawa(ctx, game_state):
-                  return sawa_resp
+             # 1. Sawa check handled by PlayingStrategy.project_logic
              
              # 1.2 Detect Human Lies (Project Blunders)
              # If server flagged an invalid project in the previous turn/event log (hypothetically)

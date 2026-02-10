@@ -1,11 +1,14 @@
 
 import os
 import sys
+import logging
 import socketio
 from py4web.core import bottle
 from server.socket_handler import sio, timer_background_task
 from server.room_manager import room_manager
 from server.core_patch import apply_py4web_patches
+
+logger = logging.getLogger(__name__)
 
 def create_app():
     """
@@ -22,15 +25,13 @@ def create_app():
     try:
         room_manager.clear_all_games()
     except Exception as e:
-        print(f"Warning: Failed to clear games: {e}")
+        logger.warning(f"Failed to clear games: {e}")
 
     # 3. Import Controllers (Register Routes)
     # Patches must be applied BEFORE imports
     try:
         import server.models # Ensure tables are defined
-        import server.controllers 
-        import server.academy_controllers
-        import server.controllers_replay
+        import server.controllers
         
     except Exception as e:
         with open("logs/routes_dump.txt", "a") as f:
@@ -43,7 +44,6 @@ def create_app():
     wsgi_app = bottle.default_app()
     
     # 5. Explicit Binding (Idempotent)
-    server.controllers_replay.bind(wsgi_app)
     server.controllers.bind(wsgi_app)
     
     # 6. SocketIO Setup
