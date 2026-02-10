@@ -557,6 +557,9 @@ class Game(StateBridgeMixin):
         game.deck.cards = [c for c in game.deck.cards if c.id not in dealt_ids]
 
         game.graveyard = Graveyard()
+        # Rebuild graveyard from round_history + table_cards so O(1) lookups work
+        for trick in game.round_history:
+            game.graveyard.commit_trick(trick.get('cards', []))
         game.trick_manager = TrickManager(game)
         game.scoring_engine = ScoringEngine(game)
         game.project_manager = ProjectManager(game)
