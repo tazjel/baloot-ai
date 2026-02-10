@@ -383,7 +383,7 @@ class QaydEngine:
         
         history_len = len(self.game.round_history)
         table_len = len(self.game.table_cards)
-        logger.info(f"[QAYD] _validate_card_in_history: trick_idx={trick_idx}, card_idx={card_idx}, "
+        logger.debug(f"[QAYD] _validate_card_in_history: trick_idx={trick_idx}, card_idx={card_idx}, "
                     f"played_by={player_pos}, history_len={history_len}, table_len={table_len}")
 
         # Case 1: Card in Hand (trick_idx == -1)
@@ -396,13 +396,13 @@ class QaydEngine:
                 logger.warning(f"[QAYD] Validation FAIL: player {player_pos} not found or empty hand")
                 return False
             result = 0 <= card_idx < len(player.hand)
-            logger.info(f"[QAYD] Validation (hand): card_idx={card_idx}, hand_len={len(player.hand)}, result={result}")
+            logger.debug(f"[QAYD] Validation (hand): card_idx={card_idx}, hand_len={len(player.hand)}, result={result}")
             return result
 
         # Case 2: Card currently on Table
         if trick_idx == history_len:
             result = 0 <= card_idx < table_len
-            logger.info(f"[QAYD] Validation (table): card_idx={card_idx}, table_len={table_len}, result={result}")
+            logger.debug(f"[QAYD] Validation (table): card_idx={card_idx}, table_len={table_len}, result={result}")
             return result
 
         # Case 3: Card in confirmed History
@@ -410,11 +410,11 @@ class QaydEngine:
             trick = self.game.round_history[trick_idx]
             cards = trick.get('cards', [])
             if 0 <= card_idx < len(cards):
-                logger.info(f"[QAYD] Validation (history cards): OK. trick_idx={trick_idx}, card_idx={card_idx}, cards_len={len(cards)}")
+                logger.debug(f"[QAYD] Validation (history cards): OK. trick_idx={trick_idx}, card_idx={card_idx}")
                 return True
             played_by = trick.get('playedBy', [])
             if 0 <= card_idx < len(played_by):
-                logger.info(f"[QAYD] Validation (history playedBy): OK. trick_idx={trick_idx}, card_idx={card_idx}, played_by_len={len(played_by)}")
+                logger.debug(f"[QAYD] Validation (history playedBy): OK. trick_idx={trick_idx}, card_idx={card_idx}")
                 return True
             logger.warning(f"[QAYD] Validation FAIL: trick_idx={trick_idx} in range but card_idx={card_idx} out of bounds. "
                           f"cards_len={len(cards)}, playedBy_len={len(played_by)}")
