@@ -1,86 +1,240 @@
-# Next Session: Consolidate State Ownership (Architectural Refactor)
+# Next Session Missions — Detailed Task Plans
 
-## The Problem
+> **Generated**: 2026-02-12 | **Recommended Order**: Mission 5 → 1 → 2 → 3 → 4
 
-Akka and Sawa state currently exists in **three places simultaneously**, which is the root cause of repeated serialization bugs:
+---
 
-```
-1. GameState (Pydantic model)    → game.state.akkaState / game.state.sawaState
-2. Manager objects               → ProjectManager.akka_state / TrickManager.sawa_state
-3. Game class (via StateBridge)   → game.akka_state / game.sawa_state (property aliases)
-```
+## Mission 1: "The Architect" — State Consolidation Refactor
+> Eliminate the triple-ownership bug factory (~2 hours)
 
-The bridge (layer 3) syncs layers 1↔3, but **layer 2 (managers) maintains its own copy**. When a manager updates its local dict, the Pydantic model doesn't know. The `to_json`/`from_json` methods must then manually shuttle data between all three — and every new feature risks forgetting a layer.
+### Problem
+Akka/Sawa state lives in 3 places: `GameState` (Pydantic), Manager objects (local dicts), and `StateBridge` (property aliases). This causes serialization bugs when layers go out of sync.
 
-## The Goal
+### Tasks
 
-Make managers read/write directly from `game.state.akkaState` and `game.state.sawaState` instead of maintaining their own copies. This eliminates the manual sync in `to_json`/`from_json`.
+- [ ] **Phase 1: SawaState Migration** (simpler, do first)
+  - [ ] In `trick_manager.py`: replace all `self.sawa_state[...]` dict access with `self.game.state.sawaState.field` attribute access
+  - [ ] Replace `self.sawa_state.update({...})` with individual field assignments
+  - [ ] Replace `self.sawa_state.clear()` with `self.game.state.sawaState = SawaState()`
+  - [ ] Run tests: `python -m pytest tests/ -v --tb=short`
 
-## Key Files to Modify
+- [ ] **Phase 2: AkkaState Migration**
+  - [ ] In `project_manager.py`: replace `self.akka_state[...]` with `self.game.state.akkaState.field`
+  - [ ] Verify `AkkaState` Pydantic model has all fields used by ProjectManager
+  - [ ] Run tests again
 
-### 1. `game_engine/logic/project_manager.py` (Akka)
-- **Line ~15**: `self.akka_state = {...}` initializes a LOCAL dict
-- **Lines throughout**: reads/writes `self.akka_state`
-- **Goal**: Replace `self.akka_state` with `self.game.state.akkaState` (a Pydantic `AkkaState` model)
-- **Watch out**: `AkkaState` is a Pydantic model (not a plain dict). You'll need to use attribute access (`state.akkaState.active`) not dict access (`state['active']`).
+- [ ] **Phase 3: Cleanup**
+  - [ ] In `game.py:to_json()` — remove manual akka/sawa serialization (Pydantic handles it)
+  - [ ] In `game.py:from_json()` — remove manual akka/sawa restoration
+  - [ ] Simplify `StateBridge` properties
+  - [ ] Run full suite + E2E: `python scripts/verification/verify_game_flow.py`
 
-### 2. `game_engine/logic/trick_manager.py` (Sawa)
-- **Line ~10**: `self.sawa_state = {...}` initializes a LOCAL dict
-- **Lines 165-282**: `handle_sawa()` reads/writes `self.sawa_state` extensively
-- **Goal**: Replace `self.sawa_state` with `self.game.state.sawaState`
-- **SawaState** is also a Pydantic model.
+### Key Files
+| File | Change |
+|------|--------|
+| `game_engine/logic/trick_manager.py` | Dict→attribute access for sawa |
+| `game_engine/logic/project_manager.py` | Dict→attribute access for akka |
+| `game_engine/logic/game.py` | Remove manual sync in to_json/from_json |
+| `game_engine/logic/state_bridge.py` | Simplify property aliases |
+| `game_engine/core/state.py` | Verify Pydantic models have all fields |
 
-### 3. `game_engine/core/state.py` (Pydantic models)  
-- **`AkkaState`** (around line 80-90): Has fields like `active`, `claimer`, `claimerIndex`, `suits`, `timestamp`
-- **`SawaState`** (around line 60-75): Has fields like `active`, `claimer`, `claimer_index`, `status`, `valid`, `challenge_active`, `cards_left`
-- **Check these model definitions** match all the fields that ProjectManager and TrickManager currently use. If a field is missing from the Pydantic model, add it.
-
-### 4. `game_engine/logic/state_bridge.py` (Property aliases)
-- **Lines 206-296**: Contains `@property` aliases like `game.akka_state` and `game.sawa_state`
-- After the refactor, these can be simplified to just return `self.state.akkaState` / `self.state.sawaState` directly (they may already do this — verify)
-
-### 5. `game_engine/logic/game.py` (Serialization)
-- **`to_json()` (~line 489)**: Currently manually adds `akka_state` and `sawa_state` to the JSON output
-- **`from_json()` (~line 565-588)**: Currently manually restores these states
-- **After refactor**: These lines become UNNECESSARY because `state.model_dump()` already serializes `akkaState`/`sawaState` automatically. You can delete them.
-
-## Gotchas & Risks
-
-1. **Dict vs Pydantic model**: TrickManager does `self.sawa_state.update({...})` and `self.sawa_state.clear()` — these won't work on a Pydantic model. Replace with attribute assignment: `self.game.state.sawaState.active = True` etc.
-
-2. **`sawa_state['status']` dict access**: Many places use dict-style access. Must change to attribute access.
-
-3. **`reset_round()` in GameState** (line ~195): Already resets `sawaState = SawaState()` and `akkaState = AkkaState()`. Verify managers don't hold stale references after reset.
-
-4. **Reference identity**: Currently `game.akka_state` is the same Python dict object as `project_manager.akka_state`. After refactor, if you change the Pydantic model to a new instance (e.g., `state.akkaState = AkkaState()`), the manager's reference breaks. The manager must always go through `self.game.state.akkaState`, never cache a local reference.
-
-5. **Qayd state** (`qayd_engine.state`): Has the same triple-ownership pattern but is already working. Consider consolidating it too, or leave for a separate PR.
-
-## Testing Strategy
-
-1. **Run existing round-trip tests FIRST**: `python scripts/verification/run_serialization_guard.py` (37 tests, <1s). These MUST still pass.
-2. **Run full test suite**: `python -m pytest tests/game_logic/ -v --tb=short` (75 tests). Zero regressions.
-3. **Run E2E verification**: `python scripts/verification/verify_game_flow.py` with the server running (`python server/main.py`).
-4. **Key tests to watch**:
-   - `TestAkkaRoundTrip` (4 tests) — validates Akka survives serialization
-   - `TestSawaRoundTrip` (4 tests) — validates Sawa survives serialization
-   - `test_sawa_flow` in test_game_logic.py — validates live Sawa claim
-
-## Suggested Order of Operations
-
-1. Start with **SawaState** (simpler, fewer fields)
-2. Make TrickManager use `self.game.state.sawaState` everywhere
-3. Run tests → fix breakages
-4. Then do **AkkaState** in ProjectManager
-5. Run tests again
-6. Clean up `to_json`/`from_json` — remove manual akka/sawa serialization
-7. Run full suite + E2E
-8. Optionally simplify StateBridge properties
-
-## Current Test Baseline
-
-```
-75 passed, 0 failed, 8 warnings
+### Verification
+```bash
+python -m pytest tests/ -v --tb=short    # 75 tests, 0 failures
+python scripts/verification/run_serialization_guard.py  # 37 round-trip tests
+python scripts/verification/verify_game_flow.py         # E2E with server
 ```
 
-Any regression from this number means the refactor broke something.
+### Gotchas
+- Never cache a local reference to `game.state.akkaState` — always go through `self.game.state`
+- `sawa_state.update()` and `.clear()` don't work on Pydantic models
+- After `reset_round()`, `sawaState = SawaState()` creates a NEW object — managers must re-read from `game.state`
+
+---
+
+## Mission 2: "The Polish" — Frontend UX Sprint
+> Make the game feel alive and premium (~3 hours)
+
+### Tasks
+
+- [ ] **Card Play Animations**
+  - [ ] Create `useCardAnimation.ts` hook with CSS keyframes for card throw/fly
+  - [ ] In `GameArena.tsx`: animate cards entering `tableCards` area (scale + translate from player position to center)
+  - [ ] Add trick-win sweep animation (winning cards slide to winner's side)
+
+- [ ] **Round Results Enhancement**
+  - [ ] Redesign `RoundResultsModal.tsx` with animated score counter
+  - [ ] Add team color bars showing point breakdown (tricks + bonuses)
+  - [ ] Add a "winner crown" animation for the winning team
+
+- [ ] **Sound Design**
+  - [ ] Create `sounds/` directory with: card-play, trick-win, bid-place, project-declare, game-over
+  - [ ] Build `useSoundEffects.ts` hook with volume control
+  - [ ] Integrate with existing `useGameAudio` or replace it
+  - [ ] Add sounds to: card play, trick resolution, bidding, Sawa/Akka events
+
+- [ ] **Mobile Responsive Pass**
+  - [ ] Audit `Table.tsx` / `GameArena.tsx` at 375px and 768px widths
+  - [ ] Fix card sizing, player avatar positions, HUD overflow
+  - [ ] Make ActionBar scrollable or collapsible on small screens
+  - [ ] Test via Playwright at mobile viewport sizes
+
+### Key Files
+| File | Change |
+|------|--------|
+| `frontend/src/hooks/useCardAnimation.ts` | NEW — card animation logic |
+| `frontend/src/hooks/useSoundEffects.ts` | NEW — sound effect system |
+| `frontend/src/components/table/GameArena.tsx` | Card play animations |
+| `frontend/src/components/RoundResultsModal.tsx` | Score animation redesign |
+| `frontend/src/index.css` | Animation keyframes, responsive breakpoints |
+
+### Verification
+- Visual: Playwright screenshots at key moments (card play, trick win, round end)
+- Mobile: Playwright screenshots at 375px and 768px widths
+- Performance: No jank during animations (check with browser DevTools)
+
+---
+
+## Mission 3: "The Strategist" — Smarter Bot AI
+> Make bots play like experienced Baloot players (~3 hours)
+
+### Tasks
+
+- [ ] **Partner Signaling**
+  - [ ] In `bot_strategy.py`: when leading, prefer strong suits to signal partner
+  - [ ] Track what suits partner has played/avoided → infer their hand
+  - [ ] When partner leads, support their suit if possible
+
+- [ ] **Defensive Play**
+  - [ ] If opponents bid and won the contract, play defensively (cut trumps early)
+  - [ ] When playing last in a trick, save high cards if partner is already winning
+  - [ ] Lead short suits to create void for future trumping
+
+- [ ] **Score-Aware Decisions**
+  - [ ] Near game end (score > 120), increase aggression in bidding
+  - [ ] When behind, take riskier bids; when ahead, play conservatively
+  - [ ] Factor in project bonus points when deciding to declare
+
+- [ ] **Project-Aware Play**
+  - [ ] Protect cards that are part of declared projects
+  - [ ] Target opponent project cards when able
+  - [ ] Factor project point value into bid evaluation
+
+- [ ] **Improved Sawa Timing**
+  - [ ] Calculate exact remaining tricks needed vs. cards in hand
+  - [ ] Claim Sawa only when 100% certain (analyze remaining cards)
+  - [ ] Consider opponent's possible remaining cards before claiming
+
+### Key Files
+| File | Change |
+|------|--------|
+| `game_engine/logic/bot_strategy.py` | Core strategy improvements |
+| `game_engine/logic/heuristic_bidding.py` | Score-aware and project-aware bidding |
+| `game_engine/logic/trick_manager.py` | Helper methods for card tracking |
+
+### Verification
+```bash
+# Use Scout Automation skill for batch testing
+python scripts/scout/run_scout.py --games 100 --strategy advanced
+# Compare win rates: old strategy vs new
+python scripts/scout/compare_strategies.py
+# Unit tests
+python -m pytest tests/features/test_bot_strategy.py -v
+```
+
+---
+
+## Mission 4: "The Multiplayer" — Online Play Polish
+> Make online mode production-ready (~4 hours)
+
+### Tasks
+
+- [ ] **Room Browser**
+  - [ ] Backend: Add `/api/rooms` endpoint listing open rooms with player counts
+  - [ ] Frontend: Create `RoomBrowser.tsx` component with room list, join buttons
+  - [ ] Add auto-refresh every 5 seconds via polling or socket events
+  - [ ] Filter: show only rooms waiting for players
+
+- [ ] **Reconnection Handling**
+  - [ ] Backend: On disconnect, mark player as `disconnected` (not removed) for 60 seconds
+  - [ ] Backend: On reconnect with same session, restore player to their seat
+  - [ ] Frontend: Show "Reconnecting..." overlay with spinner
+  - [ ] If player doesn't return in 60s, replace with bot
+
+- [ ] **Spectator Mode**
+  - [ ] Backend: Allow joining a room as `spectator` role (read-only)
+  - [ ] Frontend: Hide ActionBar, hand, and interactive elements for spectators
+  - [ ] Show spectator count badge on table
+  - [ ] Spectators see all 4 hands revealed
+
+- [ ] **In-Game Emotes**
+  - [ ] Expand `EmoteMenu.tsx` with Baloot-specific emotes (👏 يا حظك, 😤 حرام, 🔥 ماشاء الله)
+  - [ ] Backend: Broadcast emotes via socket to all players in room
+  - [ ] Frontend: Show floating emote animation near sender's avatar
+  - [ ] Rate-limit to 1 emote per 3 seconds
+
+### Key Files
+| File | Change |
+|------|--------|
+| `frontend/src/components/RoomBrowser.tsx` | NEW — room listing UI |
+| `frontend/src/components/EmoteMenu.tsx` | Expand emote system |
+| `server/socket_handler.py` | Reconnection logic, spectator events |
+| `server/controllers.py` | Room listing API |
+| `server/room_manager.py` | Disconnect timeout, spectator roles |
+
+### Verification
+- Open 2 browser tabs → create room in tab 1, join from tab 2
+- Disconnect tab 2 → verify reconnection within 60 seconds
+- Open tab 3 as spectator → verify read-only view
+- Test emote broadcasting between tabs
+
+---
+
+## Mission 5: "The Cleaner" — Code Hygiene Sprint
+> Quick wins, big quality improvement (~45 min)
+
+### Tasks
+
+- [ ] **Remove Debug Logs**
+  - [ ] Delete `console.log('[ProjectReveal]', ...)` in `ProjectReveal.tsx` (~line 209)
+  - [ ] Search for any other temporary `console.log` debug lines across frontend
+
+- [ ] **Schema Audit** — prevent the trickCount bug class entirely
+  - [ ] Compare every field in `game.py:to_json()` output against `GameStateModel` fields
+  - [ ] Add any missing fields to the Pydantic schema
+  - [ ] Add a unit test: `test_schema_covers_all_to_json_fields()`
+
+- [ ] **TypeScript Strictness**
+  - [ ] Run `npx tsc --noEmit` and fix all errors
+  - [ ] Search for `as any` casts and replace with proper types
+  - [ ] Add missing type annotations to hook return values
+
+- [ ] **Dead Code Cleanup**
+  - [ ] Remove unused imports across all components
+  - [ ] Remove any leftover code from removed features (AI Studio, Replay, Academy, Visionary)
+  - [ ] Check for unused CSS classes in `index.css`
+
+- [ ] **Documentation Refresh**
+  - [ ] Update `CODEBASE_MAP.md` with new files: `ProjectReveal.tsx`, `GameToast.tsx`, `TableHUD.tsx`, `dispute/` folder, `table/` folder
+  - [ ] Add JSDoc comments to hooks: `useGameSocket`, `useGameToast`, `useCardAnimation`
+  - [ ] Update `next-session-brief.md` after completing missions
+
+### Key Commands
+```bash
+# TypeScript check
+npx tsc --noEmit 2>&1 | Select-Object -First 30
+
+# Find console.log debug lines
+grep -r "console.log" frontend/src/ --include="*.tsx" --include="*.ts" | grep -v "devLogger"
+
+# Find 'as any' casts
+grep -rn "as any" frontend/src/ --include="*.tsx" --include="*.ts"
+
+# Find unused imports (via tsc)
+npx tsc --noEmit 2>&1 | Select-String "declared but"
+```
+
+### Verification
+- `npx tsc --noEmit` → 0 errors
+- `python -m pytest tests/ -v --tb=short` → 75 passed
+- No `console.log('[ProjectReveal]')` in source
