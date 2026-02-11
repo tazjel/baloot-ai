@@ -264,13 +264,6 @@ class StateBridgeMixin:
     def sawa_state(self):
         return self.state.sawaState
 
-    @sawa_state.setter
-    def sawa_state(self, v):
-        if isinstance(v, SawaState):
-            self.state.sawaState = v
-        elif isinstance(v, dict):
-            self.state.sawaState = SawaState(**{k: v.get(k) for k in SawaState.model_fields if k in v})
-
     @property
     def sawa_failed_khasara(self):
         return self.state.sawaFailedKhasara
@@ -284,12 +277,3 @@ class StateBridgeMixin:
     @property
     def akka_state(self):
         return self.state.akkaState
-
-    @akka_state.setter
-    def akka_state(self, v):
-        if v is None:
-            self.state.akkaState = AkkaState()
-        elif isinstance(v, AkkaState):
-            self.state.akkaState = v
-        elif isinstance(v, dict):
-            self.state.akkaState = AkkaState(**{k: v.get(k) for k in AkkaState.model_fields if k in v})

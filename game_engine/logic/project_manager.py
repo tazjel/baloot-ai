@@ -8,11 +8,6 @@ class ProjectManager:
     def __init__(self, game):
         self.game = game
 
-    @property
-    def akka_state(self):
-        """Single source of truth for Akka state — the Pydantic model on GameState."""
-        return self.game.state.akkaState
-
     # ─── Serialization Helpers ────────────────────────────────────────
 
     @staticmethod
@@ -293,9 +288,9 @@ class ProjectManager:
                 }
 
             # Validation: Already active
-            if self.akka_state.active:
+            if self.game.state.akkaState.active:
                  # Log this to catch spam
-                 logger.warning(f"AKKA REJECTED: Already active (Claimer: {self.akka_state.claimer}). Request by: {player.position}")
+                 logger.warning(f"AKKA REJECTED: Already active (Claimer: {self.game.state.akkaState.claimer}). Request by: {player.position}")
                  return {'success': False, 'error': 'Already Active'}
 
             eligible = self.check_akka_eligibility(player_index)
@@ -326,7 +321,7 @@ class ProjectManager:
             )
 
             logger.info(f"AKKA DECLARED by {player.position} for suits: {eligible}")
-            return {"success": True, "akka_state": self.akka_state.model_dump()}
+            return {"success": True, "akka_state": self.game.state.akkaState.model_dump()}
 
         except Exception as e:
             logger.error(f"Error in handle_akka: {e}")

@@ -488,8 +488,6 @@ class Game(StateBridgeMixin):
             'bidding_engine': self.bidding_engine.to_dict() if self.bidding_engine else None,
             'floor_card': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
             'qayd_state': self.qayd_engine.state if self.qayd_engine else None,
-            # akka_state is serialized automatically via state.model_dump() above
-            # sawa_state is serialized automatically via state.model_dump() above
         }
 
     @classmethod
@@ -577,10 +575,6 @@ class Game(StateBridgeMixin):
         if saved_qayd and saved_qayd.get('active'):
             game.qayd_engine.state.update(saved_qayd)
         game.qayd_state = game.qayd_engine.state
-
-        # akka_state is restored automatically via GameState(**state_data) above
-
-        # sawa_state is restored automatically via GameState(**state_data) above
 
         game.phases = {
             GamePhase.BIDDING.value:   BiddingLogic(game),

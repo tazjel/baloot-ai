@@ -261,7 +261,7 @@ class TestAkkaRoundTrip:
     def test_inactive_akka_round_trip(self, fresh_game):
         """Inactive Akka should remain inactive after round-trip."""
         restored = _round_trip(fresh_game)
-        akka = restored.project_manager.akka_state
+        akka = restored.akka_state
         assert not akka.active
 
     def test_active_akka_preserves_state(self, mid_game):
@@ -277,7 +277,7 @@ class TestAkkaRoundTrip:
         )
 
         restored = _round_trip(mid_game)
-        r_akka = restored.project_manager.akka_state
+        r_akka = restored.akka_state
         assert r_akka is not None
         assert r_akka.active == True
         assert r_akka.claimer == 'Bottom'
@@ -303,7 +303,7 @@ class TestAkkaRoundTrip:
         assert before['suits'] == after['suits']
 
     def test_akka_state_bridge_sync(self, mid_game):
-        """game.akka_state must be the same object as project_manager.akka_state after round-trip."""
+        """game.akka_state must be the same object as game.state.akkaState after round-trip."""
         import time
         from game_engine.core.state import AkkaState
         mid_game.state.akkaState = AkkaState(
@@ -311,7 +311,7 @@ class TestAkkaRoundTrip:
         )
 
         restored = _round_trip(mid_game)
-        assert restored.akka_state is restored.project_manager.akka_state
+        assert restored.akka_state is restored.state.akkaState
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -328,7 +328,7 @@ class TestSawaRoundTrip:
     def test_inactive_sawa_round_trip(self, fresh_game):
         """Inactive Sawa should remain inactive after round-trip."""
         restored = _round_trip(fresh_game)
-        sawa = restored.trick_manager.sawa_state
+        sawa = restored.sawa_state
         assert sawa.active == False
         assert sawa.status == 'NONE'
 
@@ -344,7 +344,7 @@ class TestSawaRoundTrip:
         )
 
         restored = _round_trip(mid_game)
-        r_sawa = restored.trick_manager.sawa_state
+        r_sawa = restored.sawa_state
         assert r_sawa.active == True
         assert r_sawa.claimer == 'Bottom'
         assert r_sawa.status == 'PENDING_TIMER'
@@ -361,7 +361,7 @@ class TestSawaRoundTrip:
         )
 
         restored = _round_trip(mid_game)
-        r_sawa = restored.trick_manager.sawa_state
+        r_sawa = restored.sawa_state
         assert r_sawa.challenge_active == True
         assert r_sawa.claimer == 'Right'
 
