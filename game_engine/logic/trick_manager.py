@@ -2,14 +2,20 @@ from typing import List, Dict, Tuple, Any
 from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, POINT_VALUES_SUN, POINT_VALUES_HOKUM
 from game_engine.logic.referee import Referee
+from game_engine.core.state import SawaState
 from server.logging_utils import logger, log_event
 
 class TrickManager:
     def __init__(self, game):
         self.game = game
         # NOTE: qayd_state is managed exclusively by QaydEngine. Do NOT store it here.
-        self.sawa_state = {"active": False, "claimer": None, "status": "NONE", "challenge_active": False}
+        # NOTE: sawa_state is accessed via self.sawa_state property → game.state.sawaState
         self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
+
+    @property
+    def sawa_state(self):
+        """Single source of truth for Sawa state — the Pydantic model on GameState."""
+        return self.game.state.sawaState
 
     def get_card_points(self, card: Card) -> int:
         if self.game.game_mode == "SUN":
@@ -143,8 +149,8 @@ class TrickManager:
                      self.game.resolve_declarations()
 
         # --- SAWA CHALLENGE CHECK ---
-        if self.sawa_state.get('challenge_active', False):
-             claimer_pos = self.sawa_state['claimer']
+        if self.sawa_state.challenge_active:
+             claimer_pos = self.sawa_state.claimer
              claimer_team = 'us' if (claimer_pos in ['Bottom', 'Top']) else 'them'
              winner_team = 'us' if (winner_pos in ['Bottom', 'Top']) else 'them'
              
@@ -232,17 +238,16 @@ class TrickManager:
             "human_opponents": has_human_opponent
         })
 
-        # Update sawa_state
-        self.sawa_state.clear()
-        self.sawa_state.update({
-            "active": True,
-            "claimer": claimer_pos,
-            "claimer_index": player_index,
-            "status": "PENDING",
-            "valid": is_valid,
-            "challenge_active": False,
-            "cards_left": len(player.hand),
-        })
+        # Update sawa_state — assign a fresh Pydantic model
+        self.game.state.sawaState = SawaState(
+            active=True,
+            claimer=claimer_pos,
+            claimer_index=player_index,
+            status="PENDING",
+            valid=is_valid,
+            challenge_active=False,
+            cards_left=len(player.hand),
+        )
 
         # --- RESOLUTION PATHS ---
         # If claimer is a bot, we trust the AI — auto-resolve instantly
@@ -267,7 +272,7 @@ class TrickManager:
             else:
                 # Human opponents → 3s timer then auto-resolve
                 logger.info(f"[SAWA] VALID claim by {claimer_pos} — 3s timer (human opponents)")
-                self.sawa_state["status"] = "PENDING_TIMER"
+                self.sawa_state.status = "PENDING_TIMER"
                 return {"success": True, "sawa_pending_timer": True, "sawa_valid": True, "timer_seconds": 3}
         else:
             if not has_human_opponent:
@@ -278,16 +283,16 @@ class TrickManager:
             else:
                 # Human opponents → 3s timer for them to call Qayd
                 logger.info(f"[SAWA] INVALID claim by {claimer_pos} — 3s timer (human opponents may catch)")
-                self.sawa_state["status"] = "PENDING_TIMER"
+                self.sawa_state.status = "PENDING_TIMER"
                 return {"success": True, "sawa_pending_timer": True, "sawa_valid": False, "timer_seconds": 3}
 
     def handle_sawa_timeout(self):
         """Called when the 3-second timer expires (human-vs-human games only)."""
-        if not self.sawa_state.get('active') or self.sawa_state.get('status') != 'PENDING_TIMER':
+        if not self.sawa_state.active or self.sawa_state.status != 'PENDING_TIMER':
             return {"success": False, "error": "No pending Sawa timer"}
 
-        is_valid = self.sawa_state.get('valid', False)
-        claimer_pos = self.sawa_state['claimer']
+        is_valid = self.sawa_state.valid
+        claimer_pos = self.sawa_state.claimer
 
         if is_valid:
             # Valid claim, timer expired → resolve (humans didn't object)
@@ -302,11 +307,11 @@ class TrickManager:
 
     def handle_sawa_qayd(self, reporter_index):
         """Human opponent calls Qayd on a Sawa claim during the 3s window."""
-        if not self.sawa_state.get('active') or self.sawa_state.get('status') != 'PENDING_TIMER':
+        if not self.sawa_state.active or self.sawa_state.status != 'PENDING_TIMER':
             return {"success": False, "error": "No pending Sawa to challenge"}
 
         reporter = self.game.players[reporter_index]
-        claimer_pos = self.sawa_state['claimer']
+        claimer_pos = self.sawa_state.claimer
         claimer_team = 'us' if claimer_pos in ('Bottom', 'Top') else 'them'
         reporter_team = 'us' if reporter.position in ('Bottom', 'Top') else 'them'
 
@@ -314,7 +319,7 @@ class TrickManager:
         if reporter_team == claimer_team:
             return {"success": False, "error": "Teammate cannot challenge Sawa"}
 
-        is_valid = self.sawa_state.get('valid', False)
+        is_valid = self.sawa_state.valid
 
         if not is_valid:
             # Correct challenge! Apply penalty to the claimer
@@ -337,18 +342,16 @@ class TrickManager:
             "loser": loser_pos, "loser_team": loser_team
         })
 
-        self.sawa_state.update({
-            "status": "PENALTY",
-            "active": False,
-            "penalty_team": loser_team,
-        })
+        self.sawa_state.status = "PENALTY"
+        self.sawa_state.active = False
+        self.sawa_state.penalty_team = loser_team
 
         # Use the existing Qayd penalty mechanism
         self.game.apply_qayd_penalty(loser_team, winner_team)
 
     def _resolve_sawa_win(self):
         """End round immediately, giving all remaining potential points to claimer's team."""
-        claimer_pos = self.sawa_state["claimer"]
+        claimer_pos = self.sawa_state.claimer
 
         log_event("SAWA_RESOLVED", getattr(self.game, 'room_id', None), details={
             "claimer": claimer_pos,
@@ -372,16 +375,13 @@ class TrickManager:
 
         self.game.round_history.append(dummy_trick)
 
-        self.sawa_state.update({
-            "status": "RESOLVED",
-            "active": False,
-        })
+        self.sawa_state.status = "RESOLVED"
+        self.sawa_state.active = False
 
         self.game.end_round()
 
     def reset_state(self):
-        self.sawa_state.clear()
-        self.sawa_state.update({"active": False, "claimer": None, "status": "NONE", "challenge_active": False})
+        self.game.state.sawaState = SawaState()
 
         # NOTE: qayd_state is managed exclusively by QaydEngine.
         # Do NOT touch it here. QaydEngine.reset() handles cleanup.

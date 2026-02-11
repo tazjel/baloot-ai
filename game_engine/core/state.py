@@ -96,9 +96,13 @@ class TimerState(BaseModel):
 class SawaState(BaseModel):
     active: bool = False
     claimer: Optional[str] = None
+    claimer_index: Optional[int] = None
     responses: Dict[str, str] = Field(default_factory=dict)
-    status: str = "NONE"  # NONE | PENDING | ACCEPTED | REFUSED
+    status: str = "NONE"  # NONE | PENDING | PENDING_TIMER | PENALTY | RESOLVED
     challenge_active: bool = False
+    valid: bool = False
+    cards_left: int = 0
+    penalty_team: Optional[str] = None
 
 
 class AkkaState(BaseModel):

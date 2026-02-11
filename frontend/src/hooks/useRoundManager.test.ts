@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRoundManager } from './useRoundManager';
 import { GamePhase, GameState, PlayerPosition, DoublingLevel, Suit, Rank, CardModel } from '../types';
 import { INITIAL_PLAYERS, AVATARS } from '../constants';
 import { POINT_VALUES } from '../utils/gameLogic';
+import React from 'react';
 
 // ═══════════════════════════════════════════════════════════
 // Helper: Create a minimal valid GameState
@@ -51,15 +52,15 @@ const createInitialGameState = (overrides: Partial<GameState> = {}): GameState =
 });
 
 describe('useRoundManager', () => {
-    let mockSetGameState: ReturnType<typeof vi.fn>;
-    let mockAddSystemMessage: ReturnType<typeof vi.fn>;
-    let mockPlayAkkaSound: ReturnType<typeof vi.fn>;
+    let mockSetGameState: Mock & React.Dispatch<React.SetStateAction<GameState>>;
+    let mockAddSystemMessage: Mock & ((text: string) => void);
+    let mockPlayAkkaSound: Mock & (() => void);
     let initialState: GameState;
 
     beforeEach(() => {
-        mockSetGameState = vi.fn();
-        mockAddSystemMessage = vi.fn();
-        mockPlayAkkaSound = vi.fn();
+        mockSetGameState = vi.fn() as Mock & React.Dispatch<React.SetStateAction<GameState>>;
+        mockAddSystemMessage = vi.fn() as Mock & ((text: string) => void);
+        mockPlayAkkaSound = vi.fn() as Mock & (() => void);
         initialState = createInitialGameState();
     });
 

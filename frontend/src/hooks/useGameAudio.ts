@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { GameState, GamePhase } from '../types';
 import { soundManager } from '../services/SoundManager';
+import { ToastType } from './useGameToast';
+
+type AddToastFn = (message: string, type: ToastType, icon: string) => void;
 
 interface UseGameAudioReturn {
     speakAction: (text: string) => void;
@@ -11,25 +14,27 @@ interface UseGameAudioReturn {
 }
 
 /**
- * useGameAudio - Manages all audio/sound effects in the game
- * 
+ * useGameAudio - Manages all audio/sound effects AND toast notifications
+ *
  * Responsibilities:
  * - Text-to-speech for actions
  * - Sound effects (card play, trick win, akka, errors)
- * - Auto-playing sounds based on game state changes
+ * - Auto-playing sounds + toasts based on game state changes
  */
-export const useGameAudio = (gameState: GameState): UseGameAudioReturn => {
+export const useGameAudio = (gameState: GameState, addToast?: AddToastFn): UseGameAudioReturn => {
     // Track previous state to detect changes
     const prevPhaseRef = useRef<GamePhase | null>(null);
     const prevTableLengthRef = useRef<number>(0);
-    const prevAkkaStateRef = useRef<any>(null);
+    const prevAkkaRef = useRef<any>(null);
+    const prevTurnRef = useRef<number>(-1);
+    const prevSawaRef = useRef<boolean>(false);
+    const prevProjectRevealRef = useRef<boolean>(false);
 
     /**
      * Text-to-speech for bidding actions
      */
     const speakAction = useCallback((text: string) => {
         if (!window.speechSynthesis) return;
-        
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.volume = 1;
         utterance.rate = 1;
@@ -56,41 +61,90 @@ export const useGameAudio = (gameState: GameState): UseGameAudioReturn => {
     }, []);
 
     /**
-     * Auto-play sounds based on game state changes
+     * Auto-play sounds + toasts based on game state changes
      */
-    
-    // 1. Trick completion sound (when all 4 cards played)
+
+    // 1. YOUR TURN detection (human player = index 0)
+    useEffect(() => {
+        const currentTurn = gameState.currentTurnIndex;
+        const isMyTurn = currentTurn === 0;
+        const wasMyTurn = prevTurnRef.current === 0;
+
+        if (isMyTurn && !wasMyTurn && gameState.phase === GamePhase.Playing) {
+            soundManager.playTurnSound();
+            addToast?.('دورك — العب ورقة', 'turn', '🎯');
+        }
+
+        prevTurnRef.current = currentTurn;
+    }, [gameState.currentTurnIndex, gameState.phase, addToast]);
+
+    // 2. Trick completion (when all 4 cards played → table clears)
     useEffect(() => {
         const currentTableLength = gameState.tableCards?.length || 0;
-        
-        // Detect trick completion (0 → 1-3 → 4 → 0)
+
         if (prevTableLengthRef.current === 4 && currentTableLength === 0) {
-            // Trick was just cleared (winner determined)
             playWinSound();
+
+            // Determine trick winner from lastTrick
+            const winner = gameState.lastTrick?.winner;
+            if (winner) {
+                const isMyTeam = winner === 'Bottom' || winner === 'Top';
+                addToast?.(
+                    isMyTeam ? `${winner} أخذ اللّمّة ✨` : `${winner} أخذ اللّمّة`,
+                    'trick',
+                    isMyTeam ? '✨' : '📥'
+                );
+            }
         }
-        
+
         prevTableLengthRef.current = currentTableLength;
-    }, [gameState.tableCards, playWinSound]);
+    }, [gameState.tableCards, gameState.lastTrick, playWinSound, addToast]);
 
-    // 2. Akka sound (when akka state changes)
+    // 3. Akka declared
     useEffect(() => {
-        if (gameState.akkaState && gameState.akkaState !== prevAkkaStateRef.current) {
-            // New akka claim detected
+        const akka = gameState.akkaState;
+        if (akka && akka.claimer && !prevAkkaRef.current?.claimer) {
             playAkkaSound();
+            const suits = akka.suits?.join(' ') || '';
+            addToast?.(`${akka.claimer} أعلن أكّة ${suits}`, 'akka', '👑');
         }
-        
-        prevAkkaStateRef.current = gameState.akkaState;
-    }, [gameState.akkaState, playAkkaSound]);
 
-    // 3. Phase transition sounds (optional - can add round start, game over, etc.)
+        prevAkkaRef.current = akka;
+    }, [gameState.akkaState, playAkkaSound, addToast]);
+
+    // 4. Sawa claimed
+    useEffect(() => {
+        const sawaActive = gameState.sawaState?.active || false;
+
+        if (sawaActive && !prevSawaRef.current) {
+            const claimer = gameState.sawaState?.claimer || '';
+            addToast?.(`${claimer} طلب سوا!`, 'sawa', '🏆');
+        }
+
+        prevSawaRef.current = sawaActive;
+    }, [gameState.sawaState, addToast]);
+
+    // 5. Project reveal
+    useEffect(() => {
+        const isRevealing = gameState.isProjectRevealing || false;
+
+        if (isRevealing && !prevProjectRevealRef.current) {
+            addToast?.('مشاريع!', 'project', '📜');
+        }
+
+        prevProjectRevealRef.current = isRevealing;
+    }, [gameState.isProjectRevealing, addToast]);
+
+    // 6. Phase transitions
     useEffect(() => {
         if (prevPhaseRef.current !== null && prevPhaseRef.current !== gameState.phase) {
-            // Phase changed - could add specific sounds here
-            // e.g., if (gameState.phase === GamePhase.Playing) playRoundStartSound();
+            if (gameState.phase === GamePhase.Playing && prevPhaseRef.current !== GamePhase.Playing) {
+                addToast?.('بداية اللعب', 'info', '🃏');
+            }
         }
-        
+
         prevPhaseRef.current = gameState.phase;
-    }, [gameState.phase]);
+    }, [gameState.phase, addToast]);
 
     return {
         speakAction,

@@ -254,47 +254,45 @@ class TestQaydRoundTrip:
 class TestAkkaRoundTrip:
     """Akka state MUST survive Redis round-trip.
     
-    akka_state lives on both Game and ProjectManager. It's a dict with
-    active/claimer/claimerIndex/suits when active, or None when inactive.
+    akka_state lives on GameState as an AkkaState Pydantic model.
+    ProjectManager.akka_state is a property that reads game.state.akkaState.
     """
 
     def test_inactive_akka_round_trip(self, fresh_game):
-        """Inactive Akka should remain None/inactive after round-trip."""
+        """Inactive Akka should remain inactive after round-trip."""
         restored = _round_trip(fresh_game)
         akka = restored.project_manager.akka_state
-        assert akka is None or not akka.get('active')
+        assert not akka.active
 
     def test_active_akka_preserves_state(self, mid_game):
         """Active Akka declaration must survive round-trip."""
         import time
-        akka_data = {
-            'active': True,
-            'claimer': 'Bottom',
-            'claimerIndex': 0,
-            'suits': ['♥', '♦'],
-            'timestamp': time.time(),
-        }
-        mid_game.project_manager.akka_state = akka_data
-        mid_game.akka_state = akka_data
+        from game_engine.core.state import AkkaState
+        mid_game.state.akkaState = AkkaState(
+            active=True,
+            claimer='Bottom',
+            claimerIndex=0,
+            suits=['♥', '♦'],
+            timestamp=time.time(),
+        )
 
         restored = _round_trip(mid_game)
         r_akka = restored.project_manager.akka_state
         assert r_akka is not None
-        assert r_akka['active'] == True
-        assert r_akka['claimer'] == 'Bottom'
-        assert r_akka['claimerIndex'] == 0
-        assert '♥' in r_akka['suits']
-        assert '♦' in r_akka['suits']
+        assert r_akka.active == True
+        assert r_akka.claimer == 'Bottom'
+        assert r_akka.claimerIndex == 0
+        assert '♥' in r_akka.suits
+        assert '♦' in r_akka.suits
 
     def test_akka_in_get_game_state(self, mid_game):
         """akkaState in get_game_state() must be consistent after round-trip."""
         import time
-        akka_data = {
-            'active': True, 'claimer': 'Right', 'claimerIndex': 1,
-            'suits': ['♠'], 'timestamp': time.time(),
-        }
-        mid_game.project_manager.akka_state = akka_data
-        mid_game.akka_state = akka_data
+        from game_engine.core.state import AkkaState
+        mid_game.state.akkaState = AkkaState(
+            active=True, claimer='Right', claimerIndex=1,
+            suits=['♠'], timestamp=time.time(),
+        )
 
         before = mid_game.get_game_state()['akkaState']
         restored = _round_trip(mid_game)
@@ -305,14 +303,15 @@ class TestAkkaRoundTrip:
         assert before['suits'] == after['suits']
 
     def test_akka_state_bridge_sync(self, mid_game):
-        """game.akka_state must equal project_manager.akka_state after round-trip."""
+        """game.akka_state must be the same object as project_manager.akka_state after round-trip."""
         import time
-        akka_data = {'active': True, 'claimer': 'Left', 'claimerIndex': 3, 'suits': ['♣'], 'timestamp': time.time()}
-        mid_game.project_manager.akka_state = akka_data
-        mid_game.akka_state = akka_data
+        from game_engine.core.state import AkkaState
+        mid_game.state.akkaState = AkkaState(
+            active=True, claimer='Left', claimerIndex=3, suits=['♣'], timestamp=time.time(),
+        )
 
         restored = _round_trip(mid_game)
-        assert restored.akka_state == restored.project_manager.akka_state
+        assert restored.akka_state is restored.project_manager.akka_state
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -322,54 +321,57 @@ class TestAkkaRoundTrip:
 class TestSawaRoundTrip:
     """Sawa state MUST survive Redis round-trip.
     
-    sawa_state lives on TrickManager as a dict with
-    active/claimer/status/challenge_active fields.
+    sawa_state lives on GameState as a SawaState Pydantic model.
+    TrickManager.sawa_state is a property that reads game.state.sawaState.
     """
 
     def test_inactive_sawa_round_trip(self, fresh_game):
         """Inactive Sawa should remain inactive after round-trip."""
         restored = _round_trip(fresh_game)
         sawa = restored.trick_manager.sawa_state
-        assert sawa['active'] == False
-        assert sawa['status'] == 'NONE'
+        assert sawa.active == False
+        assert sawa.status == 'NONE'
 
     def test_active_sawa_preserves_state(self, mid_game):
         """Active Sawa claim must survive round-trip."""
-        mid_game.trick_manager.sawa_state.update({
-            'active': True,
-            'claimer': 'Bottom',
-            'status': 'PENDING_TIMER',
-            'challenge_active': False,
-            'valid': True,
-        })
+        from game_engine.core.state import SawaState
+        mid_game.state.sawaState = SawaState(
+            active=True,
+            claimer='Bottom',
+            status='PENDING_TIMER',
+            challenge_active=False,
+            valid=True,
+        )
 
         restored = _round_trip(mid_game)
         r_sawa = restored.trick_manager.sawa_state
-        assert r_sawa['active'] == True
-        assert r_sawa['claimer'] == 'Bottom'
-        assert r_sawa['status'] == 'PENDING_TIMER'
-        assert r_sawa['valid'] == True
+        assert r_sawa.active == True
+        assert r_sawa.claimer == 'Bottom'
+        assert r_sawa.status == 'PENDING_TIMER'
+        assert r_sawa.valid == True
 
     def test_sawa_challenge_active_preserved(self, mid_game):
         """Sawa with challenge_active=True must survive round-trip."""
-        mid_game.trick_manager.sawa_state.update({
-            'active': True,
-            'claimer': 'Right',
-            'status': 'CHALLENGED',
-            'challenge_active': True,
-        })
+        from game_engine.core.state import SawaState
+        mid_game.state.sawaState = SawaState(
+            active=True,
+            claimer='Right',
+            status='CHALLENGED',
+            challenge_active=True,
+        )
 
         restored = _round_trip(mid_game)
         r_sawa = restored.trick_manager.sawa_state
-        assert r_sawa['challenge_active'] == True
-        assert r_sawa['claimer'] == 'Right'
+        assert r_sawa.challenge_active == True
+        assert r_sawa.claimer == 'Right'
 
     def test_sawa_in_get_game_state(self, mid_game):
         """sawaState in get_game_state() must be consistent after round-trip."""
-        mid_game.trick_manager.sawa_state.update({
-            'active': True, 'claimer': 'Top', 'status': 'PENDING_TIMER',
-            'challenge_active': False, 'valid': True,
-        })
+        from game_engine.core.state import SawaState
+        mid_game.state.sawaState = SawaState(
+            active=True, claimer='Top', status='PENDING_TIMER',
+            challenge_active=False, valid=True,
+        )
 
         before = mid_game.get_game_state()['sawaState']
         restored = _round_trip(mid_game)

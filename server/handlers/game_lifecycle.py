@@ -76,7 +76,7 @@ def _sawa_timer_task(sio, game, room_id, timer_seconds=3):
         sio.sleep(timer_seconds)
 
         # Check if Sawa is still pending (a human may have called SAWA_QAYD already)
-        if not game.sawa_state.get('active') or game.sawa_state.get('status') != 'PENDING_TIMER':
+        if not game.sawa_state.active or game.sawa_state.status != 'PENDING_TIMER':
             return  # Already resolved by human action
 
         result = game.handle_sawa_timeout()

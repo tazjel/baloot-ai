@@ -129,10 +129,9 @@ class QaydEngine:
 
         player = self.game.players[player_index]
 
-        # Lock & Transition
         self.game.is_locked = True
         self.game.phase = GamePhase.CHALLENGE.value
-        self.game.timer_paused = True
+        self.game.pause_timer()  # Properly pause TimerManager so auto-play doesn't fire
 
         is_bot = getattr(player, 'is_bot', False)
         timer_dur = TIMER_AI if is_bot else TIMER_HUMAN
@@ -247,7 +246,7 @@ class QaydEngine:
         })
 
         self.game.is_locked = False
-        self.game.timer_paused = False
+        self.game.resume_timer()
 
         return {
             'success': True,
@@ -273,7 +272,7 @@ class QaydEngine:
                 logger.info("[QAYD] Phase reset CHALLENGE → PLAYING.")
 
         self.game.is_locked = False
-        self.game.timer_paused = False
+        self.game.resume_timer()
 
         return {'success': True}
 
@@ -457,7 +456,7 @@ class QaydEngine:
         """Reset state AND unlock game + restore phase."""
         self._reset_state()
         self.game.is_locked = False
-        self.game.timer_paused = False
+        self.game.resume_timer()
         phase_str = str(self.game.phase)
         if phase_str in (GamePhase.CHALLENGE.value, 'CHALLENGE'):
             self.game.phase = GamePhase.PLAYING.value

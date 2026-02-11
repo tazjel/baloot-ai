@@ -176,7 +176,7 @@ class ScoringEngine:
         
         if self.game.sawa_failed_khasara:
             khasara = True
-            claimer_pos = self.game.sawa_state['claimer']
+            claimer_pos = self.game.sawa_state.claimer
             if claimer_pos in ['Bottom', 'Top']: bidder_team = 'us'
             else: bidder_team = 'them'
         elif not kaboot_winner: 

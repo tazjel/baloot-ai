@@ -22,7 +22,7 @@ from game_engine.models.constants import GamePhase
 from game_engine.models.deck import Deck
 from game_engine.models.player import Player
 from game_engine.logic.utils import sort_hand
-from game_engine.core.state import GameState, BidState
+from game_engine.core.state import GameState, BidState, AkkaState
 from game_engine.core.graveyard import Graveyard
 from game_engine.core.models import ActionResult, EventType
 
@@ -131,10 +131,7 @@ class Game(StateBridgeMixin):
         self.graveyard.reset()
         self.qayd_engine.reset()
         self.qayd_state = self.qayd_engine.state
-        # Clear Akka state on BOTH game and project_manager
-        self.akka_state = None
-        if hasattr(self.project_manager, 'akka_state'):
-            self.project_manager.akka_state = None
+        # akka_state and sawa_state are reset by state.reset_round() automatically
         self.reset_timer()
 
     def deal_initial_cards(self):
@@ -199,19 +196,13 @@ class Game(StateBridgeMixin):
     def handle_akka(self, pi):                return self.project_manager.handle_akka(pi)
 
     def handle_sawa(self, pi):
-        r = self.trick_manager.handle_sawa(pi)
-        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
-        return r
+        return self.trick_manager.handle_sawa(pi)
 
     def handle_sawa_timeout(self):
-        r = self.trick_manager.handle_sawa_timeout()
-        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
-        return r
+        return self.trick_manager.handle_sawa_timeout()
 
     def handle_sawa_qayd(self, pi):
-        r = self.trick_manager.handle_sawa_qayd(pi)
-        if hasattr(self.trick_manager, 'sawa_state'): self.sawa_state = self.trick_manager.sawa_state
-        return r
+        return self.trick_manager.handle_sawa_qayd(pi)
 
     def _resolve_sawa_win(self):              return self.trick_manager._resolve_sawa_win()
     def is_valid_move(self, card, hand):       return self.trick_manager.is_valid_move(card, hand)
@@ -223,11 +214,8 @@ class Game(StateBridgeMixin):
         result = self.trick_manager.resolve_trick()
         if self.round_history:
             self.graveyard.commit_trick(self.round_history[-1].get('cards', []))
-        # Clear Akka after trick resolves — it's a one-trick announcement
-        # Must clear BOTH because get_game_state() exports project_manager.akka_state as primary
-        self.akka_state = None
-        if hasattr(self.project_manager, 'akka_state'):
-            self.project_manager.akka_state = None
+        # Clear Akka after trick resolves — it’s a one-trick announcement
+        self.state.akkaState = AkkaState()
         return result
 
     # ── Qayd delegation ──────────────────────────────────────────────
@@ -277,8 +265,6 @@ class Game(StateBridgeMixin):
             except Exception: pass
         else:
             self.phase = GamePhase.FINISHED.value
-        if hasattr(self.trick_manager, 'sawa_state'):
-            self.sawa_state = self.trick_manager.sawa_state
         self.sawa_failed_khasara = False
         self.reset_timer()
 
@@ -362,12 +348,12 @@ class Game(StateBridgeMixin):
                  "cards": self._ser_tc(t.get("cards",[])),
                  "playedBy": t.get("playedBy"), "metadata": t.get("metadata")}
                 for t in self.round_history],
-            "sawaState": self.trick_manager.sawa_state if hasattr(self.trick_manager,'sawa_state') else self.sawa_state,
+            "sawaState": self.state.sawaState.model_dump(),
             "qaydState": self.qayd_engine.get_frontend_state(),
             "challengeActive": self.phase == GamePhase.CHALLENGE.value,
             "timerStartTime": getattr(self.timer,'start_time',0),
             "turnDuration": self.turn_duration, "serverTime": time.time(),
-            "akkaState": (self.project_manager.akka_state if hasattr(self.project_manager,'akka_state') else None) or self.akka_state,
+            "akkaState": self.state.akkaState.model_dump() if self.state.akkaState.active else None,
             "gameId": self.room_id, "settings": self.state.settings,
             "resolvedCrimes": self.state.resolved_crimes,
         }
@@ -486,11 +472,18 @@ class Game(StateBridgeMixin):
             'table_cards': tc_dicts,
             'timer_paused': self.timer_paused,
             'turn_duration': self.turn_duration,
+            'timer_state': {
+                'active': self.timer.active,
+                'start_time': self.timer.start_time,
+                'duration': self.timer.duration,
+                'paused': getattr(self.timer, 'paused', False),
+                'paused_at': getattr(self.timer, 'paused_at', 0),
+            },
             'bidding_engine': self.bidding_engine.to_dict() if self.bidding_engine else None,
             'floor_card': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
             'qayd_state': self.qayd_engine.state if self.qayd_engine else None,
-            'akka_state': (self.project_manager.akka_state if hasattr(self.project_manager, 'akka_state') else None) or self.akka_state,
-            'sawa_state': self.trick_manager.sawa_state if hasattr(self.trick_manager, 'sawa_state') else None,
+            # akka_state is serialized automatically via state.model_dump() above
+            # sawa_state is serialized automatically via state.model_dump() above
         }
 
     @classmethod
@@ -515,6 +508,14 @@ class Game(StateBridgeMixin):
             })
 
         game.timer = TimerManager(5)
+        # Restore timer state from serialization so auto-play survives Redis round-trips
+        timer_state = data.get('timer_state')
+        if timer_state:
+            game.timer.active = timer_state.get('active', False)
+            game.timer.start_time = timer_state.get('start_time', 0)
+            game.timer.duration = timer_state.get('duration', 5)
+            game.timer.paused = timer_state.get('paused', False)
+            game.timer.paused_at = timer_state.get('paused_at', 0)
         game.timer_paused = data.get('timer_paused', False)
         game.turn_duration = data.get('turn_duration', 30)
         game.bidding_engine = None  # Reconstructed below after players are loaded
@@ -571,17 +572,9 @@ class Game(StateBridgeMixin):
             game.qayd_engine.state.update(saved_qayd)
         game.qayd_state = game.qayd_engine.state
 
-        # Restore akka state
-        saved_akka = data.get('akka_state')
-        if saved_akka and saved_akka.get('active'):
-            game.project_manager.akka_state = saved_akka
-        game.akka_state = game.project_manager.akka_state
+        # akka_state is restored automatically via GameState(**state_data) above
 
-        # Restore sawa state
-        saved_sawa = data.get('sawa_state')
-        if saved_sawa and saved_sawa.get('active'):
-            game.trick_manager.sawa_state.update(saved_sawa)
-        game.sawa_state = game.trick_manager.sawa_state
+        # sawa_state is restored automatically via GameState(**state_data) above
 
         game.phases = {
             GamePhase.BIDDING.value:   BiddingLogic(game),

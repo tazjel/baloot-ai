@@ -1,11 +1,13 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 
 import { useBotSpeech } from '../hooks/useBotSpeech';
 import { useGameTension } from '../hooks/useGameTension';
+import { useGameToast } from '../hooks/useGameToast';
 import { canDeclareAkka, sortHand } from '../utils/gameLogic';
 import { soundManager } from '../services/SoundManager';
 import ActionBar from './ActionBar';
+import GameToast from './GameToast';
 
 import HandFan from './HandFan';
 
@@ -54,11 +56,72 @@ export default function Table({
     // Bot Speech Hook (socket listener + voice synthesis)
     const playerSpeech = useBotSpeech(players);
 
+    // Toast Notifications
+    const { toasts, addToast, dismissToast } = useGameToast();
+
+    // Refs for event detection
+    const prevTurnRef = useRef<number>(-1);
+    const prevAkkaRef = useRef<any>(null);
+    const prevSawaRef = useRef<boolean>(false);
+    const prevTableLenRef = useRef<number>(0);
+    const prevProjectRef = useRef<boolean>(false);
+
     // Project Reveal Persistence
     const [showProjects, setShowProjects] = useState(false);
     const [showProfessor, setShowProfessor] = useState(false);
 
     const { tension, bpm } = useGameTension(gameState);
+
+    // ═══ EVENT DETECTION → TOASTS ═══
+
+    // Your Turn
+    useEffect(() => {
+        const isMyTurn = currentTurnIndex === 0;
+        const wasMyTurn = prevTurnRef.current === 0;
+        if (isMyTurn && !wasMyTurn && phase === GamePhase.Playing) {
+            soundManager.playTurnSound();
+            addToast('دورك — العب ورقة', 'turn', '🎯');
+        }
+        prevTurnRef.current = currentTurnIndex;
+    }, [currentTurnIndex, phase, addToast]);
+
+    // Akka Declared
+    useEffect(() => {
+        if (akkaState && akkaState.claimer && !prevAkkaRef.current?.claimer) {
+            const suits = akkaState.suits?.join(' ') || '';
+            addToast(`${akkaState.claimer} أعلن أكّة ${suits}`, 'akka', '👑');
+        }
+        prevAkkaRef.current = akkaState;
+    }, [akkaState, addToast]);
+
+    // Sawa Claimed
+    useEffect(() => {
+        const active = sawaState?.active || false;
+        if (active && !prevSawaRef.current) {
+            addToast(`${sawaState?.claimer || ''} طلب سوا!`, 'sawa', '🏆');
+        }
+        prevSawaRef.current = active;
+    }, [sawaState, addToast]);
+
+    // Trick Completed
+    useEffect(() => {
+        const len = tableCards?.length || 0;
+        if (prevTableLenRef.current === 4 && len === 0 && gameState.lastTrick?.winner) {
+            const w = gameState.lastTrick.winner;
+            const mine = w === 'Bottom' || w === 'Top';
+            addToast(mine ? `${w} أخذ اللّمّة ✨` : `${w} أخذ اللّمّة`, 'trick', mine ? '✨' : '📥');
+        }
+        prevTableLenRef.current = len;
+    }, [tableCards, gameState.lastTrick, addToast]);
+
+    // Project Reveal
+    useEffect(() => {
+        const revealing = isProjectRevealing || false;
+        if (revealing && !prevProjectRef.current) {
+            addToast('مشاريع!', 'project', '📜');
+        }
+        prevProjectRef.current = revealing;
+    }, [isProjectRevealing, addToast]);
 
     // --- Qayd / Forensic Logic ---
     const handleAccusation = (crime: any, proof: any, type: string) => {
@@ -194,6 +257,9 @@ export default function Table({
     return (
         <div className="relative w-full h-full flex flex-col overflow-hidden select-none safe-area-top safe-area-bottom font-sans" style={{ background: '#F5F3EF' }}>
 
+            {/* Toast Notifications */}
+            <GameToast toasts={toasts} onDismiss={dismissToast} />
+
             <TableHUD
                 gameState={gameState}
                 players={players}
@@ -231,16 +297,22 @@ export default function Table({
 
             {/* --- ZONE 3: ACTIONS & HAND --- */}
             {me && me.hand && (
-                <HandFan
-                    hand={me.hand}
-                    selectedCardIndex={selectedCardIndex}
-                    isMyTurn={isMyTurn}
-                    onCardClick={handleCardClick}
-                    cardSkin={cardSkin}
-                    gameMode={(gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN'}
-                    trumpSuit={gameState.trumpSuit}
-                    settings={settings}
-                />
+                <div className={`relative transition-all duration-500 ${
+                    isMyTurn && phase === GamePhase.Playing
+                        ? 'ring-2 ring-amber-400/60 ring-offset-1 ring-offset-transparent rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)]'
+                        : ''
+                }`}>
+                    <HandFan
+                        hand={me.hand}
+                        selectedCardIndex={selectedCardIndex}
+                        isMyTurn={isMyTurn}
+                        onCardClick={handleCardClick}
+                        cardSkin={cardSkin}
+                        gameMode={(gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN'}
+                        trumpSuit={gameState.trumpSuit}
+                        settings={settings}
+                    />
+                </div>
             )}
 
             {/* Bottom Player Avatar */}

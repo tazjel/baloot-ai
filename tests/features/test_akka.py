@@ -39,23 +39,32 @@ class TestAkkaLogic(unittest.TestCase):
         self.game.round_history = []
         
     def test_akka_eligibility_simple(self):
-        """Test simplest Akka scenario: Leading with Ace of non-trump"""
+        """Test Akka: King is boss after Ace and Ten have been played."""
         p1 = self.game.players[0]
-        # Give him A, K Hearts
-        p1.hand = [Card('♥', 'A'), Card('♥', 'K')]
+        # Give K, Q Hearts — Ace and 10 are NOT in hand
+        p1.hand = [Card('♥', 'K'), Card('♥', 'Q')]
         
-        # Check eligibility
+        # Ace and 10 of Hearts were played in a previous trick
+        self.game.round_history.append({
+            'cards': [
+                {'rank': 'A', 'suit': '♥', 'playedBy': 'Right'},
+                {'rank': '10', 'suit': '♥', 'playedBy': 'Top'},
+                {'rank': '8', 'suit': '♥', 'playedBy': 'Left'},
+                {'rank': '9', 'suit': '♥', 'playedBy': 'Bottom'}
+            ],
+            'winner': 'Right'
+        })
+        
         eligible_suits = self.game.check_akka_eligibility(0)
         print(f"Eligible Suits: {eligible_suits}")
         self.assertIn('♥', eligible_suits)
         
     def test_akka_eligibility_king_after_ace_played(self):
-        """Test Akka with King after Ace is gone"""
+        """Test Akka with King after Ace and Ten are gone"""
         p1 = self.game.players[0]
         p1.hand = [Card('♥', 'K'), Card('♥', 'Q')]
         
         # Simulate Ace being played in previous trick
-        # round_history structure: [{'cards': [{'rank': 'A', 'suit': '♥', ...}, ...], 'winner': ...}]
         self.game.round_history.append({
             'cards': [
                 {'rank': 'A', 'suit': '♥', 'playedBy': 'Right'},
@@ -70,38 +79,42 @@ class TestAkkaLogic(unittest.TestCase):
         print(f"Eligible Suits (King): {eligible_suits}")
         self.assertIn('♥', eligible_suits)
 
-    def test_play_card_with_akka(self):
-        """Test playing a card with Akka metadata updates state"""
+    def test_handle_akka_valid(self):
+        """Test handle_akka with a valid boss card updates state."""
         p1 = self.game.players[0]
-        p1.hand = [Card('♥', 'A'), Card('♦', '7')]
+        p1.hand = [Card('♥', 'K'), Card('♦', '7')]
         
-        # Play Ace with Akka
-        # We need to make sure it is valid move
-        # Table empty, leading Ace. Valid.
+        # Ace of Hearts already played
+        self.game.round_history.append({
+            'cards': [
+                {'rank': 'A', 'suit': '♥', 'playedBy': 'Right'},
+                {'rank': '10', 'suit': '♥', 'playedBy': 'Top'},
+                {'rank': '8', 'suit': '♥', 'playedBy': 'Left'},
+                {'rank': '9', 'suit': '♥', 'playedBy': 'Bottom'}
+            ],
+            'winner': 'Right'
+        })
         
-        res = self.game.play_card(0, 0, metadata={'akka': True})
+        res = self.game.handle_akka(0)
         
-        if not res.get('success'):
-             print(f"Play Card Failed: {res}")
-             
         self.assertTrue(res['success'])
-        self.assertIsNotNone(self.game.akka_state)
-        self.assertEqual(self.game.akka_state['suit'], '♥')
-        self.assertEqual(self.game.akka_state['claimer'], p1.position)
+        self.assertTrue(self.game.akka_state.active)
+        self.assertIn('♥', self.game.akka_state.suits)
+        self.assertEqual(self.game.akka_state.claimer, p1.position)
 
-    def test_play_card_invalid_akka(self):
-        """Test playing Akka when not eligible"""
+    def test_handle_akka_invalid(self):
+        """Test handle_akka when not eligible is rejected."""
         p1 = self.game.players[0]
+        # Low cards — no suit qualifies as boss
         p1.hand = [Card('♥', '7'), Card('♥', '8')] 
-        # Ace is NOT played. 7 is low.
         
-        # Try to play 7 with Akka
-        res = self.game.play_card(0, 0, metadata={'akka': True})
+        res = self.game.handle_akka(0)
         
         self.assertFalse(res.get('success'))
         self.assertIn('error', res)
-        # Ensure akka_state is NOT set
-        self.assertIsNone(self.game.akka_state)
+        # Akka state must remain inactive
+        self.assertFalse(self.game.akka_state.active)
 
 if __name__ == '__main__':
     unittest.main()
+

@@ -1,12 +1,28 @@
 from typing import Dict, List, Optional, Any
 from game_engine.logic.rules.projects import check_project_eligibility, compare_projects
 from game_engine.logic.rules.sawa import check_sawa_eligibility
+from game_engine.core.state import AkkaState
 from server.logging_utils import logger
 
 class ProjectManager:
     def __init__(self, game):
         self.game = game
-        self.akka_state = None
+
+    @property
+    def akka_state(self):
+        """Single source of truth for Akka state — the Pydantic model on GameState."""
+        return self.game.state.akkaState
+
+    # ─── Serialization Helpers ────────────────────────────────────────
+
+    @staticmethod
+    def _sanitize_project(proj: dict) -> dict:
+        """Ensure all Card objects in a project dict are converted to plain dicts
+        so they survive Pydantic model_dump(mode='json') without errors."""
+        out = dict(proj)
+        if 'cards' in out:
+            out['cards'] = [c.to_dict() if hasattr(c, 'to_dict') else c for c in out['cards']]
+        return out
 
     def handle_declare_project(self, player_index, type):
          try:
@@ -48,12 +64,13 @@ class ProjectManager:
                       )
                       
                       if not is_duplicate:
-                          self.game.trick_1_declarations[player.position].append(match)
+                          safe = self._sanitize_project(match)
+                          self.game.trick_1_declarations[player.position].append(safe)
                           
                           # updates self.declarations too for UI
                           if player.position not in self.game.declarations:
                                self.game.declarations[player.position] = []
-                          self.game.declarations[player.position].append(match)
+                          self.game.declarations[player.position].append(safe)
                   
                   return {"success": True}
                   
@@ -116,14 +133,14 @@ class ProjectManager:
              if is_valid:
                   pos = item['pos']
                   if pos not in self.game.declarations: self.game.declarations[pos] = []
-                  self.game.declarations[pos].append(item['proj'])
+                  self.game.declarations[pos].append(self._sanitize_project(item['proj']))
         
         # Trigger Reveal Animation
         if self.game.declarations:
              self.game.is_project_revealing = True 
 
     def init_akka(self):
-         self.akka_state = None
+         self.game.state.akkaState = AkkaState()
 
     # ═══════════════════════════════════════════════════════════════════════
     #  AKKA LOGIC — "Boss Card" Declaration
@@ -235,11 +252,10 @@ class ProjectManager:
                     "error": "Akka is only available in HOKUM mode"
                 }
 
-            # Validation: Already active within Game State (Bridge)
-            current_akka = self.game.akka_state
-            if current_akka and current_akka.get('active'):
+            # Validation: Already active
+            if self.akka_state.active:
                  # Log this to catch spam
-                 logger.warning(f"AKKA REJECTED: Already active (Claimer: {current_akka.get('claimer')}). Request by: {player.position}")
+                 logger.warning(f"AKKA REJECTED: Already active (Claimer: {self.akka_state.claimer}). Request by: {player.position}")
                  return {'success': False, 'error': 'Already Active'}
 
             eligible = self.check_akka_eligibility(player_index)
@@ -260,23 +276,17 @@ class ProjectManager:
                     }
                 }
 
-            # Valid Akka!
-            akka_data = {
-                'active': True,
-                'claimer': player.position,
-                'claimerIndex': player_index,
-                'suits': eligible,
-                'timestamp': time.time()
-            }
-            
-            # CRITICAL FIX: Update Game State Bridge (Persisted)
-            # self.akka_state is local to ProjectManager, but we must update game.akka_state
-            # so it flows into game.state.akkaState (Pydantic) -> Redis.
-            self.game.akka_state = akka_data
-            self.akka_state = akka_data # Keep local copy just in case, or remove if unused
+            # Valid Akka! — Write directly to the Pydantic model (single source of truth)
+            self.game.state.akkaState = AkkaState(
+                active=True,
+                claimer=player.position,
+                claimerIndex=player_index,
+                suits=eligible,
+                timestamp=time.time(),
+            )
 
             logger.info(f"AKKA DECLARED by {player.position} for suits: {eligible}")
-            return {"success": True, "akka_state": akka_data}
+            return {"success": True, "akka_state": self.akka_state.model_dump()}
 
         except Exception as e:
             logger.error(f"Error in handle_akka: {e}")
