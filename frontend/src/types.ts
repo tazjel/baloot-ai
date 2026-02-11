@@ -161,6 +161,7 @@ export interface DeclaredProject {
   suit: Suit;
   owner: PlayerPosition;
   score?: number; // Added score for round result display
+  cards?: CardModel[]; // The actual cards in this project (for reveal display)
 }
 
 
@@ -221,6 +222,7 @@ export interface GameState {
   isRoundTransitioning?: boolean;
   isTrickTransitioning?: boolean;
   isProjectRevealing?: boolean;
+  trickCount?: number; // Completed tricks in current round (0 = still trick 1)
 
   doublingLevel: DoublingLevel;
   isLocked: boolean;

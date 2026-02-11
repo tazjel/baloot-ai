@@ -29,6 +29,7 @@ interface GameArenaProps {
     // Projects
     showProjects: boolean;
     isProjectRevealing: boolean;
+    trickCount: number;
     // Speech
     playerSpeech: Record<number, string | null>;
     // Actions
@@ -53,6 +54,7 @@ export default function GameArena({
     turnDuration,
     showProjects,
     isProjectRevealing,
+    trickCount,
     playerSpeech,
     onAddBot,
     isPaused = false,
@@ -120,6 +122,7 @@ export default function GameArena({
                             bid={bid}
                             doublingLevel={gameState.doublingLevel}
                             showProjects={showProjects}
+                            trickCount={trickCount}
                             speechText={playerSpeech[partner.index]}
                             isPaused={isPaused}
                         />
@@ -137,6 +140,7 @@ export default function GameArena({
                             bid={bid}
                             doublingLevel={gameState.doublingLevel}
                             showProjects={showProjects}
+                            trickCount={trickCount}
                             speechText={playerSpeech[leftPlayer.index]}
                             akkaState={akkaState}
                         />
@@ -154,6 +158,7 @@ export default function GameArena({
                             bid={bid}
                             doublingLevel={gameState.doublingLevel}
                             showProjects={showProjects}
+                            trickCount={trickCount}
                             speechText={playerSpeech[rightPlayer.index]}
                             akkaState={akkaState}
                         />

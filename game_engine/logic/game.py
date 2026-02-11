@@ -157,6 +157,11 @@ class Game(StateBridgeMixin):
         self.current_turn = (self.dealer_index + 1) % 4
         self.reset_timer()
 
+        # Auto-declare projects for all bots at start of play
+        # so their labels show immediately during trick 1
+        if hasattr(self, 'project_manager'):
+            self.project_manager.auto_declare_bot_projects()
+
     # ═══════════════════════════════════════════════════════════════════
     #  ACTION DELEGATION
     # ═══════════════════════════════════════════════════════════════════
@@ -340,6 +345,7 @@ class Game(StateBridgeMixin):
             "timer": {"remaining": self.timer.get_time_remaining(), "duration": self.timer.duration,
                       "elapsed": self.timer.get_time_elapsed(), "active": self.timer.active},
             "isProjectRevealing": self.is_project_revealing,
+            "trickCount": len(self.round_history),
             "doublingLevel": self.doubling_level, "isLocked": self.is_locked,
             "strictMode": self.strictMode, "dealingPhase": self.dealing_phase,
             "lastTrick": self.last_trick, "roundHistory": self.past_round_results,

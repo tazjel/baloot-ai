@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GameState, GamePhase, Suit, Player } from '../types';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { Gavel, Megaphone, Sun, RefreshCw, X, Trophy, Smile } from 'lucide-react';
@@ -86,6 +86,17 @@ const ActionBar: React.FC<ActionBarProps> = ({
         </motion.button>
     );
 
+    // --- PROJECT LABELS MAP ---
+    const PROJECT_LABELS: Record<string, string> = {
+        'SIRA': 'سرا',
+        'FIFTY': '50',
+        'HUNDRED': '100',
+        'FOUR_HUNDRED': '400',
+    };
+
+    // --- PROJECT MENU STATE ---
+    const [showProjectMenu, setShowProjectMenu] = useState(false);
+
     // --- RENDER DOCKS ---
     const renderDock = () => {
         const hasProjects = availableProjects.length > 0;
@@ -118,14 +129,48 @@ const ActionBar: React.FC<ActionBarProps> = ({
                 className="absolute bottom-0 sm:bottom-1 left-1/2 z-[1000] flex items-center gap-3 sm:gap-6 bg-black/20 px-6 py-3 rounded-t-[2rem] border-t border-x border-white/5 backdrop-blur-sm"
             >
                 {/* 1. PROJECTS */}
-                <ActionButton
-                    onClick={() => onPlayerAction('DECLARE_PROJECT', { type: availableProjects[0] || 'SIRA' })}
-                    disabled={!hasProjects || !isMyTurn}
-                    data-testid="btn-projects"
-                >
-                    <div className="text-amber-400 mb-1"><Trophy size={20} /></div>
-                    <span className="text-[10px] sm:text-xs font-bold font-tajawal">المشاريع</span>
-                </ActionButton>
+                <div className="relative">
+                    <ActionButton
+                        onClick={() => {
+                            if (hasProjects && isMyTurn) {
+                                setShowProjectMenu(!showProjectMenu);
+                            }
+                        }}
+                        disabled={!hasProjects || !isMyTurn}
+                        data-testid="btn-projects"
+                    >
+                        <div className="text-amber-400 mb-1"><Trophy size={20} /></div>
+                        <span className="text-[10px] sm:text-xs font-bold font-tajawal">المشاريع</span>
+                        {hasProjects && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-black text-[8px] font-black rounded-full flex items-center justify-center shadow">
+                                {availableProjects.length}
+                            </span>
+                        )}
+                    </ActionButton>
+
+                    {/* Project Type Popup */}
+                    {showProjectMenu && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                            className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-zinc-900/95 backdrop-blur-lg rounded-xl border border-amber-500/30 shadow-2xl p-2 flex flex-col gap-1 min-w-[5rem] z-[1100]"
+                        >
+                            {availableProjects.map((projType) => (
+                                <button
+                                    key={projType}
+                                    onClick={() => {
+                                        onPlayerAction('DECLARE_PROJECT', { type: projType });
+                                        setShowProjectMenu(false);
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-600/80 to-yellow-600/80 hover:from-amber-500 hover:to-yellow-500 text-white font-bold text-sm transition-all hover:scale-105 active:scale-95 text-center font-tajawal"
+                                >
+                                    {PROJECT_LABELS[projType] || projType}
+                                </button>
+                            ))}
+                        </motion.div>
+                    )}
+                </div>
 
                 {/* 2. AKKA */}
                 <ActionButton

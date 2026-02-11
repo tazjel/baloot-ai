@@ -56,6 +56,7 @@ class GameStateModel(BaseModel):
     isProjectRevealing: bool
     doublingLevel: int
     isLocked: bool
+    trickCount: int = 0
     dealingPhase: Union[str, int]
     lastTrick: Optional[Any] = None
     roundHistory: List[Any] = []

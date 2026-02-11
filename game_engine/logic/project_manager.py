@@ -79,6 +79,46 @@ class ProjectManager:
              logger.error(f"Error in handle_declare_project: {e}")
              return {"error": f"Internal Error: {str(e)}"}
 
+    def auto_declare_bot_projects(self):
+        """
+        Auto-scan all bot players' hands and declare all eligible projects.
+        Called at end of trick 1, right before resolve_declarations().
+        Bots don't click the UI button — this simulates their announcement.
+        """
+        for player in self.game.players:
+            if not getattr(player, 'is_bot', False):
+                continue
+
+            hand_projs = check_project_eligibility(player.hand, self.game.game_mode)
+            if not hand_projs:
+                continue
+
+            # Initialize declarations for this position
+            if player.position not in self.game.trick_1_declarations:
+                self.game.trick_1_declarations[player.position] = []
+
+            current_decls = self.game.trick_1_declarations[player.position]
+
+            def get_proj_sig(p):
+                cards_sig = "-".join(sorted([f"{c.rank}{c.suit}" for c in p.get('cards', [])]))
+                return f"{p['type']}|{p['rank']}|{p.get('suit', 'ANY')}|{cards_sig}"
+
+            for proj in hand_projs:
+                proj_sig = get_proj_sig(proj)
+                is_duplicate = any(get_proj_sig(d) == proj_sig for d in current_decls)
+
+                if not is_duplicate:
+                    safe = self._sanitize_project(proj)
+                    self.game.trick_1_declarations[player.position].append(safe)
+
+                    if player.position not in self.game.declarations:
+                        self.game.declarations[player.position] = []
+                    self.game.declarations[player.position].append(safe)
+
+            if hand_projs:
+                logger.info(f"Bot {player.name} auto-declared {len(hand_projs)} project(s): "
+                           f"{[p['type'] for p in hand_projs]}")
+
     def resolve_declarations(self):
         """
         Called at end of Trick 1 / Start of Trick 2.

@@ -67,7 +67,7 @@ export default function Table({
     const prevProjectRef = useRef<boolean>(false);
 
     // Project Reveal Persistence
-    const [showProjects, setShowProjects] = useState(false);
+    // showProjects is now computed from trickCount + declarations (see below)
     const [showProfessor, setShowProfessor] = useState(false);
 
     const { tension, bpm } = useGameTension(gameState);
@@ -114,14 +114,11 @@ export default function Table({
         prevTableLenRef.current = len;
     }, [tableCards, gameState.lastTrick, addToast]);
 
-    // Project Reveal
+    // Project Reveal — toast is handled by useGameAudio.ts
+    // (just track the ref for other uses)
     useEffect(() => {
-        const revealing = isProjectRevealing || false;
-        if (revealing && !prevProjectRef.current) {
-            addToast('مشاريع!', 'project', '📜');
-        }
-        prevProjectRef.current = revealing;
-    }, [isProjectRevealing, addToast]);
+        prevProjectRef.current = isProjectRevealing || false;
+    }, [isProjectRevealing]);
 
     // --- Qayd / Forensic Logic ---
     const handleAccusation = (crime: any, proof: any, type: string) => {
@@ -134,14 +131,11 @@ export default function Table({
         onPlayerAction('QAYD_TRIGGER');
     };
 
-    useEffect(() => {
-        if (isProjectRevealing) {
-            setShowProjects(true);
-        } else {
-            const timer = setTimeout(() => setShowProjects(false), 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [isProjectRevealing]);
+    // Projects are visible during trick 1 (labels) and trick 2 (cards reveal).
+    // After trick 2 (trickCount >= 2), projects disappear.
+    const trickCount = gameState.trickCount ?? 0;
+    const hasDeclarations = Object.keys(declarations).length > 0;
+    const showProjects = hasDeclarations && trickCount < 2;
 
 
 
@@ -290,6 +284,7 @@ export default function Table({
                 turnDuration={turnDuration}
                 showProjects={showProjects}
                 isProjectRevealing={gameState.isProjectRevealing || false}
+                trickCount={gameState.trickCount ?? 0}
                 playerSpeech={playerSpeech}
                 onAddBot={onAddBot}
                 isPaused={isPaused}
@@ -327,6 +322,7 @@ export default function Table({
                 bid={bid}
                 doublingLevel={gameState.doublingLevel}
                 showProjects={showProjects}
+                trickCount={gameState.trickCount ?? 0}
                 speechText={playerSpeech[me.index]}
                 akkaState={akkaState}
             />

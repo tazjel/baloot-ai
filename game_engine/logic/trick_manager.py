@@ -140,13 +140,13 @@ class TrickManager:
         
         # --- PROJECT RESOLUTION (End of Trick 1) ---
         if len(self.game.round_history) == 1:
-             # This will be handled by ProjectManager via Game delegation
+             # Bot declarations already happened at start of play phase (game.py)
              if hasattr(self.game, 'project_manager'):
                  self.game.project_manager.resolve_declarations()
-             else:
-                 # Fallback if refactor partial
-                 if hasattr(self.game, 'resolve_declarations'):
-                     self.game.resolve_declarations()
+
+        # Clear the project reveal flag after trick 2 (one-shot flash)
+        if len(self.game.round_history) >= 2 and self.game.is_project_revealing:
+            self.game.is_project_revealing = False
 
         # --- SAWA CHALLENGE CHECK ---
         if self.sawa_state.challenge_active:

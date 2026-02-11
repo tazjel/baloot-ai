@@ -4,6 +4,7 @@ import { Sun, Gavel, Trophy, Spade, Heart, Club, Diamond, Megaphone } from 'luci
 // Correct import paths assuming this file is in frontend/components/table/
 import { SpeechBubble } from '../SpeechBubble';
 import TurnTimer from './TurnTimer';
+import ProjectReveal from './ProjectReveal';
 
 // Avatar Mapping moved here as it is specific to PlayerAvatar logic
 const AVATAR_MAP: Record<string, string> = {
@@ -22,6 +23,7 @@ interface PlayerAvatarProps {
     declarations: any;
     isProjectRevealing: boolean;
     showProjects: boolean;
+    trickCount: number;
     bid?: any;
     doublingLevel?: number;
     speechText?: string | null;
@@ -38,6 +40,7 @@ const PlayerAvatar = ({
     declarations,
     isProjectRevealing,
     showProjects,
+    trickCount,
     bid,
     doublingLevel,
     speechText,
@@ -155,24 +158,11 @@ rounded-full bg-white shadow-xl overflow-hidden relative z-10
             }
             {
                 showProjects && declarations?.[player.position] && declarations[player.position].length > 0 && (
-                    <div className="absolute top-10 left-1/2 -translate-x-1/2 w-max flex flex-col items-center gap-1 z-50 animate-bounce-in">
-                        {declarations[player.position].map((proj: any, idx: number) => {
-                            let label = '';
-                            switch (proj.type) {
-                                case 'SIRA': label = 'سرا'; break;
-                                case 'FIFTY': label = '50'; break;
-                                case 'HUNDRED': label = '100'; break;
-                                case 'FOUR_HUNDRED': label = '400'; break;
-                                case 'BALOOT': label = 'بلوت'; break;
-                            }
-                            return (
-                                <div key={idx} className="bg-gradient-to-r from-amber-300 to-yellow-500 text-black font-black text-xs sm:text-sm px-3 py-1 rounded-full shadow-lg border border-white flex items-center gap-1">
-                                    <Trophy size={14} className="text-amber-800" />
-                                    <span>{label}</span>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <ProjectReveal
+                        projects={declarations[player.position]}
+                        trickCount={trickCount}
+                        position={position}
+                    />
                 )
             }
             {/* AKKA BADGE */}
