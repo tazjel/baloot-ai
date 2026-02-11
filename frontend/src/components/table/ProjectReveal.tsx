@@ -157,9 +157,6 @@ const CardsFan: React.FC<{ projects: DeclaredProject[]; position: string }> = ({
 const ProjectReveal: React.FC<ProjectRevealProps> = ({ projects, trickCount, position }) => {
     if (!projects || projects.length === 0) return null;
 
-    // DEBUG: trace what we receive
-    console.log('[ProjectReveal]', { position, trickCount, projects: projects.map(p => ({ type: p.type, cardsLen: p.cards?.length })) });
-
     // Phase 1: Trick 1 (trickCount=0) — Show text labels
     if (trickCount === 0) {
         return (

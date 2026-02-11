@@ -9,6 +9,12 @@
 - **frontend/**: React + Vite application.
   - `src/`: Source code (Components, Pages, Hooks).
   - `src/components/`: Reusable UI components.
+  - `src/components/table/`: Table-related components (GameArena, PlayerAvatar, TableHUD, etc.).
+  - `src/components/dispute/`: Dispute resolution components.
+  - `src/components/effects/`: Visual effects components.
+  - `src/components/overlays/`: Game overlays.
+  - `src/components/GameToast.tsx`: Toast notification component.
+  - `src/hooks/useGameToast.ts`: Toast hook.
   - `src/pages/`: Route handlers.
   - `src/services/`: API and Socket communication.
 - **game_engine/**: Core Python logic.

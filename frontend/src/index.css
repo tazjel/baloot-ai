@@ -561,31 +561,7 @@ body {
   min-height: 48px;
 }
 
-/* Mobile card sizing - DISABLED TO ALLOW DYNAMIC VH SIZING
-@media (max-width: 640px) {
-  .card-mobile {
-    width: 70px !important;
-    height: 98px !important;
-  }
-
-  .card-hand-mobile {
-    width: 80px !important;
-    height: 112px !important;
-  }
-
-  .played-card-mobile {
-    width: 60px !important;
-    height: 84px !important;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  .card-tablet {
-    width: 90px !important;
-    height: 126px !important;
-  }
-}
-*/
+/* Mobile card sizing - DISABLED TO ALLOW DYNAMIC VH SIZING */
 
 /* Safe area padding for notched devices */
 .safe-area-top {

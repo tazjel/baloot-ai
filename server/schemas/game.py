@@ -56,6 +56,7 @@ class GameStateModel(BaseModel):
     isProjectRevealing: bool
     doublingLevel: int
     isLocked: bool
+    strictMode: bool = False
     trickCount: int = 0
     dealingPhase: Union[str, int]
     lastTrick: Optional[Any] = None
@@ -70,5 +71,6 @@ class GameStateModel(BaseModel):
     akkaState: Optional[Dict[str, Any]] = None
     gameId: str
     settings: Dict[str, Any] = {}
+    resolvedCrimes: List[Any] = []
 
     model_config = ConfigDict(populate_by_name=True)

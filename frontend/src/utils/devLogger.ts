@@ -1,4 +1,6 @@
 
+import { Socket } from 'socket.io-client';
+
 // Simple Event-based Logger for Sidebar
 type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
 
@@ -32,9 +34,9 @@ class DevLogger {
         this.addLog('SUCCESS', category, message, data);
     }
 
-    private socket: any = null; // Leaving as any or specific Socket type if imported
+    private socket: Socket | null = null;
 
-    setSocket(socket: any) {
+    setSocket(socket: Socket) {
         this.socket = socket;
     }
 

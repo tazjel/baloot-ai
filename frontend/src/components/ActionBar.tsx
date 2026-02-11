@@ -4,7 +4,7 @@ import { Spade, Heart, Club, Diamond } from './SuitIcons';
 import { Gavel, Megaphone, Sun, RefreshCw, X, Trophy, Smile } from 'lucide-react';
 import { canDeclareAkka, canDeclareKawesh, scanHandForAkka } from '../utils/gameLogic';
 import { soundManager } from '../services/SoundManager';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants, HTMLMotionProps } from 'framer-motion';
 
 interface ActionBarProps {
     gameState: GameState;
@@ -35,14 +35,14 @@ const ActionBar: React.FC<ActionBarProps> = ({
     const dockBtnDisabled = "bg-zinc-900/40 text-white/20 cursor-not-allowed grayscale";
 
     // --- ANIMATION VARIANTS ---
-    const dockVariants = {
+    const dockVariants: Variants = {
         hidden: { y: 100, opacity: 0, x: "-50%" },
         visible: {
             y: 0,
             opacity: 1,
             x: "-50%",
             transition: { type: "spring", stiffness: 300, damping: 30 }
-        } as any,
+        },
         exit: {
             y: 100,
             opacity: 0,
@@ -64,7 +64,12 @@ const ActionBar: React.FC<ActionBarProps> = ({
         onPlayerAction('QAYD_TRIGGER');
     };
 
-    const ActionButton = ({ onClick, disabled, className, children, activeClass = dockBtnActive, ...props }: any) => (
+    interface ActionButtonProps extends HTMLMotionProps<"button"> {
+        activeClass?: string;
+        children?: React.ReactNode;
+    }
+
+    const ActionButton = ({ onClick, disabled, className, children, activeClass = dockBtnActive, ...props }: ActionButtonProps) => (
         <motion.button
             onClick={onClick}
             disabled={disabled}
