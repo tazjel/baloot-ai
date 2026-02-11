@@ -8,12 +8,23 @@ if ($Headless) { Write-Host "   👻 HEADLESS MODE ACTIVE" -ForegroundColor Dark
 # 1. Cleanup: Kill previous Backend/Frontend windows and free ports
 Write-Host "🧹 Cleaning up previous sessions..." -ForegroundColor Gray
 
-# Kill PowerShell windows by title
-Get-Process powershell -ErrorAction SilentlyContinue | Where-Object {
-    try { $_.MainWindowTitle -match 'Baloot (Backend|Frontend)' } catch { $false }
-} | ForEach-Object {
-    Write-Host "   Killing: $($_.MainWindowTitle) (PID $($_.Id))" -ForegroundColor DarkGray
-    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+$pidFile = "logs/.ww_pids"
+
+# Kill previously tracked PowerShell windows from last /WW run
+if (Test-Path $pidFile) {
+    Get-Content $pidFile | ForEach-Object {
+        $savedPid = $_.Trim()
+        if ($savedPid -and $savedPid -match '^\d+$') {
+            try {
+                $proc = Get-Process -Id $savedPid -ErrorAction SilentlyContinue
+                if ($proc) {
+                    Write-Host "   Closing: $($proc.ProcessName) (PID $savedPid)" -ForegroundColor DarkGray
+                    Stop-Process -Id $savedPid -Force -ErrorAction SilentlyContinue
+                }
+            } catch {}
+        }
+    }
+    Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
 }
 
 # Kill anything on port 3005 (backend) and 5173 (frontend)
@@ -103,7 +114,8 @@ if ($Headless) {
     # Clear Log
     "" | Out-File "logs/server_debug.log" -Encoding utf8
     $cmd = '$host.ui.RawUI.WindowTitle = ''Baloot Backend''; python -m server.main'
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+    $backendProc = Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd -PassThru
+    $backendProc.Id | Out-File $pidFile -Encoding utf8
 }
 
 # 4. Start Frontend (Vite)
@@ -115,7 +127,8 @@ if ($Headless) {
     Start-Process cmd -ArgumentList "/c", "cd frontend && npm run dev" -WindowStyle Hidden -RedirectStandardOutput $frontendLogOut -RedirectStandardError $frontendLogErr
 } else {
     $cmd = '$host.ui.RawUI.WindowTitle = ''Baloot Frontend''; cd frontend; npm run dev'
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd
+    $frontendProc = Start-Process powershell -ArgumentList "-NoExit", "-Command", $cmd -PassThru
+    $frontendProc.Id | Out-File $pidFile -Append -Encoding utf8
 }
 
 Write-Host "`n✅ All services initiated!" -ForegroundColor Green
