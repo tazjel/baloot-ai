@@ -5,9 +5,34 @@ param (
 Write-Host "=== 🚀 Launching Full Baloot Game Stack (/WW) ===" -ForegroundColor Cyan
 if ($Headless) { Write-Host "   👻 HEADLESS MODE ACTIVE" -ForegroundColor DarkGray }
 
-# 1. Cleanup First
-Write-Host "invoking cleanup..." -ForegroundColor Gray
-& ./scripts/cleanup.ps1
+# 1. Cleanup: Kill previous Backend/Frontend windows and free ports
+Write-Host "🧹 Cleaning up previous sessions..." -ForegroundColor Gray
+
+# Kill PowerShell windows by title
+Get-Process powershell -ErrorAction SilentlyContinue | Where-Object {
+    try { $_.MainWindowTitle -match 'Baloot (Backend|Frontend)' } catch { $false }
+} | ForEach-Object {
+    Write-Host "   Killing: $($_.MainWindowTitle) (PID $($_.Id))" -ForegroundColor DarkGray
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+}
+
+# Kill anything on port 3005 (backend) and 5173 (frontend)
+foreach ($port in @(3005, 5173)) {
+    $procIds = (netstat -ano | Select-String ":${port}\s" | ForEach-Object {
+        ($_ -split '\s+')[-1]
+    } | Sort-Object -Unique | Where-Object { $_ -ne '0' })
+    foreach ($procId in $procIds) {
+        try {
+            $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
+            if ($proc) {
+                Write-Host "   Freeing port ${port}: $($proc.ProcessName) (PID $procId)" -ForegroundColor DarkGray
+                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+    }
+}
+
+Start-Sleep -Milliseconds 500  # Brief pause for ports to release
 
 function Wait-For-Http ($port, $name) {
     Write-Host "   ⏳ Waiting for $name (Port $port)..." -NoNewline
