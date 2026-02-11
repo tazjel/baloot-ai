@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 from py4web import Session, Cache, Translator, DAL, Field, action
+from py4web.utils.auth import Auth
 from py4web.utils.downloader import downloader
 import server.settings as settings
 
@@ -81,6 +82,17 @@ elif settings.SESSION_TYPE == "database":
     from py4web.utils.dbstore import DBStore
 
     session = Session(secret=settings.SESSION_SECRET_KEY, storage=DBStore(db))
+
+# #######################################################
+# Configure Auth
+# #######################################################
+auth = Auth(session, db, define_tables=False)
+auth.use_username = False
+auth.extra_auth_user_fields = [
+    Field('league_points', 'integer', default=1000)
+]
+auth.define_tables()
+auth.enable()
 
 # #######################################################
 # File download action

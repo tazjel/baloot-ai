@@ -1,10 +1,9 @@
 """
 Authentication routes: signup, signin, user profile, token_required decorator.
 """
-import bcrypt
 import logging
 from py4web import action, request, response, abort
-from server.common import db
+from server.common import db, auth
 import server.auth_utils as auth_utils
 
 logger = logging.getLogger(__name__)
@@ -30,11 +29,15 @@ def token_required(f):
 
 @action('user', method=['GET'])
 @token_required
+@action.uses(db)
 def user():
     """Protected endpoint returning user profile with league tier."""
     response.status = 200
-    user_record = db.app_user(request.user.get('user_id'))
-    points = user_record.league_points if user_record else 1000
+    user_id = request.user.get('user_id')
+    user_record = db.auth_user(user_id)
+
+    # Use extra fields which we defined in common.py
+    points = user_record.league_points if user_record and 'league_points' in user_record else 1000
 
     tier = "Bronze"
     if points >= 2000: tier = "Grandmaster"
@@ -47,7 +50,7 @@ def user():
 
 
 @action('signup', method=['POST', 'OPTIONS'])
-@action.uses(db)
+@action.uses(db, auth)
 def signup():
     data = request.json
     first_name = data.get('firstName')
@@ -57,17 +60,19 @@ def signup():
 
     logger.info(f"{email} is signing up!")
 
-    existing_user = db(db.app_user.email == email).select().first()
-    if existing_user:
-        response.status = 409
-        return {"error": "User already exists"}
-
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
-    user_id = db.app_user.insert(
-        first_name=first_name, last_name=last_name,
-        email=email, password=hashed_password
+    result = db.auth_user.validate_and_insert(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        password=password
     )
+
+    if result.get('errors'):
+        logger.warning(f"Signup failed: {result['errors']}")
+        response.status = 409
+        return {"error": str(result['errors'])}
+
+    user_id = result.get('id')
 
     response.status = 201
     return {
@@ -78,6 +83,7 @@ def signup():
 
 
 @action('signin', method=['POST'])
+@action.uses(db, auth)
 def signin():
     data = request.json
     email = data.get('email')
@@ -88,19 +94,16 @@ def signin():
     if not email or not password:
         return {"error": "Email and password are required"}
 
-    user = db(db.app_user.email == email).select().first()
+    user, error = auth.login(email, password)
 
     if not user:
-        logger.warning(f"Sign-in failed: user not found ({email})")
-        response.status = 404
-        return {"error": "User not found"}
+        logger.warning(f"Sign-in failed for {email}: {error}")
+        response.status = 401
+        return {"error": "Invalid credentials"}
 
-    if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-        token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
-        response.status = 200
-        return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
-
-    return {"error": "Invalid credentials"}
+    token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
+    response.status = 200
+    return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
 
 
 def bind_auth(safe_mount):
