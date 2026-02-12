@@ -31,6 +31,8 @@ from .timer_manager import TimerManager
 from .trick_manager import TrickManager
 from .scoring_engine import ScoringEngine
 from .project_manager import ProjectManager
+from .akka_manager import AkkaManager
+from .sawa_manager import SawaManager
 from .qayd_engine import QaydEngine
 from .phases.challenge_phase import ChallengePhase
 from .phases.bidding_phase import BiddingPhase as BiddingLogic
@@ -70,6 +72,8 @@ class Game(StateBridgeMixin):
         self.trick_manager = TrickManager(self)
         self.scoring_engine = ScoringEngine(self)
         self.project_manager = ProjectManager(self)
+        self.akka_manager = AkkaManager(self)
+        self.sawa_manager = SawaManager(self)
         self.challenge_phase = ChallengePhase(self)
         self.qayd_engine = QaydEngine(self)
         self.qayd_engine.reset()
@@ -197,8 +201,8 @@ class Game(StateBridgeMixin):
 
     def handle_declare_project(self, pi, t):  return self.project_manager.handle_declare_project(pi, t)
     def resolve_declarations(self):           return self.project_manager.resolve_declarations()
-    def check_akka_eligibility(self, pi):     return self.project_manager.check_akka_eligibility(pi)
-    def handle_akka(self, pi):                return self.project_manager.handle_akka(pi)
+    def check_akka_eligibility(self, pi):     return self.akka_manager.check_akka_eligibility(pi)
+    def handle_akka(self, pi):                return self.akka_manager.handle_akka(pi)
 
     def handle_sawa(self, pi):
         return self.trick_manager.handle_sawa(pi)
