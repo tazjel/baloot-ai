@@ -1,202 +1,205 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-12 | **Recommended Order**: Mission 5 → 1 → 2 → 3 → 4
+> **Generated**: 2026-02-12 20:05 | **Scan Results Below**
+
+## 📊 Codebase Health Dashboard
+
+| Metric | Value |
+|--------|-------|
+| Backend source files | 117 (game_engine: 38, ai_worker: 39, server: 40) |
+| Frontend files | 89 (.tsx + .ts) |
+| Test files | 77 (ratio: 0.66 tests per source file) |
+| TypeScript errors | **0** ✅ |
+| `as any` casts | **0** ✅ |
+| Debug console.logs | **0** ✅ |
+| TODO/FIXME/HACK | **2** (ai_worker/memory.py, ai_worker/mcts/utils.py) |
+
+### Backend Hotspots (>15 KB)
+| File | Size |
+|------|------|
+| `game_engine/logic/qayd_engine.py` | 23.2 KB |
+| `game_engine/logic/game.py` | 22.4 KB |
+| `ai_worker/strategies/bidding.py` | 19.4 KB |
+| `game_engine/logic/project_manager.py` | 17.9 KB |
+| `game_engine/logic/trick_manager.py` | 17.7 KB |
+| `ai_worker/strategies/components/hokum.py` | 16.7 KB |
+| `ai_worker/mcts/fast_game.py` | 16.2 KB |
+| `ai_worker/strategies/components/sun.py` | 16.1 KB |
+
+### Frontend Hotspots (>10 KB)
+| File | Size |
+|------|------|
+| `MatchReviewModal.tsx` | 18.3 KB |
+| `ActionBar.tsx` | 15.3 KB |
+| `Table.tsx` | 14.3 KB |
+| `App.tsx` | 14.0 KB |
+| `DisputeModal.tsx` | 13.9 KB |
+| `GameArena.tsx` | 13.0 KB |
+| `SettingsModal.tsx` | 11.8 KB |
+| `botService.ts` | 11.3 KB |
+| `useRoundManager.ts` | 11.1 KB |
+| `useGameSocket.ts` | 10.6 KB |
 
 ---
 
-## Mission 1: "The Architect" — State Consolidation Refactor
-> Eliminate the triple-ownership bug factory (~2 hours)
+## ✅ Completed Missions
 
-### Problem
-Akka/Sawa state lives in 3 places: `GameState` (Pydantic), Manager objects (local dicts), and `StateBridge` (property aliases). This causes serialization bugs when layers go out of sync.
+### Mission 1: "The Architect" — State Consolidation Refactor ✅
+> Merged via PR #9 on 2026-02-12
+
+### Mission 5: "The Cleaner" — Code Hygiene Sprint ✅
+> Completed 2026-02-12. All checks pass: 0 TS errors, 0 `as any`, 0 dead code, CODEBASE_MAP updated.
+
+---
+
+## 🎯 Active Missions
+
+## Mission 6: "The Surgeon" — Backend God-File Decomposition
+> Break the 3 largest backend files into focused modules (~3 hours)
 
 ### Tasks
 
-- [ ] **Phase 1: SawaState Migration** (simpler, do first)
-  - [ ] In `trick_manager.py`: replace all `self.sawa_state[...]` dict access with `self.game.state.sawaState.field` attribute access
-  - [ ] Replace `self.sawa_state.update({...})` with individual field assignments
-  - [ ] Replace `self.sawa_state.clear()` with `self.game.state.sawaState = SawaState()`
-  - [ ] Run tests: `python -m pytest tests/ -v --tb=short`
-
-- [ ] **Phase 2: AkkaState Migration**
-  - [ ] In `project_manager.py`: replace `self.akka_state[...]` with `self.game.state.akkaState.field`
-  - [ ] Verify `AkkaState` Pydantic model has all fields used by ProjectManager
-  - [ ] Run tests again
-
-- [ ] **Phase 3: Cleanup**
-  - [ ] In `game.py:to_json()` — remove manual akka/sawa serialization (Pydantic handles it)
-  - [ ] In `game.py:from_json()` — remove manual akka/sawa restoration
-  - [ ] Simplify `StateBridge` properties
-  - [ ] Run full suite + E2E: `python scripts/verification/verify_game_flow.py`
+- [ ] **Split `qayd_engine.py` (23 KB)**
+  - [ ] Extract state transitions → `qayd_state_machine.py`
+  - [ ] Extract penalty logic → `qayd_penalties.py`
+  - [ ] Keep `qayd_engine.py` as thin orchestrator
+- [ ] **Slim `game.py` (22 KB)**
+  - [ ] Move remaining round-reset inline logic to `game_lifecycle.py`
+  - [ ] Extract player management helpers → `player_manager.py`
+- [ ] **Split `project_manager.py` (18 KB)**
+  - [ ] Extract declaration eligibility → `project_declarations.py`
+  - [ ] Extract scoring → `project_scoring.py`
 
 ### Key Files
 | File | Change |
 |------|--------|
-| `game_engine/logic/trick_manager.py` | Dict→attribute access for sawa |
-| `game_engine/logic/project_manager.py` | Dict→attribute access for akka |
-| `game_engine/logic/game.py` | Remove manual sync in to_json/from_json |
-| `game_engine/logic/state_bridge.py` | Simplify property aliases |
-| `game_engine/core/state.py` | Verify Pydantic models have all fields |
+| `game_engine/logic/qayd_engine.py` | Split into state machine + penalties |
+| `game_engine/logic/game.py` | Extract lifecycle + player mgmt |
+| `game_engine/logic/project_manager.py` | Split declarations + scoring |
 
 ### Verification
 ```bash
-python -m pytest tests/ -v --tb=short    # 75 tests, 0 failures
-python scripts/verification/run_serialization_guard.py  # 37 round-trip tests
-python scripts/verification/verify_game_flow.py         # E2E with server
+python -m pytest tests/ -v --tb=short
+python scripts/verification/run_serialization_guard.py
 ```
-
-### Gotchas
-- Never cache a local reference to `game.state.akkaState` — always go through `self.game.state`
-- `sawa_state.update()` and `.clear()` don't work on Pydantic models
-- After `reset_round()`, `sawaState = SawaState()` creates a NEW object — managers must re-read from `game.state`
 
 ---
 
-## Mission 2: "The Polish" — Frontend UX Sprint
+## Mission 7: "The Shield" — Test Coverage Expansion
+> Close critical gaps in test coverage (~2 hours)
+
+### Tasks
+
+- [ ] **Trick Manager Edge Cases** — `tests/game_logic/test_trick_edge_cases.py`
+  - [ ] Trump overtrump scenarios
+  - [ ] Save high card when partner winning
+  - [ ] Void suit + forced trump play
+- [ ] **Project Scoring Combos** — `tests/features/test_project_scoring.py`
+  - [ ] Multiple projects in same round
+  - [ ] Akka + Project combo scoring
+  - [ ] Project cancellation on contract loss
+- [ ] **Timer/Timeout** — `tests/features/test_timer.py`
+  - [ ] Timeout triggers bot autoplay
+  - [ ] Timer reset on new trick
+- [ ] **Integration** — expand `verify_game_flow.py`
+  - [ ] Sawa claims resolve correctly
+  - [ ] 3+ rounds complete without freeze
+
+### Verification
+```bash
+python -m pytest tests/ -v --tb=short
+python -m pytest tests/ --co -q  # verify test count increased
+```
+
+---
+
+## Mission 8: "The Polish" — Frontend UX Sprint
 > Make the game feel alive and premium (~3 hours)
 
 ### Tasks
 
 - [ ] **Card Play Animations**
-  - [ ] Create `useCardAnimation.ts` hook with CSS keyframes for card throw/fly
-  - [ ] In `GameArena.tsx`: animate cards entering `tableCards` area (scale + translate from player position to center)
-  - [ ] Add trick-win sweep animation (winning cards slide to winner's side)
-
-- [ ] **Round Results Enhancement**
-  - [ ] Redesign `RoundResultsModal.tsx` with animated score counter
-  - [ ] Add team color bars showing point breakdown (tricks + bonuses)
-  - [ ] Add a "winner crown" animation for the winning team
-
+  - [ ] Create `useCardAnimation.ts` hook
+  - [ ] Animate cards entering table (scale + translate from player → center)
+  - [ ] Trick-win sweep animation
+- [ ] **Round Results Redesign**
+  - [ ] Animated score counter in `RoundResultsModal.tsx`
+  - [ ] Team color bars, winner crown animation
 - [ ] **Sound Design**
-  - [ ] Create `sounds/` directory with: card-play, trick-win, bid-place, project-declare, game-over
+  - [ ] Create `sounds/` directory (card-play, trick-win, bid-place, game-over)
   - [ ] Build `useSoundEffects.ts` hook with volume control
-  - [ ] Integrate with existing `useGameAudio` or replace it
-  - [ ] Add sounds to: card play, trick resolution, bidding, Sawa/Akka events
+- [ ] **Mobile Responsive**
+  - [ ] Audit at 375px and 768px widths
+  - [ ] Fix card sizing, avatar positions, HUD overflow
 
-- [ ] **Mobile Responsive Pass**
-  - [ ] Audit `Table.tsx` / `GameArena.tsx` at 375px and 768px widths
-  - [ ] Fix card sizing, player avatar positions, HUD overflow
-  - [ ] Make ActionBar scrollable or collapsible on small screens
-  - [ ] Test via Playwright at mobile viewport sizes
-
-### Key Files
-| File | Change |
-|------|--------|
-| `frontend/src/hooks/useCardAnimation.ts` | NEW — card animation logic |
-| `frontend/src/hooks/useSoundEffects.ts` | NEW — sound effect system |
-| `frontend/src/components/table/GameArena.tsx` | Card play animations |
-| `frontend/src/components/RoundResultsModal.tsx` | Score animation redesign |
-| `frontend/src/index.css` | Animation keyframes, responsive breakpoints |
+### Frontend Decomposition Targets
+- [ ] **Split `MatchReviewModal.tsx` (18 KB)** — largest component
+- [ ] **Split `ActionBar.tsx` (15 KB)** — separate bidding and playing modes
 
 ### Verification
-- Visual: Playwright screenshots at key moments (card play, trick win, round end)
-- Mobile: Playwright screenshots at 375px and 768px widths
-- Performance: No jank during animations (check with browser DevTools)
+- Playwright screenshots at card play, trick win, round end
+- Playwright screenshots at 375px and 768px viewports
 
 ---
 
-## Mission 3: "The Strategist" — Smarter Bot AI
+## Mission 9: "The Strategist" — Smarter Bot AI
 > Make bots play like experienced Baloot players (~3 hours)
 
 ### Tasks
 
-- [ ] **Partner Signaling**
-  - [ ] In `bot_strategy.py`: when leading, prefer strong suits to signal partner
-  - [ ] Track what suits partner has played/avoided → infer their hand
-  - [ ] When partner leads, support their suit if possible
-
-- [ ] **Defensive Play**
-  - [ ] If opponents bid and won the contract, play defensively (cut trumps early)
-  - [ ] When playing last in a trick, save high cards if partner is already winning
-  - [ ] Lead short suits to create void for future trumping
-
-- [ ] **Score-Aware Decisions**
-  - [ ] Near game end (score > 120), increase aggression in bidding
-  - [ ] When behind, take riskier bids; when ahead, play conservatively
-  - [ ] Factor in project bonus points when deciding to declare
-
-- [ ] **Project-Aware Play**
-  - [ ] Protect cards that are part of declared projects
-  - [ ] Target opponent project cards when able
-  - [ ] Factor project point value into bid evaluation
-
-- [ ] **Improved Sawa Timing**
-  - [ ] Calculate exact remaining tricks needed vs. cards in hand
-  - [ ] Claim Sawa only when 100% certain (analyze remaining cards)
-  - [ ] Consider opponent's possible remaining cards before claiming
+- [ ] **Partner Signaling** — lead strong suits to signal; track partner's played/avoided suits
+- [ ] **Defensive Play** — cut trumps early vs opponent contracts; save cards when partner winning
+- [ ] **Score-Aware Decisions** — increase aggression near game-end; risk vs reward by score
+- [ ] **Project-Aware Play** — protect project cards; target opponent project cards
+- [ ] **Sawa Timing** — claim only when 100% certain based on remaining cards
+- [ ] **Address TODOs** — implement `memory.py` probabilistic memory upgrade; `mcts/utils.py` precise counting
 
 ### Key Files
 | File | Change |
 |------|--------|
-| `game_engine/logic/bot_strategy.py` | Core strategy improvements |
-| `game_engine/logic/heuristic_bidding.py` | Score-aware and project-aware bidding |
-| `game_engine/logic/trick_manager.py` | Helper methods for card tracking |
+| `ai_worker/strategies/bidding.py` (19 KB) | Score-aware + project-aware bidding |
+| `ai_worker/strategies/components/hokum.py` (17 KB) | Defensive play heuristics |
+| `ai_worker/strategies/components/sun.py` (16 KB) | Partner signaling |
+| `ai_worker/strategies/playing.py` (7 KB) | Core play improvements |
+| `ai_worker/memory.py` (13 KB) | Probabilistic memory TODO |
 
 ### Verification
 ```bash
-# Use Scout Automation skill for batch testing
-python scripts/scout/run_scout.py --games 100 --strategy advanced
-# Compare win rates: old strategy vs new
-python scripts/scout/compare_strategies.py
-# Unit tests
-python -m pytest tests/features/test_bot_strategy.py -v
+python -m pytest tests/bot/ -v
 ```
 
 ---
 
-## Mission 4: "The Multiplayer" — Online Play Polish
+## Mission 10: "The Multiplayer" — Online Play Polish
 > Make online mode production-ready (~4 hours)
 
 ### Tasks
 
-- [ ] **Room Browser**
-  - [ ] Backend: Add `/api/rooms` endpoint listing open rooms with player counts
-  - [ ] Frontend: Create `RoomBrowser.tsx` component with room list, join buttons
-  - [ ] Add auto-refresh every 5 seconds via polling or socket events
-  - [ ] Filter: show only rooms waiting for players
-
-- [ ] **Reconnection Handling**
-  - [ ] Backend: On disconnect, mark player as `disconnected` (not removed) for 60 seconds
-  - [ ] Backend: On reconnect with same session, restore player to their seat
-  - [ ] Frontend: Show "Reconnecting..." overlay with spinner
-  - [ ] If player doesn't return in 60s, replace with bot
-
-- [ ] **Spectator Mode**
-  - [ ] Backend: Allow joining a room as `spectator` role (read-only)
-  - [ ] Frontend: Hide ActionBar, hand, and interactive elements for spectators
-  - [ ] Show spectator count badge on table
-  - [ ] Spectators see all 4 hands revealed
-
-- [ ] **In-Game Emotes**
-  - [ ] Expand `EmoteMenu.tsx` with Baloot-specific emotes (👏 يا حظك, 😤 حرام, 🔥 ماشاء الله)
-  - [ ] Backend: Broadcast emotes via socket to all players in room
-  - [ ] Frontend: Show floating emote animation near sender's avatar
-  - [ ] Rate-limit to 1 emote per 3 seconds
+- [ ] **Room Browser** — `/api/rooms` endpoint + `RoomBrowser.tsx`
+- [ ] **Reconnection Handling** — 60s grace period, auto-restore seat, "Reconnecting..." overlay
+- [ ] **Spectator Mode** — read-only join, see all 4 hands, hide ActionBar
+- [ ] **In-Game Emotes** — Baloot-themed emotes (👏 يا حظك, 😤 حرام, 🔥 ماشاء الله)
 
 ### Key Files
 | File | Change |
 |------|--------|
 | `frontend/src/components/RoomBrowser.tsx` | NEW — room listing UI |
-| `frontend/src/components/EmoteMenu.tsx` | Expand emote system |
-| `server/socket_handler.py` | Reconnection logic, spectator events |
-| `server/controllers.py` | Room listing API |
+| `server/socket_handler.py` | Reconnection + spectator events |
 | `server/room_manager.py` | Disconnect timeout, spectator roles |
 
 ### Verification
-- Open 2 browser tabs → create room in tab 1, join from tab 2
-- Disconnect tab 2 → verify reconnection within 60 seconds
-- Open tab 3 as spectator → verify read-only view
-- Test emote broadcasting between tabs
+- Multi-tab: create room + join from separate tabs
+- Disconnect/reconnect within 60s
+- Spectator view validation
 
 ---
 
-## Mission 5: "The Cleaner" — Code Hygiene Sprint ✅ COMPLETE
-> Completed 2026-02-12
+## 📊 Priority Matrix
 
-### Tasks
-
-- [x] **Remove Debug Logs** — No debug console.logs found (already cleaned)
-- [x] **Schema Audit** — `test_schema_completeness.py` exists and passes
-- [x] **TypeScript Strictness** — `tsc --noEmit` → 0 errors, no `as any` casts
-- [x] **Dead Code Cleanup** — Zero references to removed features (AI Studio, Replay, Academy, Visionary)
-- [x] **Documentation Refresh** — `CODEBASE_MAP.md` updated with decomposed files + expanded hooks/utils
+| Mission | Impact | Effort | Risk | Order |
+|---------|--------|--------|------|-------|
+| **6. The Surgeon** | 🔴 High | 🟡 Medium | 🟡 Medium | ① Next |
+| **7. The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Safety |
+| **8. The Polish** | 🔴 High | 🔴 High | 🟡 Medium | ③ UX |
+| **9. The Strategist** | 🟡 Medium | 🔴 High | 🟡 Medium | ④ AI |
+| **10. The Multiplayer** | 🔴 High | 🔴 High | 🔴 High | ⑤ Features |
