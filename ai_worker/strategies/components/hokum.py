@@ -1,6 +1,13 @@
 from ai_worker.strategies.components.base import StrategyComponent
 from ai_worker.bot_context import BotContext
-from game_engine.models.constants import POINT_VALUES_HOKUM, ORDER_HOKUM
+from game_engine.models.constants import POINT_VALUES_HOKUM, ORDER_HOKUM, ORDER_SUN
+from ai_worker.strategies.components.signaling import (
+    get_role, should_attempt_kaboot, should_break_kaboot,
+    get_barqiya_response
+)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class HokumStrategy(StrategyComponent):
@@ -22,9 +29,33 @@ class HokumStrategy(StrategyComponent):
 
         # DEFENSIVE LEAD: When opponents won the bid, switch to defensive strategy
         if bidder_team == 'them':
+            # KABOOT BREAKER: If opponents are sweeping, prioritize winning 1 trick
+            if should_break_kaboot(ctx):
+                for i, c in enumerate(ctx.hand):
+                    if ctx.is_master_card(c):
+                        return {"action": "PLAY", "cardIndex": i,
+                                "reasoning": "KABOOT BREAKER: Leading master to deny sweep"}
+
             defensive = self._get_defensive_lead_hokum(ctx)
             if defensive:
                 return defensive
+
+        # CHECK PARTNER SIGNALS (Hokum-specific)
+        signal = self._check_partner_signals(ctx)
+        if signal:
+            # Handle Barqiya (urgent call) with timing awareness
+            if signal.get('type') == 'URGENT_CALL':
+                legal = ctx.get_legal_moves()
+                barq = get_barqiya_response(ctx, signal, legal)
+                if barq:
+                    return barq
+            elif signal.get('type') in ('ENCOURAGE', 'CONFIRMED_POSITIVE'):
+                target_suit = signal.get('suit')
+                if target_suit:
+                    for i, c in enumerate(ctx.hand):
+                        if c.suit == target_suit:
+                            return {"action": "PLAY", "cardIndex": i,
+                                    "reasoning": f"Answering partner signal: Lead {target_suit}"}
 
         should_open_trump = (bidder_team == 'us')
 
@@ -345,3 +376,66 @@ class HokumStrategy(StrategyComponent):
             else:
                 best_idx = self.find_lowest_point_card(ctx, follows, POINT_VALUES_HOKUM)
                 return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Ducking (Point Protection)"}
+
+    def _check_partner_signals(self, ctx: BotContext):
+        """
+        Scan previous tricks for partner discard signals (Hokum-specific).
+        
+        Hokum additions over Sun:
+        - Trump discard by partner = "draw out their trumps" signal
+        - Interpret Tahreeb vs Tanfeer context
+        """
+        tricks = ctx.raw_state.get('currentRoundTricks', [])
+        if not tricks:
+            return None
+
+        partner_pos = self.get_partner_pos(ctx.player_index)
+        trump = ctx.trump
+
+        # Scan recent tricks (most recent first) for partner discards
+        for trick in reversed(tricks):
+            if not trick.get('cards'):
+                continue
+
+            # Find the led suit
+            first_card = trick['cards'][0]
+            fc = first_card if 'rank' in first_card else first_card.get('card', {})
+            led_suit = fc.get('suit')
+
+            # Determine trick winner for Tahreeb/Tanfeer context
+            trick_winner = trick.get('winner')
+
+            for i, c_data in enumerate(trick.get('cards', [])):
+                c_inner = c_data if 'rank' in c_data else c_data.get('card', {})
+                player_pos = c_data.get('playedBy')
+                if not player_pos:
+                    played_by_list = trick.get('playedBy', [])
+                    if i < len(played_by_list):
+                        player_pos = played_by_list[i]
+
+                if player_pos != partner_pos:
+                    continue
+
+                card_suit = c_inner.get('suit')
+                card_rank = c_inner.get('rank')
+
+                # Partner didn't follow suit — this is a signal!
+                if card_suit and led_suit and card_suit != led_suit:
+                    # Was partner winning when they discarded? (Tahreeb vs Tanfeer)
+                    partner_won = (trick_winner == partner_pos)
+
+                    if not partner_won:
+                        # TANFEER: Opponent won — partner signaling a want
+                        if card_rank == 'A':
+                            # BARQIYA! Sacrificing an Ace = urgent call
+                            return {'type': 'URGENT_CALL', 'suit': card_suit, 'strength': 'HIGH'}
+                        elif card_rank in ('K', 'Q', '10'):
+                            return {'type': 'ENCOURAGE', 'suit': card_suit, 'strength': 'MEDIUM'}
+                        else:
+                            return {'type': 'ENCOURAGE', 'suit': card_suit, 'strength': 'LOW'}
+                    else:
+                        # TAHREEB: Partner won — partner signaling to avoid
+                        return {'type': 'NEGATIVE_DISCARD', 'suit': card_suit}
+
+        return None
+

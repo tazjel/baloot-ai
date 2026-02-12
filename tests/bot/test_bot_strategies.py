@@ -63,6 +63,14 @@ class TestBotStrategies(unittest.TestCase):
                 self.bidding_round = 1 if phase == 'ROUND_1' else 2 # approx
                 self.trump = None
                 self.bidding_round_history = []
+                # Mission 9 additions: position + score awareness
+                self.is_first_player = False
+                self.partner_is_first = False
+                self.is_offensive = False
+                self.is_desperate = False
+                self.is_protecting = False
+                self.match_score_us = raw.get('matchScores', {}).get('us', 0)
+                self.match_score_them = raw.get('matchScores', {}).get('them', 0)
                 
             def is_master_card(self, c): return False # MOCK
 

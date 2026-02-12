@@ -49,6 +49,17 @@ class BotContext:
         self.is_desperate = self.score_differential < -50
         self.is_protecting = self.score_differential > 100
 
+        # Dealer-Position Tactical Awareness (Al-Ta'sheer Protocol)
+        # First player = left of dealer = offensive advantage (leads first)
+        self.is_first_player = (self.player_index == (self.dealer_index + 1) % 4)
+        partner_idx = (self.player_index + 2) % 4
+        self.partner_is_first = (partner_idx == (self.dealer_index + 1) % 4)
+        self.is_offensive = self.is_first_player or self.partner_is_first
+
+        # Match scores for risk management (doubling danger zone)
+        self.match_score_us = match_scores.get('us', 0)
+        self.match_score_them = match_scores.get('them', 0)
+
     def _parse_table(self, game_state: dict):
         """Parse table cards, determine lead suit, and find current trick winner."""
         self.table_cards = []

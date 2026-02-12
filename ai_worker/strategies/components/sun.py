@@ -1,6 +1,13 @@
 from ai_worker.strategies.components.base import StrategyComponent
 from ai_worker.bot_context import BotContext
 from game_engine.models.constants import POINT_VALUES_SUN, ORDER_SUN
+from ai_worker.strategies.components.signaling import (
+    get_role, should_attempt_kaboot, should_break_kaboot,
+    get_barqiya_response, get_ten_management_play
+)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class SunStrategy(StrategyComponent):
@@ -82,21 +89,43 @@ class SunStrategy(StrategyComponent):
         # DEFENSIVE LEAD: When opponents won the bid, play defensively
         bidder_team = 'us' if ctx.bid_winner in [ctx.position, self.get_partner_pos(ctx.player_index)] else 'them'
         if bidder_team == 'them':
+            # KABOOT BREAKER: If opponents are sweeping, use masters to deny
+            if should_break_kaboot(ctx):
+                for i, c in enumerate(ctx.hand):
+                    if ctx.is_master_card(c):
+                        return {"action": "PLAY", "cardIndex": i,
+                                "reasoning": "KABOOT BREAKER: Leading master to deny sweep"}
+
             defensive = self._get_defensive_lead_sun(ctx)
             if defensive:
                 return defensive
 
-        # 0. Check for Collaborative Signals
+        # CHECK PARTNER SIGNALS with Barqiya timing awareness
         signal = self._check_partner_signals(ctx)
-        if signal and signal['type'] == 'ENCOURAGE':
-            target_suit = signal['suit']
-            for i, c in enumerate(ctx.hand):
-                if c.suit == target_suit:
-                    return {
-                        "action": "PLAY",
-                        "cardIndex": i,
-                        "reasoning": f"Answering Partner's Signal (Encourage {target_suit})"
-                    }
+        if signal:
+            sig_type = signal.get('type')
+            if sig_type == 'URGENT_CALL':
+                # BARQIYA: Use timing-aware response
+                legal = ctx.get_legal_moves()
+                barq = get_barqiya_response(ctx, signal, legal)
+                if barq:
+                    return barq
+            elif sig_type in ('ENCOURAGE', 'CONFIRMED_POSITIVE'):
+                target_suit = signal.get('suit')
+                if target_suit:
+                    for i, c in enumerate(ctx.hand):
+                        if c.suit == target_suit:
+                            return {
+                                "action": "PLAY",
+                                "cardIndex": i,
+                                "reasoning": f"Answering Partner's Signal ({sig_type} {target_suit})"
+                            }
+
+        # 10-MANAGEMENT: Check for Sira sequence protection
+        legal = ctx.get_legal_moves()
+        ten_play = get_ten_management_play(ctx, legal)
+        if ten_play:
+            return ten_play
 
         best_card_idx = 0
         max_score = -100

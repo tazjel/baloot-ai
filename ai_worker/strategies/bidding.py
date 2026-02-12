@@ -15,10 +15,19 @@ class BiddingStrategy:
         elif phase == BiddingPhase.GABLAK_WINDOW:
              return self._get_gablak_decision(ctx)
 
-        # 2. Score Calculation
+        # 2. Floor-Card-Aware Hand Pattern Recognition
+        # Check combined hand (5 cards + floor card) for premium patterns
+        # When dealer: only use Hokum patterns here — Sun patterns should 
+        # flow through the ASHKAL check below (ASHKAL > SUN for dealer)
+        pattern = self._detect_premium_pattern(ctx)
+        if pattern:
+            if not ctx.is_dealer or pattern.get('action') == 'HOKUM':
+                return pattern
+
+        # 3. Score Calculation
         sun_score = self.calculate_sun_strength(ctx.hand)
         
-        # 3. Best Hokum Suit
+        # 4. Best Hokum Suit (with Ace Trap protection)
         best_suit = None
         best_hokum_score = 0
         for suit in SUITS:
@@ -29,6 +38,14 @@ class BiddingStrategy:
             # Round 2 Constraint: Cannot bid floor suit
             if ctx.bidding_round == 2 and ctx.floor_card and suit == ctx.floor_card.suit:
                 continue
+
+            # ACE TRAP LOGIC: Never buy a floor Ace in Hokum unless we hold J or 9
+            # The Ace is only 3rd strongest in Hokum (J > 9 > A) — it gets trapped
+            if ctx.floor_card and ctx.floor_card.suit == suit and ctx.floor_card.rank == 'A':
+                hand_trump_ranks = [c.rank for c in ctx.hand if c.suit == suit]
+                if 'J' not in hand_trump_ranks and '9' not in hand_trump_ranks:
+                    logger.info(f"[BIDDING] Ace Trap: Skipping {suit} — floor Ace without J or 9")
+                    continue
                 
             score = self.calculate_hokum_strength(ctx.hand, suit)
             if score > best_hokum_score:
@@ -62,6 +79,33 @@ class BiddingStrategy:
         # Apply Personality Bias
         sun_threshold = base_sun - ctx.personality.sun_bias
         hokum_threshold = base_hokum - ctx.personality.hokum_bias
+        
+        # ── DEALER-POSITION TACTICAL AWARENESS ──
+        # Offensive position (first player or partner is first) = lower threshold
+        if ctx.is_offensive:
+            sun_threshold -= 2  # Leading first = advantage in Sun
+            hokum_threshold -= 2  # Leading first = advantage in Hokum
+        else:
+            sun_threshold += 1  # Defensive = need slightly stronger hand
+            hokum_threshold += 1
+
+        # ── SCORE-AWARE RISK MANAGEMENT ──
+        # When match score is >100, doubling risk is devastating
+        if ctx.match_score_us >= 100:
+            sun_threshold += 3  # Protect the lead — tighter bidding
+            hokum_threshold += 3
+        elif ctx.match_score_them >= 100:
+            sun_threshold -= 2  # Must gamble to catch up
+            hokum_threshold -= 2
+
+        # Desperate mode: more aggressive bidding
+        if ctx.is_desperate:
+            sun_threshold -= 3
+            hokum_threshold -= 3
+        # Protecting a big lead: conservative bidding
+        elif ctx.is_protecting:
+            sun_threshold += 4
+            hokum_threshold += 4
         
         # Adjustments
         if partner_has_proposal:
@@ -124,6 +168,65 @@ class BiddingStrategy:
                  return {"action": "HOKUM", "suit": best_suit, "reasoning": reason}
         
         return {"action": "PASS", "reasoning": f"Hand too weak (Sun:{sun_score} Hokum:{best_hokum_score})"}
+
+    def _detect_premium_pattern(self, ctx: BotContext):
+        """
+        Floor-card-aware pattern detection for premium hands.
+        Checks the combined hand (5 cards) + floor card for:
+        - Lockdown: Top 4 trumps in Hokum (J, 9, A, 10)
+        - 400: 4 Aces in Sun (40-point project)
+        - Miya: 5-card sequence (A-K-Q-J-10) in Sun (100 project)
+        - Baloot: K+Q of trump for Hokum project bonus
+        """
+        if not ctx.floor_card:
+            return None
+
+        fc = ctx.floor_card
+        hand_ranks = [c.rank for c in ctx.hand]
+        combined_ranks = hand_ranks + [fc.rank]
+
+        # Round 1: Can only buy floor card suit for Hokum
+        if ctx.bidding_round == 1:
+            floor_suit = fc.suit
+
+            # === LOCKDOWN (Hokum): Top 4 trumps ===
+            # In Hokum order: J > 9 > A > 10
+            hand_trump_ranks = [c.rank for c in ctx.hand if c.suit == floor_suit]
+            combined_trump = hand_trump_ranks + ([fc.rank] if True else [])
+            lockdown_cards = {'J', '9', 'A', '10'}
+            if lockdown_cards.issubset(set(combined_trump)):
+                return {"action": "HOKUM", "suit": floor_suit,
+                        "reasoning": f"LOCKDOWN: Top 4 trumps in {floor_suit} (J-9-A-10)"}
+
+            # === BALOOT SETUP (Hokum): K+Q of trump + J ===
+            if 'J' in hand_trump_ranks:  # Must have Jack for strength
+                if 'K' in combined_trump and 'Q' in combined_trump:
+                    return {"action": "HOKUM", "suit": floor_suit,
+                            "reasoning": f"BALOOT Setup: J + K+Q of {floor_suit}"}
+
+        # === 400 (Sun): 4 Aces ===
+        if combined_ranks.count('A') >= 4:
+            return {"action": "SUN",
+                    "reasoning": "400 Project: 4 Aces (40-point bonus)"}
+
+        # === MIYA (Sun): 5-card sequence A-K-Q-J-10 in same suit ===
+        for suit in SUITS:
+            suit_ranks = [c.rank for c in ctx.hand if c.suit == suit]
+            if fc.suit == suit:
+                suit_ranks.append(fc.rank)
+            miya_set = {'A', 'K', 'Q', 'J', '10'}
+            if miya_set.issubset(set(suit_ranks)):
+                return {"action": "SUN",
+                        "reasoning": f"MIYA: 5-card sequence in {suit} (100 project)"}
+
+        # === RULER OF THE BOARD (Sun): 3+ Aces + 2+ Tens ===
+        ace_count = combined_ranks.count('A')
+        ten_count = combined_ranks.count('10')
+        if ace_count >= 3 and ten_count >= 2:
+            return {"action": "SUN",
+                    "reasoning": f"Ruler: {ace_count} Aces + {ten_count} Tens"}
+
+        return None
 
     def _get_partner_pos_name(self, my_pos):
         pairs = {'Bottom': 'Top', 'Top': 'Bottom', 'Right': 'Left', 'Left': 'Right'}
