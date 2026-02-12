@@ -21,6 +21,8 @@ from .trick_manager import TrickManager
 from .scoring_engine import ScoringEngine
 from .project_manager import ProjectManager
 from .qayd_engine import QaydEngine
+from .game_lifecycle import GameLifecycle
+from .player_manager import PlayerManager
 from .phases.challenge_phase import ChallengePhase
 from .phases.bidding_phase import BiddingPhase as BiddingLogic
 from .phases.playing_phase import PlayingPhase as PlayingLogic
@@ -150,6 +152,8 @@ def deserialize_game(data: dict) -> Game:
     game.graveyard = Graveyard()
     for trick in game.round_history:
         game.graveyard.commit_trick(trick.get('cards', []))
+    game.lifecycle = GameLifecycle(game)
+    game.player_manager = PlayerManager(game)
     game.trick_manager = TrickManager(game)
     game.scoring_engine = ScoringEngine(game)
     game.project_manager = ProjectManager(game)
