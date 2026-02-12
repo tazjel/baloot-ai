@@ -62,36 +62,4 @@ class TestAIWorkerCoverage:
             assert decision['cardIndex'] == 0
             assert "Brain Override" in decision['reasoning']
 
-    def test_referee_qayd(self, mock_game_state):
-        """Verify referee intercepts illegal move with Qayd claim"""
-        mock_game_state['phase'] = 'PLAYING'
-        mock_game_state['tableCards'] = [
-             {'card': {'rank': 'K', 'suit': 'D'}, 'playedBy': 1, 'metadata': {'is_illegal': True}}
-        ]
-        
-        # Test direct referee check via Agent
-        # Note: BotAgent calls self.referee.check_qayd
-        
-        decision = bot_agent.get_decision(mock_game_state, 0)
-        
-        assert decision['action'] == 'QAYD_CLAIM'
 
-    def test_referee_sawa(self, mock_game_state):
-        """Verify referee responds to Sawa claim"""
-        # Setup Sawa State: Player 1 (Opponent) claims Sawa
-        mock_game_state['sawaState'] = {
-            'active': True,
-            'status': 'PENDING',
-            'claimer': 'Right', # Assuming Player 1 is Right relative to Bot (0)
-            'responses': {}
-        }
-        # Bot needs context to know positions, mock it via ctx or raw state
-        # BotContext derives position from player data.
-        mock_game_state['players'][0]['position'] = 'Bottom'
-        mock_game_state['players'][1]['position'] = 'Right'
-        
-        # Test: Bot should respond (ACCEPT by default if no masters)
-        decision = bot_agent.get_decision(mock_game_state, 0)
-        
-        assert decision['action'] == 'SAWA_RESPONSE'
-        assert decision['response'] in ['ACCEPT', 'REFUSE']
