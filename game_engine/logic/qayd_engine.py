@@ -21,6 +21,10 @@ MISSION 2 & 3 REFACTORING:
 - Removed _validate_* methods (now in RulesValidator)
 - Removed handle_legacy_accusation (bots use proper API now)
 - Clean separation: Engine = State, Validator = Rules, Scanner = Detection
+
+MISSION 6 REFACTORING:
+- Extracted state machine to game_engine/logic/qayd_state_machine.py
+- Extracted penalty logic to game_engine/logic/qayd_penalties.py
 """
 
 import time
@@ -29,57 +33,14 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from game_engine.models.constants import GamePhase
 from game_engine.logic.rules_validator import RulesValidator, ViolationType
+from game_engine.logic.qayd_state_machine import QaydStateMachine, QaydStep, QaydMenuOption, TIMER_HUMAN, TIMER_AI
+from game_engine.logic.qayd_penalties import QaydPenaltyCalculator
 
 logger = logging.getLogger(__name__)
 
 
-# ─── Step Constants ───────────────────────────────────────────────────────────
-class QaydStep:
-    IDLE             = 'IDLE'
-    MAIN_MENU        = 'MAIN_MENU'
-    VIOLATION_SELECT = 'VIOLATION_SELECT'
-    SELECT_CARD_1    = 'SELECT_CARD_1'   # Crime card (Pink Ring)
-    SELECT_CARD_2    = 'SELECT_CARD_2'   # Proof card (Green Ring)
-    ADJUDICATION     = 'ADJUDICATION'    # Backend validates
-    RESULT           = 'RESULT'          # Verdict displayed
-
-
-# ─── Main Menu Options ────────────────────────────────────────────────────────
-class QaydMenuOption:
-    REVEAL_CARDS = 'REVEAL_CARDS'   # كشف الأوراق
-    WRONG_SAWA   = 'WRONG_SAWA'    # سوا خاطئ
-    WRONG_AKKA   = 'WRONG_AKKA'    # أكة خاطئة
-
-
-# ─── Timer Durations ──────────────────────────────────────────────────────────
-TIMER_HUMAN = 60   # seconds
-TIMER_AI    = 2    # seconds
-
-
-def _empty_state() -> Dict[str, Any]:
-    """Canonical empty state. Always the same structure."""
-    return {
-        'active':           False,
-        'step':             QaydStep.IDLE,
-        'reporter':         None,       # PlayerPosition string
-        'reporter_is_bot':  False,
-        'menu_option':      None,       # QaydMenuOption
-        'violation_type':   None,       # ViolationType
-        'crime_card':       None,       # dict with suit, rank, trick_idx, card_idx, played_by
-        'proof_card':       None,       # same shape
-        'verdict':          None,       # 'CORRECT' or 'WRONG'
-        'verdict_message':  None,       # Arabic display string
-        'loser_team':       None,       # 'us' or 'them'
-        'penalty_points':   0,
-        'timer_duration':   TIMER_HUMAN,
-        'timer_start':      0,
-        'crime_signature':  None,       # (trick_idx, card_idx) for Double Jeopardy
-        # Legacy compat fields (read by get_game_state / frontend QaydState type)
-        'status':           None,       # 'REVIEW' | 'RESOLVED'
-        'reason':           None,
-        'target_play':      None,
-    }
-
+# ─── Step Constants (Re-exported for compatibility) ───────────────────────────
+# QaydStep and QaydMenuOption are imported from qayd_state_machine.py
 
 class QaydEngine:
     """
@@ -95,12 +56,14 @@ class QaydEngine:
     REFACTORING NOTES:
     - Bot auto-accusation logic moved to ai_worker/strategies/components/forensics.py
     - Validation logic moved to game_engine/logic/rules_validator.py
-    - This class now ONLY manages state transitions
+    - State machine logic moved to game_engine/logic/qayd_state_machine.py
+    - Penalty logic moved to game_engine/logic/qayd_penalties.py
     """
 
     def __init__(self, game):
         self.game = game
-        self.state: Dict[str, Any] = _empty_state()
+        self._sm = QaydStateMachine()
+        self.state = self._sm.state  # Alias to the state dict inside state machine
         # Note: ignored_crimes moved to ForensicScanner (bot-specific)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -134,17 +97,9 @@ class QaydEngine:
         self.game.pause_timer()  # Properly pause TimerManager so auto-play doesn't fire
 
         is_bot = getattr(player, 'is_bot', False)
-        timer_dur = TIMER_AI if is_bot else TIMER_HUMAN
-
-        self._update({
-            'active':           True,
-            'step':             QaydStep.MAIN_MENU,
-            'reporter':         player.position,
-            'reporter_is_bot':  is_bot,
-            'timer_duration':   timer_dur,
-            'timer_start':      time.time(),
-            'status':           'REVIEW',
-        })
+        
+        # Delegate state transition
+        timer_dur = self._sm.start_session(player.position, is_bot)
 
         logger.info(f"[QAYD] Triggered by {player.position} (bot={is_bot}). Timer={timer_dur}s. Phase → CHALLENGE.")
 
@@ -155,7 +110,7 @@ class QaydEngine:
         if self.state['step'] != QaydStep.MAIN_MENU:
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
-        self._update({'menu_option': option, 'step': QaydStep.VIOLATION_SELECT})
+        self._sm.to_violation_select(option)
         return {'success': True, 'qayd_state': self.state}
 
     def select_violation(self, violation_type: str) -> Dict[str, Any]:
@@ -163,7 +118,7 @@ class QaydEngine:
         if self.state['step'] not in (QaydStep.VIOLATION_SELECT, QaydStep.SELECT_CARD_1, QaydStep.SELECT_CARD_2):
             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
 
-        self._update({'violation_type': violation_type, 'step': QaydStep.SELECT_CARD_1})
+        self._sm.to_card_select_1(violation_type)
         return {'success': True, 'qayd_state': self.state}
 
     def select_crime_card(self, card_data: Dict) -> Dict[str, Any]:
@@ -186,7 +141,7 @@ class QaydEngine:
                 logger.warning(f"[QAYD] Selection blocked: Crime {ledger_sig} already resolved.")
                 return {'success': False, 'error': 'This play has already been challenged.'}
 
-        self._update({'crime_card': card_data, 'step': QaydStep.SELECT_CARD_2})
+        self._sm.to_card_select_2(card_data)
         logger.info(f"[QAYD] select_crime_card SUCCESS → step=SELECT_CARD_2")
         return {'success': True, 'qayd_state': self.state}
 
@@ -201,7 +156,7 @@ class QaydEngine:
             logger.warning(f"[QAYD] select_proof_card REJECTED: card not in history. card_data={card_data}")
             return {'success': False, 'error': 'Proof card not found in round history'}
 
-        self._update({'proof_card': card_data, 'step': QaydStep.ADJUDICATION})
+        self._sm.to_adjudication(card_data)
         logger.info(f"[QAYD] select_proof_card → calling _adjudicate()")
         return self._adjudicate()
 
@@ -239,11 +194,7 @@ class QaydEngine:
         self.game.apply_qayd_penalty(loser_team, winner_team)
 
         # Mark resolved
-        self._update({
-            'step': QaydStep.IDLE,
-            'active': False,
-            'status': 'RESOLVED',
-        })
+        self._sm.resolve()
 
         self.game.is_locked = False
         self.game.resume_timer()
@@ -262,7 +213,7 @@ class QaydEngine:
             return {'success': False, 'error': 'No active Qayd'}
 
         was_result = self.state['step'] == QaydStep.RESULT
-        self._reset_state()
+        self._sm.reset()
 
         # Restore phase
         if not was_result:
@@ -278,7 +229,7 @@ class QaydEngine:
 
     def reset(self):
         """Full reset for new round. Called by game.reset_round_state()."""
-        self._reset_state()
+        self._sm.reset()
         # Note: ForensicScanner handles its own session reset
 
     def check_timeout(self) -> Optional[Dict[str, Any]]:
@@ -349,23 +300,27 @@ class QaydEngine:
             verdict_msg = 'قيد خاطئ'
             loser_team = reporter.team
 
-        penalty = self._calculate_penalty()
+        # Use new PenaltyCalculator
+        penalty = QaydPenaltyCalculator.calculate_base_penalty(
+            self.game.game_mode, 
+            getattr(self.game, 'doubling_level', 1)
+        )
+        
         sig = (crime.get('trick_idx', -1), crime.get('card_idx', -1))
 
-        self._update({
-            'verdict': verdict,
-            'verdict_message': verdict_msg,
-            'loser_team': loser_team,
-            'penalty_points': penalty,
-            'reason': reason,
-            'crime_signature': sig,
-            'step': QaydStep.RESULT,
-            'target_play': {
+        self._sm.to_result(
+            verdict=verdict,
+            verdict_msg=verdict_msg,
+            loser_team=loser_team,
+            penalty=penalty,
+            reason=reason,
+            sig=sig,
+            target_play={
                 'card': crime,
                 'playedBy': offender_pos,
                 'metadata': {'illegal_reason': reason},
-            },
-        })
+            }
+        )
 
         logger.info(f"[QAYD] Adjudicated: {verdict} — {reason}. Penalty={penalty}")
         return {'success': True, 'qayd_state': self.state}
@@ -424,20 +379,13 @@ class QaydEngine:
 
     def _calculate_penalty(self) -> int:
         """
-        SUN/ASHKAL = 26 base, HOKUM = 16 base.
-        Multiplied by doubling level.
-        NOTE: Project points are NOT added here. (FIX for BUG-03)
-        apply_qayd_penalty adds them once.
+        DEPRECATED: Use QaydPenaltyCalculator instead.
+        Kept for safe measure if needed internally.
         """
-        mode_str = str(self.game.game_mode or '').upper()
-        is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
-        base = 26 if is_sun else 16
-
-        dl = getattr(self.game, 'doubling_level', 1) or 1
-        if dl >= 2:
-            base *= dl
-
-        return base
+        return QaydPenaltyCalculator.calculate_base_penalty(
+            self.game.game_mode, 
+            getattr(self.game, 'doubling_level', 1)
+        )
 
     # ══════════════════════════════════════════════════════════════════════════
     #  INTERNAL HELPERS
@@ -445,16 +393,15 @@ class QaydEngine:
 
     def _update(self, patch: Dict[str, Any]):
         """In-place update. Never reassign self.state."""
-        self.state.update(patch)
+        self._sm.update(patch)
 
     def _reset_state(self):
         """Reset to idle. Preserves dict identity."""
-        self.state.clear()
-        self.state.update(_empty_state())
+        self._sm.reset()
 
     def _unlock_and_reset(self):
         """Reset state AND unlock game + restore phase."""
-        self._reset_state()
+        self._sm.reset()
         self.game.is_locked = False
         self.game.resume_timer()
         phase_str = str(self.game.phase)
@@ -510,6 +457,7 @@ class QaydEngine:
             return {'success': False, 'error': 'Missing crime_card'}
 
         # 2. Set state directly (skip menu/card select UI steps)
+        # Use low-level update since this bypasses standard transitions
         self._update({
             'menu_option':    QaydMenuOption.REVEAL_CARDS,
             'violation_type': violation,
@@ -525,4 +473,3 @@ class QaydEngine:
 
         # 3. Adjudicate immediately
         return self._adjudicate()
-

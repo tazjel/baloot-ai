@@ -7,10 +7,10 @@ description: Scan the codebase and generate improvement missions with actionable
 # Generate Improvement Missions
 
 ## 1. Scan Backend Hotspots
-Use the `find_by_name` tool to list all `.py` files in `game_engine/`, `ai_worker/`, and `server/`. The results include file sizes. Note files >15 KB as complexity hotspots.
+Use the `find_by_name` tool to list all `.py` files in `game_engine/`, `ai_worker/`, and `server/`. The results include file sizes. Note files >15 KB as complexity hotspots. Do NOT use shell commands for file sizes — `find_by_name` already returns them.
 
 ## 2. Scan Frontend Hotspots
-Use the `find_by_name` tool to list all `.tsx` and `.ts` files in `frontend/src/`. Note files >10 KB as complexity hotspots.
+Use the `find_by_name` tool to list all `.tsx` and `.ts` files in `frontend/src/`. Note files >10 KB as complexity hotspots. Do NOT use shell commands for file sizes — `find_by_name` already returns them.
 
 ## 3. Check TypeScript Health
 Use the `grep_search` tool to search for `as any` in `frontend/src/` (includes: `*.tsx`, `*.ts`). Count the results. Zero is healthy.
@@ -59,7 +59,8 @@ Each active mission should follow this template:
 6. Multiplayer/production features
 
 ## 8. Commit and Push
-Commit the updated `.agent/next-session-brief.md` and push to origin:
+Commit the updated `.agent/next-session-brief.md` and push to origin. Use PowerShell-compatible command chaining (`;` not `&&`):
+// turbo
 ```
-git add .agent/next-session-brief.md && git commit -m "docs: regenerate improvement missions" && git push origin main
+git add .agent/next-session-brief.md; git commit -m "docs: regenerate improvement missions"; git push origin main
 ```

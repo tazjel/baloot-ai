@@ -1,0 +1,32 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.12.10', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.2', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '3.7.1', 'locust': '2.43.1', 'base-url': '2.1.0', 'cov': '7.0.0', 'html': '4.2.0', 'metadata': '3.1.1', 'playwright': '0.7.2', 'playwright-visual': '2.1.2', 'rerunfailures': '16.1', 'xdist': '3.8.0'}, 'Base URL': ''}
+rootdir: C:\Users\MiEXCITE\Projects\baloot-ai
+configfile: pytest.ini
+plugins: anyio-3.7.1, locust-2.43.1, base-url-2.1.0, cov-7.0.0, html-4.2.0, metadata-3.1.1, playwright-0.7.2, playwright-visual-2.1.2, rerunfailures-16.1, xdist-3.8.0
+collecting ... collected 15 items
+
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_all_dealt_cards_are_unique PASSED [  6%]
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_cannot_start_with_fewer_than_4_players PASSED [ 13%]
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_game_start_deals_initial_cards PASSED [ 20%]
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_game_start_enters_bidding PASSED [ 26%]
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_player_positions PASSED [ 33%]
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_player_teams_assigned_correctly PASSED [ 40%]
+tests/game_logic/test_game_lifecycle.py::TestBiddingPhase::test_all_pass_round_1_continues PASSED [ 46%]
+tests/game_logic/test_game_lifecycle.py::TestBiddingPhase::test_sun_bid_transitions_to_playing PASSED [ 53%]
+tests/game_logic/test_game_lifecycle.py::TestPlayPhase::test_all_hands_empty_after_round PASSED [ 60%]
+tests/game_logic/test_game_lifecycle.py::TestPlayPhase::test_full_round_ends_game PASSED [ 66%]
+tests/game_logic/test_game_lifecycle.py::TestPlayPhase::test_full_trick_clears_table PASSED [ 73%]
+tests/game_logic/test_game_lifecycle.py::TestPlayPhase::test_play_card_success PASSED [ 80%]
+tests/game_logic/test_game_lifecycle.py::TestScoringIntegration::test_match_scores_accumulate PASSED [ 86%]
+tests/game_logic/test_game_lifecycle.py::TestScoringIntegration::test_round_result_has_team_data PASSED [ 93%]
+tests/game_logic/test_game_lifecycle.py::TestScoringIntegration::test_round_result_recorded PASSED [100%]
+
+============================== warnings summary ===============================
+tests/game_logic/test_game_lifecycle.py::TestGameSetup::test_all_dealt_cards_are_unique
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 15 passed, 1 warning in 42.51s ========================

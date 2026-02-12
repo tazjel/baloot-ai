@@ -11,17 +11,20 @@ game_engine/logic/game.py — Refactored Game Controller (v2)
   - Events:     ActionResult + GameEvent — typed results
 
 Persistence: redis.set(key, game.state.model_dump_json())
+
+MISSION 6 REFACTORING:
+- Extracted lifecycle logic to game_engine/logic/game_lifecycle.py
+- Extracted player management to game_engine/logic/player_manager.py
 """
 
 from __future__ import annotations
-import random, time, copy, logging
+import time, copy, logging
 from typing import Dict, List, Optional, Any
 from functools import wraps
 
 from game_engine.models.constants import GamePhase
 from game_engine.models.deck import Deck
 from game_engine.models.player import Player
-from game_engine.logic.utils import sort_hand
 from game_engine.core.state import GameState, BidState, AkkaState
 from game_engine.core.graveyard import Graveyard
 from game_engine.core.models import ActionResult, EventType
@@ -34,6 +37,8 @@ from .project_manager import ProjectManager
 from .akka_manager import AkkaManager
 from .sawa_manager import SawaManager
 from .qayd_engine import QaydEngine
+from .game_lifecycle import GameLifecycle
+from .player_manager import PlayerManager
 from .phases.challenge_phase import ChallengePhase
 from .phases.bidding_phase import BiddingPhase as BiddingLogic
 from .phases.playing_phase import PlayingPhase as PlayingLogic
@@ -68,6 +73,8 @@ class Game(StateBridgeMixin):
         self.bidding_engine = None
 
         # Managers
+        self.lifecycle = GameLifecycle(self)
+        self.player_manager = PlayerManager(self)
         self.graveyard = Graveyard()
         self.trick_manager = TrickManager(self)
         self.scoring_engine = ScoringEngine(self)
@@ -96,75 +103,23 @@ class Game(StateBridgeMixin):
         self._record("INIT")
 
     # ═══════════════════════════════════════════════════════════════════
-    #  LIFECYCLE
+    #  LIFECYCLE (Delegated to GameLifecycle & PlayerManager)
     # ═══════════════════════════════════════════════════════════════════
 
     def add_player(self, id, name, avatar=None):
-        for p in self.players:
-            if p.id == id:
-                p.name = name
-                if avatar: p.avatar = avatar
-                return p
-        if len(self.players) >= 4: return None
-        p = Player(id, name, len(self.players), self, avatar=avatar)
-        self.players.append(p)
-        return p
+        return self.player_manager.add_player(id, name, avatar)
 
     def start_game(self) -> bool:
-        if len(self.players) < 4: return False
-        self.reset_round_state()
-        self.dealer_index = random.randint(0, 3)
-        self.deal_initial_cards()
-        self.phase = GamePhase.BIDDING.value
-        from .bidding_engine import BiddingEngine
-        self.bidding_engine = BiddingEngine(
-            dealer_index=self.dealer_index, floor_card=self._floor_card_obj,
-            players=self.players, match_scores=self.match_scores,
-        )
-        self.current_turn = self.bidding_engine.current_turn
-        self.reset_timer()
-        return True
+        return self.lifecycle.start_game()
 
     def reset_round_state(self):
-        self.deck = Deck()
-        for p in self.players:
-            p.hand, p.captured_cards, p.action_text = [], [], ''
-        self.table_cards = []
-        self._floor_card_obj = None
-        self.state.reset_round()
-        self.graveyard.reset()
-        self.qayd_engine.reset()
-        self.qayd_state = self.qayd_engine.state
-        # akka_state and sawa_state are reset by state.reset_round() automatically
-        self.reset_timer()
+        self.lifecycle.reset_round_state()
 
     def deal_initial_cards(self):
-        for p in self.players:
-            p.hand.extend(self.deck.deal(5))
-        val = self.deck.deal(1)
-        if val: self.floor_card = val[0]
+        self.lifecycle.deal_initial_cards()
 
     def complete_deal(self, bidder_index):
-        bidder = self.players[bidder_index]
-        if self._floor_card_obj:
-            bidder.hand.append(self._floor_card_obj)
-            self.floor_card = None
-        bidder.hand.extend(self.deck.deal(2))
-        for p in self.players:
-            if p.index != bidder_index:
-                p.hand.extend(self.deck.deal(3))
-        for p in self.players:
-            p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
-            p.action_text = ""
-            self.initial_hands[p.position] = [c.to_dict() for c in p.hand]
-        self.phase = GamePhase.PLAYING.value
-        self.current_turn = (self.dealer_index + 1) % 4
-        self.reset_timer()
-
-        # Auto-declare projects for all bots at start of play
-        # so their labels show immediately during trick 1
-        if hasattr(self, 'project_manager'):
-            self.project_manager.auto_declare_bot_projects()
+        self.lifecycle.complete_deal(bidder_index)
 
     # ═══════════════════════════════════════════════════════════════════
     #  ACTION DELEGATION
@@ -247,30 +202,7 @@ class Game(StateBridgeMixin):
     # ═══════════════════════════════════════════════════════════════════
 
     def end_round(self, skip_scoring=False):
-        self._record("ROUND_END")
-        if not skip_scoring:
-            rr, su, st = self.scoring_engine.calculate_final_scores()
-            self.past_round_results.append(rr)
-            self.match_scores['us'] += su
-            self.match_scores['them'] += st
-            snap = self._build_round_snapshot(rr)
-            self.full_match_history.append(snap)
-            try:
-                from ai_worker.agent import bot_agent
-                bot_agent.capture_round_data(snap)
-            except Exception: pass
-
-        self.dealer_index = (self.dealer_index + 1) % 4
-        if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
-            self.phase = GamePhase.GAMEOVER.value
-            try:
-                from server.services.archiver import archive_match
-                archive_match(self)
-            except Exception: pass
-        else:
-            self.phase = GamePhase.FINISHED.value
-        self.sawa_failed_khasara = False
-        self.reset_timer()
+        self.lifecycle.end_round(skip_scoring)
 
     def apply_qayd_penalty(self, loser_team, winner_team):
         penalty = self.qayd_state.get('penalty_points', 26 if 'SUN' in str(self.game_mode).upper() else 16)

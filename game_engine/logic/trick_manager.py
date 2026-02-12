@@ -3,6 +3,7 @@ from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, POINT_VALUES_SUN, POINT_VALUES_HOKUM
 from game_engine.logic.referee import Referee
 from game_engine.core.state import SawaState
+from game_engine.logic.trick_resolver import TrickResolver
 from server.logging_utils import logger, log_event
 
 class TrickManager:
@@ -12,53 +13,24 @@ class TrickManager:
         # NOTE: sawa_state is accessed via self.game.state.sawaState property → game.state.sawaState
         self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
 
+    # REFACTOR: Logic moved to TrickResolver
     def get_card_points(self, card: Card) -> int:
-        """Return the point value of a card based on current game mode and trump suit."""
-        if self.game.game_mode == "SUN":
-             return POINT_VALUES_SUN[card.rank]
-        else:
-             if card.suit == self.game.trump_suit:
-                  return POINT_VALUES_HOKUM[card.rank]
-             else:
-                  return POINT_VALUES_SUN[card.rank]
+        """Legacy wrapper for TrickResolver.get_card_points."""
+        return TrickResolver.get_card_points(card, self.game.game_mode, self.game.trump_suit)
 
+    # REFACTOR: Logic moved to TrickResolver
     def get_trick_winner(self) -> int:
-        """Determine the index (within table_cards) of the trick-winning card."""
-        lead_card = self.game.table_cards[0]['card']
-        best_idx = 0
-        current_best = -1
-        
-        for i, play in enumerate(self.game.table_cards):
-            card = play['card']
-            strength = -1
-            
-            if self.game.game_mode == "SUN":
-                if card.suit == lead_card.suit:
-                    strength = ORDER_SUN.index(card.rank)
-            else:
-                if card.suit == self.game.trump_suit:
-                    strength = 100 + ORDER_HOKUM.index(card.rank)
-                elif card.suit == lead_card.suit:
-                    strength = ORDER_SUN.index(card.rank)
-            
-            if strength > current_best:
-                current_best = strength
-                best_idx = i
-        return best_idx
+        """Legacy wrapper for TrickResolver.get_trick_winner."""
+        return TrickResolver.get_trick_winner(
+            self.game.table_cards, 
+            self.game.game_mode, 
+            self.game.trump_suit
+        )
 
+    # REFACTOR: Logic moved to TrickResolver
     def can_beat_trump(self, winning_card: Card, hand: List[Card]) -> Tuple[bool, List[Card]]:
-        """Check if the hand contains a trump card that can beat the current winner.
-
-        Returns a tuple of (can_beat, list_of_beating_cards).
-        """
-        winning_strength = 100 + ORDER_HOKUM.index(winning_card.rank)
-        beating_cards = []
-        for c in hand:
-            if c.suit == self.game.trump_suit:
-                 s = 100 + ORDER_HOKUM.index(c.rank)
-                 if s > winning_strength:
-                      beating_cards.append(c)
-        return (len(beating_cards) > 0), beating_cards
+        """Legacy wrapper for TrickResolver.can_beat_trump."""
+        return TrickResolver.can_beat_trump(winning_card, hand, self.game.trump_suit)
 
     def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
         """Validate whether playing this card is legal given the current trick state."""
@@ -372,6 +344,7 @@ class TrickManager:
             p.hand = []  # Empty hands
 
         # Create a dummy trick with all cards won by claimer
+        # Use TrickResolver for consistency
         total_trick_points = sum(self.get_card_points(c) for c in all_cards)
 
         dummy_trick = {
