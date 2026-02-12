@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './src/App';
 import { GameProvider } from './src/contexts/GameContext';
+import { AuthProvider } from './src/contexts/AuthContext';
 import './src/index.css';
 
 const rootElement = document.getElementById('root');
@@ -13,8 +14,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <GameProvider>
-      <App />
-    </GameProvider>
+    <AuthProvider>
+      <GameProvider>
+        <App />
+      </GameProvider>
+    </AuthProvider>
   </React.StrictMode>
 );

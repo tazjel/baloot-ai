@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { GameSettings } from '../types';
-import { Clock, Shield, ShieldAlert, Play, Gamepad2 } from 'lucide-react';
+import { GameSettings, UserProfile } from '../types';
+import { Clock, Shield, ShieldAlert, Play, Gamepad2, User, LogOut } from 'lucide-react';
 import { devLogger } from '../utils/devLogger';
 
 interface LobbyProps {
     onStartGame: (settings: GameSettings) => void;
     onMultiplayer: () => void;
+    userProfile: UserProfile | null;
+    onAuth: () => void;
+    onLogout: () => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer }) => {
+const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer, userProfile, onAuth, onLogout }) => {
     const [turnDuration, setTurnDuration] = useState<number>(3);
     const [strictMode, setStrictMode] = useState<boolean>(true);
 
@@ -25,6 +28,36 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer }) => {
             {/* Subtle texture overlay - REMOVED for Stability */}
 
             <div className="w-full max-w-md glass-premium p-6 sm:p-8 relative overflow-hidden">
+
+                {/* User Profile / Auth Button */}
+                <div className="absolute top-4 right-4 z-20">
+                    {userProfile ? (
+                        <div className="flex items-center gap-2 bg-white/80 p-2 pl-3 rounded-full shadow-sm group">
+                            <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-white font-bold">
+                                {userProfile.firstName?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-xs font-bold text-gray-800 leading-tight">{userProfile.firstName}</span>
+                                <span className="text-[10px] text-gray-500 leading-tight">{userProfile.tier}</span>
+                            </div>
+                            <button
+                                onClick={onLogout}
+                                className="ml-1 p-1 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+                                title="Logout"
+                            >
+                                <LogOut size={14} />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={onAuth}
+                            className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-md hover:shadow-lg"
+                        >
+                            <User size={14} />
+                            <span>دخول / تسجيل</span>
+                        </button>
+                    )}
+                </div>
 
                 {/* Background Glow - Gold accent */}
                 <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(212,175,55,0.15)_0%,transparent_60%)] pointer-events-none" />

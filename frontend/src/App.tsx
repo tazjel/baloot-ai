@@ -19,16 +19,21 @@ import MultiplayerLobby from './components/MultiplayerLobby';
 
 import GameLayout from './components/GameLayout';
 import { useGameContext } from './contexts/GameContext';
+import { useAuth } from './contexts/AuthContext';
 import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
 import FeatureErrorBoundary from './components/FeatureErrorBoundary';
 import { devLogger } from './utils/devLogger';
+import AuthModal from './components/AuthModal';
 
 
 
 
 const App: React.FC = () => {
+  const { userProfile: authProfile, ownedItems: authOwned, equippedItems: authEquipped, updateInventory, logout } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
   // ... existing hook calls ...
   useEffect(() => {
     devLogger.log('APP', 'App Component Mounted');
@@ -83,8 +88,20 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { card: 'card_default', table: 'table_default' };
   });
 
-
-
+  // Sync Auth State to Local State
+  useEffect(() => {
+    if (authProfile) {
+        setOwnedItems(authOwned);
+        setEquippedItems(authEquipped);
+        // Sync profile data (name, etc)
+        setUserProfile(prev => ({
+            ...prev,
+            ...authProfile,
+            // Coins logic might need reconciliation
+            coins: Math.max(prev.coins, authProfile.coins)
+        }));
+    }
+  }, [authProfile, authOwned, authEquipped]);
 
 
   useEffect(() => {
@@ -95,11 +112,25 @@ const App: React.FC = () => {
   const handlePurchaseWrapper = (itemId: string, cost: number) => {
     if (userProfile.coins >= cost) {
       handlePurchase(itemId, cost);
-      setOwnedItems(prev => [...prev, itemId]);
+
+      const newOwned = [...ownedItems, itemId];
+      setOwnedItems(newOwned);
+
+      if (authProfile) {
+          const newCoins = userProfile.coins - cost;
+          updateInventory(newOwned, equippedItems, newCoins);
+      }
     }
   };
 
-  const handleEquip = (itemId: string, type: 'card' | 'table') => setEquippedItems(prev => ({ ...prev, [type]: itemId }));
+  const handleEquip = (itemId: string, type: 'card' | 'table') => {
+      const newEquipped = { ...equippedItems, [type]: itemId };
+      setEquippedItems(newEquipped);
+
+      if (authProfile) {
+          updateInventory(ownedItems, newEquipped);
+      }
+  };
 
   // --- EMOTES & FX ---
   const handleSendEmote = (msg: string) => {
@@ -178,6 +209,9 @@ const App: React.FC = () => {
   if (currentView === 'LOBBY') {
     content = (
       <Lobby
+        userProfile={authProfile || userProfile} // Fallback to local profile if guest
+        onAuth={() => setIsAuthModalOpen(true)}
+        onLogout={logout}
         onStartGame={(settings) => {
           devLogger.log('LOBBY', 'Start Game Clicked', settings);
 
@@ -355,6 +389,7 @@ const App: React.FC = () => {
     <GameLayout variant='mobile'>
       <ErrorBoundary>
         {content}
+        {isAuthModalOpen && <AuthModal onClose={() => setIsAuthModalOpen(false)} />}
       </ErrorBoundary>
     </GameLayout>
   );

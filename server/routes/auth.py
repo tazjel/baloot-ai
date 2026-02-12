@@ -34,7 +34,18 @@ def user():
     """Protected endpoint returning user profile with league tier."""
     response.status = 200
     user_record = db.app_user(request.user.get('user_id'))
-    points = user_record.league_points if user_record else 1000
+
+    if not user_record:
+        # Fallback for dev/broken state
+        points = 1000
+        coins = 0
+        owned_items = ['card_default', 'table_default']
+        equipped_items = {'card': 'card_default', 'table': 'table_default'}
+    else:
+        points = user_record.league_points
+        coins = user_record.coins or 0
+        owned_items = user_record.owned_items
+        equipped_items = user_record.equipped_items
 
     tier = "Bronze"
     if points >= 2000: tier = "Grandmaster"
@@ -43,7 +54,43 @@ def user():
     elif points >= 1400: tier = "Gold"
     elif points >= 1200: tier = "Silver"
 
-    return {"user": request.user, "leaguePoints": points, "tier": tier}
+    return {
+        "user": request.user,
+        "leaguePoints": points,
+        "tier": tier,
+        "ownedItems": owned_items,
+        "equippedItems": equipped_items,
+        "coins": coins
+    }
+
+
+@action('user/inventory', method=['POST'])
+@token_required
+@action.uses(db)
+def update_inventory():
+    """Updates user inventory, equipped items and coins."""
+    user_id = request.user.get('user_id')
+    user_record = db.app_user(user_id)
+    if not user_record:
+        abort(404, "User not found")
+
+    data = request.json
+    owned_items = data.get('ownedItems')
+    equipped_items = data.get('equippedItems')
+    coins = data.get('coins')
+
+    update_data = {}
+    if owned_items is not None:
+        update_data['owned_items'] = owned_items
+    if equipped_items is not None:
+        update_data['equipped_items'] = equipped_items
+    if coins is not None:
+        update_data['coins'] = coins
+
+    if update_data:
+        user_record.update_record(**update_data)
+
+    return {"message": "Inventory updated"}
 
 
 @action('signup', method=['POST', 'OPTIONS'])
@@ -106,6 +153,7 @@ def signin():
 def bind_auth(safe_mount):
     """Bind auth routes to the app."""
     safe_mount('/user', 'GET', user)
+    safe_mount('/user/inventory', 'POST', update_inventory)
     safe_mount('/signup', 'POST', signup)
     safe_mount('/signup', 'OPTIONS', signup)
     safe_mount('/signin', 'POST', signin)
