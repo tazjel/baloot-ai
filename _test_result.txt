@@ -1,0 +1,18 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.12.10', 'Platform': 'Windows-11-10.0.26200-SP0', 'Packages': {'pytest': '9.0.2', 'pluggy': '1.6.0'}, 'Plugins': {'anyio': '3.7.1', 'locust': '2.43.1', 'base-url': '2.1.0', 'cov': '7.0.0', 'html': '4.2.0', 'metadata': '3.1.1', 'playwright': '0.7.2', 'playwright-visual': '2.1.2', 'rerunfailures': '16.1', 'xdist': '3.8.0'}, 'Base URL': ''}
+rootdir: C:\Users\MiEXCITE\Projects\baloot-ai
+configfile: pytest.ini
+plugins: anyio-3.7.1, locust-2.43.1, base-url-2.1.0, cov-7.0.0, html-4.2.0, metadata-3.1.1, playwright-0.7.2, playwright-visual-2.1.2, rerunfailures-16.1, xdist-3.8.0
+collecting ... collected 1 item
+
+tests/test_schema_completeness.py::test_game_state_schema_completeness PASSED [100%]
+
+============================== warnings summary ===============================
+tests/test_schema_completeness.py::test_game_state_schema_completeness
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 1 passed, 1 warning in 3.15s =========================

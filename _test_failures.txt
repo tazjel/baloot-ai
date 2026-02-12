@@ -1,0 +1,323 @@
+FF...F....FF..FFF............................................FFFF..FFFFF [ 24%]
+FF....FFFF.....FFF.FFF
+📸 Failure screenshot saved: diagnostics\failure_test_qayd_flow[chromium]_20260212_202847.png
+📄 Page HTML saved: diagnostics\failure_test_qayd_flow[chromium]_20260212_202847.html
+
+📄 Page URL: chrome-error://chromewebdata/
+F................................................. [ 49%]
+........................................................................ [ 73%]
+.......F.FFFFFFFEEEE.FFFF.........FFFF........FFFF...................... [ 98%]
+.FF.                                                                     [100%]
+=================================== ERRORS ====================================
+____________ ERROR at setup of TestSocketHandler.test_create_room _____________
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+_________ ERROR at setup of TestSocketHandler.test_join_room_success __________
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+__________ ERROR at setup of TestSocketHandler.test_game_action_play __________
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+__________ ERROR at setup of TestSocketHandler.test_bot_loop_safety ___________
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+================================== FAILURES ===================================
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_advanced_signaling.py:272: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_advanced_signaling.py:315: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_advanced_signaling.py:203: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_signals.py:117: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_signals.py:97: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_signals.py:153: AttributeError: 'PlayingStrategy' object has no attribute '_check_partner_signals'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_get_trash_card'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_signals.py:65: AttributeError: 'PlayingStrategy' object has no attribute '_get_trash_card'
+E   AttributeError: 'PlayingStrategy' object has no attribute '_get_sun_lead'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_signals.py:131: AttributeError: 'PlayingStrategy' object has no attribute '_get_sun_lead'
+E   AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+E   AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+E   AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+E   AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'ai_worker.agent' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\ai_worker\\agent.py'> does not have the attribute 'redis'
+E   AssertionError: assert 'QAYD_TRIGGER' == 'QAYD_CLAIM'
+      
+      - QAYD_CLAIM
+      + QAYD_TRIGGER
+------------------------------ Captured log call ------------------------------
+ERROR    ai_worker.agent:agent.py:55 [BOT-EYE] SAW ILLEGAL MOVE! {'card': {'rank': 'K', 'suit': 'D'}, 'playedBy': 1, 'metadata': {'is_illegal': True}}
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_ai_worker_coverage.py:77: AssertionError: assert 'QAYD_TRIGGER' == 'QAYD_CLAIM'
+E   AssertionError: assert 'PASS' == 'SAWA_RESPONSE'
+      
+      - SAWA_RESPONSE
+      + PASS
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_ai_worker_coverage.py:96: AssertionError: assert 'PASS' == 'SAWA_RESPONSE'
+E   AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_kawesh.py:35: AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+E   AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_kawesh.py:50: AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+E   AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_kawesh.py:65: AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+E   AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_kawesh.py:80: AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+E   AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_kawesh.py:94: AttributeError: 'BotAgent' object has no attribute 'get_bidding_decision'
+E   AssertionError: Should bid SUN/ASHKAL with Sira help. Decision: {'action': 'PASS', 'reasoning': 'Hand too weak (Sun:16.0 Hokum:7.0)'}
+    assert 'PASS' in ['SUN', 'ASHKAL']
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_scenarios.py:164: AssertionError: Should bid SUN/ASHKAL with Sira help. Decision: {'action': 'PASS', 'reasoning': 'Hand too weak (Sun:16.0 Hokum:7.0)'}
+E   AssertionError: assert 'PASS' == 'PLAY'
+      
+      - PLAY
+      + PASS
+---------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\agent.py", line 198, in get_decision
+    return self.playing_strategy.get_decision(ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\strategies\playing.py", line 19, in get_decision
+    legal_indices = ctx.get_legal_moves()
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 159, in get_legal_moves
+    players_team_map = self.players_team_map
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\functools.py", line 998, in __get__
+    val = self.func(instance)
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 149, in players_team_map
+    return {p['position']: p['team'] for p in self.raw_state['players']}
+                           ~^^^^^^^^
+KeyError: 'team'
+------------------------------ Captured log call ------------------------------
+ERROR    ai_worker.agent:agent.py:203 Bot Agent Error: 'team'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_scenarios.py:191: AssertionError: assert 'PASS' == 'PLAY'
+E   AssertionError: assert 'PASS' == 'PLAY'
+      
+      - PLAY
+      + PASS
+---------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\agent.py", line 198, in get_decision
+    return self.playing_strategy.get_decision(ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\strategies\playing.py", line 19, in get_decision
+    legal_indices = ctx.get_legal_moves()
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 159, in get_legal_moves
+    players_team_map = self.players_team_map
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\functools.py", line 998, in __get__
+    val = self.func(instance)
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 149, in players_team_map
+    return {p['position']: p['team'] for p in self.raw_state['players']}
+                           ~^^^^^^^^
+KeyError: 'team'
+------------------------------ Captured log call ------------------------------
+ERROR    ai_worker.agent:agent.py:203 Bot Agent Error: 'team'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_scenarios.py:229: AssertionError: assert 'PASS' == 'PLAY'
+E   AssertionError: assert 'PASS' == 'PLAY'
+      
+      - PLAY
+      + PASS
+---------------------------- Captured stderr call -----------------------------
+Traceback (most recent call last):
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\agent.py", line 198, in get_decision
+    return self.playing_strategy.get_decision(ctx)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\strategies\playing.py", line 19, in get_decision
+    legal_indices = ctx.get_legal_moves()
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 159, in get_legal_moves
+    players_team_map = self.players_team_map
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\functools.py", line 998, in __get__
+    val = self.func(instance)
+          ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\MiEXCITE\Projects\baloot-ai\ai_worker\bot_context.py", line 149, in players_team_map
+    return {p['position']: p['team'] for p in self.raw_state['players']}
+                           ~^^^^^^^^
+KeyError: 'team'
+------------------------------ Captured log call ------------------------------
+ERROR    ai_worker.agent:agent.py:203 Bot Agent Error: 'team'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_scenarios.py:293: AssertionError: assert 'PASS' == 'PLAY'
+E   AttributeError: 'BotAgent' object has no attribute 'calculate_hokum_strength'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_strategy.py:33: AttributeError: 'BotAgent' object has no attribute 'calculate_hokum_strength'
+E   AttributeError: 'BotAgent' object has no attribute 'calculate_sun_strength'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_strategy.py:19: AttributeError: 'BotAgent' object has no attribute 'calculate_sun_strength'
+E   AttributeError: 'BotAgent' object has no attribute 'get_playing_decision'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\bot\test_bot_strategy.py:93: AttributeError: 'BotAgent' object has no attribute 'get_playing_decision'
+E   AttributeError: Mock object has no attribute 'hand'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:660: AttributeError: Mock object has no attribute 'hand'
+E   AttributeError: Mock object has no attribute 'hand'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:660: AttributeError: Mock object has no attribute 'hand'
+E   AttributeError: Mock object has no attribute 'hand'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:660: AttributeError: Mock object has no attribute 'hand'
+E   playwright._impl._errors.Error: Page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/
+    Call log:
+      - navigating to "http://localhost:5173/", waiting until "load"
+---------------------------- Captured stdout call -----------------------------
+🌐 Navigating to Game...
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\playwright\_impl\_connection.py:559: playwright._impl._errors.Error: Page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/
+E   _pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_room_manager_redis.py:42: _pickle.PicklingError: Can't pickle <class 'unittest.mock.MagicMock'>: it's not the same object as unittest.mock.MagicMock
+E   AttributeError: property 'room_id' of 'Game' object has no setter
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_room_manager_redis.py:29: AttributeError: property 'room_id' of 'Game' object has no setter
+E   AssertionError: Dealer is not random! Counts: {0: 0, 1: 0, 2: 0, 3: 0}
+    assert 0 > 1
+     +  where 0 = len([])
+---------------------------- Captured stdout call -----------------------------
+Run 0 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917327.4876347 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D143410>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 1 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917331.5767071 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14E9C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 2 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917335.6471183 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14D4C0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 3 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917339.7007449 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D142ED0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 4 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917343.7775373 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D1433B0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 5 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917347.8338838 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14D340>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 6 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917351.8968198 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14CAD0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 7 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917355.9717324 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D142D20>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 8 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917360.0365014 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D143260>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 9 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917364.1186495 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14CC80>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 10 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917368.1821616 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14C0B0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 11 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917372.2466414 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D164200>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 12 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917376.3075306 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14FA10>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 13 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917380.3677735 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14D9D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 14 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917384.4608757 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D140890>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 15 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917388.523124 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D143A10>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 16 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917392.5815763 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D164B60>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 17 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917396.6446168 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14C0E0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 18 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917400.7164176 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14FB30>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Run 19 failed: HTTPConnectionPool(host='localhost', port=3005): Max retries exceeded with url: /socket.io/?transport=polling&EIO=4&t=1770917404.773495 (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000001E42D14C800>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Final Counts: {0: 0, 1: 0, 2: 0, 3: 0}
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_socket_flow.py:78: AssertionError: Dealer is not random! Counts: {0: 0, 1: 0, 2: 0, 3: 0}
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+------------------------------ Captured log call ------------------------------
+WARNING  DialogueSystem:dialogue_system.py:30 Gemini Integration DISABLED by configuration. Using fallback responses.
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+E   AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'server.socket_handler' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\server\\socket_handler.py'> does not have the attribute 'room_manager'
+E   AttributeError: 'Game' object has no attribute 'timer_active'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_timers.py:19: AttributeError: 'Game' object has no attribute 'timer_active'
+E   assert None is not None
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_timers.py:35: assert None is not None
+E   assert None is not None
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_timers.py:59: assert None is not None
+E   IndexError: list index out of range
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\server\test_timers.py:87: IndexError: list index out of range
+E   AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+E   AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+E   AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+E   AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:1437: AttributeError: <module 'game_engine.logic.game' from 'C:\\Users\\MiEXCITE\\Projects\\baloot-ai\\game_engine\\logic\\game.py'> does not have the attribute 'redis_client'
+E   AttributeError: 'QaydEngine' object has no attribute '_bot_auto_accuse'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\unit\test_qayd_ledger.py:60: AttributeError: 'QaydEngine' object has no attribute '_bot_auto_accuse'
+E   AssertionError: Expected 'trigger_investigation' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+WARNING  game_engine.logic.autopilot:autopilot.py:73 AutoPilot: Ignoring 'QAYD_ACCUSATION' for human Player0. Falling back to card play.
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:928: AssertionError: Expected 'trigger_investigation' to have been called once. Called 0 times.
+E   AssertionError: Expected 'process_accusation' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+WARNING  game_engine.logic.autopilot:autopilot.py:73 AutoPilot: Ignoring 'QAYD_ACCUSATION' for human Player0. Falling back to card play.
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:928: AssertionError: Expected 'process_accusation' to have been called once. Called 0 times.
+E   AssertionError: Expected 'trigger_investigation' to have been called once. Called 0 times.
+------------------------------ Captured log call ------------------------------
+WARNING  game_engine.logic.autopilot:autopilot.py:73 AutoPilot: Ignoring 'QAYD_TRIGGER' for human Player0. Falling back to card play.
+C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\unittest\mock.py:928: AssertionError: Expected 'trigger_investigation' to have been called once. Called 0 times.
+E   AttributeError: 'SherlockStrategy' object has no attribute '_check_crime_logic'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\unit\test_sherlock.py:27: AttributeError: 'SherlockStrategy' object has no attribute '_check_crime_logic'
+E   AttributeError: 'SherlockStrategy' object has no attribute '_check_crime_logic'
+C:\Users\MiEXCITE\Projects\baloot-ai\tests\unit\test_sherlock.py:44: AttributeError: 'SherlockStrategy' object has no attribute '_check_crime_logic'
+============================== warnings summary ===============================
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\ombott\request_pkg\props_mixin.py:2: DeprecationWarning: 'cgi' is deprecated and slated for removal in Python 3.13
+    import cgi
+
+tests\ai_features\test_builder.py:7
+  C:\Users\MiEXCITE\Projects\baloot-ai\tests\ai_features\test_builder.py:7: PytestCollectionWarning: cannot collect test class 'TestBuilder' because it has a __init__ constructor (from: tests/ai_features/test_builder.py)
+    class TestBuilder:
+
+tests/game_logic/test_round_trip.py::TestAkkaRoundTrip::test_active_akka_preserves_state
+tests/game_logic/test_round_trip.py::TestAkkaRoundTrip::test_akka_in_get_game_state
+tests/game_logic/test_round_trip.py::TestAkkaRoundTrip::test_akka_state_bridge_sync
+tests/game_logic/test_round_trip.py::TestSawaRoundTrip::test_active_sawa_preserves_state
+tests/game_logic/test_round_trip.py::TestSawaRoundTrip::test_sawa_challenge_active_preserved
+tests/game_logic/test_round_trip.py::TestSawaRoundTrip::test_sawa_in_get_game_state
+tests/game_logic/test_round_trip.py::TestBiddingRoundTrip::test_bidding_engine_none_when_playing
+  C:\Users\MiEXCITE\AppData\Local\Programs\Python\Python312\Lib\site-packages\pydantic\main.py:464: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='phase', input_value='PLAYING', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+tests/server/test_socket_handler.py::TestSocketHandler::test_create_room
+  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.MessageMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.
+
+tests/server/test_socket_handler.py::TestSocketHandler::test_create_room
+  <frozen importlib._bootstrap>:488: DeprecationWarning: Type google._upb._message.ScalarMapContainer uses PyType_Spec with a metaclass that has custom tp_new. This is deprecated and will no longer be allowed in Python 3.14.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/ai_features/test_advanced_signaling.py::TestAdvancedSignaling::test_asset_protection_lone_10
+FAILED tests/ai_features/test_advanced_signaling.py::TestAdvancedSignaling::test_asset_protection_sequence
+FAILED tests/ai_features/test_advanced_signaling.py::TestAdvancedSignaling::test_playing_strategy_tahreeb_interpretation
+FAILED tests/ai_features/test_signals.py::TestSignals::test_detection_ignore_follow
+FAILED tests/ai_features/test_signals.py::TestSignals::test_detection_logic
+FAILED tests/ai_features/test_signals.py::TestSignals::test_opposite_color_detection
+FAILED tests/ai_features/test_signals.py::TestSignals::test_playing_strategy_emission
+FAILED tests/ai_features/test_signals.py::TestSignals::test_reaction_to_signal
+FAILED tests/bot/test_ai_agent.py::TestBotAgent::test_bidding_delegation - At...
+FAILED tests/bot/test_ai_agent.py::TestBotAgent::test_brain_override_playing
+FAILED tests/bot/test_ai_agent.py::TestBotAgent::test_playing_delegation - At...
+FAILED tests/bot/test_ai_agent.py::TestBotAgent::test_sawa_refusal - Attribut...
+FAILED tests/bot/test_ai_worker_coverage.py::TestAIWorkerCoverage::test_referee_qayd
+FAILED tests/bot/test_ai_worker_coverage.py::TestAIWorkerCoverage::test_referee_sawa
+FAILED tests/bot/test_bot_kawesh.py::test_kawesh_pre_bid - AttributeError: 'B...
+FAILED tests/bot/test_bot_kawesh.py::test_kawesh_opponent_bid - AttributeErro...
+FAILED tests/bot/test_bot_kawesh.py::test_kawesh_partner_bid_safe - Attribute...
+FAILED tests/bot/test_bot_kawesh.py::test_kawesh_partner_bid_risky - Attribut...
+FAILED tests/bot/test_bot_kawesh.py::test_no_kawesh_with_points - AttributeEr...
+FAILED tests/bot/test_bot_scenarios.py::test_bid_with_sira - AssertionError: ...
+FAILED tests/bot/test_bot_scenarios.py::test_master_card_recognition - Assert...
+FAILED tests/bot/test_bot_scenarios.py::test_void_avoidance - AssertionError:...
+FAILED tests/bot/test_bot_scenarios.py::test_endgame_all_masters - AssertionE...
+FAILED tests/bot/test_bot_strategy.py::TestBotRefactor::test_calculate_hokum_strength
+FAILED tests/bot/test_bot_strategy.py::TestBotRefactor::test_calculate_sun_strength
+FAILED tests/bot/test_bot_strategy.py::TestBotRefactor::test_playing_decision_with_declaration
+FAILED tests/bot/test_dda.py::TestDDA::test_mercy_rule - AttributeError: Mock...
+FAILED tests/bot/test_dda.py::TestDDA::test_neutral_rule - AttributeError: Mo...
+FAILED tests/bot/test_dda.py::TestDDA::test_panic_rule - AttributeError: Mock...
+FAILED tests/browser/test_ui_qayd.py::test_qayd_flow[chromium] - playwright._...
+FAILED tests/server/test_room_manager_redis.py::TestRoomManagerRedis::test_get_game_redis_hit
+FAILED tests/server/test_room_manager_redis.py::TestRoomManagerRedis::test_save_game_redis
+FAILED tests/server/test_socket_flow.py::test_dealer_randomness_via_socket - ...
+FAILED tests/server/test_socket_handler.py::TestSocketHandler::test_create_room
+FAILED tests/server/test_socket_handler.py::TestSocketHandler::test_game_action_bid
+FAILED tests/server/test_socket_handler.py::TestSocketHandler::test_game_action_play
+FAILED tests/server/test_socket_handler.py::TestSocketHandler::test_join_room_not_found
+FAILED tests/server/test_socket_handler.py::TestSocketHandler::test_join_room_success
+FAILED tests/server/test_timers.py::TestTimers::test_timer_initialization - A...
+FAILED tests/server/test_timers.py::TestTimers::test_bidding_timeout - assert...
+FAILED tests/server/test_timers.py::TestTimers::test_playing_timeout_auto_play
+FAILED tests/server/test_timers.py::TestTimers::test_auto_play_obeys_rules - ...
+FAILED tests/unit/test_game_v2.py::TestGameRefactorV2::test_autopilot_structure
+FAILED tests/unit/test_game_v2.py::TestGameRefactorV2::test_graveyard_logic
+FAILED tests/unit/test_game_v2.py::TestGameRefactorV2::test_phase_handler_dispatch_structure
+FAILED tests/unit/test_game_v2.py::TestGameRefactorV2::test_state_bridge_deep_sync
+FAILED tests/unit/test_qayd_ledger.py::test_ledger_prevents_reaccusation - At...
+FAILED tests/unit/test_qayd_trigger.py::TestQaydTrigger::test_auto_play_card_triggers_qayd_on_accusation_in_playing_phase
+FAILED tests/unit/test_qayd_trigger.py::TestQaydTrigger::test_auto_play_card_processes_accusation_in_challenge_phase
+FAILED tests/unit/test_qayd_trigger.py::TestQaydTrigger::test_auto_play_card_triggers_qayd_explicitly
+FAILED tests/unit/test_sherlock.py::TestSherlockStrategy::test_check_crime_logic
+FAILED tests/unit/test_sherlock.py::TestSherlockStrategy::test_check_crime_logic_omerta
+ERROR tests/server/test_socket_handler_coverage.py::TestSocketHandler::test_create_room
+ERROR tests/server/test_socket_handler_coverage.py::TestSocketHandler::test_join_room_success
+ERROR tests/server/test_socket_handler_coverage.py::TestSocketHandler::test_game_action_play
+ERROR tests/server/test_socket_handler_coverage.py::TestSocketHandler::test_bot_loop_safety
+52 failed, 236 passed, 11 warnings, 4 errors in 94.58s (0:01:34)
