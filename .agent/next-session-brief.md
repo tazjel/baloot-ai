@@ -1,26 +1,25 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-12 20:05 | **Scan Results Below**
+> **Generated**: 2026-02-12 22:21 | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
 | Metric | Value |
 |--------|-------|
-| Backend source files | 117 (game_engine: 38, ai_worker: 39, server: 40) |
+| Backend source files | 119 (game_engine: 40, ai_worker: 39, server: 40) |
 | Frontend files | 89 (.tsx + .ts) |
-| Test files | 77 (ratio: 0.66 tests per source file) |
+| Test files | 61 (ratio: **0.51** tests per source file) ⚠️ |
 | TypeScript errors | **0** ✅ |
 | `as any` casts | **0** ✅ |
-| Debug console.logs | **0** ✅ |
+| Debug console.logs | **0** ✅ (only in `devLogger.ts`) |
 | TODO/FIXME/HACK | **2** (ai_worker/memory.py, ai_worker/mcts/utils.py) |
 
 ### Backend Hotspots (>15 KB)
 | File | Size |
 |------|------|
 | `game_engine/logic/qayd_engine.py` | 23.2 KB |
-| `game_engine/logic/game.py` | 22.4 KB |
+| `game_engine/logic/game.py` | 22.6 KB |
 | `ai_worker/strategies/bidding.py` | 19.4 KB |
-| `game_engine/logic/project_manager.py` | 17.9 KB |
 | `game_engine/logic/trick_manager.py` | 17.7 KB |
 | `ai_worker/strategies/components/hokum.py` | 16.7 KB |
 | `ai_worker/mcts/fast_game.py` | 16.2 KB |
@@ -50,6 +49,9 @@
 ### Mission 5: "The Cleaner" — Code Hygiene Sprint ✅
 > Completed 2026-02-12. All checks pass: 0 TS errors, 0 `as any`, 0 dead code, CODEBASE_MAP updated.
 
+### Mission 3: "The Fixer" — Obsolete Test Cleanup ✅
+> Completed 2026-02-12. Removed 52 obsolete tests referencing removed APIs. Full test suite now passes.
+
 ---
 
 ## 🎯 Active Missions
@@ -63,22 +65,22 @@
   - [ ] Extract state transitions → `qayd_state_machine.py`
   - [ ] Extract penalty logic → `qayd_penalties.py`
   - [ ] Keep `qayd_engine.py` as thin orchestrator
-- [ ] **Slim `game.py` (22 KB)**
+- [ ] **Slim `game.py` (23 KB)**
   - [ ] Move remaining round-reset inline logic to `game_lifecycle.py`
   - [ ] Extract player management helpers → `player_manager.py`
-- [ ] **Split `project_manager.py` (18 KB)**
-  - [ ] Extract declaration eligibility → `project_declarations.py`
-  - [ ] Extract scoring → `project_scoring.py`
+- [ ] **Split `trick_manager.py` (18 KB)**
+  - [ ] Extract trick resolution logic → `trick_resolver.py`
+  - [ ] Extract trick validation → keep in `trick_manager.py`
 
 ### Key Files
 | File | Change |
 |------|--------|
 | `game_engine/logic/qayd_engine.py` | Split into state machine + penalties |
 | `game_engine/logic/game.py` | Extract lifecycle + player mgmt |
-| `game_engine/logic/project_manager.py` | Split declarations + scoring |
+| `game_engine/logic/trick_manager.py` | Split resolution logic out |
 
 ### Verification
-```bash
+```powershell
 python -m pytest tests/ -v --tb=short
 python scripts/verification/run_serialization_guard.py
 ```
@@ -86,7 +88,7 @@ python scripts/verification/run_serialization_guard.py
 ---
 
 ## Mission 7: "The Shield" — Test Coverage Expansion
-> Close critical gaps in test coverage (~2 hours)
+> Close critical gaps in test coverage — ratio is 0.51, target 0.70 (~3 hours)
 
 ### Tasks
 
@@ -101,12 +103,16 @@ python scripts/verification/run_serialization_guard.py
 - [ ] **Timer/Timeout** — `tests/features/test_timer.py`
   - [ ] Timeout triggers bot autoplay
   - [ ] Timer reset on new trick
+- [ ] **Qayd Engine Coverage** — `tests/qayd/test_qayd_engine_unit.py`
+  - [ ] State transition paths (SCAN → CHALLENGE → VERDICT)
+  - [ ] Penalty calculation edge cases
+  - [ ] Timeout auto-dismiss
 - [ ] **Integration** — expand `verify_game_flow.py`
   - [ ] Sawa claims resolve correctly
   - [ ] 3+ rounds complete without freeze
 
 ### Verification
-```bash
+```powershell
 python -m pytest tests/ -v --tb=short
 python -m pytest tests/ --co -q  # verify test count increased
 ```
@@ -135,6 +141,7 @@ python -m pytest tests/ --co -q  # verify test count increased
 ### Frontend Decomposition Targets
 - [ ] **Split `MatchReviewModal.tsx` (18 KB)** — largest component
 - [ ] **Split `ActionBar.tsx` (15 KB)** — separate bidding and playing modes
+- [ ] **Split `App.tsx` (14 KB)** — extract route/view logic to separate files
 
 ### Verification
 - Playwright screenshots at card play, trick win, round end
@@ -160,11 +167,11 @@ python -m pytest tests/ --co -q  # verify test count increased
 | `ai_worker/strategies/bidding.py` (19 KB) | Score-aware + project-aware bidding |
 | `ai_worker/strategies/components/hokum.py` (17 KB) | Defensive play heuristics |
 | `ai_worker/strategies/components/sun.py` (16 KB) | Partner signaling |
-| `ai_worker/strategies/playing.py` (7 KB) | Core play improvements |
-| `ai_worker/memory.py` (13 KB) | Probabilistic memory TODO |
+| `ai_worker/strategies/playing.py` | Core play improvements |
+| `ai_worker/memory.py` | Probabilistic memory TODO |
 
 ### Verification
-```bash
+```powershell
 python -m pytest tests/bot/ -v
 ```
 
