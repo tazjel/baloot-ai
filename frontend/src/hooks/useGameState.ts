@@ -11,6 +11,7 @@ import { useRoundManager } from './useRoundManager';
 import { useBiddingLogic } from './useBiddingLogic';
 import { usePlayingLogic } from './usePlayingLogic';
 import { useActionDispatcher } from './useActionDispatcher';
+import { AccountingEngine } from '../services/AccountingEngine';
 
 const INITIAL_GAME_STATE: GameState = {
     players: [
@@ -140,8 +141,11 @@ export const useGameState = () => {
 
     // ===== STORE LOGIC =====
     const handlePurchase = (itemId: string, cost: number) => {
-        if (userProfile.coins >= cost) {
-            setUserProfile(prev => ({ ...prev, coins: prev.coins - cost }));
+        if (AccountingEngine.Purchase.canAfford(userProfile, cost)) {
+            setUserProfile(prev => ({ 
+                ...prev, 
+                coins: AccountingEngine.Purchase.processTransaction(prev.coins, cost)
+            }));
             audio.playWinSound();
         }
     };

@@ -1,34 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, ChevronLeft, ChevronRight, Play, Check, ChevronDown, ChevronUp } from 'lucide-react';
-
-import { Suit } from '../types';
-
-// Helper for card display
-const MiniCard = ({ card, playedBy, isWinner }: { card: any, playedBy: string, isWinner: boolean }) => {
-    if (!card) return <div className="w-12 h-16 bg-white/10 rounded border border-dashed border-white/20" />;
-
-    const getSuitColor = (s: string) => {
-        if (s === '♥' || s === '♦') return 'text-red-500';
-        return 'text-black';
-    };
-
-    return (
-        <div className={`flex flex-col items-center gap-1 ${isWinner ? 'scale-110' : ''}`}>
-            <div className={`
-                w-12 h-16 bg-white rounded shadow-md border 
-                ${isWinner ? 'border-[var(--color-premium-gold)] ring-2 ring-[var(--color-premium-gold)]/50' : 'border-gray-300'}
-                flex items-center justify-center relative
-            `}>
-                <span className={`text-xl font-bold ${getSuitColor(card.suit)}`}>{card.rank}</span>
-                <span className={`absolute bottom-1 right-1 text-xs ${getSuitColor(card.suit)}`}>{card.suit}</span>
-            </div>
-            <span className="text-[10px] text-white/80 uppercase font-bold text-center max-w-[4rem] truncate">
-                {playedBy}
-            </span>
-            {isWinner && <span className="text-[8px] bg-[var(--color-premium-gold)] text-black px-1 rounded">WINNER</span>}
-        </div>
-    );
-};
+import React from 'react';
+import { X, ChevronLeft, ChevronRight, Play, ChevronDown, ChevronUp } from 'lucide-react';
+import MiniCard from './review/MiniCard';
+import { useReplayNavigation } from '../hooks/useReplayNavigation';
 
 interface MatchReviewModalProps {
     isOpen: boolean;
@@ -38,30 +11,20 @@ interface MatchReviewModalProps {
 }
 
 const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fullMatchHistory, players }) => {
-    const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
-    const [selectedTrickIdx, setSelectedTrickIdx] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-
-    const currentRound = (fullMatchHistory && fullMatchHistory.length > 0) ? fullMatchHistory[selectedRoundIdx] : { roundNumber: 0, tricks: [], bid: {}, scores: {} };
-    const tricks = currentRound?.tricks || [];
-    const currentTrick = tricks[selectedTrickIdx];
-
-
-
-    // Auto-Play Logic
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isPlaying) {
-            interval = setInterval(() => {
-                if (selectedTrickIdx < tricks.length - 1) {
-                    setSelectedTrickIdx(prev => prev + 1);
-                } else {
-                    setIsPlaying(false); // Stop at end of round
-                }
-            }, 1500); // 1.5s per trick
-        }
-        return () => clearInterval(interval);
-    }, [isPlaying, selectedTrickIdx, tricks.length]);
+    const {
+        selectedRoundIdx,
+        selectedTrickIdx,
+        isPlaying,
+        currentRound,
+        tricks,
+        currentTrick,
+        nextTrick,
+        prevTrick,
+        togglePlay,
+        prevRound,
+        nextRound,
+        selectRound
+    } = useReplayNavigation(fullMatchHistory);
 
     // Helper to map pos to name
     const getPlayerName = (pos: string) => {
@@ -69,33 +32,16 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
         return p ? p.name : pos;
     };
 
-    const nextTrick = () => {
-        if (selectedTrickIdx < tricks.length - 1) setSelectedTrickIdx(prev => prev + 1);
-    };
-
-    const prevTrick = () => {
-        if (selectedTrickIdx > 0) setSelectedTrickIdx(prev => prev - 1);
-    };
-
-    const togglePlay = () => setIsPlaying(!isPlaying);
-
-    const prevRound = () => {
-        if (selectedRoundIdx > 0) {
-            setSelectedRoundIdx(prev => prev - 1);
-            setSelectedTrickIdx(0);
-            setIsPlaying(false);
-        }
-    };
-
-    const nextRound = () => {
-        if (selectedRoundIdx < fullMatchHistory.length - 1) {
-            setSelectedRoundIdx(prev => prev + 1);
-            setSelectedTrickIdx(0);
-            setIsPlaying(false);
-        }
-    };
-
     if (!isOpen) return null;
+
+    function renderCardForPos(trick: any, pos: string, players: any[]) {
+        const idx = trick.playedBy.indexOf(pos);
+        if (idx === -1) return <div className="w-12 h-16 opacity-0" />;
+        const card = trick.cards[idx];
+        const isWinner = trick.winner === pos;
+        const pName = getPlayerName(pos);
+        return <MiniCard card={card} playedBy={pName} isWinner={isWinner} />;
+    }
 
     return (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
@@ -130,12 +76,11 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
 
                     {/* Sidebar: Rounds List (Hidden on Mobile, Visible on Desktop) */}
                     <div className="w-64 bg-black/20 border-r border-white/10 overflow-y-auto hidden md:flex flex-col shrink-0">
-                        {/* Sidebar content remains same, just ensuring correct scroll */}
                         <div className="p-3 grid gap-2">
                             {fullMatchHistory.map((round, idx) => (
                                 <button
                                     key={idx}
-                                    onClick={() => { setSelectedRoundIdx(idx); setSelectedTrickIdx(0); setIsPlaying(false); }}
+                                    onClick={() => selectRound(idx)}
                                     className={`
                                          w-full text-left p-3 rounded-xl border transition-all relative
                                          ${idx === selectedRoundIdx
@@ -301,15 +246,6 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
             </div>
         </div>
     );
-
-    function renderCardForPos(trick: any, pos: string, players: any[]) {
-        const idx = trick.playedBy.indexOf(pos);
-        if (idx === -1) return <div className="w-12 h-16 opacity-0" />;
-        const card = trick.cards[idx];
-        const isWinner = trick.winner === pos;
-        const pName = getPlayerName(pos);
-        return <MiniCard card={card} playedBy={pName} isWinner={isWinner} />;
-    }
 };
 
 const PauseIcon = () => (

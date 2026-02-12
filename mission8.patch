@@ -1,0 +1,876 @@
+diff --git a/frontend/package-lock.json b/frontend/package-lock.json
+index 4d9875f..ac08b29 100644
+--- a/frontend/package-lock.json
++++ b/frontend/package-lock.json
+@@ -35,6 +35,7 @@
+         "@types/canvas-confetti": "^1.9.0",
+         "@types/jest": "^30.0.0",
+         "@types/node": "^22.14.0",
++        "@types/react": "^19.2.14",
+         "@types/react-dom": "^19.2.3",
+         "@types/testing-library__jest-dom": "^5.14.9",
+         "@vitejs/plugin-react": "^5.0.0",
+@@ -145,7 +146,6 @@
+       "integrity": "sha512-e7jT4DxYvIDLk1ZHmU/m/mB19rex9sv0c2ftBtjSBv+kVM/902eh0fINUzD7UwLLNR+jU585GxUJ8/EBfAM5fw==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@babel/code-frame": "^7.27.1",
+         "@babel/generator": "^7.28.5",
+@@ -494,7 +494,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=18"
+       },
+@@ -538,7 +537,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=18"
+       }
+@@ -1989,7 +1987,6 @@
+       "resolved": "https://registry.npmjs.org/@react-three/fiber/-/fiber-9.5.0.tgz",
+       "integrity": "sha512-FiUzfYW4wB1+PpmsE47UM+mCads7j2+giRBltfwH7SNhah95rqJs3ltEs9V3pP8rYdS0QlNne+9Aj8dS/SiaIA==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@babel/runtime": "^7.17.8",
+         "@types/webxr": "*",
+@@ -2505,7 +2502,8 @@
+       "resolved": "https://registry.npmjs.org/@types/aria-query/-/aria-query-5.0.4.tgz",
+       "integrity": "sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==",
+       "dev": true,
+-      "license": "MIT"
++      "license": "MIT",
++      "peer": true
+     },
+     "node_modules/@types/babel__core": {
+       "version": "7.20.5",
+@@ -2938,11 +2936,10 @@
+       "license": "MIT"
+     },
+     "node_modules/@types/react": {
+-      "version": "19.2.10",
+-      "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.10.tgz",
+-      "integrity": "sha512-WPigyYuGhgZ/cTPRXB2EwUw+XvsRA3GqHlsP4qteqrnnjDrApbS7MxcGr/hke5iUoeB7E/gQtrs9I37zAJ0Vjw==",
++      "version": "19.2.14",
++      "resolved": "https://registry.npmjs.org/@types/react/-/react-19.2.14.tgz",
++      "integrity": "sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "csstype": "^3.2.2"
+       }
+@@ -2953,7 +2950,6 @@
+       "integrity": "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==",
+       "devOptional": true,
+       "license": "MIT",
+-      "peer": true,
+       "peerDependencies": {
+         "@types/react": "^19.2.0"
+       }
+@@ -2995,7 +2991,6 @@
+       "resolved": "https://registry.npmjs.org/@types/three/-/three-0.182.0.tgz",
+       "integrity": "sha512-WByN9V3Sbwbe2OkWuSGyoqQO8Du6yhYaXtXLoA5FkKTUJorZ+yOHBZ35zUUPQXlAKABZmbYp5oAqpA4RBjtJ/Q==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@dimforge/rapier3d-compat": "~0.12.0",
+         "@tweenjs/tween.js": "~23.1.3",
+@@ -3358,7 +3353,6 @@
+         }
+       ],
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "baseline-browser-mapping": "^2.9.0",
+         "caniuse-lite": "^1.0.30001759",
+@@ -3946,7 +3940,6 @@
+       "resolved": "https://registry.npmjs.org/d3-selection/-/d3-selection-3.0.0.tgz",
+       "integrity": "sha512-fmTRWbNMmsmWq6xJV8D19U/gw/bwrHfNXxrIN+HfZgnzqTHp9jOmKMhsTUjXOJnZOdZY9Q28y4yebKzqDKlxlQ==",
+       "license": "ISC",
+-      "peer": true,
+       "engines": {
+         "node": ">=12"
+       }
+@@ -4116,7 +4109,8 @@
+       "resolved": "https://registry.npmjs.org/dom-accessibility-api/-/dom-accessibility-api-0.5.16.tgz",
+       "integrity": "sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==",
+       "dev": true,
+-      "license": "MIT"
++      "license": "MIT",
++      "peer": true
+     },
+     "node_modules/draco3d": {
+       "version": "1.5.7",
+@@ -4764,7 +4758,6 @@
+       "resolved": "https://registry.npmjs.org/immer/-/immer-10.2.0.tgz",
+       "integrity": "sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==",
+       "license": "MIT",
+-      "peer": true,
+       "funding": {
+         "type": "opencollective",
+         "url": "https://opencollective.com/immer"
+@@ -5100,7 +5093,6 @@
+       "integrity": "sha512-GtldT42B8+jefDUC4yUKAvsaOrH7PDHmZxZXNgF2xMmymjUbRYJvpAybZAKEmXDGTM0mCsz8duOa4vTm5AY2Kg==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@acemir/cssom": "^0.9.28",
+         "@asamuzakjp/dom-selector": "^6.7.6",
+@@ -5283,6 +5275,7 @@
+       "integrity": "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "bin": {
+         "lz-string": "bin/bin.js"
+       }
+@@ -5683,6 +5676,7 @@
+       "integrity": "sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "dependencies": {
+         "ansi-regex": "^5.0.1",
+         "ansi-styles": "^5.0.0",
+@@ -5698,6 +5692,7 @@
+       "integrity": "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "engines": {
+         "node": ">=8"
+       }
+@@ -5708,6 +5703,7 @@
+       "integrity": "sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==",
+       "dev": true,
+       "license": "MIT",
++      "peer": true,
+       "engines": {
+         "node": ">=10"
+       },
+@@ -5781,7 +5777,6 @@
+       "resolved": "https://registry.npmjs.org/react/-/react-19.2.3.tgz",
+       "integrity": "sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA==",
+       "license": "MIT",
+-      "peer": true,
+       "engines": {
+         "node": ">=0.10.0"
+       }
+@@ -5801,7 +5796,6 @@
+       "resolved": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.3.tgz",
+       "integrity": "sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "scheduler": "^0.27.0"
+       },
+@@ -5838,7 +5832,6 @@
+       "resolved": "https://registry.npmjs.org/react-redux/-/react-redux-9.2.0.tgz",
+       "integrity": "sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==",
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "@types/use-sync-external-store": "^0.0.6",
+         "use-sync-external-store": "^1.4.0"
+@@ -5930,8 +5923,7 @@
+       "version": "5.0.1",
+       "resolved": "https://registry.npmjs.org/redux/-/redux-5.0.1.tgz",
+       "integrity": "sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==",
+-      "license": "MIT",
+-      "peer": true
++      "license": "MIT"
+     },
+     "node_modules/redux-thunk": {
+       "version": "3.1.0",
+@@ -6447,8 +6439,7 @@
+       "version": "0.182.0",
+       "resolved": "https://registry.npmjs.org/three/-/three-0.182.0.tgz",
+       "integrity": "sha512-GbHabT+Irv+ihI1/f5kIIsZ+Ef9Sl5A1Y7imvS5RQjWgtTPfPnZ43JmlYI7NtCRDK9zir20lQpfg8/9Yd02OvQ==",
+-      "license": "MIT",
+-      "peer": true
++      "license": "MIT"
+     },
+     "node_modules/three-mesh-bvh": {
+       "version": "0.8.3",
+@@ -6779,7 +6770,6 @@
+       "integrity": "sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g==",
+       "dev": true,
+       "license": "MIT",
+-      "peer": true,
+       "dependencies": {
+         "esbuild": "^0.25.0",
+         "fdir": "^6.4.4",
+diff --git a/frontend/src/App.tsx b/frontend/src/App.tsx
+index e2bf12d..b9bde53 100644
+--- a/frontend/src/App.tsx
++++ b/frontend/src/App.tsx
+@@ -12,8 +12,8 @@ import LevelUpModal from './components/LevelUpModal';
+ import StoreModal from './components/StoreModal';
+ import EmoteMenu from './components/EmoteMenu';
+ import RoundResultsModal from './components/RoundResultsModal';
+-import MatchReviewModal from './components/MatchReviewModal'; // Added
+-import VariantSelectionModal from './components/VariantSelectionModal'; // Added
++import MatchReviewModal from './components/MatchReviewModal'; 
++import VariantSelectionModal from './components/VariantSelectionModal'; 
+ import { Settings, ShoppingBag, Smile } from 'lucide-react';
+ import MultiplayerLobby from './components/MultiplayerLobby';
+ 
+@@ -25,7 +25,8 @@ import ErrorBoundary from './components/ErrorBoundary';
+ import FeatureErrorBoundary from './components/FeatureErrorBoundary';
+ import { devLogger } from './utils/devLogger';
+ 
+-
++import { useEmotes } from './hooks/useEmotes';
++import { useShop } from './hooks/useShop';
+ 
+ 
+ const App: React.FC = () => {
+@@ -60,12 +61,27 @@ const App: React.FC = () => {
+     isSendingAction // Added
+   } = useGameContext();
+ 
+-  const [isStoreOpen, setIsStoreOpen] = useState(false);
+-  const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
+-  const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
+   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Settings UI
+   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
+ 
++  // Extracted hooks
++  const {
++    isStoreOpen,
++    setIsStoreOpen,
++    ownedItems,
++    equippedItems,
++    handlePurchaseWrapper,
++    handleEquip
++  } = useShop(userProfile, handlePurchase);
++
++  const {
++    isEmoteMenuOpen,
++    setIsEmoteMenuOpen,
++    flyingItems,
++    handleSendEmote,
++    handleThrowItem,
++    toggleEmoteMenu
++  } = useEmotes(gameState, addSystemMessage);
+ 
+ 
+   // Round Results Modal - Standard Style
+@@ -73,66 +89,11 @@ const App: React.FC = () => {
+   const [lastSeenRoundCount, setLastSeenRoundCount] = useState(0);
+   const [showReviewModal, setShowReviewModal] = useState(false); // Added state
+ 
+-  // Item Persistence (UI)
+-  const [ownedItems, setOwnedItems] = useState<string[]>(() => {
+-    const saved = localStorage.getItem('baloot_owned_items');
+-    return saved ? JSON.parse(saved) : ['card_default', 'table_default'];
+-  });
+-  const [equippedItems, setEquippedItems] = useState<{ card: string, table: string }>(() => {
+-    const saved = localStorage.getItem('baloot_equipped_items');
+-    return saved ? JSON.parse(saved) : { card: 'card_default', table: 'table_default' };
+-  });
+-
+-
+-
+-
+-
+-  useEffect(() => {
+-    localStorage.setItem('baloot_owned_items', JSON.stringify(ownedItems));
+-    localStorage.setItem('baloot_equipped_items', JSON.stringify(equippedItems));
+-  }, [ownedItems, equippedItems]);
+-
+-  const handlePurchaseWrapper = (itemId: string, cost: number) => {
+-    if (userProfile.coins >= cost) {
+-      handlePurchase(itemId, cost);
+-      setOwnedItems(prev => [...prev, itemId]);
+-    }
+-  };
+-
+-  const handleEquip = (itemId: string, type: 'card' | 'table') => setEquippedItems(prev => ({ ...prev, [type]: itemId }));
+-
+-  // --- EMOTES & FX ---
+-  const handleSendEmote = (msg: string) => {
+-    addSystemMessage(`أنا: ${msg} `);
+-    setIsEmoteMenuOpen(false);
+-  };
+-
+-  const handleThrowItem = (itemId: string) => {
+-    setIsEmoteMenuOpen(false);
+-    // Target logic: 0=Me, 1=Right, 2=Top, 3=Left (relative to view)
+-    // currentTurnIndex is rotated in hook, so it matches visual position relative to "Me" at 0.
+-    const targetIdx = gameState.currentTurnIndex === 0 ? 3 : gameState.currentTurnIndex;
+-    let endX = 50, endY = 50;
+-    switch (targetIdx) {
+-      case 1: endX = 85; endY = 50; break;
+-      case 2: endX = 50; endY = 15; break;
+-      case 3: endX = 15; endY = 50; break;
+-    }
+-    const newItem = { id: Date.now().toString(), type: itemId, startX: 50, startY: 90, endX, endY };
+-    setFlyingItems(prev => [...prev, newItem]);
+-    soundManager.playShuffleSound();
+-    setTimeout(() => setFlyingItems(prev => prev.filter(i => i.id !== newItem.id)), 1000);
+-  };
+-
+   const handleChallenge = () => {
+     // Legacy Dispute Modal - Deprecated
+     // setIsDisputeModalOpen(true);
+   };
+ 
+-
+-
+-
+-
+   // --- CONTENT RENDER ---
+   const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY'>('LOBBY');
+   const [errorObj, setErrorObj] = useState<string | null>(null);
+@@ -153,16 +114,9 @@ const App: React.FC = () => {
+       setRoundResultToShow(latestResult);
+       setLastSeenRoundCount(currentRoundCount);
+       soundManager.playProjectSound(); // Celebratory sound
+-
+-      // Check if it was a QAYD result
+-      // Backend doesn't explicitly flag "isQayd" in roundHistory structure usually,
+-      // but we can infer or use latestResult if weird scores (0 vs Max).
+-      // Or better: Listen to system message or check if qaydPenalty exists in state.
+     }
+   }, [gameState.roundHistory.length, lastSeenRoundCount]);
+ 
+-
+-
+   if (errorObj) {
+     return (
+       <div className="fixed inset-0 z-[9999] bg-red-900 text-white p-10 flex flex-col items-center justify-center font-mono text-lg overflow-auto">
+@@ -220,9 +174,6 @@ const App: React.FC = () => {
+                     devLogger.error('LOBBY', 'Join Exception', { error: String(e) });
+                     setErrorObj("Join Error: " + String(e));
+                   }
+-
+-                  // 3. Add Bots - HANDLED BY SERVER AUTOMATICALLY
+-                  // (See socket_handler.py:join_room which adds 3 bots for first player)
+                 } else {
+                   setErrorObj("Failed to join single player room: " + joinRes.error);
+                   devLogger.error('LOBBY', 'Join Room Failed', joinRes);
+@@ -263,7 +214,7 @@ const App: React.FC = () => {
+             tableSkin={equippedItems.table}
+             cardSkin={equippedItems.card}
+             onFastForward={handleFastForward}
+-            onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
++            onEmoteClick={toggleEmoteMenu}
+             isSendingAction={isSendingAction}
+ 
+           />
+@@ -272,9 +223,6 @@ const App: React.FC = () => {
+ 
+         </div>
+ 
+-
+-
+-
+         {/* Settings Button */}
+         <button
+           onClick={() => setIsSettingsOpen(true)}
+@@ -349,8 +297,6 @@ const App: React.FC = () => {
+     );
+   }
+ 
+-
+-
+   return (
+     <GameLayout variant='mobile'>
+       <ErrorBoundary>
+diff --git a/frontend/src/components/MatchReviewModal.tsx b/frontend/src/components/MatchReviewModal.tsx
+index 97c1031..29ad57d 100644
+--- a/frontend/src/components/MatchReviewModal.tsx
++++ b/frontend/src/components/MatchReviewModal.tsx
+@@ -1,34 +1,7 @@
+-import React, { useState, useEffect } from 'react';
+-import { X, ChevronLeft, ChevronRight, Play, Check, ChevronDown, ChevronUp } from 'lucide-react';
+-
+-import { Suit } from '../types';
+-
+-// Helper for card display
+-const MiniCard = ({ card, playedBy, isWinner }: { card: any, playedBy: string, isWinner: boolean }) => {
+-    if (!card) return <div className="w-12 h-16 bg-white/10 rounded border border-dashed border-white/20" />;
+-
+-    const getSuitColor = (s: string) => {
+-        if (s === '♥' || s === '♦') return 'text-red-500';
+-        return 'text-black';
+-    };
+-
+-    return (
+-        <div className={`flex flex-col items-center gap-1 ${isWinner ? 'scale-110' : ''}`}>
+-            <div className={`
+-                w-12 h-16 bg-white rounded shadow-md border 
+-                ${isWinner ? 'border-[var(--color-premium-gold)] ring-2 ring-[var(--color-premium-gold)]/50' : 'border-gray-300'}
+-                flex items-center justify-center relative
+-            `}>
+-                <span className={`text-xl font-bold ${getSuitColor(card.suit)}`}>{card.rank}</span>
+-                <span className={`absolute bottom-1 right-1 text-xs ${getSuitColor(card.suit)}`}>{card.suit}</span>
+-            </div>
+-            <span className="text-[10px] text-white/80 uppercase font-bold text-center max-w-[4rem] truncate">
+-                {playedBy}
+-            </span>
+-            {isWinner && <span className="text-[8px] bg-[var(--color-premium-gold)] text-black px-1 rounded">WINNER</span>}
+-        </div>
+-    );
+-};
++import React from 'react';
++import { X, ChevronLeft, ChevronRight, Play, ChevronDown, ChevronUp } from 'lucide-react';
++import MiniCard from './review/MiniCard';
++import { useReplayNavigation } from '../hooks/useReplayNavigation';
+ 
+ interface MatchReviewModalProps {
+     isOpen: boolean;
+@@ -38,30 +11,20 @@ interface MatchReviewModalProps {
+ }
+ 
+ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fullMatchHistory, players }) => {
+-    const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
+-    const [selectedTrickIdx, setSelectedTrickIdx] = useState(0);
+-    const [isPlaying, setIsPlaying] = useState(false);
+-
+-    const currentRound = (fullMatchHistory && fullMatchHistory.length > 0) ? fullMatchHistory[selectedRoundIdx] : { roundNumber: 0, tricks: [], bid: {}, scores: {} };
+-    const tricks = currentRound?.tricks || [];
+-    const currentTrick = tricks[selectedTrickIdx];
+-
+-
+-
+-    // Auto-Play Logic
+-    useEffect(() => {
+-        let interval: NodeJS.Timeout;
+-        if (isPlaying) {
+-            interval = setInterval(() => {
+-                if (selectedTrickIdx < tricks.length - 1) {
+-                    setSelectedTrickIdx(prev => prev + 1);
+-                } else {
+-                    setIsPlaying(false); // Stop at end of round
+-                }
+-            }, 1500); // 1.5s per trick
+-        }
+-        return () => clearInterval(interval);
+-    }, [isPlaying, selectedTrickIdx, tricks.length]);
++    const {
++        selectedRoundIdx,
++        selectedTrickIdx,
++        isPlaying,
++        currentRound,
++        tricks,
++        currentTrick,
++        nextTrick,
++        prevTrick,
++        togglePlay,
++        prevRound,
++        nextRound,
++        selectRound
++    } = useReplayNavigation(fullMatchHistory);
+ 
+     // Helper to map pos to name
+     const getPlayerName = (pos: string) => {
+@@ -69,34 +32,17 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
+         return p ? p.name : pos;
+     };
+ 
+-    const nextTrick = () => {
+-        if (selectedTrickIdx < tricks.length - 1) setSelectedTrickIdx(prev => prev + 1);
+-    };
+-
+-    const prevTrick = () => {
+-        if (selectedTrickIdx > 0) setSelectedTrickIdx(prev => prev - 1);
+-    };
+-
+-    const togglePlay = () => setIsPlaying(!isPlaying);
+-
+-    const prevRound = () => {
+-        if (selectedRoundIdx > 0) {
+-            setSelectedRoundIdx(prev => prev - 1);
+-            setSelectedTrickIdx(0);
+-            setIsPlaying(false);
+-        }
+-    };
+-
+-    const nextRound = () => {
+-        if (selectedRoundIdx < fullMatchHistory.length - 1) {
+-            setSelectedRoundIdx(prev => prev + 1);
+-            setSelectedTrickIdx(0);
+-            setIsPlaying(false);
+-        }
+-    };
+-
+     if (!isOpen) return null;
+ 
++    function renderCardForPos(trick: any, pos: string, players: any[]) {
++        const idx = trick.playedBy.indexOf(pos);
++        if (idx === -1) return <div className="w-12 h-16 opacity-0" />;
++        const card = trick.cards[idx];
++        const isWinner = trick.winner === pos;
++        const pName = getPlayerName(pos);
++        return <MiniCard card={card} playedBy={pName} isWinner={isWinner} />;
++    }
++
+     return (
+         <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+             <div className="bg-[#1a1a1a] w-full max-w-5xl h-[90vh] rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+@@ -130,12 +76,11 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
+ 
+                     {/* Sidebar: Rounds List (Hidden on Mobile, Visible on Desktop) */}
+                     <div className="w-64 bg-black/20 border-r border-white/10 overflow-y-auto hidden md:flex flex-col shrink-0">
+-                        {/* Sidebar content remains same, just ensuring correct scroll */}
+                         <div className="p-3 grid gap-2">
+                             {fullMatchHistory.map((round, idx) => (
+                                 <button
+                                     key={idx}
+-                                    onClick={() => { setSelectedRoundIdx(idx); setSelectedTrickIdx(0); setIsPlaying(false); }}
++                                    onClick={() => selectRound(idx)}
+                                     className={`
+                                          w-full text-left p-3 rounded-xl border transition-all relative
+                                          ${idx === selectedRoundIdx
+@@ -301,15 +246,6 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
+             </div>
+         </div>
+     );
+-
+-    function renderCardForPos(trick: any, pos: string, players: any[]) {
+-        const idx = trick.playedBy.indexOf(pos);
+-        if (idx === -1) return <div className="w-12 h-16 opacity-0" />;
+-        const card = trick.cards[idx];
+-        const isWinner = trick.winner === pos;
+-        const pName = getPlayerName(pos);
+-        return <MiniCard card={card} playedBy={pName} isWinner={isWinner} />;
+-    }
+ };
+ 
+ const PauseIcon = () => (
+diff --git a/frontend/src/components/review/MiniCard.tsx b/frontend/src/components/review/MiniCard.tsx
+new file mode 100644
+index 0000000..7b597a1
+--- /dev/null
++++ b/frontend/src/components/review/MiniCard.tsx
+@@ -0,0 +1,30 @@
++import React from 'react';
++
++// Helper for card display
++const MiniCard = ({ card, playedBy, isWinner }: { card: any, playedBy: string, isWinner: boolean }) => {
++    if (!card) return <div className="w-12 h-16 bg-white/10 rounded border border-dashed border-white/20" />;
++
++    const getSuitColor = (s: string) => {
++        if (s === '♥' || s === '♦') return 'text-red-500';
++        return 'text-black';
++    };
++
++    return (
++        <div className={`flex flex-col items-center gap-1 ${isWinner ? 'scale-110' : ''}`}>
++            <div className={`
++                w-12 h-16 bg-white rounded shadow-md border 
++                ${isWinner ? 'border-[var(--color-premium-gold)] ring-2 ring-[var(--color-premium-gold)]/50' : 'border-gray-300'}
++                flex items-center justify-center relative
++            `}>
++                <span className={`text-xl font-bold ${getSuitColor(card.suit)}`}>{card.rank}</span>
++                <span className={`absolute bottom-1 right-1 text-xs ${getSuitColor(card.suit)}`}>{card.suit}</span>
++            </div>
++            <span className="text-[10px] text-white/80 uppercase font-bold text-center max-w-[4rem] truncate">
++                {playedBy}
++            </span>
++            {isWinner && <span className="text-[8px] bg-[var(--color-premium-gold)] text-black px-1 rounded">WINNER</span>}
++        </div>
++    );
++};
++
++export default MiniCard;
+diff --git a/frontend/src/hooks/useEmotes.ts b/frontend/src/hooks/useEmotes.ts
+new file mode 100644
+index 0000000..9182c6f
+--- /dev/null
++++ b/frontend/src/hooks/useEmotes.ts
+@@ -0,0 +1,41 @@
++import { useState } from 'react';
++import { GameState } from '../types';
++import { soundManager } from '../services/SoundManager';
++
++export const useEmotes = (gameState: GameState, addSystemMessage: (msg: string) => void) => {
++    const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
++    const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
++
++    const handleSendEmote = (msg: string) => {
++        addSystemMessage(`أنا: ${msg} `);
++        setIsEmoteMenuOpen(false);
++    };
++
++    const handleThrowItem = (itemId: string) => {
++        setIsEmoteMenuOpen(false);
++        // Target logic: 0=Me, 1=Right, 2=Top, 3=Left (relative to view)
++        // currentTurnIndex is rotated in hook, so it matches visual position relative to "Me" at 0.
++        const targetIdx = gameState.currentTurnIndex === 0 ? 3 : gameState.currentTurnIndex;
++        let endX = 50, endY = 50;
++        switch (targetIdx) {
++            case 1: endX = 85; endY = 50; break;
++            case 2: endX = 50; endY = 15; break;
++            case 3: endX = 15; endY = 50; break;
++        }
++        const newItem = { id: Date.now().toString(), type: itemId, startX: 50, startY: 90, endX, endY };
++        setFlyingItems(prev => [...prev, newItem]);
++        soundManager.playShuffleSound();
++        setTimeout(() => setFlyingItems(prev => prev.filter(i => i.id !== newItem.id)), 1000);
++    };
++
++    const toggleEmoteMenu = () => setIsEmoteMenuOpen(prev => !prev);
++
++    return {
++        isEmoteMenuOpen,
++        setIsEmoteMenuOpen,
++        flyingItems,
++        handleSendEmote,
++        handleThrowItem,
++        toggleEmoteMenu
++    };
++};
+diff --git a/frontend/src/hooks/useGameState.ts b/frontend/src/hooks/useGameState.ts
+index daa1ff7..292a5cf 100644
+--- a/frontend/src/hooks/useGameState.ts
++++ b/frontend/src/hooks/useGameState.ts
+@@ -11,6 +11,7 @@ import { useRoundManager } from './useRoundManager';
+ import { useBiddingLogic } from './useBiddingLogic';
+ import { usePlayingLogic } from './usePlayingLogic';
+ import { useActionDispatcher } from './useActionDispatcher';
++import { AccountingEngine } from '../services/AccountingEngine';
+ 
+ const INITIAL_GAME_STATE: GameState = {
+     players: [
+@@ -140,8 +141,11 @@ export const useGameState = () => {
+ 
+     // ===== STORE LOGIC =====
+     const handlePurchase = (itemId: string, cost: number) => {
+-        if (userProfile.coins >= cost) {
+-            setUserProfile(prev => ({ ...prev, coins: prev.coins - cost }));
++        if (AccountingEngine.Purchase.canAfford(userProfile, cost)) {
++            setUserProfile(prev => ({ 
++                ...prev, 
++                coins: AccountingEngine.Purchase.processTransaction(prev.coins, cost)
++            }));
+             audio.playWinSound();
+         }
+     };
+diff --git a/frontend/src/hooks/useReplayNavigation.ts b/frontend/src/hooks/useReplayNavigation.ts
+new file mode 100644
+index 0000000..e378f7f
+--- /dev/null
++++ b/frontend/src/hooks/useReplayNavigation.ts
+@@ -0,0 +1,73 @@
++import { useState, useEffect } from 'react';
++
++export const useReplayNavigation = (fullMatchHistory: any[]) => {
++    const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
++    const [selectedTrickIdx, setSelectedTrickIdx] = useState(0);
++    const [isPlaying, setIsPlaying] = useState(false);
++
++    const currentRound = (fullMatchHistory && fullMatchHistory.length > 0) ? fullMatchHistory[selectedRoundIdx] : { roundNumber: 0, tricks: [], bid: {}, scores: {} };
++    const tricks = currentRound?.tricks || [];
++    const currentTrick = tricks[selectedTrickIdx];
++
++    // Auto-Play Logic
++    useEffect(() => {
++        let interval: NodeJS.Timeout;
++        if (isPlaying) {
++            interval = setInterval(() => {
++                if (selectedTrickIdx < tricks.length - 1) {
++                    setSelectedTrickIdx(prev => prev + 1);
++                } else {
++                    setIsPlaying(false); // Stop at end of round
++                }
++            }, 1500); // 1.5s per trick
++        }
++        return () => clearInterval(interval);
++    }, [isPlaying, selectedTrickIdx, tricks.length]);
++
++    const nextTrick = () => {
++        if (selectedTrickIdx < tricks.length - 1) setSelectedTrickIdx(prev => prev + 1);
++    };
++
++    const prevTrick = () => {
++        if (selectedTrickIdx > 0) setSelectedTrickIdx(prev => prev - 1);
++    };
++
++    const togglePlay = () => setIsPlaying(!isPlaying);
++
++    const prevRound = () => {
++        if (selectedRoundIdx > 0) {
++            setSelectedRoundIdx(prev => prev - 1);
++            setSelectedTrickIdx(0);
++            setIsPlaying(false);
++        }
++    };
++
++    const nextRound = () => {
++        if (selectedRoundIdx < fullMatchHistory.length - 1) {
++            setSelectedRoundIdx(prev => prev + 1);
++            setSelectedTrickIdx(0);
++            setIsPlaying(false);
++        }
++    };
++
++    const selectRound = (idx: number) => {
++        setSelectedRoundIdx(idx);
++        setSelectedTrickIdx(0);
++        setIsPlaying(false);
++    };
++
++    return {
++        selectedRoundIdx,
++        selectedTrickIdx,
++        isPlaying,
++        currentRound,
++        tricks,
++        currentTrick,
++        nextTrick,
++        prevTrick,
++        togglePlay,
++        prevRound,
++        nextRound,
++        selectRound
++    };
++};
+diff --git a/frontend/src/hooks/useShop.ts b/frontend/src/hooks/useShop.ts
+new file mode 100644
+index 0000000..8c8db16
+--- /dev/null
++++ b/frontend/src/hooks/useShop.ts
+@@ -0,0 +1,34 @@
++import { useState, useEffect } from 'react';
++import { UserProfile } from '../types';
++import { AccountingEngine } from '../services/AccountingEngine';
++
++export const useShop = (userProfile: UserProfile, handlePurchase: (itemId: string, cost: number) => void) => {
++    const [isStoreOpen, setIsStoreOpen] = useState(false);
++
++    // Item Persistence (UI)
++    const [ownedItems, setOwnedItems] = useState<string[]>(() => AccountingEngine.Inventory.getOwnedItems());
++    const [equippedItems, setEquippedItems] = useState<{ card: string, table: string }>(() => AccountingEngine.Inventory.getEquippedItems());
++
++    useEffect(() => {
++        AccountingEngine.Inventory.saveOwnedItems(ownedItems);
++        AccountingEngine.Inventory.saveEquippedItems(equippedItems);
++    }, [ownedItems, equippedItems]);
++
++    const handlePurchaseWrapper = (itemId: string, cost: number) => {
++        if (AccountingEngine.Purchase.canAfford(userProfile, cost)) {
++            handlePurchase(itemId, cost);
++            setOwnedItems(prev => [...prev, itemId]);
++        }
++    };
++
++    const handleEquip = (itemId: string, type: 'card' | 'table') => setEquippedItems(prev => ({ ...prev, [type]: itemId }));
++
++    return {
++        isStoreOpen,
++        setIsStoreOpen,
++        ownedItems,
++        equippedItems,
++        handlePurchaseWrapper,
++        handleEquip
++    };
++};
+diff --git a/frontend/src/services/AccountingEngine.ts b/frontend/src/services/AccountingEngine.ts
+index afd2dde..02a05c9 100644
+--- a/frontend/src/services/AccountingEngine.ts
++++ b/frontend/src/services/AccountingEngine.ts
+@@ -1,5 +1,7 @@
+ import { CardModel, DeclaredProject, ProjectType, Suit, PlayerPosition, ScoreBreakdown, Rank, DoublingLevel } from '../types';
+ import { POINT_VALUES } from '../utils/gameLogic';
++import { PurchaseService } from './PurchaseService';
++import { InventoryService } from './InventoryService';
+ 
+ /**
+  * ACCOUNTING ENGINE
+@@ -28,6 +30,10 @@ import { POINT_VALUES } from '../utils/gameLogic';
+  */
+ export class AccountingEngine {
+ 
++    // Facade for Purchase and Inventory Logic
++    public static readonly Purchase = PurchaseService;
++    public static readonly Inventory = InventoryService;
++
+     /**
+      * Calculates the final Game Points for a round given the raw inputs.
+      * This is the "Truth" source for scoring - matches standard rules exactly.
+diff --git a/frontend/src/services/InventoryService.ts b/frontend/src/services/InventoryService.ts
+new file mode 100644
+index 0000000..44f9116
+--- /dev/null
++++ b/frontend/src/services/InventoryService.ts
+@@ -0,0 +1,36 @@
++export class InventoryService {
++    private static OWNED_KEY = 'baloot_owned_items';
++    private static EQUIPPED_KEY = 'baloot_equipped_items';
++
++    static getOwnedItems(): string[] {
++        const saved = localStorage.getItem(this.OWNED_KEY);
++        return saved ? JSON.parse(saved) : ['card_default', 'table_default'];
++    }
++
++    static saveOwnedItems(items: string[]): void {
++        localStorage.setItem(this.OWNED_KEY, JSON.stringify(items));
++    }
++
++    static addOwnedItem(itemId: string): void {
++        const items = this.getOwnedItems();
++        if (!items.includes(itemId)) {
++            items.push(itemId);
++            this.saveOwnedItems(items);
++        }
++    }
++
++    static getEquippedItems(): { card: string, table: string } {
++        const saved = localStorage.getItem(this.EQUIPPED_KEY);
++        return saved ? JSON.parse(saved) : { card: 'card_default', table: 'table_default' };
++    }
++
++    static saveEquippedItems(items: { card: string, table: string }): void {
++        localStorage.setItem(this.EQUIPPED_KEY, JSON.stringify(items));
++    }
++
++    static equipItem(itemId: string, type: 'card' | 'table'): void {
++        const current = this.getEquippedItems();
++        const updated = { ...current, [type]: itemId };
++        this.saveEquippedItems(updated);
++    }
++}
+diff --git a/frontend/src/services/PurchaseService.ts b/frontend/src/services/PurchaseService.ts
+new file mode 100644
+index 0000000..201699f
+--- /dev/null
++++ b/frontend/src/services/PurchaseService.ts
+@@ -0,0 +1,26 @@
++import { UserProfile } from '../types';
++
++export class PurchaseService {
++    /**
++     * Validates if a purchase is possible.
++     */
++    static canAfford(userProfile: UserProfile, cost: number): boolean {
++        return userProfile.coins >= cost;
++    }
++
++    /**
++     * Processes the transaction logic (calculating new balance).
++     * Does not update state directly, returns new balance.
++     */
++    static processTransaction(currentCoins: number, cost: number): number {
++        if (currentCoins < cost) {
++            throw new Error("Insufficient funds");
++        }
++        return currentCoins - cost;
++    }
++    
++    // Receipt generation mentioned in prompt
++    static generateReceipt(itemId: string, cost: number, remainingCoins: number): string {
++        return `Purchased ${itemId} for ${cost}. Remaining balance: ${remainingCoins}`;
++    }
++}

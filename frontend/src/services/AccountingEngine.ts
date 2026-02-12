@@ -1,5 +1,7 @@
 import { CardModel, DeclaredProject, ProjectType, Suit, PlayerPosition, ScoreBreakdown, Rank, DoublingLevel } from '../types';
 import { POINT_VALUES } from '../utils/gameLogic';
+import { PurchaseService } from './PurchaseService';
+import { InventoryService } from './InventoryService';
 
 /**
  * ACCOUNTING ENGINE
@@ -27,6 +29,10 @@ import { POINT_VALUES } from '../utils/gameLogic';
  * - HOKUM: 25 points
  */
 export class AccountingEngine {
+
+    // Facade for Purchase and Inventory Logic
+    public static readonly Purchase = PurchaseService;
+    public static readonly Inventory = InventoryService;
 
     /**
      * Calculates the final Game Points for a round given the raw inputs.

@@ -12,8 +12,8 @@ import LevelUpModal from './components/LevelUpModal';
 import StoreModal from './components/StoreModal';
 import EmoteMenu from './components/EmoteMenu';
 import RoundResultsModal from './components/RoundResultsModal';
-import MatchReviewModal from './components/MatchReviewModal'; // Added
-import VariantSelectionModal from './components/VariantSelectionModal'; // Added
+import MatchReviewModal from './components/MatchReviewModal'; 
+import VariantSelectionModal from './components/VariantSelectionModal'; 
 import { Settings, ShoppingBag, Smile } from 'lucide-react';
 import MultiplayerLobby from './components/MultiplayerLobby';
 
@@ -25,7 +25,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import FeatureErrorBoundary from './components/FeatureErrorBoundary';
 import { devLogger } from './utils/devLogger';
 
-
+import { useEmotes } from './hooks/useEmotes';
+import { useShop } from './hooks/useShop';
 
 
 const App: React.FC = () => {
@@ -60,12 +61,27 @@ const App: React.FC = () => {
     isSendingAction // Added
   } = useGameContext();
 
-  const [isStoreOpen, setIsStoreOpen] = useState(false);
-  const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
-  const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Settings UI
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
 
+  // Extracted hooks
+  const {
+    isStoreOpen,
+    setIsStoreOpen,
+    ownedItems,
+    equippedItems,
+    handlePurchaseWrapper,
+    handleEquip
+  } = useShop(userProfile, handlePurchase);
+
+  const {
+    isEmoteMenuOpen,
+    setIsEmoteMenuOpen,
+    flyingItems,
+    handleSendEmote,
+    handleThrowItem,
+    toggleEmoteMenu
+  } = useEmotes(gameState, addSystemMessage);
 
 
   // Round Results Modal - Standard Style
@@ -73,65 +89,10 @@ const App: React.FC = () => {
   const [lastSeenRoundCount, setLastSeenRoundCount] = useState(0);
   const [showReviewModal, setShowReviewModal] = useState(false); // Added state
 
-  // Item Persistence (UI)
-  const [ownedItems, setOwnedItems] = useState<string[]>(() => {
-    const saved = localStorage.getItem('baloot_owned_items');
-    return saved ? JSON.parse(saved) : ['card_default', 'table_default'];
-  });
-  const [equippedItems, setEquippedItems] = useState<{ card: string, table: string }>(() => {
-    const saved = localStorage.getItem('baloot_equipped_items');
-    return saved ? JSON.parse(saved) : { card: 'card_default', table: 'table_default' };
-  });
-
-
-
-
-
-  useEffect(() => {
-    localStorage.setItem('baloot_owned_items', JSON.stringify(ownedItems));
-    localStorage.setItem('baloot_equipped_items', JSON.stringify(equippedItems));
-  }, [ownedItems, equippedItems]);
-
-  const handlePurchaseWrapper = (itemId: string, cost: number) => {
-    if (userProfile.coins >= cost) {
-      handlePurchase(itemId, cost);
-      setOwnedItems(prev => [...prev, itemId]);
-    }
-  };
-
-  const handleEquip = (itemId: string, type: 'card' | 'table') => setEquippedItems(prev => ({ ...prev, [type]: itemId }));
-
-  // --- EMOTES & FX ---
-  const handleSendEmote = (msg: string) => {
-    addSystemMessage(`أنا: ${msg} `);
-    setIsEmoteMenuOpen(false);
-  };
-
-  const handleThrowItem = (itemId: string) => {
-    setIsEmoteMenuOpen(false);
-    // Target logic: 0=Me, 1=Right, 2=Top, 3=Left (relative to view)
-    // currentTurnIndex is rotated in hook, so it matches visual position relative to "Me" at 0.
-    const targetIdx = gameState.currentTurnIndex === 0 ? 3 : gameState.currentTurnIndex;
-    let endX = 50, endY = 50;
-    switch (targetIdx) {
-      case 1: endX = 85; endY = 50; break;
-      case 2: endX = 50; endY = 15; break;
-      case 3: endX = 15; endY = 50; break;
-    }
-    const newItem = { id: Date.now().toString(), type: itemId, startX: 50, startY: 90, endX, endY };
-    setFlyingItems(prev => [...prev, newItem]);
-    soundManager.playShuffleSound();
-    setTimeout(() => setFlyingItems(prev => prev.filter(i => i.id !== newItem.id)), 1000);
-  };
-
   const handleChallenge = () => {
     // Legacy Dispute Modal - Deprecated
     // setIsDisputeModalOpen(true);
   };
-
-
-
-
 
   // --- CONTENT RENDER ---
   const [currentView, setCurrentView] = useState<'LOBBY' | 'GAME' | 'MULTIPLAYER_LOBBY'>('LOBBY');
@@ -153,15 +114,8 @@ const App: React.FC = () => {
       setRoundResultToShow(latestResult);
       setLastSeenRoundCount(currentRoundCount);
       soundManager.playProjectSound(); // Celebratory sound
-
-      // Check if it was a QAYD result
-      // Backend doesn't explicitly flag "isQayd" in roundHistory structure usually,
-      // but we can infer or use latestResult if weird scores (0 vs Max).
-      // Or better: Listen to system message or check if qaydPenalty exists in state.
     }
   }, [gameState.roundHistory.length, lastSeenRoundCount]);
-
-
 
   if (errorObj) {
     return (
@@ -220,9 +174,6 @@ const App: React.FC = () => {
                     devLogger.error('LOBBY', 'Join Exception', { error: String(e) });
                     setErrorObj("Join Error: " + String(e));
                   }
-
-                  // 3. Add Bots - HANDLED BY SERVER AUTOMATICALLY
-                  // (See socket_handler.py:join_room which adds 3 bots for first player)
                 } else {
                   setErrorObj("Failed to join single player room: " + joinRes.error);
                   devLogger.error('LOBBY', 'Join Room Failed', joinRes);
@@ -263,7 +214,7 @@ const App: React.FC = () => {
             tableSkin={equippedItems.table}
             cardSkin={equippedItems.card}
             onFastForward={handleFastForward}
-            onEmoteClick={() => setIsEmoteMenuOpen(!isEmoteMenuOpen)}
+            onEmoteClick={toggleEmoteMenu}
             isSendingAction={isSendingAction}
 
           />
@@ -271,9 +222,6 @@ const App: React.FC = () => {
 
 
         </div>
-
-
-
 
         {/* Settings Button */}
         <button
@@ -348,8 +296,6 @@ const App: React.FC = () => {
       </div>
     );
   }
-
-
 
   return (
     <GameLayout variant='mobile'>
