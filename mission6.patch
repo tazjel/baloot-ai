@@ -1,0 +1,1007 @@
+diff --git a/game_engine/logic/game.py b/game_engine/logic/game.py
+index ac00d73..7b931f5 100644
+--- a/game_engine/logic/game.py
++++ b/game_engine/logic/game.py
+@@ -11,17 +11,20 @@ game_engine/logic/game.py — Refactored Game Controller (v2)
+   - Events:     ActionResult + GameEvent — typed results
+ 
+ Persistence: redis.set(key, game.state.model_dump_json())
++
++MISSION 6 REFACTORING:
++- Extracted lifecycle logic to game_engine/logic/game_lifecycle.py
++- Extracted player management to game_engine/logic/player_manager.py
+ """
+ 
+ from __future__ import annotations
+-import random, time, copy, logging
++import time, copy, logging
+ from typing import Dict, List, Optional, Any
+ from functools import wraps
+ 
+ from game_engine.models.constants import GamePhase
+ from game_engine.models.deck import Deck
+ from game_engine.models.player import Player
+-from game_engine.logic.utils import sort_hand
+ from game_engine.core.state import GameState, BidState, AkkaState
+ from game_engine.core.graveyard import Graveyard
+ from game_engine.core.models import ActionResult, EventType
+@@ -34,6 +37,8 @@ from .project_manager import ProjectManager
+ from .akka_manager import AkkaManager
+ from .sawa_manager import SawaManager
+ from .qayd_engine import QaydEngine
++from .game_lifecycle import GameLifecycle
++from .player_manager import PlayerManager
+ from .phases.challenge_phase import ChallengePhase
+ from .phases.bidding_phase import BiddingPhase as BiddingLogic
+ from .phases.playing_phase import PlayingPhase as PlayingLogic
+@@ -68,6 +73,8 @@ class Game(StateBridgeMixin):
+         self.bidding_engine = None
+ 
+         # Managers
++        self.lifecycle = GameLifecycle(self)
++        self.player_manager = PlayerManager(self)
+         self.graveyard = Graveyard()
+         self.trick_manager = TrickManager(self)
+         self.scoring_engine = ScoringEngine(self)
+@@ -96,75 +103,23 @@ class Game(StateBridgeMixin):
+         self._record("INIT")
+ 
+     # ═══════════════════════════════════════════════════════════════════
+-    #  LIFECYCLE
++    #  LIFECYCLE (Delegated to GameLifecycle & PlayerManager)
+     # ═══════════════════════════════════════════════════════════════════
+ 
+     def add_player(self, id, name, avatar=None):
+-        for p in self.players:
+-            if p.id == id:
+-                p.name = name
+-                if avatar: p.avatar = avatar
+-                return p
+-        if len(self.players) >= 4: return None
+-        p = Player(id, name, len(self.players), self, avatar=avatar)
+-        self.players.append(p)
+-        return p
++        return self.player_manager.add_player(id, name, avatar)
+ 
+     def start_game(self) -> bool:
+-        if len(self.players) < 4: return False
+-        self.reset_round_state()
+-        self.dealer_index = random.randint(0, 3)
+-        self.deal_initial_cards()
+-        self.phase = GamePhase.BIDDING.value
+-        from .bidding_engine import BiddingEngine
+-        self.bidding_engine = BiddingEngine(
+-            dealer_index=self.dealer_index, floor_card=self._floor_card_obj,
+-            players=self.players, match_scores=self.match_scores,
+-        )
+-        self.current_turn = self.bidding_engine.current_turn
+-        self.reset_timer()
+-        return True
++        return self.lifecycle.start_game()
+ 
+     def reset_round_state(self):
+-        self.deck = Deck()
+-        for p in self.players:
+-            p.hand, p.captured_cards, p.action_text = [], [], ''
+-        self.table_cards = []
+-        self._floor_card_obj = None
+-        self.state.reset_round()
+-        self.graveyard.reset()
+-        self.qayd_engine.reset()
+-        self.qayd_state = self.qayd_engine.state
+-        # akka_state and sawa_state are reset by state.reset_round() automatically
+-        self.reset_timer()
++        self.lifecycle.reset_round_state()
+ 
+     def deal_initial_cards(self):
+-        for p in self.players:
+-            p.hand.extend(self.deck.deal(5))
+-        val = self.deck.deal(1)
+-        if val: self.floor_card = val[0]
++        self.lifecycle.deal_initial_cards()
+ 
+     def complete_deal(self, bidder_index):
+-        bidder = self.players[bidder_index]
+-        if self._floor_card_obj:
+-            bidder.hand.append(self._floor_card_obj)
+-            self.floor_card = None
+-        bidder.hand.extend(self.deck.deal(2))
+-        for p in self.players:
+-            if p.index != bidder_index:
+-                p.hand.extend(self.deck.deal(3))
+-        for p in self.players:
+-            p.hand = sort_hand(p.hand, self.game_mode, self.trump_suit)
+-            p.action_text = ""
+-            self.initial_hands[p.position] = [c.to_dict() for c in p.hand]
+-        self.phase = GamePhase.PLAYING.value
+-        self.current_turn = (self.dealer_index + 1) % 4
+-        self.reset_timer()
+-
+-        # Auto-declare projects for all bots at start of play
+-        # so their labels show immediately during trick 1
+-        if hasattr(self, 'project_manager'):
+-            self.project_manager.auto_declare_bot_projects()
++        self.lifecycle.complete_deal(bidder_index)
+ 
+     # ═══════════════════════════════════════════════════════════════════
+     #  ACTION DELEGATION
+@@ -247,30 +202,7 @@ class Game(StateBridgeMixin):
+     # ═══════════════════════════════════════════════════════════════════
+ 
+     def end_round(self, skip_scoring=False):
+-        self._record("ROUND_END")
+-        if not skip_scoring:
+-            rr, su, st = self.scoring_engine.calculate_final_scores()
+-            self.past_round_results.append(rr)
+-            self.match_scores['us'] += su
+-            self.match_scores['them'] += st
+-            snap = self._build_round_snapshot(rr)
+-            self.full_match_history.append(snap)
+-            try:
+-                from ai_worker.agent import bot_agent
+-                bot_agent.capture_round_data(snap)
+-            except Exception: pass
+-
+-        self.dealer_index = (self.dealer_index + 1) % 4
+-        if self.match_scores['us'] >= 152 or self.match_scores['them'] >= 152:
+-            self.phase = GamePhase.GAMEOVER.value
+-            try:
+-                from server.services.archiver import archive_match
+-                archive_match(self)
+-            except Exception: pass
+-        else:
+-            self.phase = GamePhase.FINISHED.value
+-        self.sawa_failed_khasara = False
+-        self.reset_timer()
++        self.lifecycle.end_round(skip_scoring)
+ 
+     def apply_qayd_penalty(self, loser_team, winner_team):
+         penalty = self.qayd_state.get('penalty_points', 26 if 'SUN' in str(self.game_mode).upper() else 16)
+diff --git a/game_engine/logic/game_lifecycle.py b/game_engine/logic/game_lifecycle.py
+new file mode 100644
+index 0000000..a0f070b
+--- /dev/null
++++ b/game_engine/logic/game_lifecycle.py
+@@ -0,0 +1,156 @@
++"""
++Game Lifecycle - Round and Game State Management
++================================================
++
++Handles the flow of the game:
++- Starting the game
++- Resetting round state
++- Dealing cards
++- Ending rounds and matches
++
++Extracted from game.py to reduce complexity.
++"""
++
++import random
++import copy
++from typing import List, Dict, Any, Optional
++
++from game_engine.models.constants import GamePhase
++from game_engine.models.deck import Deck
++from game_engine.models.player import Player
++from game_engine.logic.utils import sort_hand
++from game_engine.core.state import GameState
++
++# We can import these lazily inside methods if circular imports are an issue, 
++# but usually logic modules don't import the main Game class (except for type hints if needed).
++# Here we receive `game` instance in __init__.
++
++class GameLifecycle:
++    def __init__(self, game):
++        self.game = game
++
++    def start_game(self) -> bool:
++        """Initialize game state and start the first round."""
++        if len(self.game.players) < 4:
++            return False
++
++        self.reset_round_state()
++        self.game.dealer_index = random.randint(0, 3)
++        self.deal_initial_cards()
++        self.game.phase = GamePhase.BIDDING.value
++
++        # Lazily import BiddingEngine to avoid circular dependency if any
++        # (Though usually BiddingEngine is independent)
++        from game_engine.logic.bidding_engine import BiddingEngine
++        
++        self.game.bidding_engine = BiddingEngine(
++            dealer_index=self.game.dealer_index, 
++            floor_card=self.game._floor_card_obj,
++            players=self.game.players, 
++            match_scores=self.game.match_scores,
++        )
++        self.game.current_turn = self.game.bidding_engine.current_turn
++        self.game.reset_timer()
++        return True
++
++    def reset_round_state(self):
++        """Clear all round-specific data for a fresh start."""
++        self.game.deck = Deck()
++        for p in self.game.players:
++            p.hand = []
++            p.captured_cards = []
++            p.action_text = ''
++        
++        self.game.table_cards = []
++        self.game._floor_card_obj = None
++        self.game.state.reset_round()
++        self.game.graveyard.reset()
++        
++        # Reset sub-systems
++        if hasattr(self.game, 'qayd_engine'):
++            self.game.qayd_engine.reset()
++            self.game.qayd_state = self.game.qayd_engine.state
++            
++        # akka_state and sawa_state are reset by state.reset_round() automatically
++        self.game.reset_timer()
++
++    def deal_initial_cards(self):
++        """Deal 5 cards to each player + 1 floor card."""
++        for p in self.game.players:
++            p.hand.extend(self.game.deck.deal(5))
++        
++        val = self.game.deck.deal(1)
++        if val:
++            self.game.floor_card = val[0] # Setter property on Game handles _floor_card_obj assignment
++
++    def complete_deal(self, bidder_index: int):
++        """
++        Finish dealing cards after bidding is won.
++        Bidder gets floor card + 2 extra cards.
++        Others get 3 cards.
++        """
++        bidder = self.game.players[bidder_index]
++        
++        # Give floor card to bidder
++        if self.game._floor_card_obj:
++            bidder.hand.append(self.game._floor_card_obj)
++            self.game.floor_card = None
++            
++        # Deal remaining cards
++        bidder.hand.extend(self.game.deck.deal(2))
++        for p in self.game.players:
++            if p.index != bidder_index:
++                p.hand.extend(self.game.deck.deal(3))
++                
++        # Sort hands and update initial snapshots
++        for p in self.game.players:
++            p.hand = sort_hand(p.hand, self.game.game_mode, self.game.trump_suit)
++            p.action_text = ""
++            self.game.initial_hands[p.position] = [c.to_dict() for c in p.hand]
++            
++        self.game.phase = GamePhase.PLAYING.value
++        self.game.current_turn = (self.game.dealer_index + 1) % 4
++        self.game.reset_timer()
++
++        # Auto-declare projects for all bots at start of play
++        if hasattr(self.game, 'project_manager'):
++            self.game.project_manager.auto_declare_bot_projects()
++
++    def end_round(self, skip_scoring: bool = False):
++        """
++        Finalize the round, calculate scores, and prepare for next round or game over.
++        """
++        self.game._record("ROUND_END")
++        
++        if not skip_scoring:
++            rr, su, st = self.game.scoring_engine.calculate_final_scores()
++            self.game.past_round_results.append(rr)
++            self.game.match_scores['us'] += su
++            self.game.match_scores['them'] += st
++            
++            snap = self.game._build_round_snapshot(rr)
++            self.game.full_match_history.append(snap)
++            
++            # Notify AI agent
++            try:
++                from ai_worker.agent import bot_agent
++                bot_agent.capture_round_data(snap)
++            except Exception: 
++                pass
++
++        # Advance dealer
++        self.game.dealer_index = (self.game.dealer_index + 1) % 4
++        
++        # Check game over condition
++        if self.game.match_scores['us'] >= 152 or self.game.match_scores['them'] >= 152:
++            self.game.phase = GamePhase.GAMEOVER.value
++            try:
++                from server.services.archiver import archive_match
++                archive_match(self.game)
++            except Exception: 
++                pass
++        else:
++            self.game.phase = GamePhase.FINISHED.value
++            
++        self.game.sawa_failed_khasara = False
++        self.game.reset_timer()
+diff --git a/game_engine/logic/player_manager.py b/game_engine/logic/player_manager.py
+new file mode 100644
+index 0000000..e2077df
+--- /dev/null
++++ b/game_engine/logic/player_manager.py
+@@ -0,0 +1,55 @@
++"""
++Player Manager - Manages player seating and queries
++===================================================
++
++Extracts player management logic from the main Game class.
++"""
++
++from typing import List, Optional
++from game_engine.models.player import Player
++
++class PlayerManager:
++    def __init__(self, game):
++        self.game = game
++
++    def add_player(self, id: str, name: str, avatar: Optional[str] = None) -> Optional[Player]:
++        """
++        Add a player to the game or update existing player.
++        Returns the Player object or None if game is full.
++        """
++        # Check if player already exists
++        for p in self.game.players:
++            if p.id == id:
++                p.name = name
++                if avatar:
++                    p.avatar = avatar
++                return p
++
++        # Check for max players
++        if len(self.game.players) >= 4:
++            return None
++
++        # Create new player
++        p = Player(id, name, len(self.game.players), self.game, avatar=avatar)
++        self.game.players.append(p)
++        return p
++
++    def get_player_by_id(self, player_id: str) -> Optional[Player]:
++        """Find player by ID."""
++        for p in self.game.players:
++            if p.id == player_id:
++                return p
++        return None
++
++    def get_player_by_index(self, index: int) -> Optional[Player]:
++        """Find player by seat index (0-3)."""
++        if 0 <= index < len(self.game.players):
++            return self.game.players[index]
++        return None
++
++    def get_player_by_position(self, position: str) -> Optional[Player]:
++        """Find player by position (Bottom, Right, Top, Left)."""
++        for p in self.game.players:
++            if p.position == position:
++                return p
++        return None
+diff --git a/game_engine/logic/qayd_engine.py b/game_engine/logic/qayd_engine.py
+index 99b0a7c..f94c559 100644
+--- a/game_engine/logic/qayd_engine.py
++++ b/game_engine/logic/qayd_engine.py
+@@ -21,6 +21,10 @@ MISSION 2 & 3 REFACTORING:
+ - Removed _validate_* methods (now in RulesValidator)
+ - Removed handle_legacy_accusation (bots use proper API now)
+ - Clean separation: Engine = State, Validator = Rules, Scanner = Detection
++
++MISSION 6 REFACTORING:
++- Extracted state machine to game_engine/logic/qayd_state_machine.py
++- Extracted penalty logic to game_engine/logic/qayd_penalties.py
+ """
+ 
+ import time
+@@ -29,57 +33,14 @@ from typing import Dict, List, Any, Optional, Tuple
+ 
+ from game_engine.models.constants import GamePhase
+ from game_engine.logic.rules_validator import RulesValidator, ViolationType
++from game_engine.logic.qayd_state_machine import QaydStateMachine, QaydStep, QaydMenuOption, TIMER_HUMAN, TIMER_AI
++from game_engine.logic.qayd_penalties import QaydPenaltyCalculator
+ 
+ logger = logging.getLogger(__name__)
+ 
+ 
+-# ─── Step Constants ───────────────────────────────────────────────────────────
+-class QaydStep:
+-    IDLE             = 'IDLE'
+-    MAIN_MENU        = 'MAIN_MENU'
+-    VIOLATION_SELECT = 'VIOLATION_SELECT'
+-    SELECT_CARD_1    = 'SELECT_CARD_1'   # Crime card (Pink Ring)
+-    SELECT_CARD_2    = 'SELECT_CARD_2'   # Proof card (Green Ring)
+-    ADJUDICATION     = 'ADJUDICATION'    # Backend validates
+-    RESULT           = 'RESULT'          # Verdict displayed
+-
+-
+-# ─── Main Menu Options ────────────────────────────────────────────────────────
+-class QaydMenuOption:
+-    REVEAL_CARDS = 'REVEAL_CARDS'   # كشف الأوراق
+-    WRONG_SAWA   = 'WRONG_SAWA'    # سوا خاطئ
+-    WRONG_AKKA   = 'WRONG_AKKA'    # أكة خاطئة
+-
+-
+-# ─── Timer Durations ──────────────────────────────────────────────────────────
+-TIMER_HUMAN = 60   # seconds
+-TIMER_AI    = 2    # seconds
+-
+-
+-def _empty_state() -> Dict[str, Any]:
+-    """Canonical empty state. Always the same structure."""
+-    return {
+-        'active':           False,
+-        'step':             QaydStep.IDLE,
+-        'reporter':         None,       # PlayerPosition string
+-        'reporter_is_bot':  False,
+-        'menu_option':      None,       # QaydMenuOption
+-        'violation_type':   None,       # ViolationType
+-        'crime_card':       None,       # dict with suit, rank, trick_idx, card_idx, played_by
+-        'proof_card':       None,       # same shape
+-        'verdict':          None,       # 'CORRECT' or 'WRONG'
+-        'verdict_message':  None,       # Arabic display string
+-        'loser_team':       None,       # 'us' or 'them'
+-        'penalty_points':   0,
+-        'timer_duration':   TIMER_HUMAN,
+-        'timer_start':      0,
+-        'crime_signature':  None,       # (trick_idx, card_idx) for Double Jeopardy
+-        # Legacy compat fields (read by get_game_state / frontend QaydState type)
+-        'status':           None,       # 'REVIEW' | 'RESOLVED'
+-        'reason':           None,
+-        'target_play':      None,
+-    }
+-
++# ─── Step Constants (Re-exported for compatibility) ───────────────────────────
++# QaydStep and QaydMenuOption are imported from qayd_state_machine.py
+ 
+ class QaydEngine:
+     """
+@@ -95,12 +56,14 @@ class QaydEngine:
+     REFACTORING NOTES:
+     - Bot auto-accusation logic moved to ai_worker/strategies/components/forensics.py
+     - Validation logic moved to game_engine/logic/rules_validator.py
+-    - This class now ONLY manages state transitions
++    - State machine logic moved to game_engine/logic/qayd_state_machine.py
++    - Penalty logic moved to game_engine/logic/qayd_penalties.py
+     """
+ 
+     def __init__(self, game):
+         self.game = game
+-        self.state: Dict[str, Any] = _empty_state()
++        self._sm = QaydStateMachine()
++        self.state = self._sm.state  # Alias to the state dict inside state machine
+         # Note: ignored_crimes moved to ForensicScanner (bot-specific)
+ 
+     # ══════════════════════════════════════════════════════════════════════════
+@@ -134,17 +97,9 @@ class QaydEngine:
+         self.game.pause_timer()  # Properly pause TimerManager so auto-play doesn't fire
+ 
+         is_bot = getattr(player, 'is_bot', False)
+-        timer_dur = TIMER_AI if is_bot else TIMER_HUMAN
+-
+-        self._update({
+-            'active':           True,
+-            'step':             QaydStep.MAIN_MENU,
+-            'reporter':         player.position,
+-            'reporter_is_bot':  is_bot,
+-            'timer_duration':   timer_dur,
+-            'timer_start':      time.time(),
+-            'status':           'REVIEW',
+-        })
++        
++        # Delegate state transition
++        timer_dur = self._sm.start_session(player.position, is_bot)
+ 
+         logger.info(f"[QAYD] Triggered by {player.position} (bot={is_bot}). Timer={timer_dur}s. Phase → CHALLENGE.")
+ 
+@@ -155,7 +110,7 @@ class QaydEngine:
+         if self.state['step'] != QaydStep.MAIN_MENU:
+             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
+ 
+-        self._update({'menu_option': option, 'step': QaydStep.VIOLATION_SELECT})
++        self._sm.to_violation_select(option)
+         return {'success': True, 'qayd_state': self.state}
+ 
+     def select_violation(self, violation_type: str) -> Dict[str, Any]:
+@@ -163,7 +118,7 @@ class QaydEngine:
+         if self.state['step'] not in (QaydStep.VIOLATION_SELECT, QaydStep.SELECT_CARD_1, QaydStep.SELECT_CARD_2):
+             return {'success': False, 'error': f"Wrong step: {self.state['step']}"}
+ 
+-        self._update({'violation_type': violation_type, 'step': QaydStep.SELECT_CARD_1})
++        self._sm.to_card_select_1(violation_type)
+         return {'success': True, 'qayd_state': self.state}
+ 
+     def select_crime_card(self, card_data: Dict) -> Dict[str, Any]:
+@@ -186,7 +141,7 @@ class QaydEngine:
+                 logger.warning(f"[QAYD] Selection blocked: Crime {ledger_sig} already resolved.")
+                 return {'success': False, 'error': 'This play has already been challenged.'}
+ 
+-        self._update({'crime_card': card_data, 'step': QaydStep.SELECT_CARD_2})
++        self._sm.to_card_select_2(card_data)
+         logger.info(f"[QAYD] select_crime_card SUCCESS → step=SELECT_CARD_2")
+         return {'success': True, 'qayd_state': self.state}
+ 
+@@ -201,7 +156,7 @@ class QaydEngine:
+             logger.warning(f"[QAYD] select_proof_card REJECTED: card not in history. card_data={card_data}")
+             return {'success': False, 'error': 'Proof card not found in round history'}
+ 
+-        self._update({'proof_card': card_data, 'step': QaydStep.ADJUDICATION})
++        self._sm.to_adjudication(card_data)
+         logger.info(f"[QAYD] select_proof_card → calling _adjudicate()")
+         return self._adjudicate()
+ 
+@@ -239,11 +194,7 @@ class QaydEngine:
+         self.game.apply_qayd_penalty(loser_team, winner_team)
+ 
+         # Mark resolved
+-        self._update({
+-            'step': QaydStep.IDLE,
+-            'active': False,
+-            'status': 'RESOLVED',
+-        })
++        self._sm.resolve()
+ 
+         self.game.is_locked = False
+         self.game.resume_timer()
+@@ -262,7 +213,7 @@ class QaydEngine:
+             return {'success': False, 'error': 'No active Qayd'}
+ 
+         was_result = self.state['step'] == QaydStep.RESULT
+-        self._reset_state()
++        self._sm.reset()
+ 
+         # Restore phase
+         if not was_result:
+@@ -278,7 +229,7 @@ class QaydEngine:
+ 
+     def reset(self):
+         """Full reset for new round. Called by game.reset_round_state()."""
+-        self._reset_state()
++        self._sm.reset()
+         # Note: ForensicScanner handles its own session reset
+ 
+     def check_timeout(self) -> Optional[Dict[str, Any]]:
+@@ -349,23 +300,27 @@ class QaydEngine:
+             verdict_msg = 'قيد خاطئ'
+             loser_team = reporter.team
+ 
+-        penalty = self._calculate_penalty()
++        # Use new PenaltyCalculator
++        penalty = QaydPenaltyCalculator.calculate_base_penalty(
++            self.game.game_mode, 
++            getattr(self.game, 'doubling_level', 1)
++        )
++        
+         sig = (crime.get('trick_idx', -1), crime.get('card_idx', -1))
+ 
+-        self._update({
+-            'verdict': verdict,
+-            'verdict_message': verdict_msg,
+-            'loser_team': loser_team,
+-            'penalty_points': penalty,
+-            'reason': reason,
+-            'crime_signature': sig,
+-            'step': QaydStep.RESULT,
+-            'target_play': {
++        self._sm.to_result(
++            verdict=verdict,
++            verdict_msg=verdict_msg,
++            loser_team=loser_team,
++            penalty=penalty,
++            reason=reason,
++            sig=sig,
++            target_play={
+                 'card': crime,
+                 'playedBy': offender_pos,
+                 'metadata': {'illegal_reason': reason},
+-            },
+-        })
++            }
++        )
+ 
+         logger.info(f"[QAYD] Adjudicated: {verdict} — {reason}. Penalty={penalty}")
+         return {'success': True, 'qayd_state': self.state}
+@@ -424,20 +379,13 @@ class QaydEngine:
+ 
+     def _calculate_penalty(self) -> int:
+         """
+-        SUN/ASHKAL = 26 base, HOKUM = 16 base.
+-        Multiplied by doubling level.
+-        NOTE: Project points are NOT added here. (FIX for BUG-03)
+-        apply_qayd_penalty adds them once.
++        DEPRECATED: Use QaydPenaltyCalculator instead.
++        Kept for safe measure if needed internally.
+         """
+-        mode_str = str(self.game.game_mode or '').upper()
+-        is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
+-        base = 26 if is_sun else 16
+-
+-        dl = getattr(self.game, 'doubling_level', 1) or 1
+-        if dl >= 2:
+-            base *= dl
+-
+-        return base
++        return QaydPenaltyCalculator.calculate_base_penalty(
++            self.game.game_mode, 
++            getattr(self.game, 'doubling_level', 1)
++        )
+ 
+     # ══════════════════════════════════════════════════════════════════════════
+     #  INTERNAL HELPERS
+@@ -445,16 +393,15 @@ class QaydEngine:
+ 
+     def _update(self, patch: Dict[str, Any]):
+         """In-place update. Never reassign self.state."""
+-        self.state.update(patch)
++        self._sm.update(patch)
+ 
+     def _reset_state(self):
+         """Reset to idle. Preserves dict identity."""
+-        self.state.clear()
+-        self.state.update(_empty_state())
++        self._sm.reset()
+ 
+     def _unlock_and_reset(self):
+         """Reset state AND unlock game + restore phase."""
+-        self._reset_state()
++        self._sm.reset()
+         self.game.is_locked = False
+         self.game.resume_timer()
+         phase_str = str(self.game.phase)
+@@ -510,6 +457,7 @@ class QaydEngine:
+             return {'success': False, 'error': 'Missing crime_card'}
+ 
+         # 2. Set state directly (skip menu/card select UI steps)
++        # Use low-level update since this bypasses standard transitions
+         self._update({
+             'menu_option':    QaydMenuOption.REVEAL_CARDS,
+             'violation_type': violation,
+@@ -525,4 +473,3 @@ class QaydEngine:
+ 
+         # 3. Adjudicate immediately
+         return self._adjudicate()
+-
+diff --git a/game_engine/logic/qayd_penalties.py b/game_engine/logic/qayd_penalties.py
+new file mode 100644
+index 0000000..5b4e772
+--- /dev/null
++++ b/game_engine/logic/qayd_penalties.py
+@@ -0,0 +1,36 @@
++"""
++Qayd Penalties - Penalty Calculation Logic
++==========================================
++
++Handles the calculation of points and penalties for Qayd outcomes.
++Separated from the engine to keep logic focused.
++"""
++
++class QaydPenaltyCalculator:
++    """Calculates penalty points based on game mode and doubling."""
++
++    @staticmethod
++    def calculate_base_penalty(game_mode: str, doubling_level: int) -> int:
++        """
++        Calculate base penalty points.
++        
++        SUN/ASHKAL = 26 base
++        HOKUM = 16 base
++        Multiplied by doubling level.
++        """
++        mode_str = str(game_mode or '').upper()
++        is_sun = ('SUN' in mode_str) or ('ASHKAL' in mode_str)
++        base = 26 if is_sun else 16
++
++        dl = doubling_level if doubling_level else 1
++        if dl >= 2:
++            base *= dl
++
++        return base
++
++    @staticmethod
++    def calculate_total_penalty(base_penalty: int, project_points: int) -> int:
++        """
++        Total penalty includes base penalty plus any declared project points.
++        """
++        return base_penalty + project_points
+diff --git a/game_engine/logic/qayd_state_machine.py b/game_engine/logic/qayd_state_machine.py
+new file mode 100644
+index 0000000..49c3c35
+--- /dev/null
++++ b/game_engine/logic/qayd_state_machine.py
+@@ -0,0 +1,127 @@
++"""
++Qayd State Machine - Core State Transitions
++===========================================
++
++This module handles the state transitions and data structure for the Qayd system.
++It is purely functional and does not depend on the Game object directly,
++except for context passed into methods.
++"""
++
++import time
++from typing import Dict, Any, Optional
++
++class QaydStep:
++    IDLE             = 'IDLE'
++    MAIN_MENU        = 'MAIN_MENU'
++    VIOLATION_SELECT = 'VIOLATION_SELECT'
++    SELECT_CARD_1    = 'SELECT_CARD_1'   # Crime card (Pink Ring)
++    SELECT_CARD_2    = 'SELECT_CARD_2'   # Proof card (Green Ring)
++    ADJUDICATION     = 'ADJUDICATION'    # Backend validates
++    RESULT           = 'RESULT'          # Verdict displayed
++
++
++class QaydMenuOption:
++    REVEAL_CARDS = 'REVEAL_CARDS'   # كشف الأوراق
++    WRONG_SAWA   = 'WRONG_SAWA'    # سوا خاطئ
++    WRONG_AKKA   = 'WRONG_AKKA'    # أكة خاطئة
++
++
++# ─── Timer Durations ──────────────────────────────────────────────────────────
++TIMER_HUMAN = 60   # seconds
++TIMER_AI    = 2    # seconds
++
++
++def empty_qayd_state() -> Dict[str, Any]:
++    """Canonical empty state. Always the same structure."""
++    return {
++        'active':           False,
++        'step':             QaydStep.IDLE,
++        'reporter':         None,       # PlayerPosition string
++        'reporter_is_bot':  False,
++        'menu_option':      None,       # QaydMenuOption
++        'violation_type':   None,       # ViolationType
++        'crime_card':       None,       # dict with suit, rank, trick_idx, card_idx, played_by
++        'proof_card':       None,       # same shape
++        'verdict':          None,       # 'CORRECT' or 'WRONG'
++        'verdict_message':  None,       # Arabic display string
++        'loser_team':       None,       # 'us' or 'them'
++        'penalty_points':   0,
++        'timer_duration':   TIMER_HUMAN,
++        'timer_start':      0,
++        'crime_signature':  None,       # (trick_idx, card_idx) for Double Jeopardy
++        # Legacy compat fields (read by get_game_state / frontend QaydState type)
++        'status':           None,       # 'REVIEW' | 'RESOLVED'
++        'reason':           None,
++        'target_play':      None,
++    }
++
++
++class QaydStateMachine:
++    """
++    Manages state transitions for Qayd.
++    Does NOT contain business logic for validation or penalties.
++    """
++
++    def __init__(self):
++        self.state = empty_qayd_state()
++
++    def update(self, patch: Dict[str, Any]):
++        """In-place update."""
++        self.state.update(patch)
++
++    def reset(self):
++        """Reset to idle."""
++        self.state.clear()
++        self.state.update(empty_qayd_state())
++
++    def start_session(self, reporter_pos: str, is_bot: bool):
++        """Transition IDLE -> MAIN_MENU"""
++        timer_dur = TIMER_AI if is_bot else TIMER_HUMAN
++        self.update({
++            'active':           True,
++            'step':             QaydStep.MAIN_MENU,
++            'reporter':         reporter_pos,
++            'reporter_is_bot':  is_bot,
++            'timer_duration':   timer_dur,
++            'timer_start':      time.time(),
++            'status':           'REVIEW',
++        })
++        return timer_dur
++
++    def to_violation_select(self, option: str):
++        """Transition MAIN_MENU -> VIOLATION_SELECT"""
++        self.update({'menu_option': option, 'step': QaydStep.VIOLATION_SELECT})
++
++    def to_card_select_1(self, violation_type: str):
++        """Transition VIOLATION_SELECT -> SELECT_CARD_1"""
++        self.update({'violation_type': violation_type, 'step': QaydStep.SELECT_CARD_1})
++
++    def to_card_select_2(self, crime_card: Dict):
++        """Transition SELECT_CARD_1 -> SELECT_CARD_2"""
++        self.update({'crime_card': crime_card, 'step': QaydStep.SELECT_CARD_2})
++
++    def to_adjudication(self, proof_card: Dict):
++        """Transition SELECT_CARD_2 -> ADJUDICATION"""
++        self.update({'proof_card': proof_card, 'step': QaydStep.ADJUDICATION})
++
++    def to_result(self, verdict: str, verdict_msg: str, loser_team: str, 
++                 penalty: int, reason: str, sig: tuple, target_play: Dict):
++        """Transition ADJUDICATION -> RESULT"""
++        self.update({
++            'verdict': verdict,
++            'verdict_message': verdict_msg,
++            'loser_team': loser_team,
++            'penalty_points': penalty,
++            'reason': reason,
++            'crime_signature': sig,
++            'step': QaydStep.RESULT,
++            'target_play': target_play,
++        })
++
++    def resolve(self):
++        """Transition RESULT -> IDLE (RESOLVED)"""
++        self.update({
++            'step': QaydStep.IDLE,
++            'active': False,
++            'status': 'RESOLVED',
++        })
+diff --git a/game_engine/logic/trick_manager.py b/game_engine/logic/trick_manager.py
+index 7459689..3c9181c 100644
+--- a/game_engine/logic/trick_manager.py
++++ b/game_engine/logic/trick_manager.py
+@@ -3,6 +3,7 @@ from game_engine.models.card import Card
+ from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, POINT_VALUES_SUN, POINT_VALUES_HOKUM
+ from game_engine.logic.referee import Referee
+ from game_engine.core.state import SawaState
++from game_engine.logic.trick_resolver import TrickResolver
+ from server.logging_utils import logger, log_event
+ 
+ class TrickManager:
+@@ -12,53 +13,24 @@ class TrickManager:
+         # NOTE: sawa_state is accessed via self.game.state.sawaState property → game.state.sawaState
+         self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
+ 
++    # REFACTOR: Logic moved to TrickResolver
+     def get_card_points(self, card: Card) -> int:
+-        """Return the point value of a card based on current game mode and trump suit."""
+-        if self.game.game_mode == "SUN":
+-             return POINT_VALUES_SUN[card.rank]
+-        else:
+-             if card.suit == self.game.trump_suit:
+-                  return POINT_VALUES_HOKUM[card.rank]
+-             else:
+-                  return POINT_VALUES_SUN[card.rank]
++        """Legacy wrapper for TrickResolver.get_card_points."""
++        return TrickResolver.get_card_points(card, self.game.game_mode, self.game.trump_suit)
+ 
++    # REFACTOR: Logic moved to TrickResolver
+     def get_trick_winner(self) -> int:
+-        """Determine the index (within table_cards) of the trick-winning card."""
+-        lead_card = self.game.table_cards[0]['card']
+-        best_idx = 0
+-        current_best = -1
+-        
+-        for i, play in enumerate(self.game.table_cards):
+-            card = play['card']
+-            strength = -1
+-            
+-            if self.game.game_mode == "SUN":
+-                if card.suit == lead_card.suit:
+-                    strength = ORDER_SUN.index(card.rank)
+-            else:
+-                if card.suit == self.game.trump_suit:
+-                    strength = 100 + ORDER_HOKUM.index(card.rank)
+-                elif card.suit == lead_card.suit:
+-                    strength = ORDER_SUN.index(card.rank)
+-            
+-            if strength > current_best:
+-                current_best = strength
+-                best_idx = i
+-        return best_idx
++        """Legacy wrapper for TrickResolver.get_trick_winner."""
++        return TrickResolver.get_trick_winner(
++            self.game.table_cards, 
++            self.game.game_mode, 
++            self.game.trump_suit
++        )
+ 
++    # REFACTOR: Logic moved to TrickResolver
+     def can_beat_trump(self, winning_card: Card, hand: List[Card]) -> Tuple[bool, List[Card]]:
+-        """Check if the hand contains a trump card that can beat the current winner.
+-
+-        Returns a tuple of (can_beat, list_of_beating_cards).
+-        """
+-        winning_strength = 100 + ORDER_HOKUM.index(winning_card.rank)
+-        beating_cards = []
+-        for c in hand:
+-            if c.suit == self.game.trump_suit:
+-                 s = 100 + ORDER_HOKUM.index(c.rank)
+-                 if s > winning_strength:
+-                      beating_cards.append(c)
+-        return (len(beating_cards) > 0), beating_cards
++        """Legacy wrapper for TrickResolver.can_beat_trump."""
++        return TrickResolver.can_beat_trump(winning_card, hand, self.game.trump_suit)
+ 
+     def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
+         """Validate whether playing this card is legal given the current trick state."""
+@@ -372,6 +344,7 @@ class TrickManager:
+             p.hand = []  # Empty hands
+ 
+         # Create a dummy trick with all cards won by claimer
++        # Use TrickResolver for consistency
+         total_trick_points = sum(self.get_card_points(c) for c in all_cards)
+ 
+         dummy_trick = {
+diff --git a/game_engine/logic/trick_resolver.py b/game_engine/logic/trick_resolver.py
+new file mode 100644
+index 0000000..1d48d39
+--- /dev/null
++++ b/game_engine/logic/trick_resolver.py
+@@ -0,0 +1,75 @@
++"""
++Trick Resolver - Pure Logic for Trick Resolution
++================================================
++
++Handles trick winner determination, card strength comparison, and point calculation.
++"""
++
++from typing import List, Dict, Tuple, Any
++from game_engine.models.card import Card
++from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, POINT_VALUES_SUN, POINT_VALUES_HOKUM
++
++class TrickResolver:
++    """Pure logic class for resolving trick outcomes."""
++
++    @staticmethod
++    def get_card_points(card: Card, game_mode: str, trump_suit: str = None) -> int:
++        """Return the point value of a card based on current game mode and trump suit."""
++        if game_mode == "SUN":
++             return POINT_VALUES_SUN[card.rank]
++        else:
++             if card.suit == trump_suit:
++                  return POINT_VALUES_HOKUM[card.rank]
++             else:
++                  return POINT_VALUES_SUN[card.rank]
++
++    @staticmethod
++    def get_trick_winner(table_cards: List[Dict], game_mode: str, trump_suit: str = None) -> int:
++        """
++        Determine the index (within table_cards) of the trick-winning card.
++        table_cards is expected to be a list of dicts with a 'card' key containing a Card object.
++        """
++        if not table_cards:
++            return -1
++
++        lead_card = table_cards[0]['card']
++        best_idx = 0
++        current_best = -1
++        
++        for i, play in enumerate(table_cards):
++            card = play['card']
++            strength = -1
++            
++            if game_mode == "SUN":
++                if card.suit == lead_card.suit:
++                    strength = ORDER_SUN.index(card.rank)
++            else:
++                if card.suit == trump_suit:
++                    strength = 100 + ORDER_HOKUM.index(card.rank)
++                elif card.suit == lead_card.suit:
++                    strength = ORDER_SUN.index(card.rank)
++            
++            if strength > current_best:
++                current_best = strength
++                best_idx = i
++        return best_idx
++
++    @staticmethod
++    def can_beat_trump(winning_card: Card, hand: List[Card], trump_suit: str) -> Tuple[bool, List[Card]]:
++        """Check if the hand contains a trump card that can beat the current winner.
++
++        Returns a tuple of (can_beat, list_of_beating_cards).
++        """
++        if winning_card.suit != trump_suit:
++            # Any trump beats a non-trump
++            beating_cards = [c for c in hand if c.suit == trump_suit]
++            return (len(beating_cards) > 0), beating_cards
++
++        winning_strength = 100 + ORDER_HOKUM.index(winning_card.rank)
++        beating_cards = []
++        for c in hand:
++            if c.suit == trump_suit:
++                 s = 100 + ORDER_HOKUM.index(c.rank)
++                 if s > winning_strength:
++                      beating_cards.append(c)
++        return (len(beating_cards) > 0), beating_cards
