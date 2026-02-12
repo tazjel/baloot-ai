@@ -190,51 +190,13 @@ python -m pytest tests/features/test_bot_strategy.py -v
 
 ---
 
-## Mission 5: "The Cleaner" — Code Hygiene Sprint
-> Quick wins, big quality improvement (~45 min)
+## Mission 5: "The Cleaner" — Code Hygiene Sprint ✅ COMPLETE
+> Completed 2026-02-12
 
 ### Tasks
 
-- [ ] **Remove Debug Logs**
-  - [ ] Delete `console.log('[ProjectReveal]', ...)` in `ProjectReveal.tsx` (~line 209)
-  - [ ] Search for any other temporary `console.log` debug lines across frontend
-
-- [ ] **Schema Audit** — prevent the trickCount bug class entirely
-  - [ ] Compare every field in `game.py:to_json()` output against `GameStateModel` fields
-  - [ ] Add any missing fields to the Pydantic schema
-  - [ ] Add a unit test: `test_schema_covers_all_to_json_fields()`
-
-- [ ] **TypeScript Strictness**
-  - [ ] Run `npx tsc --noEmit` and fix all errors
-  - [ ] Search for `as any` casts and replace with proper types
-  - [ ] Add missing type annotations to hook return values
-
-- [ ] **Dead Code Cleanup**
-  - [ ] Remove unused imports across all components
-  - [ ] Remove any leftover code from removed features (AI Studio, Replay, Academy, Visionary)
-  - [ ] Check for unused CSS classes in `index.css`
-
-- [ ] **Documentation Refresh**
-  - [ ] Update `CODEBASE_MAP.md` with new files: `ProjectReveal.tsx`, `GameToast.tsx`, `TableHUD.tsx`, `dispute/` folder, `table/` folder
-  - [ ] Add JSDoc comments to hooks: `useGameSocket`, `useGameToast`, `useCardAnimation`
-  - [ ] Update `next-session-brief.md` after completing missions
-
-### Key Commands
-```bash
-# TypeScript check
-npx tsc --noEmit 2>&1 | Select-Object -First 30
-
-# Find console.log debug lines
-grep -r "console.log" frontend/src/ --include="*.tsx" --include="*.ts" | grep -v "devLogger"
-
-# Find 'as any' casts
-grep -rn "as any" frontend/src/ --include="*.tsx" --include="*.ts"
-
-# Find unused imports (via tsc)
-npx tsc --noEmit 2>&1 | Select-String "declared but"
-```
-
-### Verification
-- `npx tsc --noEmit` → 0 errors
-- `python -m pytest tests/ -v --tb=short` → 75 passed
-- No `console.log('[ProjectReveal]')` in source
+- [x] **Remove Debug Logs** — No debug console.logs found (already cleaned)
+- [x] **Schema Audit** — `test_schema_completeness.py` exists and passes
+- [x] **TypeScript Strictness** — `tsc --noEmit` → 0 errors, no `as any` casts
+- [x] **Dead Code Cleanup** — Zero references to removed features (AI Studio, Replay, Academy, Visionary)
+- [x] **Documentation Refresh** — `CODEBASE_MAP.md` updated with decomposed files + expanded hooks/utils

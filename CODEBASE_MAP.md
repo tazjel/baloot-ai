@@ -17,15 +17,20 @@
 **Purpose**: Core game logic independent of the web server.
 - `logic/`
     - `game.py`: Main `Game` state machine (facade controller).
+    - `game_serializer.py`: JSON serialization/deserialization for Game state.
     - `bidding_engine.py`: Handles the auction phase (Sun, Hokum, Gablak, etc.).
+    - `contract_handler.py`: Contract resolution and bid-result logic.
+    - `doubling_handler.py`: Doubling/redoubling mechanics.
     - `trick_manager.py`: Handles trick resolution, validation, and Sawa logic.
     - `project_manager.py`: Handles declarations (Sira, Baloot, Akka, Sawa).
     - `scoring_engine.py`: Calculates scores at end of round.
     - `qayd_engine.py`: Qayd (Forensic Challenge) state machine.
+    - `rules_validator.py`: Pure validation functions for move legality and violations.
     - `state_bridge.py`: Property aliases bridging `GameState` ↔ `Game` attributes.
     - `referee.py`: Rule enforcement and card comparison utilities.
     - `validation.py`: Move legality checker (is_move_legal).
     - `autopilot.py`: Auto-play logic (timeouts, bot fallback).
+    - `timer_manager.py`: Turn timer and timeout management.
     - `phases/`: Phase-specific logic delegates.
         - `bidding_phase.py`: Bidding phase orchestration.
         - `playing_phase.py`: Playing phase orchestration.
@@ -63,7 +68,8 @@
     - `table/`: Sub-components (GameArena, TableHUD, PlayerAvatar, ScoreBadge, ContractIndicator, ProjectReveal, TurnTimer).
     - `dispute/`: Qayd sub-components (QaydMainMenu, QaydCardSelector, QaydFooter, QaydVerdictPanel).
 - `services/`: API/Socket services, AccountingEngine, SoundManager, botService.
-- `hooks/`: Custom hooks (useGameSocket, useRoundManager, useGameRules, useBotSpeech, useGameToast, useGameTension).
+- `hooks/`: Custom hooks (useGameSocket, useGameState, useRoundManager, useGameRules, useBiddingLogic, usePlayingLogic, useActionDispatcher, useBotSpeech, useGameAudio, useGameToast, useGameTension, useLocalBot, useVoice).
+- `utils/`: Helpers (gameLogic, scoringUtils, deckUtils, trickUtils, projectUtils, akkaUtils, animationUtils, sortUtils, devLogger).
 - `types.ts`: Shared TypeScript interfaces (GameState, Player, Card, etc.).
 
 ### `scripts/`
