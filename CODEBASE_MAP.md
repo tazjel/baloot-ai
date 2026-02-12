@@ -16,30 +16,55 @@
 ### `game_engine/`
 **Purpose**: Core game logic independent of the web server.
 - `logic/`
-    - `game.py`: Main `Game` state machine.
+    - `game.py`: Main `Game` state machine (facade controller).
     - `bidding_engine.py`: Handles the auction phase (Sun, Hokum, Gablak, etc.).
-    - `trick_manager.py`: Handles trick resolution and validation.
-    - `project_manager.py`: Handles declarations (Sira, Baloot, etc.).
+    - `trick_manager.py`: Handles trick resolution, validation, and Sawa logic.
+    - `project_manager.py`: Handles declarations (Sira, Baloot, Akka, Sawa).
     - `scoring_engine.py`: Calculates scores at end of round.
+    - `qayd_engine.py`: Qayd (Forensic Challenge) state machine.
+    - `state_bridge.py`: Property aliases bridging `GameState` ↔ `Game` attributes.
+    - `referee.py`: Rule enforcement and card comparison utilities.
+    - `validation.py`: Move legality checker (is_move_legal).
+    - `autopilot.py`: Auto-play logic (timeouts, bot fallback).
+    - `phases/`: Phase-specific logic delegates.
+        - `bidding_phase.py`: Bidding phase orchestration.
+        - `playing_phase.py`: Playing phase orchestration.
+        - `challenge_phase.py`: Qayd challenge phase handler.
+    - `rules/`: Pure-function rule modules (sawa.py, akka.py, projects.py).
 - `models/`: Data classes (Card, Deck, Constants).
-- `core/`: Core utilities and helpers.
-- `visionary/`: Visionary Studio (YOLO card recognition).
+- `core/`: State models (GameState, AkkaState, SawaState, Graveyard).
 
 ### `server/`
 **Purpose**: Web server infrastructure (Socket.IO, Flask/PyDAL).
 - `socket_handler.py`: Entry point for WebSocket events.
 - `bot_orchestrator.py`: Manages bot turn orchestration and timing.
 - `room_manager.py`: Manages active game sessions.
-- `controllers.py`: HTTP API controllers.
-- `models.py`: Database models (User, GameResult).
+- `sherlock_scanner.py`: Background scanner for detecting illegal moves.
+- `game_logger.py`: Structured game logging with ANSI colors.
+- `handlers/`: Socket event handlers.
+    - `game_lifecycle.py`: Game start, restart, end-round events.
+    - `game_actions.py`: Bid, play, declare project events.
+    - `room_lifecycle.py`: Room creation, join, leave events.
+    - `timer.py`: Turn timer management.
+- `routes/`: HTTP API routes (auth, qayd, brain, puzzles).
 - `settings.py`: Configuration (Redis URL, etc.).
 - `services/`: Service integrations (Gemini).
 
 ### `frontend/`
 **Purpose**: React/Vite Frontend.
-- `components/`: UI Components (Card, Table, Hand).
-- `services/`: API and Socket services.
-- `hooks/`: Custom React hooks (useGame, useSound).
+- `components/`: UI Components.
+    - `Table.tsx`: Main game table container.
+    - `ActionBar.tsx`: Player action panel (bid, play, declare).
+    - `Card.tsx` / `CardVector.tsx`: Card rendering.
+    - `HandFan.tsx`: Hand display with fan layout.
+    - `DisputeModal.tsx`: Qayd dispute interface.
+    - `GameToast.tsx`: Toast notification system.
+    - `MatchReviewModal.tsx`: Post-match review screen.
+    - `table/`: Sub-components (GameArena, TableHUD, PlayerAvatar, ScoreBadge, ContractIndicator, ProjectReveal, TurnTimer).
+    - `dispute/`: Qayd sub-components (QaydMainMenu, QaydCardSelector, QaydFooter, QaydVerdictPanel).
+- `services/`: API/Socket services, AccountingEngine, SoundManager, botService.
+- `hooks/`: Custom hooks (useGameSocket, useRoundManager, useGameRules, useBotSpeech, useGameToast, useGameTension).
+- `types.ts`: Shared TypeScript interfaces (GameState, Player, Card, etc.).
 
 ### `scripts/`
 **Purpose**: Organized into functional sub-folders.

@@ -86,7 +86,7 @@ const createPlayer = (index: number, position: PlayerPosition, name: string): Pl
 });
 
 // Helper to create a basic game state
-const createGameState = (): any => ({
+const createGameState = (): GameState => ({
     gameMode: 'SUN',
     phase: GamePhase.Playing,
     players: [
@@ -118,7 +118,7 @@ const createGameState = (): any => ({
         soundEnabled: true,
         gameSpeed: 'NORMAL'
     }
-});
+} as GameState);
 
 
 describe('Table Component', () => {
@@ -136,8 +136,7 @@ describe('Table Component', () => {
     });
 
     it('renders loading state when players are missing', () => {
-        // @ts-ignore
-        render(<Table gameState={{ players: [] } as any} onPlayerAction={mockOnPlayerAction} />);
+        render(<Table gameState={{ players: [] } as unknown as GameState} onPlayerAction={mockOnPlayerAction} />);
         expect(screen.getByText(/Loading Game Table/i)).toBeInTheDocument();
     });
 

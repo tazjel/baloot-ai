@@ -1,11 +1,7 @@
 import unittest
-import sys
-import os
-
-# Add parent directory to path to import game_logic
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from game_logic import Game, Player, Card
+from game_engine.logic.game import Game
+from game_engine.models.player import Player
+from game_engine.models.card import Card
 
 class TestSunKaboot(unittest.TestCase):
     def setUp(self):
@@ -20,39 +16,29 @@ class TestSunKaboot(unittest.TestCase):
 
     def test_sun_kaboot_us_wins(self):
         """Test that if US team takes ALL tricks in SUN, they get 44 points."""
-        
-        # Simulate 8 tricks all won by Player 1 (Bottom, US)
-        # We don't need real cards, just the structure that end_round expects in round_history
-        # round_history items: {'winner': position, 'points': int}
-        
         self.game.round_history = []
         
-        # 8 Tricks
+        # 8 Tricks all won by Bottom (US)
         for _ in range(8):
             self.game.round_history.append({
-                'winner': 'Bottom', # US Team
-                'points': 15, # Arbitrary points, sun total is 260 usually but Kaboot ignores raw points
+                'winner': 'Bottom',
+                'points': 15,
                 'cards': [],
                 'playedBy': []
             })
             
-        # Call end_round
         self.game.end_round()
         
-        # Check match scores
-        # US should have 44
-        # THEM should have 0
         print(f"Match Scores: {self.game.match_scores}")
         self.assertEqual(self.game.match_scores['us'], 44, "US Team should have 44 points for Sun Kaboot")
         self.assertEqual(self.game.match_scores['them'], 0, "THEM Team should have 0 points")
 
     def test_sun_kaboot_them_wins(self):
         """Test that if THEM team takes ALL tricks in SUN, they get 44 points."""
-        
         self.game.round_history = []
         for _ in range(8):
             self.game.round_history.append({
-                'winner': 'Right', # THEM Team
+                'winner': 'Right',
                 'points': 10,
                 'cards': [],
                 'playedBy': []
@@ -66,11 +52,11 @@ class TestSunKaboot(unittest.TestCase):
 
     def test_sun_kaboot_with_projects(self):
         """Test Sun Kaboot + Projects."""
-        # US Wins Kaboot (44) + Has 20 (100) project
+        # US Wins Kaboot (44) + Has a HUNDRED project (100 abnat)
         
-        # Mock a project for Bottom
+        # Mock a project for Bottom (100 abnat for a HUNDRED project)
         self.game.declarations = {
-            'Bottom': [{'valid': True, 'score': 20, 'type': 'HUNDRED', 'rank': 'A', 'suit': 'S'}]
+            'Bottom': [{'valid': True, 'score': 100, 'type': 'HUNDRED', 'rank': 'A', 'suit': 'S'}]
         }
         
         self.game.round_history = []
@@ -84,6 +70,9 @@ class TestSunKaboot(unittest.TestCase):
             
         self.game.end_round()
         
+        # Kaboot = 44 GP.
+        # HUNDRED project: 100 abnat. In SUN: (100 * 2) // 10 = 20 GP.
+        # Total: 44 + 20 = 64.
         expected_score = 44 + 20
         print(f"Match Scores with Project: {self.game.match_scores}")
         self.assertEqual(self.game.match_scores['us'], expected_score, f"US Team should have {expected_score} (44 + 20)")

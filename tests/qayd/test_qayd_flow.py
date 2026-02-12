@@ -138,24 +138,31 @@ def test_qayd_penalty_applied():
     assert qs['penalty_points'] > 0, f"Penalty should be > 0, got {qs['penalty_points']}"
 
 
-def test_lock_decorator_prevents_timeout():
-    """@requires_unlocked blocks check_timeout and auto_play_card."""
+def test_lock_decorator_prevents_play():
+    """@requires_unlocked blocks play_card and auto_play_card when locked.
+    
+    NOTE: check_timeout intentionally does NOT have @requires_unlocked
+    (removed to prevent deadlocks). It handles Qayd internally via
+    qayd_engine.check_timeout().
+    """
     game = create_test_game_with_illegal_setup()
 
     # Manually lock
     game.is_locked = True
 
-    result = game.check_timeout()
-    assert isinstance(result, dict) and result.get('error') == 'Game is locked'
-
+    # auto_play_card should be blocked
     result = game.auto_play_card(1)
     assert isinstance(result, dict) and result.get('error') == 'Game is locked'
 
+    # play_card should be blocked
+    result = game.play_card(0, 0)
+    assert isinstance(result, dict) and 'locked' in result.get('error', '').lower()
+
     # Unlock — should not return the locked error anymore
     game.is_locked = False
-    result = game.check_timeout()
+    result = game.play_card(0, 0)
     if isinstance(result, dict):
-        assert result.get('error') != 'Game is locked'
+        assert 'locked' not in result.get('error', '').lower()
 
 
 if __name__ == "__main__":

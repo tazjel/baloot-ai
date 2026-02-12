@@ -209,11 +209,7 @@ class Game(StateBridgeMixin):
     def handle_sawa_qayd(self, pi):
         return self.trick_manager.handle_sawa_qayd(pi)
 
-    def _resolve_sawa_win(self):              return self.trick_manager._resolve_sawa_win()
     def is_valid_move(self, card, hand):       return self.trick_manager.is_valid_move(card, hand)
-    def can_beat_trump(self, wc, hand):        return self.trick_manager.can_beat_trump(wc, hand)
-    def get_card_points(self, card):           return self.trick_manager.get_card_points(card)
-    def get_trick_winner(self):                return self.trick_manager.get_trick_winner()
 
     def resolve_trick(self):
         result = self.trick_manager.resolve_trick()
@@ -240,7 +236,6 @@ class Game(StateBridgeMixin):
             r['trigger_next_round'] = True
         return r
 
-    def initiate_challenge(self, pi):   return self.qayd_engine.trigger(pi)
     def process_accusation(self, pi, d): return self.qayd_engine.handle_bot_accusation(pi, d)
 
     # ═══════════════════════════════════════════════════════════════════
@@ -442,174 +437,16 @@ class Game(StateBridgeMixin):
         self.handle_qayd_cancel()
         return {'success': True, 'action': 'ZOMBIE_REPAIR'}
 
-    # === JSON SERIALIZATION (replaces pickle) ===
+    # === JSON SERIALIZATION ===
 
     def to_json(self) -> dict:
         """Serialize the full game to a JSON-safe dict."""
-        player_dicts = []
-        for p in self.players:
-            player_dicts.append({
-                'id': p.id, 'name': p.name,
-                'index': p.index, 'avatar': getattr(p, 'avatar', None),
-                'is_bot': p.is_bot,
-                'position': p.position,
-                'team': p.team,
-                'hand': [c.to_dict() for c in p.hand] if p.hand else [],
-                'captured_cards': [c.to_dict() if hasattr(c, 'to_dict') else c for c in getattr(p, 'captured_cards', [])],
-                'action_text': getattr(p, 'action_text', ''),
-            })
-
-        tc_dicts = []
-        for tc in self.table_cards:
-            card = tc.get('card') or tc
-            if hasattr(card, 'suit'):
-                card = {'suit': card.suit, 'rank': card.rank}
-            tc_dicts.append({
-                'card': card,
-                'playedBy': tc.get('playedBy'),
-                'playerId': tc.get('playerId'),
-                'metadata': tc.get('metadata'),
-            })
-
-        return {
-            '_version': 2,
-            'state': self.state.model_dump(mode='json'),
-            'players': player_dicts,
-            'table_cards': tc_dicts,
-            'timer_paused': self.timer_paused,
-            'turn_duration': self.turn_duration,
-            'timer_state': {
-                'active': self.timer.active,
-                'start_time': self.timer.start_time,
-                'duration': self.timer.duration,
-                'paused': getattr(self.timer, 'paused', False),
-                'paused_at': getattr(self.timer, 'paused_at', 0),
-            },
-            'bidding_engine': self.bidding_engine.to_dict() if self.bidding_engine else None,
-            'floor_card': self._floor_card_obj.to_dict() if self._floor_card_obj else None,
-            'qayd_state': self.qayd_engine.state if self.qayd_engine else None,
-        }
+        from .game_serializer import serialize_game
+        return serialize_game(self)
 
     @classmethod
     def from_json(cls, data: dict) -> 'Game':
         """Reconstruct a full Game object from a JSON dict."""
-        state_data = data['state']
+        from .game_serializer import deserialize_game
+        return deserialize_game(data)
 
-        game = cls.__new__(cls)
-        game.state = GameState(**state_data)
-        game._floor_card_obj = None
-        game.deck = Deck()
-
-        game.table_cards = []
-        for tc in data.get('table_cards', []):
-            card_d = tc.get('card', tc)
-            from game_engine.models.card import Card as CardModel
-            game.table_cards.append({
-                'card': CardModel(card_d['suit'], card_d['rank']),
-                'playedBy': tc.get('playedBy'),
-                'playerId': tc.get('playerId'),
-                'metadata': tc.get('metadata'),
-            })
-
-        game.timer = TimerManager(5)
-        # Restore timer state from serialization so auto-play survives Redis round-trips
-        timer_state = data.get('timer_state')
-        if timer_state:
-            game.timer.active = timer_state.get('active', False)
-            game.timer.start_time = timer_state.get('start_time', 0)
-            game.timer.duration = timer_state.get('duration', 5)
-            game.timer.paused = timer_state.get('paused', False)
-            game.timer.paused_at = timer_state.get('paused_at', 0)
-        game.timer_paused = data.get('timer_paused', False)
-        game.turn_duration = data.get('turn_duration', 30)
-        game.bidding_engine = None  # Reconstructed below after players are loaded
-
-        game.players = []
-        from game_engine.models.card import Card as CardModel
-        for pd in data.get('players', []):
-            p = Player(pd['id'], pd['name'], pd['index'], game, avatar=pd.get('avatar'))
-            p.is_bot = pd.get('is_bot', False)
-            # Restore hand
-            for cd in pd.get('hand', []):
-                p.hand.append(CardModel(cd['suit'], cd['rank']))
-            # Restore captured cards
-            for cd in pd.get('captured_cards', []):
-                if isinstance(cd, dict) and 'suit' in cd:
-                    p.captured_cards.append(CardModel(cd['suit'], cd['rank']))
-            p.action_text = pd.get('action_text', '')
-            game.players.append(p)
-
-        # Restore floor card
-        fc_data = data.get('floor_card')
-        if fc_data:
-            game._floor_card_obj = CardModel(fc_data['suit'], fc_data['rank'])
-        else:
-            game._floor_card_obj = None
-
-        # Remove all dealt/known cards from the deck to prevent duplicates
-        dealt_ids = set()
-        for p in game.players:
-            for c in p.hand:
-                dealt_ids.add(c.id)
-            for c in p.captured_cards:
-                dealt_ids.add(c.id)
-        for tc in game.table_cards:
-            card = tc.get('card')
-            if card and hasattr(card, 'id'):
-                dealt_ids.add(card.id)
-        if game._floor_card_obj:
-            dealt_ids.add(game._floor_card_obj.id)
-        game.deck.cards = [c for c in game.deck.cards if c.id not in dealt_ids]
-
-        game.graveyard = Graveyard()
-        # Rebuild graveyard from round_history + table_cards so O(1) lookups work
-        for trick in game.round_history:
-            game.graveyard.commit_trick(trick.get('cards', []))
-        game.trick_manager = TrickManager(game)
-        game.scoring_engine = ScoringEngine(game)
-        game.project_manager = ProjectManager(game)
-        game.challenge_phase = ChallengePhase(game)
-        game.qayd_engine = QaydEngine(game)
-        # Restore qayd state from serialized data
-        saved_qayd = data.get('qayd_state')
-        if saved_qayd and saved_qayd.get('active'):
-            game.qayd_engine.state.update(saved_qayd)
-        game.qayd_state = game.qayd_engine.state
-
-        game.phases = {
-            GamePhase.BIDDING.value:   BiddingLogic(game),
-            GamePhase.PLAYING.value:   PlayingLogic(game),
-            GamePhase.CHALLENGE.value: game.challenge_phase,
-        }
-
-        # Reconstruct BiddingEngine if we were in BIDDING phase
-        be_data = data.get('bidding_engine')
-        if be_data and game.players:
-            from .bidding_engine import BiddingEngine
-            game.bidding_engine = BiddingEngine.from_dict(be_data, game.players)
-
-        try:
-            from server.common import redis_client
-            from game_engine.core.recorder import TimelineRecorder
-            game.recorder = TimelineRecorder(redis_client)
-        except Exception:
-            game.recorder = None
-
-        return game
-
-    # --- Legacy pickle hooks (kept during transition) ---
-
-    def __getstate__(self):
-        s = self.__dict__.copy()
-        for k in ('_sherlock_lock', 'timer_manager', 'recorder'): s.pop(k, None)
-        return s
-
-    def __setstate__(self, s):
-        self.__dict__.update(s)
-        self._sherlock_lock = False
-        try:
-            from server.common import redis_client
-            from game_engine.core.recorder import TimelineRecorder
-            self.recorder = TimelineRecorder(redis_client)
-        except Exception: self.recorder = None
-        if not hasattr(self, 'graveyard'): self.graveyard = Graveyard()

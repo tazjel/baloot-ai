@@ -53,14 +53,14 @@ class TestQaydStabilization(unittest.TestCase):
     def test_zombie_state_prevention(self):
         """Test logic that prevents zombie states (Active Qayd but no Phase change)"""
         # Force a broken state: Active Qayd but Phase is PLAYING
-        self.game.trick_manager.qayd_state['active'] = True
+        self.game.qayd_engine.state['active'] = True
         self.game.phase = GamePhase.PLAYING.value
         
         # The 'handle_qayd_cancel' should fix this mismatch
         print("\n[TEST] Forcing Zombie State (Active Qayd + PLAYING Phase)...")
         res = self.game.handle_qayd_cancel()
         
-        self.assertFalse(self.game.trick_manager.qayd_state['active'], "Qayd should be deactivated")
+        self.assertFalse(self.game.qayd_engine.state['active'], "Qayd should be deactivated")
         self.assertFalse(self.game.is_locked, "Game should be unlocked")
 
 if __name__ == '__main__':

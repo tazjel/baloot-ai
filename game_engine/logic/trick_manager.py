@@ -13,6 +13,7 @@ class TrickManager:
         self.ignored_crimes = set() # Track cancelled accusations (trick_idx, card_idx)
 
     def get_card_points(self, card: Card) -> int:
+        """Return the point value of a card based on current game mode and trump suit."""
         if self.game.game_mode == "SUN":
              return POINT_VALUES_SUN[card.rank]
         else:
@@ -22,6 +23,7 @@ class TrickManager:
                   return POINT_VALUES_SUN[card.rank]
 
     def get_trick_winner(self) -> int:
+        """Determine the index (within table_cards) of the trick-winning card."""
         lead_card = self.game.table_cards[0]['card']
         best_idx = 0
         current_best = -1
@@ -45,6 +47,10 @@ class TrickManager:
         return best_idx
 
     def can_beat_trump(self, winning_card: Card, hand: List[Card]) -> Tuple[bool, List[Card]]:
+        """Check if the hand contains a trump card that can beat the current winner.
+
+        Returns a tuple of (can_beat, list_of_beating_cards).
+        """
         winning_strength = 100 + ORDER_HOKUM.index(winning_card.rank)
         beating_cards = []
         for c in hand:
@@ -55,6 +61,7 @@ class TrickManager:
         return (len(beating_cards) > 0), beating_cards
 
     def is_valid_move(self, card: Card, hand: List[Card]) -> bool:
+        """Validate whether playing this card is legal given the current trick state."""
         try:
              from game_engine.logic.validation import is_move_legal
              
@@ -87,6 +94,11 @@ class TrickManager:
             return True # Fallback
 
     def resolve_trick(self):
+        """Resolve the current trick: determine winner, tally points, advance game state.
+
+        Handles project resolution after trick 1 and Sawa challenge checks.
+        Ends the round if any player's hand is empty.
+        """
         winner_idx = self.get_trick_winner()
         winner_play = self.game.table_cards[winner_idx]
         winner_pos = winner_play['playedBy']
@@ -376,6 +388,7 @@ class TrickManager:
         self.game.end_round()
 
     def reset_state(self):
+        """Reset Sawa state and ignored crimes for a new round."""
         self.game.state.sawaState = SawaState()
 
         # NOTE: qayd_state is managed exclusively by QaydEngine.

@@ -20,6 +20,11 @@ class ProjectManager:
         return out
 
     def handle_declare_project(self, player_index, type):
+         """Register a project declaration for a player during trick 1.
+
+         Validates the project type against the player's hand, deduplicates,
+         and stores the declaration for resolution at end of trick 1.
+         """
          try:
              player = self.game.players[player_index]
              # Validation: Must be first trick
@@ -175,7 +180,8 @@ class ProjectManager:
              self.game.is_project_revealing = True 
 
     def init_akka(self):
-         self.game.state.akkaState = AkkaState()
+        """Reset Akka state for a new round."""
+        self.game.state.akkaState = AkkaState()
 
     # ═══════════════════════════════════════════════════════════════════════
     #  AKKA LOGIC — "Boss Card" Declaration
