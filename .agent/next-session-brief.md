@@ -1,6 +1,6 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-13 13:20 | **Scan Results Below**
+> **Generated**: 2026-02-13 14:11 | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
@@ -8,8 +8,11 @@
 |--------|-------|
 | Backend source files | 125 (game_engine: 45, ai_worker: 40, server: 40) |
 | Frontend files | 95 (.tsx: 49, .ts: 46) |
-| Test files | 76 (ratio: **0.61** tests per source file) |
+| Test files | 76 (ratio: **0.61** ⚠️ — target 0.70) |
 | Tests collected | **493** ✅ |
+| Last Pass Rate | **100%** (493/493) ✅ |
+| Last Code Coverage | **54.2%** ⚠️ |
+| Last Test Run | 2026-02-13 14:09 |
 | TypeScript errors | **0** ✅ |
 | `as any` casts | **0** ✅ |
 | Debug console.logs | **0** ✅ |
@@ -29,14 +32,16 @@
 ### Frontend Hotspots (>10 KB)
 | File | Size |
 |------|------|
-| `services/AccountingEngine.ts` | 15.9 KB 🆕 |
+| `services/AccountingEngine.test.ts` | 18.2 KB |
+| `services/AccountingEngine.ts` | 15.9 KB |
 | `MatchReviewModal.tsx` | 15.4 KB |
 | `ActionBar.tsx` | 15.3 KB |
+| `hooks/useRoundManager.test.ts` | 14.3 KB |
 | `Table.tsx` | 14.3 KB |
 | `DisputeModal.tsx` | 13.9 KB |
 | `table/GameArena.tsx` | 13.0 KB |
-| `App.tsx` | 11.7 KB |
 | `SettingsModal.tsx` | 11.8 KB |
+| `App.tsx` | 11.7 KB |
 | `services/botService.ts` | 11.3 KB |
 | `hooks/useRoundManager.ts` | 11.1 KB |
 | `hooks/useGameSocket.ts` | 10.6 KB |
@@ -55,40 +60,65 @@
 > Completed 2026-02-12. Removed 52 obsolete tests. Full suite passes.
 
 ### Mission 7 Phase 1: Test Coverage Sprint ✅
-> Completed 2026-02-13. Added 184 new tests (10 files). Suite: 492 passing. Ratio: 0.61.
+> Completed 2026-02-13. Added 184 new tests (10 files). Suite: 493 passing. Ratio: 0.61.
 > ⚠️ Found latent bug in `project_manager.py` get_proj_sig (crashes on multi-project hands).
 
 ### Mission 6: "The Surgeon" — Backend God-File Decomposition ✅
 > Completed 2026-02-13 via Jules PR. Extracted: `qayd_state_machine.py`, `qayd_penalties.py`, `game_lifecycle.py`, `player_manager.py`, `trick_resolver.py`. Core files all reduced in size.
 
+### Mission 12: "The Dashboard" — Test Manager Intelligence Center ✅ 🆕
+> Completed 2026-02-13. Built full Test Manager tab in Command Center: coverage heatmap (pytest-cov), slow test detector, parallel execution (pytest-xdist), flaky tracker, run history with coverage trends. Fixed brain_view.py infinite rerun loop.
+
 ---
 
 ## 🎯 Active Missions
 
-## Mission 7: "The Shield" — Test Coverage Expansion
-> Close critical gaps in test coverage — ratio is 0.61, target 0.70 (~2 hours)
+## Mission 11: "The Guardian" — Fix Latent Bugs
+> Address known bugs discovered during testing (~1 hour)
 
-### Completed (2026-02-13)
-- [x] `test_scoring_engine.py` — 18 tests
-- [x] `test_validation.py` — 14 tests
-- [x] `test_contract_handler.py` — 26 tests
-- [x] `test_sawa_manager.py` — 20 tests
-- [x] `test_bidding_integration.py` — 18 tests
-- [x] `test_doubling_handler.py` — 25 tests
-- [x] `test_akka_manager.py` — 17 tests
-- [x] `test_project_manager.py` — 16 tests
-- [x] `test_game_lifecycle_unit.py` — 22 tests
-- [x] `test_trick_resolver_unit.py` — 22 tests
+### Tasks
 
-### Remaining Tasks
-- [ ] **Trick Manager Edge Cases** — Trump overtrump, void suit + forced play
-- [ ] **Qayd Engine Coverage** — State transitions, penalty edge cases
-- [ ] **Integration** — expand `verify_game_flow.py` for Sawa + multi-round
+- [ ] **Fix `project_manager.py` get_proj_sig** — crashes on multi-project hands (found during Mission 7)
+- [ ] **Audit Qayd Engine edge cases** — `qayd_engine.py` (21 KB) still has complex state machine; verify penalty calculations at round boundaries
+- [ ] **Server handler error paths** — `game_logger.py`, `sherlock_scanner.py` — verify graceful handling of malformed data
+
+### Key Files
+| File | Change |
+|------|--------|
+| `game_engine/logic/project_manager.py` | Fix get_proj_sig crash |
+| `game_engine/logic/qayd_engine.py` | Audit penalty edge cases |
+| `server/game_logger.py` | Error path hardening |
 
 ### Verification
 ```powershell
+python -m pytest tests/game_logic/test_project_manager.py -v
 python -m pytest tests/ -v --tb=short
-python -m pytest tests/ --co -q  # verify test count increased
+```
+
+---
+
+## Mission 7 Phase 2: "The Shield" — Test Coverage to 70%
+> Close the gap from 0.61 to 0.70 test ratio + boost code coverage from 54% → 70% (~2 hours)
+
+### Tasks
+
+- [ ] **Trick Manager Edge Cases** — Trump overtrump, void suit + forced play
+- [ ] **Qayd Engine Coverage** — State transitions, penalty edge cases
+- [ ] **Integration** — expand `verify_game_flow.py` for Sawa + multi-round
+- [ ] **Server Tests** — Add tests for `bot_orchestrator.py`, `room_manager.py`, `socket_handler.py`
+- [ ] **AI Worker Tests** — Add tests for `strategies/playing.py`, `sherlock.py`
+
+### Key Files
+| File | Change |
+|------|--------|
+| `tests/game_logic/test_trick_manager_unit.py` | New: trick edge cases |
+| `tests/qayd/test_qayd_engine_unit.py` | New: state machine paths |
+| `tests/server/test_orchestrator.py` | New: bot lifecycle |
+
+### Verification
+```powershell
+python -m pytest tests/ --co -q  # verify count ≥88 files
+python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-report=term-missing
 ```
 
 ---
@@ -143,7 +173,7 @@ python -m pytest tests/ -v --tb=short
   - [ ] Fix card sizing, avatar positions, HUD overflow
 
 ### Frontend Decomposition Targets
-- [ ] **Split `AccountingEngine.ts` (16 KB)** — extract transaction logic vs. balance management 🆕
+- [ ] **Split `AccountingEngine.ts` (16 KB)** — extract transaction logic vs. balance management
 - [ ] **Split `MatchReviewModal.tsx` (15 KB)** — extract round detail & stat panels
 - [ ] **Split `ActionBar.tsx` (15 KB)** — separate bidding and playing modes
 - [ ] **Split `DisputeModal.tsx` (14 KB)** — already has dispute/ subfolder, move remaining logic
@@ -183,36 +213,12 @@ python -m pytest tests/bot/ -v
 
 ---
 
-## Mission 11: "The Guardian" — Fix Latent Bugs 🆕
-> Address known bugs discovered during testing (~1 hour)
-
-### Tasks
-
-- [ ] **Fix `project_manager.py` get_proj_sig** — crashes on multi-project hands (found during Mission 7)
-- [ ] **Audit Qayd Engine edge cases** — `qayd_engine.py` (21 KB) still has complex state machine; verify penalty calculations at round boundaries
-- [ ] **Server handler error paths** — `game_logger.py` (13 KB), `sherlock_scanner.py` (10 KB) — verify graceful handling of malformed data
-
-### Key Files
-| File | Change |
-|------|--------|
-| `game_engine/logic/project_manager.py` | Fix get_proj_sig crash |
-| `game_engine/logic/qayd_engine.py` | Audit penalty edge cases |
-| `server/game_logger.py` | Error path hardening |
-
-### Verification
-```powershell
-python -m pytest tests/game_logic/test_project_manager.py -v
-python -m pytest tests/ -v --tb=short
-```
-
----
-
 ## 📊 Priority Matrix
 
 | Mission | Impact | Effort | Risk | Order |
 |---------|--------|--------|------|-------|
 | **11. The Guardian** | 🔴 High | 🟢 Low | 🟢 Low | ① Bug Fixes |
-| **7. The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Safety |
+| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Coverage to 70% |
 | **10. The Scalpel** | 🔴 High | 🟢 Low | 🟡 Medium | ③ Hygiene |
 | **8. The Polish** | 🔴 High | 🔴 High | 🟡 Medium | ④ UX |
 | **9. The Strategist** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑤ AI |
