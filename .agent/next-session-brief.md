@@ -8,7 +8,8 @@
 |--------|-------|
 | Backend source files | 125 (game_engine: 45, ai_worker: 40, server: 40) |
 | Frontend files | 95 (.tsx + .ts) |
-| Test files | 66 (ratio: **0.53** tests per source file) ⚠️ |
+| Test files | 76 (ratio: **0.61** tests per source file) ⬆️ |
+| Tests passing | **492** ✅ |
 | TypeScript errors | **0** ✅ |
 | `as any` casts | **0** ✅ |
 | Debug console.logs | **0** ✅ |
@@ -50,7 +51,11 @@
 > Completed 2026-02-12. All checks pass: 0 TS errors, 0 `as any`, 0 dead code, CODEBASE_MAP updated.
 
 ### Mission 3: "The Fixer" — Obsolete Test Cleanup ✅
-> Completed 2026-02-12. Removed 52 obsolete tests referencing removed APIs. Full test suite now passes.
+> Completed 2026-02-12. Removed 52 obsolete tests. Full suite passes.
+
+### Mission 7 Phase 1: Test Coverage Sprint ✅
+> Completed 2026-02-13. Added 184 new tests (10 files). Suite: 492 passing. Ratio: 0.61.
+> ⚠️ Found latent bug in `project_manager.py` get_proj_sig (crashes on multi-project hands).
 
 ### Mission 6: "The Surgeon" — Backend God-File Decomposition ✅
 > Completed 2026-02-13 via Jules PR. Extraction files created: `qayd_state_machine.py` (4.8 KB), `qayd_penalties.py` (1.1 KB), `game_lifecycle.py` (5.6 KB), `player_manager.py` (1.8 KB), `trick_resolver.py` (2.9 KB). Core files (`qayd_engine.py`, `game.py`, `trick_manager.py`) all reduced in size.
@@ -60,28 +65,24 @@
 ## 🎯 Active Missions
 
 ## Mission 7: "The Shield" — Test Coverage Expansion
-> Close critical gaps in test coverage — ratio is 0.53, target 0.70 (~3 hours)
+> Close critical gaps in test coverage — ratio is 0.61, target 0.70
 
-### Tasks
+### Completed (2026-02-13)
+- [x] `test_scoring_engine.py` — 18 tests (abnat, tiebreaks, Khasara, doubling)
+- [x] `test_validation.py` — 14 tests (follow-suit, trump, Closed mode)
+- [x] `test_contract_handler.py` — 26 tests (R1/R2, Ashkal, turns)
+- [x] `test_sawa_manager.py` — 20 tests (eligibility, timing, declarations)
+- [x] `test_bidding_integration.py` — 18 tests (full flows, serialization)
+- [x] `test_doubling_handler.py` — 25 tests (Double→Gahwa chain, variant)
+- [x] `test_akka_manager.py` — 17 tests (guards, eligibility, _card_key)
+- [x] `test_project_manager.py` — 16 tests (SIRA/FIFTY/HUNDRED, resolution)
+- [x] `test_game_lifecycle_unit.py` — 22 tests (start, deal, end_round)
+- [x] `test_trick_resolver_unit.py` — 22 tests (card points, trick winner)
 
-- [ ] **Trick Manager Edge Cases** — `tests/game_logic/test_trick_edge_cases.py`
-  - [ ] Trump overtrump scenarios
-  - [ ] Save high card when partner winning
-  - [ ] Void suit + forced trump play
-- [ ] **Project Scoring Combos** — `tests/features/test_project_scoring.py`
-  - [ ] Multiple projects in same round
-  - [ ] Akka + Project combo scoring
-  - [ ] Project cancellation on contract loss
-- [ ] **Timer/Timeout** — `tests/features/test_timer.py`
-  - [ ] Timeout triggers bot autoplay
-  - [ ] Timer reset on new trick
-- [ ] **Qayd Engine Coverage** — `tests/qayd/test_qayd_engine_unit.py`
-  - [ ] State transition paths (SCAN → CHALLENGE → VERDICT)
-  - [ ] Penalty calculation edge cases
-  - [ ] Timeout auto-dismiss
-- [ ] **Integration** — expand `verify_game_flow.py`
-  - [ ] Sawa claims resolve correctly
-  - [ ] 3+ rounds complete without freeze
+### Remaining Tasks
+- [ ] **Trick Manager Edge Cases** — Trump overtrump, void suit + forced play
+- [ ] **Qayd Engine Coverage** — State transitions, penalty edge cases
+- [ ] **Integration** — expand `verify_game_flow.py` for Sawa + multi-round
 
 ### Verification
 ```powershell
@@ -179,30 +180,6 @@ python -m pytest tests/ -v --tb=short
 
 ---
 
-## Mission 11: "The Multiplayer" — Online Play Polish
-> Make online mode production-ready (~4 hours)
-
-### Tasks
-
-- [ ] **Room Browser** — `/api/rooms` endpoint + `RoomBrowser.tsx`
-- [ ] **Reconnection Handling** — 60s grace period, auto-restore seat, "Reconnecting..." overlay
-- [ ] **Spectator Mode** — read-only join, see all 4 hands, hide ActionBar
-- [ ] **In-Game Emotes** — Baloot-themed emotes (👏 يا حظك, 😤 حرام, 🔥 ماشاء الله)
-
-### Key Files
-| File | Change |
-|------|--------|
-| `frontend/src/components/RoomBrowser.tsx` | NEW — room listing UI |
-| `server/socket_handler.py` | Reconnection + spectator events |
-| `server/room_manager.py` | Disconnect timeout, spectator roles |
-
-### Verification
-- Multi-tab: create room + join from separate tabs
-- Disconnect/reconnect within 60s
-- Spectator view validation
-
----
-
 ## 📊 Priority Matrix
 
 | Mission | Impact | Effort | Risk | Order |
@@ -211,4 +188,3 @@ python -m pytest tests/ -v --tb=short
 | **10. The Scalpel** | 🔴 High | 🟢 Low | 🟡 Medium | ② Hygiene |
 | **8. The Polish** | 🔴 High | 🔴 High | 🟡 Medium | ③ UX |
 | **9. The Strategist** | 🟡 Medium | 🔴 High | 🟡 Medium | ④ AI |
-| **11. The Multiplayer** | 🔴 High | 🔴 High | 🔴 High | ⑤ Features |
