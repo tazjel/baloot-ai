@@ -15,6 +15,7 @@ from modules.timeline import render_timeline_tab
 from modules.watchdog import render_watchdog_module
 from modules.sherlock_view import render_sherlock_view
 from modules.brain_view import render_brain_view
+from modules.test_manager import render_test_manager_tab
 from modules.utils import get_redis_client
 
 # --- Config ---
@@ -73,6 +74,7 @@ tab_names = [
     "⏪ Timeline",
     "🚨 Watchdog", 
     "🔍 Sherlock",
+    "🧪 Test Manager",
     "📈 Reports",
     "📜 Logs",
     "📸 Visual Lab", 
@@ -108,13 +110,16 @@ with tabs[7]:
     render_sherlock_view()
 
 with tabs[8]:
-    render_reports_tab()
+    render_test_manager_tab()
 
 with tabs[9]:
-    render_logs_tab()
+    render_reports_tab()
 
 with tabs[10]:
-    render_visual_lab_tab()
+    render_logs_tab()
 
 with tabs[11]:
+    render_visual_lab_tab()
+
+with tabs[12]:
     render_ops_tab()

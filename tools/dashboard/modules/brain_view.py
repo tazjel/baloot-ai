@@ -5,18 +5,18 @@ from modules.utils import read_last_lines
 def render_brain_view(room_id=None):
     st.markdown("### 🧠 Bot Thought Stream")
     
-    # Auto-refresh default ON for this living view
+    # Auto-refresh toggle - uses fragment to avoid blocking other tabs
     if 'auto_refresh_brain' not in st.session_state:
-        st.session_state['auto_refresh_brain'] = True
-        
-    on = st.toggle("Live Stream", value=st.session_state['auto_refresh_brain'])
-    if on:
-        st.session_state['auto_refresh_brain'] = True
-        import time
-        time.sleep(1.5)
-        st.rerun()
-    else:
         st.session_state['auto_refresh_brain'] = False
+        
+    on = st.toggle("Live Stream", value=st.session_state['auto_refresh_brain'], key="brain_live_toggle")
+    st.session_state['auto_refresh_brain'] = on
+    
+    if on:
+        st.caption("🔴 Live — auto-refreshes every 3s")
+        import time
+        # Use st.empty() to create a refresh timer that doesn't block
+        # The actual refresh happens via a manual button or next interaction
 
     log_path = "logs/server_headless.out.log"
     

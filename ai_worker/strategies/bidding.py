@@ -10,6 +10,10 @@ from ai_worker.strategies.components.hokum_bidding import (
     detect_hokum_premium_pattern,
     evaluate_hokum_doubling
 )
+from ai_worker.strategies.components.score_pressure import (
+    get_score_pressure, should_gamble
+)
+from ai_worker.strategies.components.trick_projection import project_tricks
 import logging
 
 logger = logging.getLogger(__name__)
@@ -62,6 +66,13 @@ class BiddingStrategy:
                 best_hokum_score = score
                 best_suit = suit
         
+        # 3b. Trick Projection — expected tricks for logging & confidence
+        sun_proj = project_tricks(ctx.hand, 'SUN')
+        hokum_proj = project_tricks(ctx.hand, 'HOKUM', best_suit) if best_suit else None
+        sun_et = sun_proj['expected_tricks']
+        hokum_et = hokum_proj['expected_tricks'] if hokum_proj else 0
+        logger.debug(f"[BIDDING] Trick projection: SUN ET={sun_et} | HOKUM({best_suit}) ET={hokum_et}")
+
         # 4. Contextual Checks (Ashkal)
         is_left_op = (ctx.player_index == (ctx.dealer_index + 3) % 4)
         can_ashkal = (ctx.is_dealer or is_left_op) and ctx.bidding_round <= 2
@@ -99,23 +110,14 @@ class BiddingStrategy:
             sun_threshold += 1  # Defensive = need slightly stronger hand
             hokum_threshold += 1
 
-        # ── SCORE-AWARE RISK MANAGEMENT ──
-        # When match score is >100, doubling risk is devastating
-        if ctx.match_score_us >= 100:
-            sun_threshold += 3  # Protect the lead — tighter bidding
-            hokum_threshold += 3
-        elif ctx.match_score_them >= 100:
-            sun_threshold -= 2  # Must gamble to catch up
-            hokum_threshold -= 2
-
-        # Desperate mode: more aggressive bidding
-        if ctx.is_desperate:
-            sun_threshold -= 3
-            hokum_threshold -= 3
-        # Protecting a big lead: conservative bidding
-        elif ctx.is_protecting:
-            sun_threshold += 4
-            hokum_threshold += 4
+        # ── SCORE-AWARE RISK MANAGEMENT (via score_pressure module) ──
+        pressure = get_score_pressure(ctx.match_score_us, ctx.match_score_them)
+        situation = pressure['situation']
+        bid_adj = pressure['bid_threshold_adjustment']
+        # Apply normalized adjustment (scale from 0-1 range to threshold units)
+        sun_threshold += int(bid_adj * -30)   # -0.15 → +4.5 lower threshold
+        hokum_threshold += int(bid_adj * -25)
+        logger.debug(f"[BIDDING] Score pressure: {situation}, bid_adj={bid_adj}")
         
         # Adjustments
         if partner_has_proposal:
@@ -146,38 +148,35 @@ class BiddingStrategy:
                   if not (ctx.floor_card and ctx.floor_card.rank == 'A'):
                        return {"action": "ASHKAL", "reasoning": f"Strong Sun Hand + Dealer Privilege (Score {sun_score})"}
         
-        # 6. Defensive / Psychological Logic
-        scores = ctx.raw_state.get('matchScores', {'us': 0, 'them': 0})
-        them_score = scores.get('them', 0)
-        us_score = scores.get('us', 0)
-        
-        is_danger_zone = them_score >= 120
-        is_critical_zone = them_score >= 135
-        
-        if is_critical_zone:
-             sun_threshold -= 4
-             hokum_threshold -= 4
-             
-        # "Suicide Bid" / Project Denial
+        # 6. Defensive / Psychological Logic — "Suicide Bid" / Project Denial
         if current_bid:
              bidder_pos = current_bid.get('bidder')
              if bidder_pos != self._get_partner_pos_name(ctx.position):
-                  # Opponents bidding
-                  if is_critical_zone or (them_score >= 100):
+                  # Opponents bidding in a critical situation
+                  if situation in ('DESPERATE', 'MATCH_POINT'):
                        if current_bid.get('type') == 'SUN':
                             hokum_threshold -= 8
         
         # 7. Final Decision — Sun > Hokum priority
+        # Check gamble override for borderline hands
+        sun_normalized = sun_score / 35.0  # Normalize to 0-1 range
+        hokum_normalized = best_hokum_score / 30.0
+        
         if sun_score >= sun_threshold: 
-            return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score})"}
+            return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score}, ET={sun_et}) [{situation}]"}
+        elif should_gamble(ctx.match_score_us, ctx.match_score_them, sun_normalized, 'SUN'):
+            if sun_score >= sun_threshold - 4:  # Only gamble on near-threshold hands
+                return {"action": "SUN", "reasoning": f"Gamble Sun (Score {sun_score}, ET={sun_et}) [{situation}]"}
             
         if not has_hokum_bid:
             if best_hokum_score >= hokum_threshold and best_suit:
-                 reason = f"Good {best_suit} Suit (Score {best_hokum_score})"
-                 if is_critical_zone: reason += " [Defensive]"
+                 reason = f"Good {best_suit} Suit (Score {best_hokum_score}, ET={hokum_et}) [{situation}]"
                  return {"action": "HOKUM", "suit": best_suit, "reasoning": reason}
+            elif should_gamble(ctx.match_score_us, ctx.match_score_them, hokum_normalized, 'HOKUM'):
+                if best_hokum_score >= hokum_threshold - 4 and best_suit:
+                    return {"action": "HOKUM", "suit": best_suit, "reasoning": f"Gamble {best_suit} (Score {best_hokum_score}, ET={hokum_et}) [{situation}]"}
         
-        return {"action": "PASS", "reasoning": f"Hand too weak (Sun:{sun_score} Hokum:{best_hokum_score})"}
+        return {"action": "PASS", "reasoning": f"Hand too weak (Sun:{sun_score} Hokum:{best_hokum_score}) [{situation}]"}
 
     def _detect_premium_pattern(self, ctx: BotContext):
         """
@@ -221,28 +220,41 @@ class BiddingStrategy:
         return {"action": "PASS", "reasoning": "Waive Gablak"}
 
     def get_doubling_decision(self, ctx: BotContext):
-        """Smart doubling — punish bad bids."""
+        """Smart doubling — uses advanced doubling engine with score awareness."""
+        from ai_worker.strategies.components.doubling_engine import should_double
+
         bid = ctx.raw_state.get('bid', {})
         bid_type = bid.get('type')
         bidder_pos = bid.get('bidder')
-        
+        trump_suit = bid.get('suit')
+
         # Am I on the defending team (opponent bid)?
         partner_pos = self._get_partner_pos_name(ctx.position)
         is_defending = (bidder_pos != ctx.position and bidder_pos != partner_pos)
-        
+
         if not is_defending:
             return {"action": "PASS", "reasoning": "Our team bid — no double"}
-        
-        # Evaluate our defensive strength
-        if bid_type == 'SUN':
-            decision = evaluate_sun_doubling(ctx)
-            if decision: return decision
-                
-        elif bid_type == 'HOKUM':
-            decision = evaluate_hokum_doubling(ctx)
-            if decision: return decision
-        
-        return {"action": "PASS", "reasoning": "Not strong enough to double"}
+
+        # Check if partner already passed on doubling
+        partner_passed = True
+        doubling_history = ctx.raw_state.get('doublingHistory', [])
+        for dh in doubling_history:
+            if dh.get('player') == partner_pos and dh.get('action') != 'PASS':
+                partner_passed = False
+
+        result = should_double(
+            hand=ctx.hand,
+            bid_type=bid_type or 'SUN',
+            trump_suit=trump_suit,
+            my_score=ctx.match_score_us,
+            their_score=ctx.match_score_them,
+            partner_passed=partner_passed,
+        )
+        logger.debug(f"[DOUBLING] {result['reasoning']}")
+
+        if result['should_double']:
+            return {"action": "DOUBLE", "reasoning": f"Double! {result['reasoning']}"}
+        return {"action": "PASS", "reasoning": f"No double: {result['reasoning']}"}
 
     def get_variant_decision(self, ctx: BotContext):
         bid = ctx.raw_state.get('bid', {})

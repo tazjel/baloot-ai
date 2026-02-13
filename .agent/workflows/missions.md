@@ -15,8 +15,15 @@ Use the `find_by_name` tool to list all `.tsx` and `.ts` files in `frontend/src/
 ## 3. Check TypeScript Health
 Use the `grep_search` tool to search for `as any` in `frontend/src/` (includes: `*.tsx`, `*.ts`). Count the results. Zero is healthy.
 
-## 4. Count Test Coverage
-Use the `find_by_name` tool to list all `.py` files in `tests/`. Compare the count against the backend source count from step 1. Ratio >0.7 is healthy.
+## 4. Check Test Health
+**File coverage ratio:** Use `find_by_name` to list all `.py` files in `tests/`. Compare against backend source count from step 1. Ratio >0.7 is healthy.
+
+**Dashboard health data:** Use `view_file` on `tools/dashboard/test_history.json` (if it exists) to read the last test run entry. Extract:
+- `passed` / `total` → Last Pass Rate %
+- `coverage` → Last Code Coverage % (if present)
+- `timestamp` → When tests were last run
+
+Include all three metrics in the Health Dashboard table.
 
 ## 5. Check for Code Smells
 Use `grep_search` for each of these patterns:

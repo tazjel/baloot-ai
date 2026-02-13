@@ -14,6 +14,61 @@ class SunStrategy(StrategyComponent):
     """Handles all Sun mode playing logic (lead and follow)."""
 
     def get_decision(self, ctx: BotContext) -> dict | None:
+        # ENDGAME SOLVER: Perfect play when ≤3 cards remain
+        if len(ctx.hand) <= 3:
+            endgame = self._try_endgame(ctx)
+            if endgame:
+                return endgame
+
+        # ── BRAIN: Cross-module orchestration ──
+        try:
+            from ai_worker.strategies.components.brain import consult_brain
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
+            # Build table card dicts
+            table_dicts = []
+            for tc in (ctx.table_cards or []):
+                tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+                if isinstance(tc_card, dict):
+                    table_dicts.append(tc_card)
+                elif hasattr(tc_card, 'rank'):
+                    table_dicts.append({"rank": tc_card.rank, "suit": tc_card.suit})
+            # Tracker voids
+            voids: dict[str, list[str]] = {}
+            for s in ['♠', '♥', '♦', '♣']:
+                void_players = []
+                for p in ctx.raw_state.get('players', []):
+                    pos = p.get('position')
+                    if pos and ctx.is_player_void(pos, s):
+                        void_players.append(pos)
+                if void_players:
+                    voids[s] = void_players
+            # Partner info
+            pi = None
+            if hasattr(ctx, 'read_partner_info'):
+                try:
+                    pi = ctx.read_partner_info()
+                except Exception:
+                    pass
+            brain = consult_brain(
+                hand=ctx.hand, table_cards=table_dicts, mode='SUN',
+                trump_suit=None, position=ctx.position,
+                we_are_buyers=(bidder_team == 'us'),
+                partner_winning=ctx.is_partner_winning() if hasattr(ctx, 'is_partner_winning') else False,
+                tricks_played=len(tricks), tricks_won_by_us=our_wins,
+                master_indices=master_idx, tracker_voids=voids,
+                partner_info=pi,
+            )
+            logger.debug(f"[BRAIN] conf={brain['confidence']} modules={brain['modules_consulted']} → {brain['reasoning']}")
+            if brain['recommendation'] is not None and brain['confidence'] >= 0.7:
+                return {"action": "PLAY", "cardIndex": brain['recommendation'],
+                        "reasoning": f"BRAIN({brain['confidence']}): {brain['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Brain skipped: {e}")
+
         if not ctx.table_cards:
             # Check for Ashkal Signal first
             ashkal_move = self._check_ashkal_signal(ctx)
@@ -22,6 +77,30 @@ class SunStrategy(StrategyComponent):
             return self._get_sun_lead(ctx)
         else:
             return self._get_sun_follow(ctx)
+
+    def _try_endgame(self, ctx: BotContext) -> dict | None:
+        """Attempt minimax solve if opponent hands are known."""
+        try:
+            from ai_worker.strategies.components.endgame_solver import solve_endgame
+            known = ctx.guess_hands() if ctx.mind and ctx.mind.active else None
+            if not known:
+                return None
+            # Determine leader: if table is empty, we lead; otherwise first player on table
+            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
+            result = solve_endgame(
+                my_hand=ctx.hand,
+                known_hands=known,
+                my_position=ctx.position,
+                leader_position=leader,
+                mode=ctx.mode or 'SUN',
+                trump_suit=ctx.trump,
+            )
+            if result and result.get('reasoning', '').startswith('Minimax'):
+                return {"action": "PLAY", "cardIndex": result['cardIndex'],
+                        "reasoning": f"Endgame Solver: {result['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Endgame solver skipped: {e}")
+        return None
 
     def _check_ashkal_signal(self, ctx: BotContext):
         """
@@ -99,6 +178,23 @@ class SunStrategy(StrategyComponent):
             defensive = self._get_defensive_lead_sun(ctx)
             if defensive:
                 return defensive
+
+        # ── KABOOT PURSUIT: Intelligent sweep strategy ──
+        if bidder_team == 'us' and should_attempt_kaboot(ctx):
+            from ai_worker.strategies.components.kaboot_pursuit import pursue_kaboot
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
+            kp = pursue_kaboot(
+                hand=ctx.hand, mode='SUN', trump_suit=None,
+                tricks_won_by_us=our_wins, tricks_played=len(tricks),
+                master_cards=master_idx, partner_is_leading=False,
+            )
+            logger.debug(f"[KABOOT] {kp['status']}: {kp['reasoning']}")
+            if kp['status'] in ('PURSUING', 'LOCKED') and kp['play_index'] is not None:
+                return {"action": "PLAY", "cardIndex": kp['play_index'],
+                        "reasoning": f"KABOOT {kp['status']}: {kp['reasoning']}"}
 
         # CHECK PARTNER SIGNALS with Barqiya timing awareness
         signal = self._check_partner_signals(ctx)
@@ -195,6 +291,20 @@ class SunStrategy(StrategyComponent):
     def _get_defensive_lead_sun(self, ctx: BotContext):
         """Defensive lead when OPPONENTS won the Sun bid.
         Strategy: Lead short suits to create voids, attack weak spots."""
+        from ai_worker.strategies.components.defense_plan import plan_defense
+
+        # Consult defensive planner for strategy guidance
+        tricks = ctx.raw_state.get('currentRoundTricks', [])
+        partner_pos = self.get_partner_pos(ctx.player_index)
+        our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+        their_wins = len(tricks) - our_wins
+        dplan = plan_defense(
+            my_hand=ctx.hand, mode='SUN',
+            buyer_position=ctx.bid_winner or '', partner_position=partner_pos,
+            tricks_played=len(tricks), tricks_won_by_us=our_wins, tricks_won_by_them=their_wins,
+        )
+        logger.debug(f"[DEFENSE] {dplan['reasoning']}")
+
         best_idx = 0
         max_score = -100
 

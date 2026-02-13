@@ -94,6 +94,26 @@ class TestProjectDeclaration(_ProjectTestBase):
         # Should only have 1 entry (deduplicated)
         self.assertEqual(count, 1)
 
+    def test_multi_project_dedup_no_crash(self):
+        """Regression: declaring 2nd project type shouldn't crash when 1st is already sanitized.
+        Bug: get_proj_sig used c.rank/c.suit but sanitized cards are dicts."""
+        # Give a hand with both SIRA and another SIRA in different suits
+        self.game.players[0].hand = [
+            Card('♥', 'A'), Card('♥', 'K'), Card('♥', 'Q'),  # SIRA in hearts
+            Card('♠', 'A'), Card('♠', 'K'), Card('♠', 'Q'),  # SIRA in spades
+            Card('♦', '7'), Card('♣', '9')
+        ]
+        # First declaration succeeds and sanitizes cards to dicts
+        r1 = self.game.project_manager.handle_declare_project(0, 'SIRA')
+        self.assertIn('success', r1)
+        # Second should NOT crash (the bug was here — dedup check on dict cards)
+        r2 = self.game.project_manager.handle_declare_project(0, 'SIRA')
+        self.assertIn('success', r2)
+        pos = self.game.players[0].position
+        # Should have 2 distinct SIRA declarations (different suits)
+        decls = self.game.trick_1_declarations.get(pos, [])
+        self.assertEqual(len(decls), 2)
+
     def test_wrong_turn_rejected(self):
         """Can only declare on your turn (trick 0 only)."""
         self._give_sira_hand(0)
@@ -205,6 +225,23 @@ class TestAutoDeclareBotProjects(_ProjectTestBase):
         pos = self.game.players[0].position
         has_decl = pos in self.game.trick_1_declarations and len(self.game.trick_1_declarations[pos]) > 0
         self.assertFalse(has_decl)
+
+    def test_auto_declare_multi_project_bot(self):
+        """Regression: bot with multiple projects shouldn't crash on dedup."""
+        self.game.players[1].is_bot = True
+        # Hand with 2 SIRAs in different suits
+        self.game.players[1].hand = [
+            Card('♥', 'A'), Card('♥', 'K'), Card('♥', 'Q'),
+            Card('♠', 'A'), Card('♠', 'K'), Card('♠', 'Q'),
+            Card('♦', '7'), Card('♣', '9')
+        ]
+        self.game.trick_1_declarations = {}
+        self.game.declarations = {}
+        # Should NOT crash (the bug was get_proj_sig on sanitized dicts)
+        self.game.project_manager.auto_declare_bot_projects()
+        pos = self.game.players[1].position
+        decls = self.game.trick_1_declarations.get(pos, [])
+        self.assertGreaterEqual(len(decls), 1)
 
 
 if __name__ == '__main__':

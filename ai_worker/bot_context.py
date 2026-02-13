@@ -103,13 +103,19 @@ class BotContext:
             self.winner_pos = self.table_cards[best_idx]['playedBy']
 
     def _build_memory(self, game_state: dict):
-        """Initialize card memory and populate from game history."""
+        """Initialize card memory, card tracker, and populate from game history."""
         from ai_worker.memory import CardMemory
         from ai_worker.mind_client import mind_client
+        from ai_worker.strategies.components.card_tracker import CardTracker
         self.memory = CardMemory()
         self.memory.populate_from_state(self.raw_state)
         self.mind = mind_client
         self.played_cards = self.memory.played_cards
+
+        # Card Tracker — real-time deck tracking with void inference
+        raw_history = game_state.get('currentRoundTricks', [])
+        raw_table = game_state.get('tableCards', [])
+        self.tracker = CardTracker(self.hand, raw_history, raw_table, self.position)
 
     @property
     def bidding_phase(self) -> BiddingPhase:
@@ -140,12 +146,12 @@ class BotContext:
         return self.memory.is_master(card.rank, card.suit, self.mode, self.trump)
         
     def is_opponent_void(self, suit):
-        # Check if ANY opponent is void in this suit?
-        # Or check specific players?
-        # Usually we want to know if *current winner* is void?
-        # Or if *next player* is void (to avoid them cutting)?
-        # For simplicity, let's expose specific check.
-        return False # Placeholder if needed, but direct memory access preferred
+        """Check if ANY opponent is known void in *suit* (via CardTracker)."""
+        positions = ['Bottom', 'Right', 'Top', 'Left']
+        partner_idx = (self.player_index + 2) % 4
+        partner_pos = positions[partner_idx]
+        void_players = self.tracker.get_void_players(suit)
+        return any(p != self.position and p != partner_pos for p in void_players)
 
     def is_player_void(self, position, suit):
         """Checks if a player is known to be void in a suit based on memory."""
@@ -219,3 +225,59 @@ class BotContext:
         if self.mind and self.mind.active:
              return self.mind.infer_hands(self.raw_state)
         return None
+
+    def read_partner_info(self) -> dict | None:
+        """Infer partner's likely holdings from bids and trick history.
+
+        Returns a dict with likely_strong_suits, likely_void_suits,
+        estimated_trumps, has_high_trumps, confidence, and detail.
+        """
+        try:
+            from ai_worker.strategies.components.partner_read import read_partner
+            positions = ['Bottom', 'Right', 'Top', 'Left']
+            partner_pos = positions[(self.player_index + 2) % 4]
+
+            # Build bid history from raw state
+            bid_history = []
+            raw_bids = self.raw_state.get('bidHistory', [])
+            for b in raw_bids:
+                bid_history.append({
+                    'player': b.get('player', b.get('bidder', '')),
+                    'action': b.get('action', b.get('type', 'PASS')),
+                    'suit': b.get('suit'),
+                })
+
+            # Build trick history from raw state
+            trick_history = []
+            for trick in self.raw_state.get('currentRoundTricks', []):
+                cards_list = []
+                for tc in trick.get('cards', []):
+                    card = tc.get('card', tc)
+                    if isinstance(card, dict):
+                        cards_list.append({
+                            'position': tc.get('playedBy', ''),
+                            'rank': card.get('rank', ''),
+                            'suit': card.get('suit', ''),
+                        })
+                    elif hasattr(card, 'rank'):
+                        cards_list.append({
+                            'position': tc.get('playedBy', ''),
+                            'rank': card.rank,
+                            'suit': card.suit,
+                        })
+                if cards_list:
+                    trick_history.append({
+                        'leader': trick.get('leader', cards_list[0]['position'] if cards_list else ''),
+                        'cards': cards_list,
+                        'winner': trick.get('winner', ''),
+                    })
+
+            return read_partner(
+                partner_position=partner_pos,
+                bid_history=bid_history,
+                trick_history=trick_history,
+                mode=self.mode or 'SUN',
+                trump_suit=self.trump,
+            )
+        except Exception:
+            return None

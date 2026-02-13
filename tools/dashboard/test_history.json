@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "2026-02-13T13:54:02.924420",
+    "total": 493,
+    "passed": 493,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 12.63
+  },
+  {
+    "timestamp": "2026-02-13T14:09:30.763825",
+    "total": 493,
+    "passed": 493,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 13.55,
+    "coverage": 54.2
+  },
+  {
+    "timestamp": "2026-02-13T14:26:42.866587",
+    "total": 292,
+    "passed": 292,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 7.75,
+    "coverage": 35.0
+  },
+  {
+    "timestamp": "2026-02-13T14:31:05.942215",
+    "total": 292,
+    "passed": 292,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 7.46,
+    "coverage": 35.0
+  }
+]

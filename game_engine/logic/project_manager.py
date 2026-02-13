@@ -61,8 +61,12 @@ class ProjectManager:
                   # Create signature helper
                   def get_proj_sig(p):
                       # Create unique signature: TYPE-RANK-SUIT(if any)-CARDS
-                      # Sorting cards ensures order independence
-                      cards_sig = "-".join(sorted([f"{c.rank}{c.suit}" for c in p.get('cards', [])]))
+                      # Handle both Card objects (.rank/.suit) and dicts (['rank']/['suit'])
+                      def _card_str(c):
+                          if hasattr(c, 'rank'):
+                              return f"{c.rank}{c.suit}"
+                          return f"{c.get('rank', '?')}{c.get('suit', '?')}"
+                      cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
                       return f"{p['type']}|{p['rank']}|{p.get('suit', 'ANY')}|{cards_sig}"
 
                   # Filter unique matches only
@@ -111,7 +115,11 @@ class ProjectManager:
             current_decls = self.game.trick_1_declarations[player.position]
 
             def get_proj_sig(p):
-                cards_sig = "-".join(sorted([f"{c.rank}{c.suit}" for c in p.get('cards', [])]))
+                def _card_str(c):
+                    if hasattr(c, 'rank'):
+                        return f"{c.rank}{c.suit}"
+                    return f"{c.get('rank', '?')}{c.get('suit', '?')}"
+                cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
                 return f"{p['type']}|{p['rank']}|{p.get('suit', 'ANY')}|{cards_sig}"
 
             for proj in hand_projs:

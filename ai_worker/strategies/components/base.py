@@ -135,34 +135,42 @@ class StrategyComponent(ABC):
                                     "reasoning": f"Tanfeer: Positive signal — want {s} ({c.rank})"
                                 }
 
-        # Fallback: Standard Trash Logic (minimize value lost)
-        best_idx = 0
-        min_value = 1000
+        # Fallback: Strategic Discard Logic (ruff → point-shed → void-create → safe-discard)
+        from ai_worker.strategies.components.discard_logic import choose_discard
 
-        for i, c in enumerate(ctx.hand):
-            score = 0
-
-            if c.rank == 'A': score += 20
-            elif c.rank == '10': score += 15
-            elif c.rank == 'K': score += 10
-            elif c.rank == 'Q': score += 5
-            elif c.rank == 'J': score += 2
-            elif c.rank == '9': score += 1
-            else: score += 0
-
+        # Calculate trick points from table cards
+        trick_points = 0
+        for tc in ctx.table_cards:
+            tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+            rank = tc_card.rank if hasattr(tc_card, 'rank') else tc_card.get('rank', '')
             if ctx.mode == 'HOKUM':
-                if c.suit == trump:
-                    score += 50
-                    if c.rank == 'J': score += 100
-                    if c.rank == '9': score += 80
+                from game_engine.models.constants import POINT_VALUES_HOKUM
+                trick_points += POINT_VALUES_HOKUM.get(rank, 0)
+            else:
+                from game_engine.models.constants import POINT_VALUES_SUN
+                trick_points += POINT_VALUES_SUN.get(rank, 0)
 
-            if ctx.is_master_card(c): score += 30
+        # Build table_cards in the format choose_discard expects
+        raw_table = []
+        for tc in ctx.table_cards:
+            tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+            if hasattr(tc_card, 'rank'):
+                raw_table.append({'card': {'rank': tc_card.rank, 'suit': tc_card.suit}, 'playedBy': tc.get('playedBy', '')})
+            else:
+                raw_table.append(tc)
 
-            if score < min_value:
-                min_value = score
-                best_idx = i
-
-        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Smart Trash"}
+        legal = list(range(len(ctx.hand)))
+        best_idx = choose_discard(
+            hand=ctx.hand,
+            legal_indices=legal,
+            table_cards=raw_table,
+            mode=ctx.mode or 'SUN',
+            trump_suit=trump,
+            partner_winning=is_partner_winning,
+            trick_points=trick_points,
+            cards_remaining=len(ctx.hand),
+        )
+        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Smart Discard"}
 
     @staticmethod
     def get_partner_pos(my_idx: int) -> str:

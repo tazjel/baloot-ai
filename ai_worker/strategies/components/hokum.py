@@ -14,10 +14,86 @@ class HokumStrategy(StrategyComponent):
     """Handles all Hokum mode playing logic (lead and follow)."""
 
     def get_decision(self, ctx: BotContext) -> dict | None:
+        # ENDGAME SOLVER: Perfect play when ≤3 cards remain
+        if len(ctx.hand) <= 3:
+            endgame = self._try_endgame(ctx)
+            if endgame:
+                return endgame
+
+        # ── BRAIN: Cross-module orchestration ──
+        try:
+            from ai_worker.strategies.components.brain import consult_brain
+            trump = ctx.trump
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
+            table_dicts = []
+            for tc in (ctx.table_cards or []):
+                tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+                if isinstance(tc_card, dict):
+                    table_dicts.append(tc_card)
+                elif hasattr(tc_card, 'rank'):
+                    table_dicts.append({"rank": tc_card.rank, "suit": tc_card.suit})
+            voids: dict[str, list[str]] = {}
+            for s in ['♠', '♥', '♦', '♣']:
+                void_players = []
+                for p in ctx.raw_state.get('players', []):
+                    pos = p.get('position')
+                    if pos and ctx.is_player_void(pos, s):
+                        void_players.append(pos)
+                if void_players:
+                    voids[s] = void_players
+            pi = None
+            if hasattr(ctx, 'read_partner_info'):
+                try:
+                    pi = ctx.read_partner_info()
+                except Exception:
+                    pass
+            brain = consult_brain(
+                hand=ctx.hand, table_cards=table_dicts, mode='HOKUM',
+                trump_suit=trump, position=ctx.position,
+                we_are_buyers=(bidder_team == 'us'),
+                partner_winning=ctx.is_partner_winning() if hasattr(ctx, 'is_partner_winning') else False,
+                tricks_played=len(tricks), tricks_won_by_us=our_wins,
+                master_indices=master_idx, tracker_voids=voids,
+                partner_info=pi,
+            )
+            logger.debug(f"[BRAIN] conf={brain['confidence']} modules={brain['modules_consulted']} → {brain['reasoning']}")
+            if brain['recommendation'] is not None and brain['confidence'] >= 0.7:
+                return {"action": "PLAY", "cardIndex": brain['recommendation'],
+                        "reasoning": f"BRAIN({brain['confidence']}): {brain['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Brain skipped: {e}")
+
         if not ctx.table_cards:
             return self._get_hokum_lead(ctx)
         else:
             return self._get_hokum_follow(ctx)
+
+    def _try_endgame(self, ctx: BotContext) -> dict | None:
+        """Attempt minimax solve if opponent hands are known."""
+        try:
+            from ai_worker.strategies.components.endgame_solver import solve_endgame
+            known = ctx.guess_hands() if ctx.mind and ctx.mind.active else None
+            if not known:
+                return None
+            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
+            result = solve_endgame(
+                my_hand=ctx.hand,
+                known_hands=known,
+                my_position=ctx.position,
+                leader_position=leader,
+                mode=ctx.mode or 'HOKUM',
+                trump_suit=ctx.trump,
+            )
+            if result and result.get('reasoning', '').startswith('Minimax'):
+                return {"action": "PLAY", "cardIndex": result['cardIndex'],
+                        "reasoning": f"Endgame Solver: {result['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Endgame solver skipped: {e}")
+        return None
 
     def _get_hokum_lead(self, ctx: BotContext):
         best_card_idx = 0
@@ -40,6 +116,23 @@ class HokumStrategy(StrategyComponent):
             if defensive:
                 return defensive
 
+        # ── KABOOT PURSUIT: Intelligent sweep strategy ──
+        if bidder_team == 'us' and should_attempt_kaboot(ctx):
+            from ai_worker.strategies.components.kaboot_pursuit import pursue_kaboot
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
+            kp = pursue_kaboot(
+                hand=ctx.hand, mode='HOKUM', trump_suit=trump,
+                tricks_won_by_us=our_wins, tricks_played=len(tricks),
+                master_cards=master_idx, partner_is_leading=False,
+            )
+            logger.debug(f"[KABOOT] {kp['status']}: {kp['reasoning']}")
+            if kp['status'] in ('PURSUING', 'LOCKED') and kp['play_index'] is not None:
+                return {"action": "PLAY", "cardIndex": kp['play_index'],
+                        "reasoning": f"KABOOT {kp['status']}: {kp['reasoning']}"}
+
         # CHECK PARTNER SIGNALS (Hokum-specific)
         signal = self._check_partner_signals(ctx)
         if signal:
@@ -57,40 +150,42 @@ class HokumStrategy(StrategyComponent):
                             return {"action": "PLAY", "cardIndex": i,
                                     "reasoning": f"Answering partner signal: Lead {target_suit}"}
 
-        should_open_trump = (bidder_team == 'us')
+        # ── TRUMP MANAGEMENT ENGINE ──
+        from ai_worker.strategies.components.trump_manager import manage_trumps
 
-        # SMART SAHN: Only open trumps if enemies still have them!
-        opponents_might_have_trump = True  # Default assumption
-        remaining_enemy_trumps = 0
-        if should_open_trump:
-            opponents_might_have_trump = False
-            my_team = ctx.team
-            for p in ctx.raw_state.get('players', []):
-                if p.get('team') != my_team:
-                    if not ctx.is_player_void(p.get('position'), trump):
-                        opponents_might_have_trump = True
-                        remaining_enemy_trumps += 1
-
-            if not opponents_might_have_trump:
-                should_open_trump = False
-
-        # TRUMP ECONOMY: Count our trump strength vs theirs
         my_trump_count = sum(1 for c in ctx.hand if c.suit == trump)
-        if my_trump_count <= 2 and remaining_enemy_trumps == 0:
-            should_open_trump = False
-
-        # CROSS-RUFF DETECTION: Check if opponent voids create a ruff danger pattern
-        # An opponent void in suit X + has trumps = they'll ruff our X leads
-        ruffable_suits = set()
         my_team = ctx.team
+        partner_pos = self.get_partner_pos(ctx.player_index)
+
+        # Estimate enemy trumps from void tracking
+        remaining_enemy_trumps = 0
+        enemy_void_suits = []
+        partner_void_suits = []
         for p in ctx.raw_state.get('players', []):
+            pos = p.get('position')
             if p.get('team') != my_team:
-                pos = p.get('position')
-                # If opponent is void in a suit but NOT void in trump → they'll ruff
-                if pos and not ctx.is_player_void(pos, trump):
-                    for s in ['♠', '♥', '♦', '♣']:
-                        if s != trump and ctx.is_player_void(pos, s):
-                            ruffable_suits.add(s)
+                if not ctx.is_player_void(pos, trump):
+                    remaining_enemy_trumps += 1
+                for s in ['♠', '♥', '♦', '♣']:
+                    if s != trump and ctx.is_player_void(pos, s):
+                        enemy_void_suits.append(s)
+            elif pos == partner_pos:
+                for s in ['♠', '♥', '♦', '♣']:
+                    if s != trump and ctx.is_player_void(pos, s):
+                        partner_void_suits.append(s)
+
+        tricks = ctx.raw_state.get('currentRoundTricks', [])
+        tplan = manage_trumps(
+            hand=ctx.hand, trump_suit=trump, my_trumps=my_trump_count,
+            enemy_trumps_estimate=remaining_enemy_trumps,
+            partner_trumps_estimate=0,  # conservative
+            tricks_played=len(tricks), we_are_buyers=(bidder_team == 'us'),
+            partner_void_suits=partner_void_suits,
+            enemy_void_suits=enemy_void_suits,
+        )
+        logger.debug(f"[TRUMP] {tplan['action']}: {tplan['reasoning']}")
+        should_open_trump = tplan['lead_trump']
+        ruffable_suits = set(enemy_void_suits)
 
         for i, c in enumerate(ctx.hand):
             score = 0
@@ -191,7 +286,21 @@ class HokumStrategy(StrategyComponent):
     def _get_defensive_lead_hokum(self, ctx: BotContext):
         """Defensive lead when OPPONENTS won the Hokum bid.
         Strategy: Lead suits to create ruff opportunities, avoid feeding declarer."""
+        from ai_worker.strategies.components.defense_plan import plan_defense
         trump = ctx.trump
+
+        # Consult defensive planner for strategy guidance
+        tricks = ctx.raw_state.get('currentRoundTricks', [])
+        partner_pos = self.get_partner_pos(ctx.player_index)
+        our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+        their_wins = len(tricks) - our_wins
+        dplan = plan_defense(
+            my_hand=ctx.hand, mode='HOKUM', trump_suit=trump,
+            buyer_position=ctx.bid_winner or '', partner_position=partner_pos,
+            tricks_played=len(tricks), tricks_won_by_us=our_wins, tricks_won_by_them=their_wins,
+        )
+        logger.debug(f"[DEFENSE] {dplan['reasoning']}")
+
         best_idx = 0
         max_score = -100
 
@@ -267,14 +376,18 @@ class HokumStrategy(StrategyComponent):
         seat = len(ctx.table_cards) + 1  # 2nd, 3rd, or 4th seat
         is_last_to_play = (seat == 4)
         
-        # TRICK VALUE: Calculate points on the table
-        trick_points = 0
+        # POINT DENSITY: Evaluate trick's point value
+        from ai_worker.strategies.components.point_density import evaluate_trick_value
+        _table_dicts = []
         for tc in ctx.table_cards:
             tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
             if isinstance(tc_card, dict):
-                trick_points += POINT_VALUES_HOKUM.get(tc_card.get('rank', ''), 0)
+                _table_dicts.append(tc_card)
             elif hasattr(tc_card, 'rank'):
-                trick_points += POINT_VALUES_HOKUM.get(tc_card.rank, 0)
+                _table_dicts.append({"rank": tc_card.rank, "suit": tc_card.suit})
+        _trick_ev = evaluate_trick_value(_table_dicts, 'HOKUM')
+        trick_points = _trick_ev['current_points']
+        logger.debug(f"[POINTS] {_trick_ev['density']} ({trick_points}pts, {_trick_ev['point_cards_on_table']} pt-cards)")
 
         # 1. Void Clause
         if not follows:
