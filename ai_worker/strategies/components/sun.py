@@ -7,6 +7,9 @@ from ai_worker.strategies.components.signaling import (
 )
 from ai_worker.strategies.components.follow_optimizer import optimize_follow
 from ai_worker.strategies.components.lead_selector import select_lead
+from ai_worker.strategies.components.opponent_model import model_opponents
+from ai_worker.strategies.components.trick_review import review_tricks
+from ai_worker.strategies.components.cooperative_play import get_cooperative_lead, get_cooperative_follow
 import logging
 
 logger = logging.getLogger(__name__)
@@ -70,6 +73,31 @@ class SunStrategy(StrategyComponent):
                         "reasoning": f"BRAIN({brain['confidence']}): {brain['reasoning']}"}
         except Exception as e:
             logger.debug(f"Brain skipped: {e}")
+
+        # ── TRICK REVIEW: Mid-round strategy adaptation ──
+        try:
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+            tr = review_tricks(
+                my_position=ctx.position, trick_history=tricks,
+                mode='SUN', trump_suit=None, we_are_buyers=(bidder_team == 'us'),
+            )
+            logger.debug(f"[TRICK_REVIEW] {tr['momentum']} {tr['our_tricks']}-{tr['their_tricks']} shift={tr['strategy_shift']}")
+        except Exception as e:
+            logger.debug(f"Trick review skipped: {e}")
+
+        # ── OPPONENT MODEL: Threat assessment ──
+        try:
+            bid_hist = ctx.raw_state.get('bidHistory', [])
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            opp = model_opponents(
+                my_position=ctx.position, bid_history=bid_hist,
+                trick_history=tricks, mode='SUN', trump_suit=None,
+            )
+            logger.debug(f"[OPP_MODEL] danger={opp['combined_danger']} safe={opp['safe_lead_suits']} avoid={opp['avoid_lead_suits']}")
+        except Exception as e:
+            logger.debug(f"Opponent model skipped: {e}")
 
         if not ctx.table_cards:
             # Check for Ashkal Signal first
@@ -224,6 +252,26 @@ class SunStrategy(StrategyComponent):
         ten_play = get_ten_management_play(ctx, legal)
         if ten_play:
             return ten_play
+
+        # ── COOPERATIVE LEAD: Partner-aware lead override ──
+        try:
+            _pi = None
+            if hasattr(ctx, 'read_partner_info'):
+                try: _pi = ctx.read_partner_info()
+                except Exception: pass
+            if _pi:
+                tricks = ctx.raw_state.get('currentRoundTricks', [])
+                coop = get_cooperative_lead(
+                    hand=ctx.hand, partner_info=_pi, mode='SUN',
+                    trump_suit=None, tricks_remaining=8 - len(tricks),
+                    we_are_buyers=(bidder_team == 'us'),
+                )
+                if coop and coop.get('confidence', 0) >= 0.6:
+                    logger.debug(f"[COOP_LEAD] {coop['strategy']}({coop['confidence']:.0%}): {coop['reasoning']}")
+                    return {"action": "PLAY", "cardIndex": coop['card_index'],
+                            "reasoning": f"CoopLead/{coop['strategy']}: {coop['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Cooperative lead skipped: {e}")
 
         # ── LEAD SELECTOR: Consult specialized lead module ──
         try:
@@ -418,6 +466,25 @@ class SunStrategy(StrategyComponent):
                 trick_points += POINT_VALUES_SUN.get(tc_card.get('rank', ''), 0)
             elif hasattr(tc_card, 'rank'):
                 trick_points += POINT_VALUES_SUN.get(tc_card.rank, 0)
+
+        # ── COOPERATIVE FOLLOW: Partner-aware follow override ──
+        try:
+            _pi = None
+            if hasattr(ctx, 'read_partner_info'):
+                try: _pi = ctx.read_partner_info()
+                except Exception: pass
+            if _pi:
+                coop_f = get_cooperative_follow(
+                    hand=ctx.hand, legal_indices=follows, partner_info=_pi,
+                    led_suit=lead_suit, mode='SUN', trump_suit=None,
+                    partner_winning=is_partner_winning, trick_points=trick_points,
+                )
+                if coop_f and coop_f.get('confidence', 0) >= 0.6:
+                    logger.debug(f"[COOP_FOLLOW] {coop_f['tactic']}({coop_f['confidence']:.0%}): {coop_f['reasoning']}")
+                    return {"action": "PLAY", "cardIndex": coop_f['card_index'],
+                            "reasoning": f"CoopFollow/{coop_f['tactic']}: {coop_f['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Cooperative follow skipped: {e}")
 
         # ── FOLLOW OPTIMIZER: Consult specialized follow-suit module ──
         try:

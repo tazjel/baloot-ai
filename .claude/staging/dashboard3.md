@@ -1,0 +1,90 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - heading "🃏 Baloot Ops" [level=1] [ref=e8]
+    - separator [ref=e13]
+    - heading "Status" [level=2] [ref=e17]
+    - alert [ref=e20]:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - paragraph: "Redis: Connected ✅"
+    - paragraph [ref=e48]: "Uptime: 577s"
+    - paragraph [ref=e53]: "Memory: 6.64M"
+  - generic [ref=e23]:
+    - banner [ref=e24]:
+      - generic [ref=e26]:
+        - button "keyboard_double_arrow_right" [ref=e29] [cursor=pointer]:
+          - generic [ref=e31]: keyboard_double_arrow_right
+        - generic [ref=e32]:
+          - button "Deploy" [ref=e34] [cursor=pointer]:
+            - generic [ref=e36]: Deploy
+          - button [ref=e38] [cursor=pointer]:
+            - img [ref=e39]
+    - generic [ref=e56]:
+      - tablist [ref=e58]:
+        - tab "🚀 Launcher" [selected] [ref=e59] [cursor=pointer]:
+          - paragraph [ref=e61]: 🚀 Launcher
+        - tab "🕵️ Qayd War Room" [ref=e62] [cursor=pointer]:
+          - paragraph [ref=e64]: 🕵️ Qayd War Room
+        - tab "🧠 Brain" [ref=e65] [cursor=pointer]:
+          - paragraph [ref=e67]: 🧠 Brain
+        - tab "🕵️ Inspector" [ref=e68] [cursor=pointer]:
+          - paragraph [ref=e70]: 🕵️ Inspector
+        - tab "⏳ Trace" [ref=e71] [cursor=pointer]:
+          - paragraph [ref=e73]: ⏳ Trace
+        - tab "⏪ Timeline" [ref=e74] [cursor=pointer]:
+          - paragraph [ref=e76]: ⏪ Timeline
+        - tab "🚨 Watchdog" [ref=e77] [cursor=pointer]:
+          - paragraph [ref=e79]: 🚨 Watchdog
+        - tab "🔍 Sherlock" [ref=e80] [cursor=pointer]:
+          - paragraph [ref=e82]: 🔍 Sherlock
+        - tab "🧪 Test Manager" [ref=e83] [cursor=pointer]:
+          - paragraph [ref=e85]: 🧪 Test Manager
+        - tab "📈 Reports" [ref=e86] [cursor=pointer]:
+          - paragraph [ref=e88]: 📈 Reports
+        - tab "📜 Logs" [ref=e89] [cursor=pointer]:
+          - paragraph [ref=e91]: 📜 Logs
+        - tab "📸 Visual Lab" [ref=e92] [cursor=pointer]:
+          - paragraph [ref=e94]: 📸 Visual Lab
+        - tab "🛠️ Ops" [ref=e95] [cursor=pointer]:
+          - paragraph [ref=e97]: 🛠️ Ops
+      - tabpanel "🚀 Launcher" [ref=e100]:
+        - generic [ref=e101]:
+          - heading "Test Orchestration" [level=2] [ref=e106]:
+            - text: Test Orchestration
+            - generic [ref=e107]:
+              - link "Link to heading":
+                - /url: "#test-orchestration"
+                - img
+          - generic [ref=e109]:
+            - generic [ref=e111]:
+              - heading "Fast Verification" [level=3] [ref=e116]:
+                - text: Fast Verification
+                - generic [ref=e117]:
+                  - link "Link to heading":
+                    - /url: "#fast-verification"
+                    - img
+              - 'button "RUN: Turbo Tests (/test-fast)" [ref=e120] [cursor=pointer]':
+                - paragraph [ref=e124]: "RUN: Turbo Tests (/test-fast)"
+            - generic [ref=e126]:
+              - heading "Deep Verification" [level=3] [ref=e131]:
+                - text: Deep Verification
+                - generic [ref=e132]:
+                  - link "Link to heading":
+                    - /url: "#deep-verification"
+                    - img
+              - 'button "RUN: Full Browser Test (Headed)" [ref=e138] [cursor=pointer]':
+                - paragraph [ref=e142]: "RUN: Full Browser Test (Headed)"
+              - separator [ref=e147]
+              - 'button "RUN: AI Simulation (Headless)" [ref=e153] [cursor=pointer]':
+                - paragraph [ref=e157]: "RUN: AI Simulation (Headless)"
+          - separator [ref=e162]
+          - heading "🤖 Agent Diagnostics" [level=3] [ref=e167]:
+            - text: 🤖 Agent Diagnostics
+            - generic [ref=e168]:
+              - link "Link to heading":
+                - /url: "#agent-diagnostics"
+                - img
+          - button "📋 Generate Deep Scan Report" [ref=e175] [cursor=pointer]:
+            - paragraph [ref=e179]: 📋 Generate Deep Scan Report

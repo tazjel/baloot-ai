@@ -14,6 +14,7 @@ from ai_worker.strategies.components.score_pressure import (
     get_score_pressure, should_gamble
 )
 from ai_worker.strategies.components.trick_projection import project_tricks
+from ai_worker.strategies.components.hand_shape import evaluate_shape
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,19 @@ class BiddingStrategy:
         sun_et = sun_proj['expected_tricks']
         hokum_et = hokum_proj['expected_tricks'] if hokum_proj else 0
         logger.debug(f"[BIDDING] Trick projection: SUN ET={sun_et} | HOKUM({best_suit}) ET={hokum_et}")
+
+        # 3c. Hand Shape Analysis — distribution adjustments
+        try:
+            shape = evaluate_shape(ctx.hand, 'SUN')
+            sun_score += shape['bid_adjustment']
+            if best_suit:
+                shape_h = evaluate_shape(ctx.hand, 'HOKUM', best_suit)
+                best_hokum_score += shape_h['bid_adjustment']
+            else:
+                shape_h = None
+            logger.debug(f"[BIDDING] Shape: {shape['pattern_label']} {shape['shape_type']} → SUN adj={shape['bid_adjustment']}, HOKUM adj={shape_h['bid_adjustment'] if shape_h else 0}")
+        except Exception as e:
+            logger.debug(f"Hand shape skipped: {e}")
 
         # 4. Contextual Checks (Ashkal)
         is_left_op = (ctx.player_index == (ctx.dealer_index + 3) % 4)

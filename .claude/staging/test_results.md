@@ -1,0 +1,349 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - heading "🃏 Baloot Ops" [level=1] [ref=e8]
+    - separator [ref=e13]
+    - heading "Status" [level=2] [ref=e17]
+    - alert [ref=e20]:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - paragraph: "Redis: Connected ✅"
+    - paragraph [ref=e48]: "Uptime: 674s"
+    - paragraph [ref=e53]: "Memory: 6.64M"
+  - generic [ref=e23]:
+    - banner [ref=e24]:
+      - generic [ref=e26]:
+        - button "keyboard_double_arrow_right" [ref=e29] [cursor=pointer]:
+          - generic [ref=e31]: keyboard_double_arrow_right
+        - generic [ref=e32]:
+          - button "Deploy" [ref=e34] [cursor=pointer]:
+            - generic [ref=e36]: Deploy
+          - button [ref=e38] [cursor=pointer]:
+            - img [ref=e39]
+    - generic [ref=e56]:
+      - tablist [ref=e58]:
+        - tab "🚀 Launcher" [ref=e59] [cursor=pointer]:
+          - paragraph [ref=e61]: 🚀 Launcher
+        - tab "🕵️ Qayd War Room" [ref=e62] [cursor=pointer]:
+          - paragraph [ref=e64]: 🕵️ Qayd War Room
+        - tab "🧠 Brain" [ref=e65] [cursor=pointer]:
+          - paragraph [ref=e67]: 🧠 Brain
+        - tab "🕵️ Inspector" [ref=e68] [cursor=pointer]:
+          - paragraph [ref=e70]: 🕵️ Inspector
+        - tab "⏳ Trace" [ref=e71] [cursor=pointer]:
+          - paragraph [ref=e73]: ⏳ Trace
+        - tab "⏪ Timeline" [ref=e74] [cursor=pointer]:
+          - paragraph [ref=e76]: ⏪ Timeline
+        - tab "🚨 Watchdog" [ref=e77] [cursor=pointer]:
+          - paragraph [ref=e79]: 🚨 Watchdog
+        - tab "🔍 Sherlock" [ref=e80] [cursor=pointer]:
+          - paragraph [ref=e82]: 🔍 Sherlock
+        - tab "🧪 Test Manager" [selected] [ref=e83] [cursor=pointer]:
+          - paragraph [ref=e85]: 🧪 Test Manager
+        - tab "📈 Reports" [ref=e86] [cursor=pointer]:
+          - paragraph [ref=e88]: 📈 Reports
+        - tab "📜 Logs" [ref=e89] [cursor=pointer]:
+          - paragraph [ref=e91]: 📜 Logs
+        - tab "📸 Visual Lab" [ref=e92] [cursor=pointer]:
+          - paragraph [ref=e94]: 📸 Visual Lab
+        - tab "🛠️ Ops" [ref=e95] [cursor=pointer]:
+          - paragraph [ref=e97]: 🛠️ Ops
+      - tabpanel "🧪 Test Manager" [ref=e182]:
+        - generic [ref=e183]:
+          - heading "🧪 Test Manager" [level=2] [ref=e188]:
+            - text: 🧪 Test Manager
+            - generic [ref=e189]:
+              - link "Link to heading":
+                - /url: "#test-manager"
+                - img
+          - paragraph [ref=e194]: Run, explore, and track your test suite — powered by pytest-cov, xdist, and rerunfailures.
+          - generic [ref=e678]:
+            - generic [ref=e683]:
+              - paragraph [ref=e687]: 📊 Total
+              - paragraph [ref=e691]: "37"
+            - generic [ref=e696]:
+              - paragraph [ref=e700]: ✅ Pass Rate
+              - paragraph [ref=e704]: 100.0%
+            - generic [ref=e709]:
+              - paragraph [ref=e713]: ❌ Failures
+              - paragraph [ref=e717]: "0"
+            - generic [ref=e722]:
+              - paragraph [ref=e726]: ⏱️ Duration
+              - paragraph [ref=e730]: 2.09s
+            - generic [ref=e735]:
+              - paragraph [ref=e739]: ⏭️ Skipped
+              - paragraph [ref=e743]: "0"
+          - separator [ref=e208]
+          - heading "▶️ Run Controls" [level=3] [ref=e213]:
+            - text: ▶️ Run Controls
+            - generic [ref=e214]:
+              - link "Link to heading":
+                - /url: "#run-controls"
+                - img
+          - generic [ref=e216]:
+            - generic [ref=e220]:
+              - paragraph [ref=e224]: Test scope
+              - generic [ref=e226]:
+                - generic [ref=e227]:
+                  - generic [ref=e228]: 🤖 bot (8 files)
+                  - combobox "Selected 🤖 bot (8 files). Test scope" [ref=e659]
+                - img "open" [ref=e232]
+            - button "▶️ Run Tests" [active] [ref=e242] [cursor=pointer]:
+              - paragraph [ref=e246]: ▶️ Run Tests
+          - generic [ref=e248]:
+            - generic [ref=e253] [cursor=pointer]:
+              - checkbox "Verbose (-v)"
+              - paragraph [ref=e258]: Verbose (-v)
+            - generic [ref=e263] [cursor=pointer]:
+              - checkbox "Stop on fail (-x)"
+              - paragraph [ref=e268]: Stop on fail (-x)
+            - generic [ref=e273] [cursor=pointer]:
+              - checkbox "Rerun failed (--lf)"
+              - paragraph [ref=e278]: Rerun failed (--lf)
+            - generic [ref=e283] [cursor=pointer]:
+              - checkbox "⚡ Parallel"
+              - paragraph [ref=e288]: ⚡ Parallel
+            - generic [ref=e293] [cursor=pointer]:
+              - checkbox "📊 Coverage"
+              - paragraph [ref=e298]: 📊 Coverage
+          - separator [ref=e747]
+          - heading "📋 Results" [level=3] [ref=e748]:
+            - text: 📋 Results
+            - generic [ref=e309]:
+              - link "Link to heading":
+                - /url: "#code-coverage"
+                - img
+          - generic [ref=e750]:
+            - tablist [ref=e752]:
+              - tab "📊 Breakdown" [selected] [ref=e753] [cursor=pointer]:
+                - paragraph [ref=e755]: 📊 Breakdown
+              - tab "❌ Failures" [ref=e756] [cursor=pointer]:
+                - paragraph [ref=e758]: ❌ Failures
+              - tab "🐌 Slow Tests" [ref=e759] [cursor=pointer]:
+                - paragraph [ref=e761]: 🐌 Slow Tests
+              - tab "📜 Raw Output" [ref=e762] [cursor=pointer]:
+                - paragraph [ref=e764]: 📜 Raw Output
+            - tabpanel "📊 Breakdown" [ref=e767]:
+              - generic [ref=e773]:
+                - button "Show/hide columns" [ref=e777] [cursor=pointer]:
+                  - img [ref=e778]
+                - button "Download as CSV" [ref=e783] [cursor=pointer]:
+                  - img [ref=e784]
+                - button "Search" [ref=e789] [cursor=pointer]:
+                  - img [ref=e790]
+                - button "Fullscreen" [ref=e795] [cursor=pointer]:
+                  - img [ref=e796]
+          - separator [ref=e323]
+          - heading "🛡️ Code Coverage" [level=3] [ref=e807]:
+            - text: 🛡️ Code Coverage
+            - generic [ref=e329]:
+              - link "Link to heading":
+                - /url: "#test-explorer"
+                - img
+          - alert [ref=e809]:
+            - paragraph [ref=e814]:
+              - text: Enable
+              - strong [ref=e815]: 📊 With Coverage
+              - text: and run tests to see coverage data.
+          - separator [ref=e820]
+          - heading "🗂️ Test Explorer" [level=3] [ref=e825]:
+            - text: 🗂️ Test Explorer
+            - generic [ref=e826]:
+              - link "Link to heading":
+                - /url: "#test-explorer"
+                - img
+          - paragraph [ref=e831]: 📁 9 modules · 📄 65 test files
+          - group [ref=e370]:
+            - generic "keyboard_arrow_right 🧠 ai_features/ — 2 files" [ref=e832] [cursor=pointer]:
+              - generic [ref=e372]:
+                - generic [ref=e374]: keyboard_arrow_right
+                - paragraph [ref=e377]:
+                  - text: 🧠
+                  - strong [ref=e378]: ai_features/
+                  - text: — 2 files
+          - group [ref=e381]:
+            - generic "keyboard_arrow_right 🃏 bidding/ — 4 files" [ref=e833] [cursor=pointer]:
+              - generic [ref=e383]:
+                - generic [ref=e385]: keyboard_arrow_right
+                - paragraph [ref=e388]:
+                  - text: 🃏
+                  - strong [ref=e389]: bidding/
+                  - text: — 4 files
+          - group [ref=e392]:
+            - generic "keyboard_arrow_right 🤖 bot/ — 8 files" [ref=e834] [cursor=pointer]:
+              - generic [ref=e394]:
+                - generic [ref=e396]: keyboard_arrow_right
+                - paragraph [ref=e399]:
+                  - text: 🤖
+                  - strong [ref=e400]: bot/
+                  - text: — 8 files
+          - group [ref=e403]:
+            - generic "keyboard_arrow_right 🧩 features/ — 13 files" [ref=e835] [cursor=pointer]:
+              - generic [ref=e405]:
+                - generic [ref=e407]: keyboard_arrow_right
+                - paragraph [ref=e410]:
+                  - text: 🧩
+                  - strong [ref=e411]: features/
+                  - text: — 13 files
+          - group [ref=e414]:
+            - generic "keyboard_arrow_right 🎮 game_logic/ — 20 files" [ref=e836] [cursor=pointer]:
+              - generic [ref=e416]:
+                - generic [ref=e418]: keyboard_arrow_right
+                - paragraph [ref=e421]:
+                  - text: 🎮
+                  - strong [ref=e422]: game_logic/
+                  - text: — 20 files
+          - group [ref=e425]:
+            - generic "keyboard_arrow_right ⚖️ qayd/ — 5 files" [ref=e837] [cursor=pointer]:
+              - generic [ref=e427]:
+                - generic [ref=e429]: keyboard_arrow_right
+                - paragraph [ref=e432]:
+                  - text: ⚖️
+                  - strong [ref=e433]: qayd/
+                  - text: — 5 files
+          - group [ref=e840]:
+            - generic "keyboard_arrow_right 📁 root/ — 2 files" [ref=e841] [cursor=pointer]:
+              - generic [ref=e842]:
+                - generic [ref=e844]: keyboard_arrow_right
+                - paragraph [ref=e847]:
+                  - text: 📁
+                  - strong [ref=e848]: root/
+                  - text: — 2 files
+          - group [ref=e851]:
+            - generic "keyboard_arrow_right 🌐 server/ — 4 files" [ref=e852] [cursor=pointer]:
+              - generic [ref=e853]:
+                - generic [ref=e855]: keyboard_arrow_right
+                - paragraph [ref=e858]:
+                  - text: 🌐
+                  - strong [ref=e859]: server/
+                  - text: — 4 files
+          - group [ref=e862]:
+            - generic "keyboard_arrow_right 🔬 unit/ — 7 files" [ref=e863] [cursor=pointer]:
+              - generic [ref=e864]:
+                - generic [ref=e866]: keyboard_arrow_right
+                - paragraph [ref=e869]:
+                  - text: 🔬
+                  - strong [ref=e870]: unit/
+                  - text: — 7 files
+          - separator [ref=e871]
+          - heading "🔄 Stability Tracker" [level=3] [ref=e875]:
+            - text: 🔄 Stability Tracker
+            - generic [ref=e876]:
+              - link "Link to heading":
+                - /url: "#stability-tracker"
+                - img
+          - alert [ref=e878]:
+            - paragraph [ref=e883]: ⚠️ Found 2 stability oscillation(s) in recent history
+          - list [ref=e888]:
+            - listitem [ref=e889]:
+              - text: "Run #5: 🟢→🔴 at"
+              - code [ref=e890]: 2026-02-13T19:45:24
+          - list [ref=e891]:
+            - listitem [ref=e892]:
+              - text: "Run #7: 🔴→🟢 at"
+              - code [ref=e893]: 2026-02-14T00:10:10
+          - separator [ref=e898]
+          - heading "📈 Run History" [level=3] [ref=e903]:
+            - text: 📈 Run History
+            - generic [ref=e904]:
+              - link "Link to heading":
+                - /url: "#run-history"
+                - img
+          - generic [ref=e906]:
+            - generic [ref=e908]:
+              - generic [ref=e911]:
+                - generic [ref=e913]:
+                  - button "Show data" [ref=e916] [cursor=pointer]:
+                    - img [ref=e917]
+                  - button "Fullscreen" [ref=e922] [cursor=pointer]:
+                    - img [ref=e923]
+                - generic [ref=e926]:
+                  - generic "Vega visualization" [ref=e927]:
+                    - img [ref=e928]:
+                      - generic [ref=e933]:
+                        - generic "X-axis for a linear scale with values from 1 to 7" [ref=e937]:
+                          - generic [ref=e939]:
+                            - generic:
+                              - generic: "1"
+                              - generic: "2"
+                              - generic: "3"
+                              - generic: "4"
+                              - generic: "5"
+                              - generic: "6"
+                              - generic: "7"
+                        - generic "Y-axis for a linear scale with values from 0 to 550" [ref=e940]:
+                          - generic [ref=e942]:
+                            - generic:
+                              - generic: "0"
+                              - generic: "100"
+                              - generic: "200"
+                              - generic: "300"
+                              - generic: "400"
+                              - generic: "500"
+                        - generic [ref=e943]:
+                          - 'generic "run: 1; value -- streamlit-generated: 493; : passed; value: 493; color: passed" [ref=e948]'
+                          - 'generic "run: 1; value -- streamlit-generated: 0; : failed; value: 0; color: failed" [ref=e953]'
+                          - generic [ref=e954]:
+                            - generic:
+                              - generic:
+                                - 'generic "run: 1; value -- streamlit-generated: 0; : skipped; value: 0; color: skipped"'
+                        - 'generic "Symbol legend titled '' '' for fill color with 3 values: passed, failed, skipped" [ref=e956]':
+                          - generic [ref=e962]:
+                            - generic [ref=e964]:
+                              - generic:
+                                - generic: passed
+                            - generic [ref=e966]:
+                              - generic:
+                                - generic: failed
+                            - generic [ref=e968]:
+                              - generic:
+                                - generic: skipped
+                  - group "Click to view actions":
+                    - img [ref=e970] [cursor=pointer]
+              - paragraph [ref=e978]: Test results trend
+            - generic [ref=e980]:
+              - generic [ref=e983]:
+                - generic [ref=e985]:
+                  - button "Show data" [ref=e988] [cursor=pointer]:
+                    - img [ref=e989]
+                  - button "Fullscreen" [ref=e994] [cursor=pointer]:
+                    - img [ref=e995]
+                - generic [ref=e998]:
+                  - generic "Vega visualization" [ref=e999]:
+                    - img [ref=e1000]:
+                      - generic [ref=e1005]:
+                        - generic "X-axis for a linear scale with values from 2 to 6" [ref=e1009]:
+                          - generic [ref=e1011]:
+                            - generic:
+                              - generic: "2"
+                              - generic: "3"
+                              - generic: "4"
+                              - generic: "5"
+                              - generic: "6"
+                        - generic "Y-axis for a linear scale with values from 0 to 55" [ref=e1012]:
+                          - generic [ref=e1014]:
+                            - generic:
+                              - generic: "0"
+                              - generic: "5"
+                              - generic: "10"
+                              - generic: "15"
+                              - generic: "20"
+                              - generic: "25"
+                              - generic: "30"
+                              - generic: "35"
+                              - generic: "40"
+                              - generic: "45"
+                              - generic: "50"
+                              - generic: "55"
+                        - 'generic "run: 2; coverage: 54.2" [ref=e1016]'
+                        - generic [ref=e1017]:
+                          - 'generic "run: 2; coverage: 54.2" [ref=e1018]'
+                          - 'generic "run: 3; coverage: 35" [ref=e1019]'
+                          - 'generic "run: 4; coverage: 35" [ref=e1020]'
+                          - 'generic "run: 5; coverage: 53" [ref=e1021]'
+                          - 'generic "run: 6; coverage: 53.9" [ref=e1022]'
+                  - group "Click to view actions":
+                    - img [ref=e1030] [cursor=pointer]
+              - paragraph [ref=e1038]: Coverage % trend
+          - paragraph [ref=e1043]: Showing last 7 runs
