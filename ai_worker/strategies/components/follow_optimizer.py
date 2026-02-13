@@ -1,0 +1,236 @@
+"""Follow-suit card optimizer for Baloot AI.
+
+Determines the optimal card to play when following suit (seats 2, 3, 4
+in a trick).  Implements an 8-tactic priority cascade covering winning,
+dodging, trumping, and shedding scenarios for both SUN and HOKUM modes.
+"""
+from __future__ import annotations
+
+ORDER_SUN: list[str] = ["7", "8", "9", "J", "Q", "K", "10", "A"]
+ORDER_HOKUM: list[str] = ["7", "8", "Q", "K", "10", "A", "9", "J"]
+ALL_SUITS: list[str] = ["♠", "♥", "♦", "♣"]
+
+# Point values by mode
+_PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2}
+_PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}
+
+
+def _rank_index(rank: str, mode: str) -> int:
+    """Positional strength of a rank (higher = stronger)."""
+    order = ORDER_HOKUM if mode == "HOKUM" else ORDER_SUN
+    return order.index(rank) if rank in order else -1
+
+
+def _card_points(rank: str, mode: str) -> int:
+    """Point value of a card rank in the given mode."""
+    pts = _PTS_HOKUM if mode == "HOKUM" else _PTS_SUN
+    return pts.get(rank, 0)
+
+
+def _beats(card_rank: str, current_winner_rank: str, mode: str) -> bool:
+    """Does card_rank beat current_winner_rank in the given mode?"""
+    return _rank_index(card_rank, mode) > _rank_index(current_winner_rank, mode)
+
+
+def _current_winner(table_cards: list[dict], led_suit: str, mode: str,
+                    trump_suit: str | None) -> tuple[str, str, int]:
+    """Find current winning rank, suit, and index from table_cards.
+
+    Returns (winner_rank, winner_suit, winner_index).
+    """
+    if not table_cards:
+        return ("7", led_suit, 0)
+
+    best_idx = 0
+    best_rank = table_cards[0].get("rank", "7")
+    best_suit = table_cards[0].get("suit", led_suit)
+    best_is_trump = (trump_suit and best_suit == trump_suit)
+
+    for i, tc in enumerate(table_cards[1:], start=1):
+        r, s = tc.get("rank", "7"), tc.get("suit", led_suit)
+        is_trump = (trump_suit and s == trump_suit)
+
+        if is_trump and not best_is_trump:
+            best_idx, best_rank, best_suit, best_is_trump = i, r, s, True
+        elif is_trump and best_is_trump:
+            if _rank_index(r, mode) > _rank_index(best_rank, mode):
+                best_idx, best_rank, best_suit = i, r, s
+        elif not is_trump and not best_is_trump and s == best_suit:
+            if _rank_index(r, mode) > _rank_index(best_rank, mode):
+                best_idx, best_rank, best_suit = i, r, s
+
+    return (best_rank, best_suit, best_idx)
+
+
+def _result(idx: int, tactic: str, conf: float, reason: str) -> dict:
+    return {"card_index": idx, "tactic": tactic,
+            "confidence": round(conf, 2), "reasoning": reason}
+
+
+def optimize_follow(
+    hand: list,
+    legal_indices: list[int],
+    table_cards: list[dict],
+    led_suit: str,
+    mode: str,
+    trump_suit: str | None,
+    seat: int,
+    partner_winning: bool,
+    partner_card_index: int | None,
+    trick_points: int,
+    tricks_remaining: int,
+    we_are_buyers: bool,
+) -> dict:
+    """Optimize follow-suit card selection.
+
+    Args:
+        hand: card objects with .rank, .suit
+        legal_indices: indices of playable cards (pre-filtered by rules)
+        table_cards: cards already played [{rank, suit, position}, ...]
+        led_suit: suit that was led
+        mode: "SUN" or "HOKUM"
+        trump_suit: trump suit (None for SUN)
+        seat: 2, 3, or 4 (position in trick)
+        partner_winning: whether partner currently holds the trick
+        partner_card_index: which table_card is partner's (0-based)
+        trick_points: total points currently on table
+        tricks_remaining: tricks left in round
+        we_are_buyers: whether our team bought the bid
+
+    Returns:
+        dict with card_index, tactic, confidence, reasoning.
+    """
+    if not legal_indices:
+        return _result(0, "SHED_SAFE", 0.0, "No legal cards")
+
+    # Single legal card — no choice
+    if len(legal_indices) == 1:
+        c = hand[legal_indices[0]]
+        return _result(legal_indices[0], "SHED_SAFE", 1.0,
+                       f"Only legal card: {c.rank}{c.suit}")
+
+    # Split legal cards into same-suit vs off-suit
+    same_suit = [i for i in legal_indices if hand[i].suit == led_suit]
+    off_suit = [i for i in legal_indices if hand[i].suit != led_suit]
+
+    w_rank, w_suit, _ = _current_winner(table_cards, led_suit, mode, trump_suit)
+    winner_is_trump = (trump_suit and w_suit == trump_suit)
+
+    # ──────────────── FOLLOWING SUIT ────────────────
+    if same_suit:
+        # Cards that beat current winner
+        if not winner_is_trump:
+            beaters = [i for i in same_suit if _beats(hand[i].rank, w_rank, mode)]
+        elif led_suit == trump_suit:
+            # Following in trump suit — can beat with higher trump
+            beaters = [i for i in same_suit if _beats(hand[i].rank, w_rank, mode)]
+        else:
+            beaters = []  # Can't beat a trump with a non-trump
+
+        lowest_idx = min(same_suit, key=lambda i: _rank_index(hand[i].rank, mode))
+        highest_idx = max(same_suit, key=lambda i: _rank_index(hand[i].rank, mode))
+
+        # — Partner winning → DODGE or FEED_PARTNER —
+        if partner_winning:
+            # Feed high-value cards to partner's winning trick
+            feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 10]
+            if feedable and trick_points >= 5:
+                idx = max(feedable, key=lambda i: _card_points(hand[i].rank, mode))
+                c = hand[idx]
+                return _result(idx, "FEED_PARTNER", 0.8,
+                               f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) to partner")
+            c = hand[lowest_idx]
+            return _result(lowest_idx, "DODGE", 0.85,
+                           f"Partner winning — play lowest {c.rank}{c.suit}")
+
+        # — Can we beat the current winner? —
+        if beaters:
+            cheapest_beater = min(beaters, key=lambda i: _rank_index(hand[i].rank, mode))
+
+            # WIN_BIG: high-value trick
+            if trick_points >= 15:
+                c = hand[cheapest_beater]
+                return _result(cheapest_beater, "WIN_BIG", 0.88,
+                               f"{c.rank}{c.suit} beats {w_rank}; {trick_points}pts on table")
+
+            # DESPERATION: seat 4, opponent winning big pot
+            if seat == 4 and trick_points >= 10:
+                c = hand[cheapest_beater]
+                return _result(cheapest_beater, "DESPERATION", 0.75,
+                               f"Seat 4, must win {trick_points}pt trick with {c.rank}{c.suit}")
+
+            # WIN_CHEAP: seat 4 = guaranteed win; seats 2-3 only if very high card
+            if seat == 4:
+                c = hand[cheapest_beater]
+                return _result(cheapest_beater, "WIN_CHEAP", 0.9,
+                               f"Seat 4 guaranteed win: {c.rank}{c.suit} beats {w_rank}")
+
+            # Seats 2/3: only win cheap with a top-3 card
+            if _rank_index(hand[cheapest_beater].rank, mode) >= 5:
+                c = hand[cheapest_beater]
+                return _result(cheapest_beater, "WIN_CHEAP", 0.65,
+                               f"Strong {c.rank}{c.suit} likely holds vs {w_rank}")
+
+        # — Can't win → SHED_SAFE —
+        c = hand[lowest_idx]
+        return _result(lowest_idx, "SHED_SAFE", 0.6,
+                       f"Can't beat {w_rank}{w_suit} — shed {c.rank}{c.suit}")
+
+    # ──────────────── VOID (OFF-SUIT) ────────────────
+    trump_cards = [i for i in off_suit if trump_suit and hand[i].suit == trump_suit]
+    non_trump = [i for i in off_suit if not trump_suit or hand[i].suit != trump_suit]
+
+    # Partner winning → DODGE (don't waste trump)
+    if partner_winning:
+        discard = non_trump if non_trump else off_suit
+        idx = min(discard, key=lambda i: _card_points(hand[i].rank, mode))
+        c = hand[idx]
+        return _result(idx, "DODGE", 0.8,
+                       f"Partner winning, void — discard {c.rank}{c.suit}")
+
+    # HOKUM: trump logic
+    if mode == "HOKUM" and trump_cards:
+        # Opponent already trumped? → TRUMP_OVER
+        if winner_is_trump:
+            over_trumpers = [i for i in trump_cards
+                             if _beats(hand[i].rank, w_rank, mode)]
+            if over_trumpers:
+                idx = min(over_trumpers, key=lambda i: _rank_index(hand[i].rank, mode))
+                c = hand[idx]
+                return _result(idx, "TRUMP_OVER", 0.7,
+                               f"Over-trump {w_rank} with {c.rank}{c.suit}")
+
+        # Worth trumping? (opponent winning + meaningful points)
+        if not partner_winning and trick_points >= 10:
+            idx = min(trump_cards, key=lambda i: _rank_index(hand[i].rank, mode))
+            c = hand[idx]
+            return _result(idx, "TRUMP_IN", 0.75,
+                           f"Ruff with {c.rank}{c.suit} for {trick_points}pt trick")
+
+        # Low-value trick — save trump
+        if trick_points < 10 and non_trump:
+            idx = min(non_trump, key=lambda i: _card_points(hand[i].rank, mode))
+            c = hand[idx]
+            return _result(idx, "SHED_SAFE", 0.6,
+                           f"Low trick ({trick_points}pts) — save trump, shed {c.rank}{c.suit}")
+
+    # SHED_SAFE: discard lowest-value card, prefer creating voids
+    discard_pool = non_trump if non_trump else off_suit
+    if discard_pool:
+        # Prefer cards from shortest suits (void creation)
+        suits_count: dict[str, int] = {}
+        for i in discard_pool:
+            s = hand[i].suit
+            suits_count[s] = suits_count.get(s, 0) + 1
+        idx = min(discard_pool,
+                  key=lambda i: (suits_count.get(hand[i].suit, 0),
+                                 _card_points(hand[i].rank, mode)))
+        c = hand[idx]
+        return _result(idx, "SHED_SAFE", 0.5,
+                       f"Void — discard {c.rank}{c.suit}")
+
+    # Ultimate fallback
+    idx = off_suit[0] if off_suit else legal_indices[0]
+    c = hand[idx]
+    return _result(idx, "SHED_SAFE", 0.3,
+                   f"Fallback discard: {c.rank}{c.suit}")
