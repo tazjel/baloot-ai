@@ -1,39 +1,39 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-12 22:21 | **Scan Results Below**
+> **Generated**: 2026-02-13 03:15 | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
 | Metric | Value |
 |--------|-------|
-| Backend source files | 119 (game_engine: 40, ai_worker: 39, server: 40) |
-| Frontend files | 89 (.tsx + .ts) |
-| Test files | 61 (ratio: **0.51** tests per source file) ⚠️ |
+| Backend source files | 125 (game_engine: 45, ai_worker: 40, server: 40) |
+| Frontend files | 95 (.tsx + .ts) |
+| Test files | 66 (ratio: **0.53** tests per source file) ⚠️ |
 | TypeScript errors | **0** ✅ |
 | `as any` casts | **0** ✅ |
-| Debug console.logs | **0** ✅ (only in `devLogger.ts`) |
+| Debug console.logs | **0** ✅ |
 | TODO/FIXME/HACK | **2** (ai_worker/memory.py, ai_worker/mcts/utils.py) |
 
 ### Backend Hotspots (>15 KB)
 | File | Size |
 |------|------|
-| `game_engine/logic/qayd_engine.py` | 23.2 KB |
-| `game_engine/logic/game.py` | 22.6 KB |
-| `ai_worker/strategies/bidding.py` | 19.4 KB |
-| `game_engine/logic/trick_manager.py` | 17.7 KB |
-| `ai_worker/strategies/components/hokum.py` | 16.7 KB |
+| `ai_worker/strategies/bidding.py` | 24.2 KB ⬆️ |
+| `game_engine/logic/qayd_engine.py` | 21.4 KB ⬇️ |
+| `ai_worker/strategies/components/hokum.py` | 20.8 KB ⬆️ |
+| `game_engine/logic/game.py` | 19.8 KB ⬇️ |
+| `ai_worker/strategies/components/sun.py` | 17.3 KB |
+| `game_engine/logic/trick_manager.py` | 16.7 KB ⬇️ |
 | `ai_worker/mcts/fast_game.py` | 16.2 KB |
-| `ai_worker/strategies/components/sun.py` | 16.1 KB |
 
 ### Frontend Hotspots (>10 KB)
 | File | Size |
 |------|------|
-| `MatchReviewModal.tsx` | 18.3 KB |
+| `MatchReviewModal.tsx` | 15.4 KB ⬇️ |
 | `ActionBar.tsx` | 15.3 KB |
 | `Table.tsx` | 14.3 KB |
-| `App.tsx` | 14.0 KB |
 | `DisputeModal.tsx` | 13.9 KB |
 | `GameArena.tsx` | 13.0 KB |
+| `App.tsx` | 11.7 KB ⬇️ |
 | `SettingsModal.tsx` | 11.8 KB |
 | `botService.ts` | 11.3 KB |
 | `useRoundManager.ts` | 11.1 KB |
@@ -52,43 +52,15 @@
 ### Mission 3: "The Fixer" — Obsolete Test Cleanup ✅
 > Completed 2026-02-12. Removed 52 obsolete tests referencing removed APIs. Full test suite now passes.
 
+### Mission 6: "The Surgeon" — Backend God-File Decomposition ✅
+> Completed 2026-02-13 via Jules PR. Extraction files created: `qayd_state_machine.py` (4.8 KB), `qayd_penalties.py` (1.1 KB), `game_lifecycle.py` (5.6 KB), `player_manager.py` (1.8 KB), `trick_resolver.py` (2.9 KB). Core files (`qayd_engine.py`, `game.py`, `trick_manager.py`) all reduced in size.
+
 ---
 
 ## 🎯 Active Missions
 
-## Mission 6: "The Surgeon" — Backend God-File Decomposition
-> Break the 3 largest backend files into focused modules (~3 hours)
-
-### Tasks
-
-- [ ] **Split `qayd_engine.py` (23 KB)**
-  - [ ] Extract state transitions → `qayd_state_machine.py`
-  - [ ] Extract penalty logic → `qayd_penalties.py`
-  - [ ] Keep `qayd_engine.py` as thin orchestrator
-- [ ] **Slim `game.py` (23 KB)**
-  - [ ] Move remaining round-reset inline logic to `game_lifecycle.py`
-  - [ ] Extract player management helpers → `player_manager.py`
-- [ ] **Split `trick_manager.py` (18 KB)**
-  - [ ] Extract trick resolution logic → `trick_resolver.py`
-  - [ ] Extract trick validation → keep in `trick_manager.py`
-
-### Key Files
-| File | Change |
-|------|--------|
-| `game_engine/logic/qayd_engine.py` | Split into state machine + penalties |
-| `game_engine/logic/game.py` | Extract lifecycle + player mgmt |
-| `game_engine/logic/trick_manager.py` | Split resolution logic out |
-
-### Verification
-```powershell
-python -m pytest tests/ -v --tb=short
-python scripts/verification/run_serialization_guard.py
-```
-
----
-
 ## Mission 7: "The Shield" — Test Coverage Expansion
-> Close critical gaps in test coverage — ratio is 0.51, target 0.70 (~3 hours)
+> Close critical gaps in test coverage — ratio is 0.53, target 0.70 (~3 hours)
 
 ### Tasks
 
@@ -139,9 +111,9 @@ python -m pytest tests/ --co -q  # verify test count increased
   - [ ] Fix card sizing, avatar positions, HUD overflow
 
 ### Frontend Decomposition Targets
-- [ ] **Split `MatchReviewModal.tsx` (18 KB)** — largest component
+- [ ] **Split `MatchReviewModal.tsx` (15 KB)** — extract round detail & stat panels
 - [ ] **Split `ActionBar.tsx` (15 KB)** — separate bidding and playing modes
-- [ ] **Split `App.tsx` (14 KB)** — extract route/view logic to separate files
+- [ ] **Split `DisputeModal.tsx` (14 KB)** — already has dispute/ subfolder, move remaining logic
 
 ### Verification
 - Playwright screenshots at card play, trick win, round end
@@ -164,9 +136,9 @@ python -m pytest tests/ --co -q  # verify test count increased
 ### Key Files
 | File | Change |
 |------|--------|
-| `ai_worker/strategies/bidding.py` (19 KB) | Score-aware + project-aware bidding |
-| `ai_worker/strategies/components/hokum.py` (17 KB) | Defensive play heuristics |
-| `ai_worker/strategies/components/sun.py` (16 KB) | Partner signaling |
+| `ai_worker/strategies/bidding.py` (24 KB) | Score-aware + project-aware bidding — also needs decomposition |
+| `ai_worker/strategies/components/hokum.py` (21 KB) | Defensive play heuristics — needs decomposition |
+| `ai_worker/strategies/components/sun.py` (17 KB) | Partner signaling |
 | `ai_worker/strategies/playing.py` | Core play improvements |
 | `ai_worker/memory.py` | Probabilistic memory TODO |
 
@@ -177,7 +149,37 @@ python -m pytest tests/bot/ -v
 
 ---
 
-## Mission 10: "The Multiplayer" — Online Play Polish
+## Mission 10: "The Scalpel" — AI Worker God-File Decomposition
+> Break the 3 largest ai_worker files into focused modules (~2 hours)
+
+### Tasks
+
+- [ ] **Split `bidding.py` (24 KB)** — largest file in the entire codebase
+  - [ ] Extract Sun bidding logic → `strategies/components/sun_bidding.py`
+  - [ ] Extract Hokum bidding logic → `strategies/components/hokum_bidding.py`
+  - [ ] Keep `bidding.py` as thin router/orchestrator
+- [ ] **Slim `hokum.py` (21 KB)**
+  - [ ] Extract endgame tactics → `strategies/components/hokum_endgame.py`
+  - [ ] Extract card counting helpers → shared utility
+- [ ] **Slim `sun.py` (17 KB)**
+  - [ ] Extract trump management → `strategies/components/sun_trump.py`
+
+### Key Files
+| File | Change |
+|------|--------|
+| `ai_worker/strategies/bidding.py` | Split into sun/hokum bidding modules |
+| `ai_worker/strategies/components/hokum.py` | Extract endgame tactics |
+| `ai_worker/strategies/components/sun.py` | Extract trump management |
+
+### Verification
+```powershell
+python -m pytest tests/bot/ -v --tb=short
+python -m pytest tests/ -v --tb=short
+```
+
+---
+
+## Mission 11: "The Multiplayer" — Online Play Polish
 > Make online mode production-ready (~4 hours)
 
 ### Tasks
@@ -205,8 +207,8 @@ python -m pytest tests/bot/ -v
 
 | Mission | Impact | Effort | Risk | Order |
 |---------|--------|--------|------|-------|
-| **6. The Surgeon** | 🔴 High | 🟡 Medium | 🟡 Medium | ① Next |
-| **7. The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Safety |
+| **7. The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ① Safety |
+| **10. The Scalpel** | 🔴 High | 🟢 Low | 🟡 Medium | ② Hygiene |
 | **8. The Polish** | 🔴 High | 🔴 High | 🟡 Medium | ③ UX |
 | **9. The Strategist** | 🟡 Medium | 🔴 High | 🟡 Medium | ④ AI |
-| **10. The Multiplayer** | 🔴 High | 🔴 High | 🔴 High | ⑤ Features |
+| **11. The Multiplayer** | 🔴 High | 🔴 High | 🔴 High | ⑤ Features |
