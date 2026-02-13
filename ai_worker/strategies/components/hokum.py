@@ -5,6 +5,8 @@ from ai_worker.strategies.components.signaling import (
     get_role, should_attempt_kaboot, should_break_kaboot,
     get_barqiya_response
 )
+from ai_worker.strategies.components.follow_optimizer import optimize_follow
+from ai_worker.strategies.components.lead_selector import select_lead
 import logging
 
 logger = logging.getLogger(__name__)
@@ -187,6 +189,38 @@ class HokumStrategy(StrategyComponent):
         should_open_trump = tplan['lead_trump']
         ruffable_suits = set(enemy_void_suits)
 
+        # ── LEAD SELECTOR: Consult specialized lead module ──
+        try:
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
+            # Collect opponent voids
+            _opp_voids: dict[str, set] = {}
+            for s in ['♠', '♥', '♦', '♣']:
+                for p in ctx.raw_state.get('players', []):
+                    if p.get('team') != my_team and ctx.is_player_void(p.get('position'), s):
+                        _opp_voids.setdefault(s, set()).add(p.get('position'))
+            # Partner read
+            _pi = None
+            if hasattr(ctx, 'read_partner_info'):
+                try:
+                    _pi = ctx.read_partner_info()
+                except Exception:
+                    pass
+            ls_result = select_lead(
+                hand=ctx.hand, mode='HOKUM', trump_suit=trump,
+                we_are_buyers=(bidder_team == 'us'),
+                tricks_played=len(tricks), tricks_won_by_us=our_wins,
+                master_indices=master_idx, partner_info=_pi,
+                defense_info=None, trump_info=tplan,
+                opponent_voids=_opp_voids,
+            )
+            if ls_result and ls_result.get('confidence', 0) >= 0.65:
+                logger.debug(f"[LEAD_SEL] {ls_result['strategy']}({ls_result['confidence']:.0%}): {ls_result['reasoning']}")
+                return {"action": "PLAY", "cardIndex": ls_result['card_index'],
+                        "reasoning": f"LeadSel/{ls_result['strategy']}: {ls_result['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Lead selector skipped: {e}")
+
         for i, c in enumerate(ctx.hand):
             score = 0
             is_trump = (c.suit == trump)
@@ -206,7 +240,7 @@ class HokumStrategy(StrategyComponent):
                     score += 40
 
                 master_bonus = 100
-                if not opponents_might_have_trump:
+                if not (remaining_enemy_trumps > 0):
                     master_bonus = 10  # Save for ruffing
 
                 if is_master:
@@ -448,6 +482,35 @@ class HokumStrategy(StrategyComponent):
         is_partner_winning = (winner_pos == partner_pos)
 
         if is_partner_winning:
+            # ── FOLLOW OPTIMIZER: Partner winning path ──
+            try:
+                bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+                _fo_table = []
+                for tc in ctx.table_cards:
+                    tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+                    if isinstance(tc_card, dict):
+                        _fo_table.append({"rank": tc_card.get('rank', ''), "suit": tc_card.get('suit', ''), "position": tc.get('playedBy', '')})
+                    elif hasattr(tc_card, 'rank'):
+                        _fo_table.append({"rank": tc_card.rank, "suit": tc_card.suit, "position": tc.get('playedBy', '')})
+                _partner_card_idx = None
+                for ti, tc in enumerate(ctx.table_cards):
+                    if tc.get('playedBy') == partner_pos:
+                        _partner_card_idx = ti
+                        break
+                tricks = ctx.raw_state.get('currentRoundTricks', [])
+                fo_result = optimize_follow(
+                    hand=ctx.hand, legal_indices=follows, table_cards=_fo_table,
+                    led_suit=lead_suit, mode='HOKUM', trump_suit=trump, seat=seat,
+                    partner_winning=True, partner_card_index=_partner_card_idx,
+                    trick_points=trick_points, tricks_remaining=8 - len(tricks),
+                    we_are_buyers=(bidder_team == 'us'),
+                )
+                if fo_result and fo_result.get('confidence', 0) >= 0.6:
+                    logger.debug(f"[FOLLOW_OPT] {fo_result['tactic']}({fo_result['confidence']:.0%}): {fo_result['reasoning']}")
+                    return {"action": "PLAY", "cardIndex": fo_result['card_index'],
+                            "reasoning": f"FollowOpt/{fo_result['tactic']}: {fo_result['reasoning']}"}
+            except Exception as e:
+                logger.debug(f"Follow optimizer skipped: {e}")
             best_idx = self.find_highest_point_card(ctx, follows, POINT_VALUES_HOKUM)
             return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Partner Winning - Feeding"}
         else:
@@ -462,6 +525,35 @@ class HokumStrategy(StrategyComponent):
                     winners.append(idx)
 
             if winners:
+                # ── FOLLOW OPTIMIZER: Competitive path ──
+                try:
+                    bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+                    _fo_table = []
+                    for tc in ctx.table_cards:
+                        tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
+                        if isinstance(tc_card, dict):
+                            _fo_table.append({"rank": tc_card.get('rank', ''), "suit": tc_card.get('suit', ''), "position": tc.get('playedBy', '')})
+                        elif hasattr(tc_card, 'rank'):
+                            _fo_table.append({"rank": tc_card.rank, "suit": tc_card.suit, "position": tc.get('playedBy', '')})
+                    _partner_card_idx = None
+                    for ti, tc in enumerate(ctx.table_cards):
+                        if tc.get('playedBy') == partner_pos:
+                            _partner_card_idx = ti
+                            break
+                    tricks = ctx.raw_state.get('currentRoundTricks', [])
+                    fo_result = optimize_follow(
+                        hand=ctx.hand, legal_indices=follows, table_cards=_fo_table,
+                        led_suit=lead_suit, mode='HOKUM', trump_suit=trump, seat=seat,
+                        partner_winning=False, partner_card_index=_partner_card_idx,
+                        trick_points=trick_points, tricks_remaining=8 - len(tricks),
+                        we_are_buyers=(bidder_team == 'us'),
+                    )
+                    if fo_result and fo_result.get('confidence', 0) >= 0.6:
+                        logger.debug(f"[FOLLOW_OPT] {fo_result['tactic']}({fo_result['confidence']:.0%}): {fo_result['reasoning']}")
+                        return {"action": "PLAY", "cardIndex": fo_result['card_index'],
+                                "reasoning": f"FollowOpt/{fo_result['tactic']}: {fo_result['reasoning']}"}
+                except Exception as e:
+                    logger.debug(f"Follow optimizer skipped: {e}")
                 if seat == 4:
                     # 4TH SEAT: Guaranteed win — finesse with lowest winner
                     best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_HOKUM)

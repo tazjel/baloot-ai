@@ -67,7 +67,7 @@ class ProjectManager:
                               return f"{c.rank}{c.suit}"
                           return f"{c.get('rank', '?')}{c.get('suit', '?')}"
                       cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
-                      return f"{p['type']}|{p['rank']}|{p.get('suit', 'ANY')}|{cards_sig}"
+                      return f"{p.get('type', '?')}|{p.get('rank', '?')}|{p.get('suit', 'ANY')}|{cards_sig}"
 
                   # Filter unique matches only
                   for match in matches:
@@ -120,7 +120,7 @@ class ProjectManager:
                         return f"{c.rank}{c.suit}"
                     return f"{c.get('rank', '?')}{c.get('suit', '?')}"
                 cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
-                return f"{p['type']}|{p['rank']}|{p.get('suit', 'ANY')}|{cards_sig}"
+                return f"{p.get('type', '?')}|{p.get('rank', '?')}|{p.get('suit', 'ANY')}|{cards_sig}"
 
             for proj in hand_projs:
                 proj_sig = get_proj_sig(proj)
