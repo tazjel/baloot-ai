@@ -314,7 +314,7 @@ def _render_slow_tests(report):
             "Duration": f"{t['duration']}s",
             "Result": "✅" if t["outcome"] == "passed" else "❌",
         })
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    st.dataframe(rows, width='stretch', hide_index=True)
 
 
 def _render_flaky_tracker(history):
@@ -369,7 +369,7 @@ def render_test_manager_tab():
             )
         with col2:
             st.markdown("<br>", unsafe_allow_html=True)
-            run_clicked = st.button("▶️ Run Tests", type="primary", use_container_width=True, key="tm_run")
+            run_clicked = st.button("▶️ Run Tests", type="primary", width='stretch', key="tm_run")
 
         # Options row
         oc1, oc2, oc3, oc4, oc5 = st.columns(5)
@@ -437,7 +437,7 @@ def render_test_manager_tab():
                             "Passed": c["passed"], "Failed": c["failed"],
                             "Total": c["total"],
                         })
-                    st.dataframe(rows, use_container_width=True, hide_index=True)
+                    st.dataframe(rows, width='stretch', hide_index=True)
 
             with rtab2:
                 failures = _get_failed_tests(report)

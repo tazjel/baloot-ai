@@ -76,7 +76,7 @@ def render_timeline_tab():
         idx = options.index(selected_idx_label)
         selected_entry = table_data[idx]
         
-        st.dataframe(df[["Time", "Event", "Details"]], use_container_width=True)
+        st.dataframe(df[["Time", "Event", "Details"]], width='stretch')
 
     with col2:
         st.subheader("Game State Snapshot")

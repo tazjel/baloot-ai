@@ -105,7 +105,7 @@ def render_trace_tab():
 
     st.dataframe(
         df[display_cols],
-        use_container_width=True,
+        width='stretch',
         height=600
     )
     

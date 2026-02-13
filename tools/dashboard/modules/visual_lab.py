@@ -16,7 +16,7 @@ def render_visual_lab_tab():
             selected_file = st.selectbox("Select Snapshot", list(files_map.keys()))
             if selected_file:
                 path = files_map[selected_file]
-                st.image(path, caption=path, use_container_width=True)
+                st.image(path, caption=path, width='stretch')
                 file_stats = os.stat(path)
                 st.caption(f"Modified: {datetime.fromtimestamp(file_stats.st_mtime)}")
     else:
