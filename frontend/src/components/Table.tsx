@@ -51,7 +51,7 @@ export default function Table({
     isPaused = false
 }: TableProps) {
     // --- HOOKS ---
-    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
+    const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations = {}, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
 
     // Bot Speech Hook (socket listener + voice synthesis)
     const playerSpeech = useBotSpeech(players);
