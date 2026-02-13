@@ -44,6 +44,12 @@ class DoublingHandler:
 
         if action == "PASS":
             if self.engine.contract.type == BidType.HOKUM:
+                # Coffee (Gahwa) forces OPEN variant — skip selection
+                if self.engine.contract.level >= 100:
+                    self.engine.contract.variant = "OPEN"
+                    self.engine.phase = BiddingPhase.FINISHED
+                    logger.info("Coffee (Gahwa): Variant forced to OPEN. Skipping selection.")
+                    return {"success": True, "phase_change": "FINISHED"}
                 self.engine.phase = BiddingPhase.VARIANT_SELECTION
                 self.engine.current_turn = self.engine.contract.bidder_idx
                 logger.info(f"Doubling Finished. Hokum Contract -> Variant Selection by P{self.engine.current_turn}")
@@ -114,6 +120,6 @@ class DoublingHandler:
         bidder_score = self.engine.match_scores.get(bidder_team, 0)
         doubler_score = self.engine.match_scores.get(doubler_team, 0)
 
-        if not (bidder_score > 100 and doubler_score < 100):
+        if not (bidder_score >= 100 and doubler_score < 100):
             return {"error": f"Sun Double Rejected. Firewall Active. Scores: {bidder_team}={bidder_score}, {doubler_team}={doubler_score}"}
         return None

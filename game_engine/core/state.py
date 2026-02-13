@@ -141,7 +141,7 @@ class GameState(BaseModel):
     biddingRound: int = 1
     doublingLevel: int = 1
     isLocked: bool = False
-    strictMode: bool = False
+    strictMode: bool = True
 
     # Scores
     teamScores: Dict[str, int] = Field(default_factory=lambda: {"us": 0, "them": 0})

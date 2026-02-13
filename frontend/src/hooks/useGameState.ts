@@ -34,7 +34,7 @@ const INITIAL_GAME_STATE: GameState = {
     matchScores: { us: 0, them: 0 },
     roundHistory: [],
     deck: [],
-    settings: { turnDuration: 5, strictMode: false, soundEnabled: true, gameSpeed: 'NORMAL', cardLanguage: 'EN' },
+    settings: { turnDuration: 5, strictMode: true, soundEnabled: true, gameSpeed: 'NORMAL', cardLanguage: 'EN' },
     lastTrick: null
 };
 

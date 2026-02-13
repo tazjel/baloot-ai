@@ -18,10 +18,10 @@ class TestAIWorkerCoverage:
         return {
             'phase': 'BIDDING',
             'players': [
-                {'index': 0, 'name': 'Bot1', 'hand': [{'rank': 'A', 'suit': 'S', 'id': 'AS'}], 'is_bot': True},
-                {'index': 1, 'name': 'Player2', 'hand': [], 'is_bot': False},
-                {'index': 2, 'name': 'Player3', 'hand': [], 'is_bot': False},
-                {'index': 3, 'name': 'Dealer', 'hand': [], 'is_bot': False}
+                {'index': 0, 'name': 'Bot1', 'hand': [{'rank': 'A', 'suit': '♠', 'id': 'AS'}], 'is_bot': True, 'position': 'Bottom', 'team': 'us'},
+                {'index': 1, 'name': 'Player2', 'hand': [], 'is_bot': False, 'position': 'Right', 'team': 'them'},
+                {'index': 2, 'name': 'Player3', 'hand': [], 'is_bot': False, 'position': 'Top', 'team': 'us'},
+                {'index': 3, 'name': 'Dealer', 'hand': [], 'is_bot': False, 'position': 'Left', 'team': 'them'}
             ],
             'currentTurnIndex': 0,
             'dealerIndex': 3,
@@ -49,10 +49,15 @@ class TestAIWorkerCoverage:
 
     def test_brain_override(self, mock_game_state):
         """Verify bot uses brain move if found by BrainClient"""
-        mock_brain_move = {"action": "PLAY", "rank": "A", "suit": "S", "reason": "Strategic Win"}
+        mock_brain_move = {"action": "PLAY", "rank": "A", "suit": "♠", "reason": "Strategic Win"}
         
         mock_game_state['phase'] = 'PLAYING'
         mock_game_state['bid'] = {'type': 'HOKUM', 'bidder': 1}
+        mock_game_state['tableCards'] = []
+        mock_game_state['trumpSuit'] = '♠'
+        mock_game_state['gameMode'] = 'HOKUM'
+        mock_game_state['trickCount'] = 0
+        mock_game_state['strictMode'] = True
         
         with patch.object(bot_agent.brain, 'lookup_move', return_value=mock_brain_move):
             

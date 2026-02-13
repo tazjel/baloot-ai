@@ -113,9 +113,24 @@ class BotContext:
         self.played_cards = self.memory.played_cards
 
         # Card Tracker — real-time deck tracking with void inference
-        raw_history = game_state.get('currentRoundTricks', [])
+        raw_history_data = game_state.get('currentRoundTricks', [])
         raw_table = game_state.get('tableCards', [])
-        self.tracker = CardTracker(self.hand, raw_history, raw_table, self.position)
+
+        # Normalize: currentRoundTricks can be list-of-dicts (trick objects with 'cards' key)
+        # or list-of-lists (already flat play entries). CardTracker expects list[list[dict]].
+        normalized_history = []
+        for trick in raw_history_data:
+            if isinstance(trick, dict):
+                # Trick object: extract the 'cards' list
+                cards = trick.get('cards', [])
+                if cards:
+                    normalized_history.append(cards)
+            elif isinstance(trick, list):
+                # Already a list of play entries
+                if trick:
+                    normalized_history.append(trick)
+
+        self.tracker = CardTracker(self.hand, normalized_history, raw_table, self.position)
 
     @property
     def bidding_phase(self) -> BiddingPhase:

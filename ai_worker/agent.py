@@ -133,18 +133,18 @@ class BotAgent:
                        brain_move = self.brain.lookup_move(context_hash)
                        
                        if brain_move:
-                            logger.info(f"🧠 THE BRAIN found a move for {context_hash}!")
+                            logger.info(f"\U0001f9e0 THE BRAIN found a move for {context_hash}!")
                             
                             if ctx.phase == 'PLAYING':
                                  target_rank = brain_move.get('rank')
                                  target_suit = brain_move.get('suit')
                                  for i, c in enumerate(ctx.hand):
                                       if c.rank == target_rank and c.suit == target_suit:
-                                           return {
+                                           return self._enforce_legality(ctx, {
                                                "action": "PLAY", 
                                                "cardIndex": i, 
                                                "reasoning": "Brain Override: " + brain_move.get('reason', '')
-                                           }
+                                           })
                                  logger.warning(f"Brain suggested {target_rank}{target_suit} but not in hand")
                             else:
                                  return brain_move
@@ -184,7 +184,7 @@ class BotAgent:
              if ctx.phase == 'PLAYING' and use_neural_direct:
                   neural_move = self.neural_strategy.get_decision(ctx)
                   if neural_move:
-                       return neural_move
+                       return self._enforce_legality(ctx, neural_move)
  
              # 4.5. DESPERATION CHEATING (The Liar) - REMOVED
              # We want to ensure bots NEVER make illegal moves.
@@ -192,17 +192,45 @@ class BotAgent:
 
              # 5. STRATEGY DISPATCH (MCTS + Heuristics)
              if ctx.phase in ['BIDDING', 'DOUBLING']:
-                 return self.bidding_strategy.get_decision(ctx)
-                 
+                  return self.bidding_strategy.get_decision(ctx)
+
              elif ctx.phase == 'PLAYING':
-                 return self.playing_strategy.get_decision(ctx)
-            
+                  decision = self.playing_strategy.get_decision(ctx)
+                  return self._enforce_legality(ctx, decision)
+
              return {"action": "PASS"}
- 
+
         except Exception as e:
             logger.error(f"Bot Agent Error: {e}")
             traceback.print_exc()
             return {"action": "PASS", "cardIndex": 0}
+
+    def _enforce_legality(self, ctx: BotContext, decision: dict) -> dict:
+        """Universal legality guardrail — covers ALL paths (Brain, Neural, Sherlock, Heuristic).
+
+        When strictMode is True, bots are NEVER allowed to play illegal cards.
+        When strictMode is False, bots CAN cheat (enabling Qayd gameplay).
+        """
+        strict = ctx.raw_state.get('strictMode', True)
+        if not strict:
+            return decision  # Challenge mode: allow illegal moves for Qayd
+
+        if not decision or decision.get('action') != 'PLAY':
+            return decision
+
+        legal_indices = ctx.get_legal_moves()
+        chosen_idx = decision.get('cardIndex')
+
+        if chosen_idx not in legal_indices and legal_indices:
+            logger.warning(
+                f"[LEGALITY] Bot {ctx.position} attempted ILLEGAL move idx={chosen_idx}. "
+                f"Legal indices: {legal_indices}. OVERRIDING to {legal_indices[0]}."
+            )
+            decision['cardIndex'] = legal_indices[0]
+            reason = decision.get('reasoning', '')
+            decision['reasoning'] = reason + " (Legality Override)"
+
+        return decision
 
     def _queue_analysis(self, ctx: BotContext, context_hash: str):
         """Prepare payload and delegate to BrainClient"""

@@ -206,8 +206,19 @@ class Game(StateBridgeMixin):
 
     def apply_qayd_penalty(self, loser_team, winner_team):
         penalty = self.qayd_state.get('penalty_points', 26 if 'SUN' in str(self.game_mode).upper() else 16)
-        proj_pts = sum(p.get('score',0) for projs in self.declarations.values() for p in projs)
-        total = penalty + proj_pts
+
+        # Official Rules: Declarations belong to their owner.
+        # On a foul, only the NON-FOULING team's own declarations count for them.
+        # The fouling team's declarations are immune (not penalized).
+        pos_to_team = {p.position: p.team for p in self.players}
+        winner_proj_pts = sum(
+            p.get('score', 0)
+            for pos, projs in self.declarations.items()
+            if pos_to_team.get(pos) == winner_team
+            for p in projs
+        )
+
+        total = penalty + winner_proj_pts
         self.match_scores[winner_team] += total
         rr = self._build_qayd_round_result(winner_team, total)
         self.past_round_results.append(rr)

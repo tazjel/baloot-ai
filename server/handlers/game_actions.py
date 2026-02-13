@@ -126,6 +126,9 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
         if 'turnDuration' in payload:
             game.turn_duration = float(payload['turnDuration'])
             logger.info(f"Updated Turn Duration to {game.turn_duration}s for room {room_id}")
+        if 'strictMode' in payload:
+            game.strictMode = bool(payload['strictMode'])
+            logger.info(f"Updated strictMode to {game.strictMode} for room {room_id}")
         result = {'success': True}
 
     elif action == 'NEXT_ROUND':
