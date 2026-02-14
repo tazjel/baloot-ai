@@ -1,7 +1,7 @@
 """
 Capture Engine — Playwright-powered game session recorder.
 
-Manages headed browser sessions for playing Kammelna while recording
+Manages headed browser sessions for playing Baloot online while recording
 video, taking screenshots, and logging game actions.
 """
 
@@ -38,8 +38,19 @@ ANNOTATIONS_DIR = CAPTURES_DIR / "annotations"
 for d in [SESSIONS_DIR, SCREENSHOTS_DIR, LOGS_DIR, ANNOTATIONS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-KAMMELNA_URL = "***REDACTED_URL***"
-KAMMELNA_LOGIN_URL = "***REDACTED_URL***"
+GAME_URL = ""
+LOGIN_URL = ""
+try:
+    import importlib.util, os as _os
+    _cfg_path = _os.path.expanduser("~/Desktop/capture_config.py")
+    if _os.path.exists(_cfg_path):
+        _spec = importlib.util.spec_from_file_location("capture_config", _cfg_path)
+        _cfg = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_cfg)
+        GAME_URL = _cfg.GAME_URL
+        LOGIN_URL = _cfg.LOGIN_URL
+except Exception:
+    pass
 import logging
 logger = logging.getLogger(__name__)
 
@@ -82,7 +93,7 @@ def start_session(name: str = None, url: str = None,
                   email: str = None, password: str = None) -> dict:
     """Start a new capture session.
     
-    Opens a headed browser to Kammelna with video recording enabled.
+    Opens a headed browser to the game server with video recording enabled.
     If email/password are provided, auto-logs in via the main website first.
     Returns session info dict.
     """
@@ -125,7 +136,7 @@ def start_session(name: str = None, url: str = None,
         if email and password:
             try:
                 logger.info("Auto-login: navigating to login page...")
-                page.goto(KAMMELNA_LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
+                page.goto(LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
                 
                 # Fill login form
                 page.fill("#email", email)
@@ -139,7 +150,7 @@ def start_session(name: str = None, url: str = None,
                 logger.warning(f"Auto-login failed: {e}. Continuing to game page...")
         
         # Navigate to game page
-        target_url = url or KAMMELNA_URL
+        target_url = url or GAME_URL
         page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
         
         # Inject SignalR interceptor hooks before game connects

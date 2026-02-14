@@ -1,5 +1,5 @@
 """
-Kammelna Live Game Capture v3.2 — Clean & Simple
+Baloot Online Game Capture v3.2 — Clean & Simple
 
 Uses a clean Playwright browser. Logs in via the website, then navigates
 to the game. Non-invasive interceptor decodes binary WS without modifying
@@ -14,11 +14,23 @@ from datetime import datetime
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-# ── Config ───────────────────────────────────────────────────────
-LOGIN_URL  = "***REDACTED_URL***"
-GAME_URL   = "***REDACTED_URL***"
-EMAIL      = "***REDACTED_EMAIL***"
-PASSWORD   = "***REDACTED_PASSWORD***"
+# ── Config (loaded from external file — never committed) ─────────
+import importlib.util, os
+_cfg_path = os.path.expanduser("~/Desktop/capture_config.py")
+if os.path.exists(_cfg_path):
+    _spec = importlib.util.spec_from_file_location("capture_config", _cfg_path)
+    _cfg = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_cfg)
+    LOGIN_URL = _cfg.LOGIN_URL
+    GAME_URL  = _cfg.GAME_URL
+    EMAIL     = _cfg.EMAIL
+    PASSWORD  = _cfg.PASSWORD
+else:
+    LOGIN_URL = ""
+    GAME_URL  = ""
+    EMAIL     = ""
+    PASSWORD  = ""
+    print(f"⚠ Config not found at {_cfg_path} — credentials will be empty.")
 OUTPUT_DIR = Path(__file__).parent.parent / "captures"
 
 # ── Non-invasive WebSocket Interceptor ───────────────────────────
@@ -256,7 +268,7 @@ def main():
 
     with sync_playwright() as p:
         print("=" * 60)
-        print("  KAMMELNA LIVE GAME CAPTURE v3.2")
+        print("  BALOOT ONLINE GAME CAPTURE v3.2")
         print("  Non-Invasive Binary Decoder")
         print("=" * 60)
 

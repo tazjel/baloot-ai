@@ -1,4 +1,4 @@
-"""Quick analysis of captured Kammelna game data."""
+"""Quick analysis of captured Baloot online game data."""
 import json
 import sys
 from collections import Counter
@@ -13,7 +13,7 @@ def analyze(path):
     connects = [m for m in ws if m['type'] == 'CONNECT']
     
     print(f"{'='*60}")
-    print(f"  KAMMELNA CAPTURE ANALYSIS")
+    print(f"  GAME CAPTURE ANALYSIS")
     print(f"{'='*60}")
     print(f"  Captured: {d.get('captured_at', 'N/A')}")
     print(f"  Label: {d.get('label', 'N/A')}")

@@ -1,5 +1,5 @@
 """
-Game Capture Tab — Record and analyze Kammelna gameplay.
+Game Capture Tab — Record and analyze Baloot gameplay.
 
 Provides session management, screenshot capture, action logging,
 and a viewer for past captures.
@@ -13,7 +13,7 @@ import json
 
 def render_capture_tab():
     st.header("🎬 Game Capture")
-    st.caption("Record Kammelna gameplay to train our AI — screenshots, video, and action logs")
+    st.caption("Record Baloot gameplay to train our AI — screenshots, video, and action logs")
 
     # ── Session Status ───────────────────────────────────────────
     info = capture_engine.get_session_info()
@@ -49,9 +49,9 @@ def _render_start_controls():
 
     url = st.text_input(
         "Game URL",
-        value="***REDACTED_URL***",
+        value=capture_engine.GAME_URL or "",
         key="cap_url",
-        help="Override the default Kammelna game URL if needed"
+        help="Override the default game URL if needed"
     )
 
     # ── Login Credentials ────────────────────────────────────────
@@ -63,7 +63,7 @@ def _render_start_controls():
         with col_pass:
             password = st.text_input("Password", value="***REDACTED_PASSWORD***",
                                      type="password", key="cap_password")
-        st.caption("Credentials are sent to kammelna.com for auto-login. "
+        st.caption("Credentials are sent to the game server for auto-login. "
                    "Leave blank to login manually.")
 
     if start_clicked:
@@ -188,7 +188,7 @@ def _render_active_controls():
 def _render_signalr_feed():
     """Live SignalR message feed during active session."""
     st.subheader("📡 SignalR Live Feed")
-    st.caption("Real-time game messages intercepted from Kammelna's server")
+    st.caption("Real-time game messages intercepted from the game server")
 
     # Connection status
     status = capture_engine.get_signalr_status()
@@ -203,7 +203,7 @@ def _render_signalr_feed():
             st.markdown("🟢 **Connected**")
         else:
             st.markdown("🟡 **Waiting for connection...**")
-            st.caption("Log into Kammelna and join a game")
+            st.caption("Log in and join a game")
     with col_hub:
         if hub_url and hub_url != "—":
             st.code(hub_url, language=None)

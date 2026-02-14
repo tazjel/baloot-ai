@@ -1,11 +1,11 @@
 """
-SignalR Interceptor — Capture Kammelna game messages via WebSocket hooks.
+SignalR Interceptor — Capture Baloot game messages via WebSocket hooks.
 
 Injects JavaScript into a Playwright page that monkey-patches the SignalR
 HubConnection to intercept all server↔client messages. Messages are
 buffered in `window.__signalr_capture` and collected by Python periodically.
 
-Kammelna uses:
+The game server uses:
   - @microsoft/signalr v5.0.17
   - JsonHubProtocol over WebSockets
   - Unity WebGL (canvas rendering — no DOM game elements)
