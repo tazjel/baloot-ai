@@ -8,6 +8,7 @@ and a viewer for past captures.
 import streamlit as st
 from pathlib import Path
 from . import capture_engine
+import json
 
 
 def render_capture_tab():
@@ -47,16 +48,33 @@ def _render_start_controls():
                                    use_container_width=True, key="cap_start")
 
     url = st.text_input(
-        "Custom URL (optional)",
-        value="https://www.kammelna.com",
+        "Game URL",
+        value="***REDACTED_URL***",
         key="cap_url",
-        help="Override the default Kammelna URL if needed"
+        help="Override the default Kammelna game URL if needed"
     )
+
+    # ── Login Credentials ────────────────────────────────────────
+    with st.expander("🔐 Auto-Login Credentials", expanded=True):
+        col_email, col_pass = st.columns(2)
+        with col_email:
+            email = st.text_input("Email", value="***REDACTED_EMAIL***",
+                                  key="cap_email")
+        with col_pass:
+            password = st.text_input("Password", value="***REDACTED_PASSWORD***",
+                                     type="password", key="cap_password")
+        st.caption("Credentials are sent to kammelna.com for auto-login. "
+                   "Leave blank to login manually.")
 
     if start_clicked:
         name = session_name.strip() or None
-        with st.spinner("Launching browser..."):
-            result = capture_engine.start_session(name=name, url=url.strip() or None)
+        with st.spinner("Launching browser & logging in..."):
+            result = capture_engine.start_session(
+                name=name,
+                url=url.strip() or None,
+                email=email.strip() or None,
+                password=password.strip() or None,
+            )
 
         if result.get("success"):
             st.success(f"✅ {result['message']}")
@@ -145,6 +163,10 @@ def _render_active_controls():
                 else:
                     st.warning("Screenshot failed but action logged")
 
+    # ── SignalR Live Feed ────────────────────────────────────────
+    st.markdown("---")
+    _render_signalr_feed()
+
     # ── Stop Session ─────────────────────────────────────────────
     st.markdown("---")
     col_stop, col_spacer = st.columns([1, 3])
@@ -156,10 +178,74 @@ def _render_active_controls():
             if result.get("success"):
                 st.success(f"✅ Session saved! "
                           f"{result['screenshots']} screenshots, "
-                          f"{result['actions']} actions")
+                          f"{result['actions']} actions, "
+                          f"{result.get('signalr_messages', 0)} SignalR messages")
                 st.rerun()
             else:
                 st.error(result.get("error", "Failed to stop"))
+
+
+def _render_signalr_feed():
+    """Live SignalR message feed during active session."""
+    st.subheader("📡 SignalR Live Feed")
+    st.caption("Real-time game messages intercepted from Kammelna's server")
+
+    # Connection status
+    status = capture_engine.get_signalr_status()
+    hub_url = status.get("hub_url", "—")
+    connected = status.get("connected", False)
+    methods = status.get("methods_registered", [])
+    ws_url = status.get("ws_url", "—")
+
+    col_status, col_hub = st.columns([1, 3])
+    with col_status:
+        if connected:
+            st.markdown("🟢 **Connected**")
+        else:
+            st.markdown("🟡 **Waiting for connection...**")
+            st.caption("Log into Kammelna and join a game")
+    with col_hub:
+        if hub_url and hub_url != "—":
+            st.code(hub_url, language=None)
+
+    if methods:
+        with st.expander(f"📋 Registered Methods ({len(methods)})", expanded=False):
+            st.write(", ".join(f"`{m}`" for m in methods))
+
+    # Refresh button + message display
+    col_refresh, col_spacer = st.columns([1, 3])
+    with col_refresh:
+        refresh = st.button("🔄 Refresh Messages", type="primary",
+                            use_container_width=True, key="cap_signalr_refresh")
+
+    if refresh:
+        with st.spinner("Collecting messages..."):
+            result = capture_engine.capture_messages()
+
+        if result.get("success"):
+            count = result.get("messages_collected", 0)
+            saved = result.get("messages_saved", 0)
+            st.success(f"✅ Collected **{count}** messages (saved {saved})")
+
+            messages = result.get("messages", [])
+            if messages:
+                with st.expander(f"📨 Last {len(messages)} Messages", expanded=True):
+                    for msg in reversed(messages):
+                        ts = msg.get("ts", "")[-12:]  # HH:MM:SS.sss
+                        direction = msg.get("dir", "?")
+                        method = msg.get("method", "?")
+                        args = msg.get("args", [])
+
+                        icon = "⬇️" if direction == "recv" else "⬆️" if direction == "send" else "ℹ️"
+                        args_preview = json.dumps(args, ensure_ascii=False)[:120]
+
+                        st.markdown(
+                            f"{icon} `{ts}` **{method}** — {args_preview}"
+                        )
+            else:
+                st.info("No messages yet. Play a game to see data flow!")
+        else:
+            st.error(result.get("error", "Failed to collect messages"))
 
 
 def _render_library():
@@ -181,8 +267,14 @@ def _render_library():
         ended = session.get("ended_at", "")[:16]
         shots = session.get("screenshot_count", 0)
         actions = session.get("action_count", 0)
+        signalr = session.get("signalr_message_count", 0)
 
-        with st.expander(f"🎬 **{name}** — {shots} shots, {actions} actions ({started})"):
+        label_parts = [f"{shots} shots", f"{actions} actions"]
+        if signalr:
+            label_parts.append(f"{signalr} msgs")
+        label = ", ".join(label_parts)
+
+        with st.expander(f"🎬 **{name}** — {label} ({started})"):
             st.caption(f"📅 {started} → {ended}")
 
             # Videos

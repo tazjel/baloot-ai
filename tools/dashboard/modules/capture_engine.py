@@ -11,6 +11,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from . import signalr_interceptor
 
 # Lazy import playwright to avoid crashing if not installed
 _playwright_mod = None
@@ -37,7 +38,10 @@ ANNOTATIONS_DIR = CAPTURES_DIR / "annotations"
 for d in [SESSIONS_DIR, SCREENSHOTS_DIR, LOGS_DIR, ANNOTATIONS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 
-KAMMELNA_URL = "https://www.kammelna.com"
+KAMMELNA_URL = "***REDACTED_URL***"
+KAMMELNA_LOGIN_URL = "***REDACTED_URL***"
+import logging
+logger = logging.getLogger(__name__)
 
 # ── Session State (module-level singleton) ───────────────────────
 
@@ -74,10 +78,12 @@ def get_session_info() -> dict:
     }
 
 
-def start_session(name: str = None, url: str = None) -> dict:
+def start_session(name: str = None, url: str = None,
+                  email: str = None, password: str = None) -> dict:
     """Start a new capture session.
     
     Opens a headed browser to Kammelna with video recording enabled.
+    If email/password are provided, auto-logs in via the main website first.
     Returns session info dict.
     """
     if is_session_active():
@@ -115,8 +121,32 @@ def start_session(name: str = None, url: str = None) -> dict:
         )
         page = context.new_page()
         
+        # ── Auto-login if credentials provided ──────────────────
+        if email and password:
+            try:
+                logger.info("Auto-login: navigating to login page...")
+                page.goto(KAMMELNA_LOGIN_URL, wait_until="domcontentloaded", timeout=30000)
+                
+                # Fill login form
+                page.fill("#email", email)
+                page.fill("#password", password)
+                page.click("#login-button")
+                
+                # Wait for login to complete (redirect or page change)
+                page.wait_for_load_state("networkidle", timeout=15000)
+                logger.info("Auto-login: login submitted, navigating to game...")
+            except Exception as e:
+                logger.warning(f"Auto-login failed: {e}. Continuing to game page...")
+        
+        # Navigate to game page
         target_url = url or KAMMELNA_URL
         page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
+        
+        # Inject SignalR interceptor hooks before game connects
+        signalr_interceptor.inject_interceptor(page)
+        
+        # SignalR message log file
+        signalr_log = LOGS_DIR / f"{session_id}_signalr.jsonl"
         
         # Store session state
         _active_session.update({
@@ -131,6 +161,7 @@ def start_session(name: str = None, url: str = None) -> dict:
             "actions": [],
             "video_dir": str(video_dir),
             "log_file": str(log_file),
+            "signalr_log": str(signalr_log),
         })
         
         # Log session start
@@ -220,6 +251,48 @@ def log_action(action_type: str, details: str = "") -> dict:
     return {"success": True, "action_type": action_type}
 
 
+def capture_messages() -> dict:
+    """Collect SignalR messages mid-session and save to log.
+    
+    Returns message count and connection status.
+    """
+    if not is_session_active():
+        return {"error": "No active session"}
+    
+    page = _active_session["page"]
+    signalr_log = _active_session.get("signalr_log")
+    
+    # Collect messages from the browser buffer
+    messages = signalr_interceptor.collect_messages(page)
+    
+    # Save to JSONL file
+    saved = 0
+    if messages and signalr_log:
+        saved = signalr_interceptor.save_messages_to_file(messages, signalr_log)
+    
+    # Get connection status
+    status = signalr_interceptor.get_connection_status(page)
+    
+    return {
+        "success": True,
+        "messages_collected": len(messages),
+        "messages_saved": saved,
+        "connection": status,
+        "messages": messages[-20:],  # Return last 20 for UI display
+    }
+
+
+def get_signalr_status() -> dict:
+    """Get SignalR connection status without collecting messages."""
+    if not is_session_active():
+        return {"connected": False, "active": False}
+    
+    page = _active_session["page"]
+    status = signalr_interceptor.get_connection_status(page)
+    status["active"] = True
+    return status
+
+
 def stop_session() -> dict:
     """Stop the current capture session.
     
@@ -234,10 +307,22 @@ def stop_session() -> dict:
     screenshot_count = len(_active_session["screenshots"])
     action_count = len(_active_session["actions"])
     video_dir = _active_session["video_dir"]
+    signalr_log = _active_session.get("signalr_log")
+    
+    # Flush remaining SignalR messages before closing
+    signalr_count = 0
+    try:
+        page = _active_session["page"]
+        remaining = signalr_interceptor.collect_messages(page)
+        if remaining and signalr_log:
+            signalr_count = signalr_interceptor.save_messages_to_file(remaining, signalr_log)
+    except Exception:
+        pass
     
     _log_action("session_end", {
         "screenshots": screenshot_count,
         "actions": action_count,
+        "signalr_messages_flushed": signalr_count,
     })
     
     # Close browser
@@ -251,6 +336,11 @@ def stop_session() -> dict:
     except Exception:
         pass
     
+    # Count total SignalR messages saved
+    total_signalr = 0
+    if signalr_log and Path(signalr_log).exists():
+        total_signalr = sum(1 for line in Path(signalr_log).read_text(encoding="utf-8").strip().split("\n") if line)
+    
     # Save session summary
     summary = {
         "session_id": session_id,
@@ -259,7 +349,9 @@ def stop_session() -> dict:
         "ended_at": datetime.now(timezone.utc).isoformat(),
         "screenshot_count": screenshot_count,
         "action_count": action_count,
+        "signalr_message_count": total_signalr,
         "video_dir": video_dir,
+        "signalr_log": signalr_log,
         "screenshots": _active_session["screenshots"],
     }
     
@@ -271,7 +363,7 @@ def stop_session() -> dict:
         "id": None, "name": None, "playwright": None,
         "browser": None, "context": None, "page": None,
         "started_at": None, "screenshots": [], "actions": [],
-        "video_dir": None, "log_file": None,
+        "video_dir": None, "log_file": None, "signalr_log": None,
     })
     
     return {
@@ -279,6 +371,7 @@ def stop_session() -> dict:
         "session_id": session_id,
         "screenshots": screenshot_count,
         "actions": action_count,
+        "signalr_messages": total_signalr,
         "video_dir": video_dir,
         "summary_path": str(summary_path),
     }
