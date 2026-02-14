@@ -113,6 +113,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
                                 : `${baseClass} ${hoverClass} hover:z-[55] hover:scale-105`
                             }
                             opacity-100
+                            ${gameMode === 'HOKUM' && trumpSuit && card.suit === trumpSuit ? 'trump-glow' : ''}
                         `}
                         style={{
                             transformOrigin: 'bottom center',
@@ -144,6 +145,8 @@ const HandFan = React.memo(HandFanComponent, (prev, next) => {
     if (prev.isMyTurn !== next.isMyTurn) return false;
     if (prev.selectedCardIndex !== next.selectedCardIndex) return false;
     if (prev.hand.length !== next.hand.length) return false;
+    if (prev.gameMode !== next.gameMode) return false;
+    if (prev.trumpSuit !== next.trumpSuit) return false;
 
     // Deep check card IDs if length is same (to detect played cards)
     const prevIds = prev.hand.map(c => c.id).join(',');

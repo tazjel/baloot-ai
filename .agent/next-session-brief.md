@@ -107,6 +107,35 @@
 
 ## 🎯 Active Missions
 
+## Mission 18: "The Showman" — Game Feel & Polish ✅
+> Completed 2026-02-14. All 7 gap items filled across 8 implementation steps.
+
+### What Was Built
+- **Bid sounds**: Pass (muted triangle), Sun (ascending arpeggio C6-E6-G6), Hokum (bold sine+harmonic), Double (sawtooth+noise snap)
+- **Kaboot celebration**: Deep bass + brass chord sound, amplified confetti (more particles, gold colors), animate-kaboot-burst CSS
+- **Victory/defeat jingles**: Victory (ascending C5-E5-G5-C6 major with shimmer), Defeat (descending minor, detuned chorus)
+- **Dark mode toggle**: html.dark/html.light CSS classes, Auto/Light/Dark cycle in Settings
+- **Trump glow**: Golden border shimmer animation on trump suit cards in HOKUM (hand + table)
+- **Score animation**: useAnimatedNumber hook (rAF + ease-out cubic), score-flash CSS on ScoreBadge
+- **Animation toggle + volume sliders**: html.reduce-motion kills all animations, 4-category volume sliders (Cards/UI/Events/Bids)
+- **Volume system**: SoundManager.ts per-category volume multipliers, synced from GameSettings
+
+### Files Modified
+- `types.ts` — theme, animationsEnabled, soundVolumes fields
+- `SoundManager.ts` — 7 new sound methods + volume system
+- `index.css` — trump-glow, kaboot-burst, score-flash, html.dark, html.light, html.reduce-motion
+- `useAnimatedNumber.ts` — New hook
+- `SettingsModal.tsx` — Theme toggle, animation toggle, volume sliders
+- `useBiddingLogic.ts` — Bid sounds on pass/sun/hokum
+- `ActionBar.tsx` — Double sound on doubling buttons
+- `RoundResultsModal.tsx` — Victory/defeat jingles, Kaboot sound + amplified confetti
+- `HandFan.tsx` — trump-glow class on trump suit cards
+- `GameArena.tsx` — trump-glow on played trump table cards
+- `ScoreBadge.tsx` — useAnimatedNumber + score-flash
+- `App.tsx` — Theme/animation/volume useEffect hooks
+
+---
+
 ## Mission 16: "The Mind" — Bot Personality & Difficulty System ✅
 > Completed 2026-02-14. All 7 subtasks done. +40 tests (462→502).
 

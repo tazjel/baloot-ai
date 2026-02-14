@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { GameState, GamePhase, PlayerPosition, Suit, DeclaredProject } from '../types';
 import { detectProjects, sortHand } from '../utils/gameLogic';
+import { soundManager } from '../services/SoundManager';
 
 interface UseBiddingLogicArgs {
     gameState: GameState;
@@ -34,6 +35,11 @@ export const useBiddingLogic = ({
     const handleBiddingAction = (playerIndex: number, action: string, payload?: any) => {
         const speechText = action === 'PASS' ? 'Bass' : action === 'SUN' ? 'Sun' : action === 'HOKUM' ? 'Hokum' : action;
         speakAction(speechText);
+
+        // M18: Bid sounds
+        if (action === 'PASS') soundManager.playPassSound();
+        else if (action === 'SUN' || action === 'ASHKAL') soundManager.playSunSound();
+        else if (action === 'HOKUM') soundManager.playHokumSound();
 
         setGameState(prev => {
             if (!prev.players[playerIndex].isActive) return prev;

@@ -198,13 +198,15 @@ export default function GameArena({
                                 tableCards: gameState.tableCards
                             });
 
+                            const isTrumpCard = gameState.gameMode === 'HOKUM' && gameState.trumpSuit && played.card.suit === gameState.trumpSuit;
+
                             return (
                                 <motion.div key={`played-${idx}-${played.card.id}`}
                                     initial={initial}
                                     animate={animate}
                                     exit={exit}
                                     transition={{ type: "spring", stiffness: 350, damping: 25, mass: 0.8 }}
-                                    className={`${animClass}`}
+                                    className={`${animClass} ${isTrumpCard ? 'trump-glow' : ''}`}
                                     style={style}>
                                     <Card
                                         card={played.card}

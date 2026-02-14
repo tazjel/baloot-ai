@@ -281,23 +281,23 @@ const ActionBar: React.FC<ActionBarProps> = ({
                     <span className="text-[9px] font-bold">PASS</span>
                 </ActionButton>
 
-                <ActionButton onClick={() => onPlayerAction('DOUBLE')} disabled={!isMyTurn || !canDouble}>
+                <ActionButton onClick={() => { soundManager.playDoubleSound(); onPlayerAction('DOUBLE'); }} disabled={!isMyTurn || !canDouble}>
                     <div className="text-amber-400 font-bold text-lg">x2</div>
                     <span className="text-[9px] font-bold">DOUBLE</span>
                 </ActionButton>
 
-                <ActionButton onClick={() => onPlayerAction('TRIPLE')} disabled={!isMyTurn || !canTriple}>
+                <ActionButton onClick={() => { soundManager.playDoubleSound(); onPlayerAction('TRIPLE'); }} disabled={!isMyTurn || !canTriple}>
                     <div className="text-orange-500 font-bold text-lg">x3</div>
                     <span className="text-[9px] font-bold">TRIPLE</span>
                 </ActionButton>
 
-                <ActionButton onClick={() => onPlayerAction('FOUR')} disabled={!isMyTurn || !canFour}>
+                <ActionButton onClick={() => { soundManager.playDoubleSound(); onPlayerAction('FOUR'); }} disabled={!isMyTurn || !canFour}>
                     <div className="text-red-500 font-bold text-lg">x4</div>
                     <span className="text-[9px] font-bold">FOUR</span>
                 </ActionButton>
 
                 <ActionButton
-                    onClick={() => onPlayerAction('GAHWA')}
+                    onClick={() => { soundManager.playDoubleSound(); onPlayerAction('GAHWA'); }}
                     disabled={!isMyTurn || !canGahwa}
                     activeClass="bg-amber-600 text-white animate-pulse"
                 >

@@ -91,6 +91,37 @@ const App: React.FC = () => {
   const [lastSeenRoundCount, setLastSeenRoundCount] = useState(0);
   const [showReviewModal, setShowReviewModal] = useState(false); // Added state
 
+  // M18: Theme class effect
+  useEffect(() => {
+    const theme = gameState.settings.theme || 'auto';
+    const html = document.documentElement;
+    html.classList.remove('dark', 'light');
+    if (theme === 'dark') html.classList.add('dark');
+    else if (theme === 'light') html.classList.add('light');
+    // 'auto' = no class = OS preference via @media query
+  }, [gameState.settings.theme]);
+
+  // M18: Animation toggle effect
+  useEffect(() => {
+    const html = document.documentElement;
+    if (gameState.settings.animationsEnabled === false) {
+      html.classList.add('reduce-motion');
+    } else {
+      html.classList.remove('reduce-motion');
+    }
+  }, [gameState.settings.animationsEnabled]);
+
+  // M18: Volume sync effect
+  useEffect(() => {
+    const vols = gameState.settings.soundVolumes;
+    if (vols) {
+      soundManager.setVolume('cards', vols.cards ?? 1);
+      soundManager.setVolume('ui', vols.ui ?? 1);
+      soundManager.setVolume('events', vols.events ?? 1);
+      soundManager.setVolume('bids', vols.bids ?? 1);
+    }
+  }, [gameState.settings.soundVolumes]);
+
   const handleChallenge = () => {
     // Legacy Dispute Modal - Deprecated
     // setIsDisputeModalOpen(true);

@@ -78,6 +78,9 @@ export interface GameSettings {
   fourColorMode?: boolean; // NEW: Accessibility
   highContrastMode?: boolean; // NEW: Accessibility
   cardLanguage?: 'EN' | 'AR'; // NEW: Arabic/English Indices
+  theme?: 'auto' | 'light' | 'dark'; // M18: Theme preference
+  animationsEnabled?: boolean; // M18: Toggle animations
+  soundVolumes?: { cards: number; ui: number; events: number; bids: number }; // M18: Per-category volume (0-1)
 }
 
 export interface DetailedScore {

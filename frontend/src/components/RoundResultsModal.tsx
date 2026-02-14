@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { RoundResult, DeclaredProject } from '../types';
 import { ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { soundManager } from '../services/SoundManager';
 
 interface RoundResultsModalProps {
     result: RoundResult | null;
@@ -14,22 +15,43 @@ interface RoundResultsModalProps {
 
 const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTeam, bidType, onClose, isOpen, onReview }) => {
 
-    // Play confetti only on open if US won
+    // Play confetti + jingles on open
     useEffect(() => {
-        if (isOpen && result && result.winner === 'us') {
-            const duration = 2000;
+        if (!isOpen || !result) return;
+
+        // Detect Kaboot for sound
+        const isKabootResult = (result.us.aklat === 0 || result.them.aklat === 0) && (result.us.aklat + result.them.aklat > 0);
+
+        if (result.winner === 'us') {
+            // Victory confetti
+            const duration = isKabootResult ? 3000 : 2000;
             const end = Date.now() + duration;
+            const particleCount = isKabootResult ? 8 : 5;
             (function frame() {
                 confetti({
-                    particleCount: 5, angle: 60, spread: 55, origin: { x: 0 },
-                    colors: ['#4ade80', '#22c55e', '#fbbf24']
+                    particleCount, angle: 60, spread: 55, origin: { x: 0 },
+                    colors: isKabootResult ? ['#FFD700', '#FFA500', '#FF4500', '#D4AF37'] : ['#4ade80', '#22c55e', '#fbbf24']
                 });
                 confetti({
-                    particleCount: 5, angle: 120, spread: 55, origin: { x: 1 },
-                    colors: ['#4ade80', '#22c55e', '#fbbf24']
+                    particleCount, angle: 120, spread: 55, origin: { x: 1 },
+                    colors: isKabootResult ? ['#FFD700', '#FFA500', '#FF4500', '#D4AF37'] : ['#4ade80', '#22c55e', '#fbbf24']
                 });
                 if (Date.now() < end) requestAnimationFrame(frame);
             }());
+
+            // M18: Sound
+            if (isKabootResult) {
+                soundManager.playKabootSound();
+            } else {
+                soundManager.playVictoryJingle();
+            }
+        } else if (result.winner === 'them') {
+            // M18: Defeat jingle
+            if (isKabootResult) {
+                soundManager.playKabootSound(); // Kaboot is dramatic regardless
+            } else {
+                soundManager.playDefeatJingle();
+            }
         }
     }, [isOpen, result]);
 
@@ -107,7 +129,7 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
 
                 {/* Kaboot (Galoss) Banner */}
                 {isKaboot && (
-                    <div className="mx-4 mb-2 bg-gradient-to-r from-rose-600 to-red-700 text-white p-3 rounded-lg shadow-lg border border-rose-400 text-center animate-pulse">
+                    <div className="mx-4 mb-2 bg-gradient-to-r from-rose-600 to-red-700 text-white p-3 rounded-lg shadow-lg border border-rose-400 text-center animate-kaboot-burst">
                         <div className="text-2xl font-black mb-0.5">كبوت! 🏆</div>
                         <div className="text-sm opacity-90">
                             {kabootWinner === 'us' ? 'فريقنا أخذ جميع الأكلات' : 'فريقهم أخذ جميع الأكلات'}

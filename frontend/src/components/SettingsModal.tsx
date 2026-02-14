@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameSettings } from '../types';
-import { X, Volume2, VolumeX, Zap, ShieldAlert, Clock, Globe, Palette, Sliders } from 'lucide-react';
+import { X, Volume2, VolumeX, Zap, ShieldAlert, Clock, Globe, Palette, Sliders, Moon, Sun, Sparkles } from 'lucide-react';
 import { VISUAL_ASSETS } from '../constants';
 
 interface SettingsModalProps {
@@ -112,6 +112,60 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                                 </div>
                                 <span className="text-cyan-400 font-bold font-mono">{settings.cardLanguage || 'EN'}</span>
                             </div>
+
+                            {/* Theme Toggle */}
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="button" aria-label={`Theme: ${settings.theme || 'auto'}`} tabIndex={0} onClick={() => {
+                                const cycle: Record<string, 'auto' | 'light' | 'dark'> = { auto: 'light', light: 'dark', dark: 'auto' };
+                                onUpdate({ ...settings, theme: cycle[settings.theme || 'auto'] });
+                            }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const cycle: Record<string, 'auto' | 'light' | 'dark'> = { auto: 'light', light: 'dark', dark: 'auto' }; onUpdate({ ...settings, theme: cycle[settings.theme || 'auto'] }); } }}>
+                                <div className="flex items-center gap-3">
+                                    {(settings.theme || 'auto') === 'dark' ? <Moon className="text-indigo-400" /> : (settings.theme === 'light' ? <Sun className="text-yellow-400" /> : <Palette className="text-purple-400" />)}
+                                    <span className="text-gray-200">Theme</span>
+                                </div>
+                                <span className="text-xs font-bold px-2 py-1 rounded bg-black/50 text-gray-400 capitalize">{settings.theme || 'auto'}</span>
+                            </div>
+
+                            {/* Animations Toggle */}
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="switch" aria-checked={settings.animationsEnabled !== false} aria-label="Animations" tabIndex={0} onClick={() => onUpdate({ ...settings, animationsEnabled: settings.animationsEnabled === false ? true : false })} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUpdate({ ...settings, animationsEnabled: settings.animationsEnabled === false ? true : false }); } }}>
+                                <div className="flex items-center gap-3">
+                                    <Sparkles className={settings.animationsEnabled !== false ? "text-pink-400" : "text-gray-500"} />
+                                    <span className="text-gray-200">Animations</span>
+                                </div>
+                                <div className={`w-10 h-5 rounded-full relative transition-colors ${settings.animationsEnabled !== false ? 'bg-pink-600' : 'bg-gray-600'}`}>
+                                    <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all ${settings.animationsEnabled !== false ? 'translate-x-5' : ''}`} />
+                                </div>
+                            </div>
+
+                            {/* Volume Sliders (shown when sound is ON) */}
+                            {settings.soundEnabled && (
+                                <div className="space-y-3 p-3 bg-[#252525] rounded-xl">
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Volume Mix</div>
+                                    {([
+                                        { key: 'cards' as const, label: 'Cards', color: 'bg-blue-500' },
+                                        { key: 'ui' as const, label: 'UI', color: 'bg-green-500' },
+                                        { key: 'events' as const, label: 'Events', color: 'bg-amber-500' },
+                                        { key: 'bids' as const, label: 'Bids', color: 'bg-purple-500' },
+                                    ]).map(({ key, label, color }) => (
+                                        <div key={key} className="flex items-center gap-3">
+                                            <span className="text-xs text-gray-400 w-12">{label}</span>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={Math.round((settings.soundVolumes?.[key] ?? 1) * 100)}
+                                                onChange={(e) => {
+                                                    const vol = parseInt(e.target.value) / 100;
+                                                    onUpdate({ ...settings, soundVolumes: { ...{ cards: 1, ui: 1, events: 1, bids: 1 }, ...settings.soundVolumes, [key]: vol } });
+                                                }}
+                                                className={`flex-1 h-1 rounded-full appearance-none cursor-pointer accent-current`}
+                                                style={{ accentColor: key === 'cards' ? '#3b82f6' : key === 'ui' ? '#22c55e' : key === 'events' ? '#f59e0b' : '#a855f7' }}
+                                                aria-label={`${label} volume`}
+                                            />
+                                            <span className="text-xs text-gray-500 w-8 text-right font-mono">{Math.round((settings.soundVolumes?.[key] ?? 1) * 100)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-6">
