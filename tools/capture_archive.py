@@ -56,10 +56,10 @@ WS_INTERCEPTOR_JS = r"""
         if (printable > Math.min(text.length, 100) * 0.5) {
             return text.substring(0, 5000);
         }
-        const hex = Array.from(bytes.slice(0, 300))
+        const hex = Array.from(bytes.slice(0, 4096))
             .map(b => b.toString(16).padStart(2, '0'))
             .join(' ');
-        return '[hex:' + bytes.length + '] ' + hex + (bytes.length > 300 ? '...' : '');
+        return '[hex:' + bytes.length + '] ' + hex + (bytes.length > 4096 ? '...' : '');
     }
 
     function decodeBlobToBuffer(blob, callback) {

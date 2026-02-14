@@ -28,7 +28,9 @@
       "Bash(redis-cli:*)",
       "Bash(findstr:*)",
       "Bash(measure-object:*)",
-      "Bash(select-object -ExpandProperty Count)"
+      "Bash(select-object -ExpandProperty Count)",
+      "Bash(find:*)",
+      "Bash(git push:*)"
     ]
   }
 }

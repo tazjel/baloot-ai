@@ -61,6 +61,7 @@ uploads/
 
 # Generated Data
 backend/data/
+gbaloot/data/
 .agent/knowledge/video_frames/
 
 # Visionary Studio (ML Artifacts)

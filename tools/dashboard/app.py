@@ -21,6 +21,7 @@ from modules.test_manager import render_test_manager_tab
 from modules.utils import get_redis_client
 from modules import cmd_queue
 from modules.playwright_capture import render_capture_tab
+from modules.protocol_decoder import render_protocol_decoder
 
 # --- Config ---
 st.set_page_config(
@@ -188,6 +189,7 @@ tab_names = [
     "📜 Logs",
     "📸 Visual Lab", 
     "🎬 Game Capture",
+    "🔓 Protocol Decoder",
     "🛠️ Ops"
 ]
 
@@ -241,4 +243,7 @@ with tabs[14]:
     render_capture_tab()
 
 with tabs[15]:
+    render_protocol_decoder()
+
+with tabs[16]:
     render_ops_tab()
