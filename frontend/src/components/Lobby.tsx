@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { GameSettings } from '../types';
-import { Clock, Shield, ShieldAlert, Play, Gamepad2 } from 'lucide-react';
+import { GameSettings, BotDifficulty } from '../types';
+import { Clock, Shield, ShieldAlert, Play, Gamepad2, Brain } from 'lucide-react';
 import { devLogger } from '../utils/devLogger';
 
 interface LobbyProps {
@@ -8,13 +8,21 @@ interface LobbyProps {
     onMultiplayer: () => void;
 }
 
+const DIFFICULTY_OPTIONS: { value: BotDifficulty; label: string; desc: string; color: string }[] = [
+    { value: 'EASY', label: 'سهل', desc: 'يغلط كثير', color: 'green' },
+    { value: 'MEDIUM', label: 'متوسط', desc: 'يغلط أحياناً', color: 'blue' },
+    { value: 'HARD', label: 'صعب', desc: 'لعب مثالي', color: 'orange' },
+    { value: 'KHALID', label: 'خالد', desc: 'مستحيل تفوز', color: 'red' },
+];
+
 const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer }) => {
     const [turnDuration, setTurnDuration] = useState<number>(3);
     const [strictMode, setStrictMode] = useState<boolean>(true);
+    const [botDifficulty, setBotDifficulty] = useState<BotDifficulty>('HARD');
 
     const handleStart = () => {
-        devLogger.log('LOBBY', 'Button Clicked', { turnDuration, strictMode });
-        onStartGame({ turnDuration, strictMode, soundEnabled: true, gameSpeed: 'NORMAL' });
+        devLogger.log('LOBBY', 'Button Clicked', { turnDuration, strictMode, botDifficulty });
+        onStartGame({ turnDuration, strictMode, soundEnabled: true, gameSpeed: 'NORMAL', botDifficulty });
     };
 
     return (
@@ -92,6 +100,33 @@ const Lobby: React.FC<LobbyProps> = ({ onStartGame, onMultiplayer }) => {
                                 ? "يمنع النظام لعب أي ورقة مخالفة للقوانين بشكل آلي."
                                 : "يمكن للاعبين لعب أي ورقة. يجب على الخصم الاعتراض لكشف الغش."}
                         </p>
+                    </div>
+
+                    {/* Bot Difficulty */}
+                    <div className="w-full mb-5 sm:mb-6">
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3 text-gray-700">
+                            <Brain size={18} className="text-purple-500" />
+                            <span className="font-bold text-sm sm:text-base">مستوى الكمبيوتر</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {DIFFICULTY_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setBotDifficulty(opt.value)}
+                                    className={`py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all touch-target flex flex-col items-center gap-0.5 ${botDifficulty === opt.value
+                                        ? `bg-${opt.color}-500 text-white shadow-lg shadow-${opt.color}-500/30`
+                                        : 'bg-white/60 text-gray-600 hover:bg-white border border-gray-200'
+                                        }`}
+                                    style={botDifficulty === opt.value ? {
+                                        backgroundColor: opt.color === 'green' ? '#22c55e' : opt.color === 'blue' ? '#3b82f6' : opt.color === 'orange' ? '#f97316' : '#ef4444',
+                                        color: 'white',
+                                    } : undefined}
+                                >
+                                    <span>{opt.label}</span>
+                                    <span className={`text-[10px] font-normal ${botDifficulty === opt.value ? 'text-white/80' : 'text-gray-400'}`}>{opt.desc}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Start Button - Premium Gold */}

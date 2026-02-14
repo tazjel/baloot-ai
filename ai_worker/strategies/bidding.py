@@ -15,6 +15,7 @@ from ai_worker.strategies.components.score_pressure import (
 )
 from ai_worker.strategies.components.trick_projection import project_tricks
 from ai_worker.strategies.components.hand_shape import evaluate_shape
+from ai_worker.strategies.difficulty import get_bid_noise
 import logging
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,16 @@ class BiddingStrategy:
             logger.debug(f"[BIDDING] Shape: {shape['pattern_label']} {shape['shape_type']} → SUN adj={shape['bid_adjustment']}, HOKUM adj={shape_h['bid_adjustment'] if shape_h else 0}")
         except Exception as e:
             logger.debug(f"Hand shape skipped: {e}")
+
+        # 3d. Difficulty noise — add randomness to bid evaluation for lower levels
+        try:
+            noise = get_bid_noise(ctx.difficulty)
+            if noise:
+                sun_score += noise
+                best_hokum_score += noise
+                logger.debug(f"[BIDDING] Difficulty noise: {noise:+d} (level={ctx.difficulty.name})")
+        except Exception:
+            pass
 
         # 4. Contextual Checks (Ashkal)
         is_left_op = (ctx.player_index == (ctx.dealer_index + 3) % 4)
@@ -406,7 +417,18 @@ class BiddingStrategy:
         )
         logger.debug(f"[DOUBLING] {result['reasoning']}")
 
-        if result['should_double']:
+        # Personality: doubling_confidence adjusts the threshold
+        # < 1.0 = bold (doubles on lower confidence), > 1.0 = cautious
+        dc = getattr(ctx.personality, 'doubling_confidence', 1.0)
+        effective_confidence = result.get('confidence', 0.0)
+        should = result['should_double']
+        if dc != 1.0 and effective_confidence > 0:
+            # Bold personality: accept lower confidence; cautious: require higher
+            adjusted_conf = effective_confidence / dc
+            should = adjusted_conf >= 0.5
+            logger.debug(f"[DOUBLING] Personality adj: conf={effective_confidence:.2f}/dc={dc:.1f}={adjusted_conf:.2f} -> {'DOUBLE' if should else 'PASS'}")
+
+        if should:
             return {"action": "DOUBLE", "reasoning": f"Double! {result['reasoning']}"}
         return {"action": "PASS", "reasoning": f"No double: {result['reasoning']}"}
 

@@ -66,11 +66,14 @@ export interface TableCardMetadata {
   [key: string]: unknown;
 }
 
+export type BotDifficulty = 'EASY' | 'MEDIUM' | 'HARD' | 'KHALID';
+
 export interface GameSettings {
   turnDuration: number; // Seconds (e.g. 5, 10, 15)
   strictMode: boolean; // True = Auto-block illegal moves, False = Allow illegal + Disputes
   soundEnabled: boolean;
   gameSpeed: 'NORMAL' | 'FAST';
+  botDifficulty?: BotDifficulty; // Bot AI difficulty level
   isDebug?: boolean;
   fourColorMode?: boolean; // NEW: Accessibility
   highContrastMode?: boolean; // NEW: Accessibility

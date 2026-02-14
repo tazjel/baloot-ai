@@ -22,6 +22,7 @@ class Player:
         # Director Configs (Bot Instructions)
         self.strategy = 'heuristic' # default
         self.profile = None # Explicit personality override
+        self.difficulty = None # Difficulty level (EASY/MEDIUM/HARD/KHALID)
 
     @property
     def position(self):
@@ -45,5 +46,6 @@ class Player:
             "isActive": (self.index == self.game.current_turn),
             # Expose Configs
             "strategy": getattr(self, 'strategy', 'heuristic'),
-            "profile": getattr(self, 'profile', None)
+            "profile": getattr(self, 'profile', None),
+            "difficulty": getattr(self, 'difficulty', None)
         }

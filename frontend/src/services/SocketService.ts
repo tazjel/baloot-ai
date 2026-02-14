@@ -20,6 +20,7 @@ class SocketService {
     // Stored room context for auto-rejoin on reconnect
     private activeRoomId: string | null = null;
     private activePlayerName: string | null = null;
+    public activeBotDifficulty: string | null = null;
 
     connect() {
         if (!this.socket) {
@@ -86,12 +87,15 @@ class SocketService {
         this.socket.emit('create_room', {}, callback);
     }
 
-    joinRoom(roomId: string, playerName: string, callback: (res: ApiResponse) => void) {
+    joinRoom(roomId: string, playerName: string, callback: (res: ApiResponse) => void, botDifficulty?: string) {
         if (!this.socket) return;
         // Store room context for auto-rejoin on reconnect
         this.activeRoomId = roomId;
         this.activePlayerName = playerName;
-        this.socket.emit('join_room', { roomId, playerName }, callback);
+        if (botDifficulty) this.activeBotDifficulty = botDifficulty;
+        const payload: Record<string, unknown> = { roomId, playerName };
+        if (this.activeBotDifficulty) payload.botDifficulty = this.activeBotDifficulty;
+        this.socket.emit('join_room', payload, callback);
     }
 
     sendAction(roomId: string, action: string, payload: Record<string, unknown>, callback?: (res: ApiResponse) => void) {

@@ -1,6 +1,7 @@
 from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, BiddingPhase, BidType
 from ai_worker.personality import PersonalityProfile, BALANCED
+from ai_worker.strategies.difficulty import DifficultyLevel
 import functools
 import logging
 
@@ -8,10 +9,11 @@ logger = logging.getLogger(__name__)
 
 class BotContext:
     """Typed wrapper for game state to simplify bot logic."""
-    def __init__(self, game_state: dict, player_index: int, personality: PersonalityProfile = BALANCED):
+    def __init__(self, game_state: dict, player_index: int, personality: PersonalityProfile = BALANCED, difficulty: DifficultyLevel = DifficultyLevel.HARD):
         self.raw_state = game_state
         self.player_index = player_index
         self.personality = personality
+        self.difficulty = difficulty
 
         self._parse_player(game_state, player_index)
         self._parse_game_info(game_state)

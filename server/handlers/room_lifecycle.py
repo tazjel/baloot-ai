@@ -143,6 +143,8 @@ def register(sio, connected_users):
         # For testing: Auto-add 3 bots when first player joins
         if len(game.players) == 1:
             bot_personas = [BALANCED, AGGRESSIVE, CONSERVATIVE]
+            # Read difficulty from join data (defaults to HARD)
+            bot_difficulty = data.get('botDifficulty', 'HARD')
 
             for i, persona in enumerate(bot_personas):
                 bot_id = f"BOT_{i}_{int(time.time()*1000)}"
@@ -151,6 +153,8 @@ def register(sio, connected_users):
                 bot_player = game.add_player(bot_id, display_name, avatar=persona.avatar_id)
                 if bot_player:
                     bot_player.is_bot = True
+                    bot_player.profile = persona.name
+                    bot_player.difficulty = bot_difficulty
                     sio.emit('player_joined', {'player': bot_player.to_dict()}, room=room_id)
 
         # Broadcast to room
@@ -196,6 +200,7 @@ def register(sio, connected_users):
         persona = personas[len(game.players) % 3]
 
         name = f"{persona.name} (Bot)"
+        bot_difficulty = data.get('difficulty', 'HARD')
 
         bot_id = f"BOT_{len(game.players)}_{int(time.time())}"
         player = game.add_player(bot_id, name, avatar=persona.avatar_id)
@@ -204,6 +209,8 @@ def register(sio, connected_users):
             return {'success': False, 'error': 'Room full'}
 
         player.is_bot = True
+        player.profile = persona.name
+        player.difficulty = bot_difficulty
         room_manager.save_game(game)
 
         sio.emit('player_joined', {'player': player.to_dict()}, room=room_id)

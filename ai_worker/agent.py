@@ -9,6 +9,8 @@ from ai_worker.strategies.bidding import BiddingStrategy
 from ai_worker.strategies.playing import PlayingStrategy
 from ai_worker.strategies.neural import NeuralStrategy
 from ai_worker.personality import PROFILES, BALANCED
+from ai_worker.strategies.difficulty import DifficultyLevel, apply_difficulty_to_play, apply_difficulty_to_bid, get_bid_noise
+from ai_worker.strategies.components.personality_filter import apply_personality_to_play
 from ai_worker.memory import CardMemory
 
 # Core Architecture Modules
@@ -71,9 +73,18 @@ class BotAgent:
                  if "Aggressive" in p_name: profile = PROFILES['Aggressive']
                  elif "Conservative" in p_name: profile = PROFILES['Conservative']
                  elif "Balanced" in p_name: profile = PROFILES['Balanced']
-            
+
+             # Determine Difficulty
+             difficulty = DifficultyLevel.HARD  # Default
+             explicit_difficulty = p_data.get('difficulty')
+             if explicit_difficulty:
+                  try:
+                       difficulty = DifficultyLevel[explicit_difficulty.upper()]
+                  except (KeyError, AttributeError):
+                       pass
+
              # Use Typed Context
-             ctx = BotContext(game_state, player_index, personality=profile)
+             ctx = BotContext(game_state, player_index, personality=profile, difficulty=difficulty)
 
              # 1. Sawa check handled by PlayingStrategy.project_logic
              
@@ -192,10 +203,28 @@ class BotAgent:
 
              # 5. STRATEGY DISPATCH (MCTS + Heuristics)
              if ctx.phase in ['BIDDING', 'DOUBLING']:
-                  return self.bidding_strategy.get_decision(ctx)
+                  bid_decision = self.bidding_strategy.get_decision(ctx)
+                  # Difficulty filter: occasionally downgrade bids for lower levels
+                  try:
+                       bid_decision = apply_difficulty_to_bid(bid_decision, ctx.difficulty, ctx)
+                  except Exception as e:
+                       logger.warning(f"[DIFFICULTY] Bid filter error: {e}")
+                  return bid_decision
 
              elif ctx.phase == 'PLAYING':
                   decision = self.playing_strategy.get_decision(ctx)
+                  # Personality filter: adjust play based on bot character
+                  try:
+                       legal_indices = ctx.get_legal_moves()
+                       decision = apply_personality_to_play(decision, ctx, legal_indices)
+                  except Exception as e:
+                       logger.warning(f"[PERSONALITY] Filter error: {e}")
+                  # Difficulty filter: introduce controlled mistakes for lower levels
+                  try:
+                       legal_indices = ctx.get_legal_moves()
+                       decision = apply_difficulty_to_play(decision, ctx.difficulty, legal_indices)
+                  except Exception as e:
+                       logger.warning(f"[DIFFICULTY] Filter error: {e}")
                   return self._enforce_legality(ctx, decision)
 
              return {"action": "PASS"}

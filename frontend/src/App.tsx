@@ -5,7 +5,7 @@ import Table from './components/Table';
 import KammelnaBoard from './components/kammelna/KammelnaBoard';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
-import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
+import { GameState, GamePhase, PlayerPosition, Suit, RoundResult, BotDifficulty } from './types';
 
 import SettingsModal from './components/SettingsModal';
 import VictoryModal from './components/VictoryModal';
@@ -159,6 +159,8 @@ const App: React.FC = () => {
               const rid = res.roomId as string;
               // 2. Join as Me
               const myName = userProfile.firstName || 'Me';
+              const difficulty = settings.botDifficulty || 'HARD';
+              socketService.activeBotDifficulty = difficulty;
 
               socketService.joinRoom(rid, myName, (joinRes) => {
                 devLogger.log('LOBBY', 'Join Room Response', joinRes);
@@ -169,6 +171,7 @@ const App: React.FC = () => {
                     joinGame(rid, joinRes.yourIndex as number, joinRes.gameState as GameState);
                     updateSettings(settings);
                     setCurrentView('GAME');
+
 
                     devLogger.log('LOBBY', 'Transitioning to GAME view');
 

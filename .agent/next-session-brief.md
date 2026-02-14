@@ -8,8 +8,8 @@
 |--------|-------|
 | Backend source files | ~130 (game_engine: 45, ai_worker: 42, server: 42) |
 | Frontend files | ~95 (.tsx: 49, .ts: 46) |
-| Tests collected | **462** ✅ (bot + game_logic suites) |
-| Last Pass Rate | **100%** (462/462) ✅ |
+| Tests collected | **502** ✅ (bot + game_logic suites) |
+| Last Pass Rate | **100%** (502/502) ✅ |
 | Last Test Run | 2026-02-14 |
 | TypeScript errors | **0** ✅ |
 | TODO/FIXME/HACK | **2** (ai_worker/memory.py, ai_worker/mcts/utils.py) |
@@ -107,27 +107,17 @@
 
 ## 🎯 Active Missions
 
-## Mission 16: "The Mind" — Bot Personality & Difficulty System 🔄 IN PROGRESS
-> Started 2026-02-14. M16.1-16.3 complete, M16.4-16.6 remaining.
+## Mission 16: "The Mind" — Bot Personality & Difficulty System ✅
+> Completed 2026-02-14. All 7 subtasks done. +40 tests (462→502).
 
-### Completed
-- **M16.1**: Expanded `personality.py` — 4 profiles (Saad/Khalid/Abu Fahad/Majed) with 7 playing attributes (trump_lead_bias, point_greed, risk_tolerance, kaboot_pursuit, false_signal_rate, partner_trust, doubling_confidence)
-- **M16.2**: Created `ai_worker/strategies/difficulty.py` — DifficultyLevel enum (EASY/MEDIUM/HARD/KHALID), apply_difficulty_to_play(), apply_difficulty_to_bid(), helpers
-- **M16.3**: Created `ai_worker/strategies/components/personality_filter.py` — apply_personality_to_play() with deceptive play, trump lead bias, point greed modifiers
-
-### Remaining (Next Session)
-- [ ] **M16.4**: Wire personality_filter + difficulty into agent.py decision pipeline (agent.py already read)
-- [ ] **M16.5**: Wire personality into sun.py/hokum.py bidding thresholds
-- [ ] **M16.6**: Frontend difficulty selector in pre-game lobby
-- [ ] **M16.7**: Tests — `tests/bot/test_personality.py`, `tests/bot/test_difficulty.py`
-
-### Key Wiring Plan (M16.4)
-In agent.py `get_decision()`, after strategy returns decision:
-1. `decision = apply_personality_to_play(decision, ctx, legal_indices)` — personality filter
-2. `decision = apply_difficulty_to_play(decision, difficulty_level, legal_indices)` — difficulty noise
-3. `decision = self._enforce_legality(ctx, decision)` — legality guardrail (already exists)
-
-For bidding: apply personality bias to thresholds in bidding.py, then difficulty noise via apply_difficulty_to_bid().
+### What Was Built
+- **M16.1**: Expanded `personality.py` — 4 profiles (Saad/Khalid/Abu Fahad/Majed) with 7 playing attributes
+- **M16.2**: Created `difficulty.py` — DifficultyLevel enum (EASY/MEDIUM/HARD/KHALID) with controlled mistakes
+- **M16.3**: Created `personality_filter.py` — deceptive play, trump lead bias, point greed modifiers
+- **M16.4**: Wired into `agent.py` — personality filter + difficulty noise after strategy, before legality check
+- **M16.5**: Wired into `bidding.py` — bid_score_noise from difficulty, doubling_confidence from personality
+- **M16.6**: Frontend difficulty selector in `Lobby.tsx` — 4-button grid (Arabic labels), flows through SocketService→room_lifecycle
+- **M16.7**: Tests — `test_personality.py` (17 tests), `test_difficulty.py` (23 tests)
 
 ---
 
