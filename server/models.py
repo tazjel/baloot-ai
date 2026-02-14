@@ -21,6 +21,9 @@ db.define_table('app_user',
                 Field('email', unique=True, required=True),
                 Field('password', 'password', readable=False, required=True),
                 Field('league_points', 'integer', default=1000),
+                Field('coins', 'integer', default=0),
+                Field('owned_items', 'json', default=[]),
+                Field('equipped_items', 'json', default={}),
                 )
 
 # Define game results table

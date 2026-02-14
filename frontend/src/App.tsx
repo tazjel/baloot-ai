@@ -29,6 +29,9 @@ import { devLogger } from './utils/devLogger';
 
 import { useEmotes } from './hooks/useEmotes';
 import { useShop } from './hooks/useShop';
+import { useAuth } from './contexts/AuthContext';
+import AuthModal from './components/auth/AuthModal';
+import { LogIn } from 'lucide-react';
 
 
 const App: React.FC = () => {
@@ -62,6 +65,16 @@ const App: React.FC = () => {
     updateSettings,
     isSendingAction // Added
   } = useGameContext();
+
+  const { user, isAuthenticated } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Sync Auth User to Game Context
+  useEffect(() => {
+    if (user) {
+      setUserProfile(prev => ({ ...prev, ...user }));
+    }
+  }, [user, setUserProfile]);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Settings UI
   const [levelUpData, setLevelUpData] = useState<{ newLevel: number, rewards: { coins: number } } | null>(null);
@@ -362,9 +375,37 @@ const App: React.FC = () => {
   return (
     <GameLayout variant='mobile'>
       <ConnectionBanner />
+
+      {/* Auth Button (Global) */}
+      <div className="absolute top-4 left-4 z-[90]">
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="bg-black/40 hover:bg-black/60 p-2 rounded-full text-white/80 hover:text-white transition-all backdrop-blur-sm border border-white/10 flex items-center gap-2 px-3"
+        >
+            {isAuthenticated ? (
+                <>
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-yellow-600 to-yellow-400 flex items-center justify-center text-[10px] text-black font-bold border border-white/20">
+                        {user?.firstName?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col items-start leading-none">
+                        <span className="text-xs font-bold text-yellow-500 hidden sm:inline">{user?.firstName}</span>
+                        <span className="text-[10px] text-gray-400 hidden sm:inline">{user?.tier}</span>
+                    </div>
+                </>
+            ) : (
+                <>
+                    <LogIn size={18} />
+                    <span className="text-xs hidden sm:inline font-bold">دخول</span>
+                </>
+            )}
+        </button>
+      </div>
+
       <ErrorBoundary>
         {content}
       </ErrorBoundary>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </GameLayout>
   );
 }
