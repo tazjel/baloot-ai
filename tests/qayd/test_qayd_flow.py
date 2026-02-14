@@ -26,6 +26,9 @@ def create_test_game_with_illegal_setup():
 
     game.start_game()
 
+    # Disable strict mode to allow illegal moves (for testing Qayd)
+    game.strictMode = False
+
     # Force PLAYING / HOKUM
     game.phase = "PLAYING"
     game.game_mode = "HOKUM"

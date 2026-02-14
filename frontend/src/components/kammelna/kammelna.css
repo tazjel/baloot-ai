@@ -1,0 +1,547 @@
+/* ═══════════════════════════════════════════
+   Kammelna Board Theme — Dark Luxury
+   ═══════════════════════════════════════════ */
+
+:root {
+  --km-bg-primary: #1a0f0a;
+  --km-bg-secondary: #2d1810;
+  --km-bg-panel: rgba(20, 12, 8, 0.85);
+  --km-bg-glass: rgba(30, 18, 12, 0.7);
+  --km-gold: #d4a853;
+  --km-gold-bright: #f0c75e;
+  --km-gold-dim: #8b6914;
+  --km-text-primary: #f5e6d3;
+  --km-text-secondary: #c4a882;
+  --km-text-muted: #7a6652;
+  --km-border: rgba(212, 168, 83, 0.2);
+  --km-border-active: rgba(212, 168, 83, 0.6);
+  --km-accent-red: #c0392b;
+  --km-accent-blue: #2c6fbb;
+  --km-accent-green: #27ae60;
+  --km-shadow-glow: 0 0 20px rgba(212, 168, 83, 0.3);
+}
+
+/* ─── Board Container ─── */
+.kammelna-board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--km-bg-primary);
+  font-family: 'Tajawal', 'Cairo', sans-serif;
+  color: var(--km-text-primary);
+  overflow: hidden;
+  display: flex;
+  direction: rtl;
+}
+
+/* ─── Carpet Background ─── */
+.kammelna-carpet {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.kammelna-carpet::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    rgba(10, 5, 2, 0.5) 70%,
+    rgba(10, 5, 2, 0.85) 100%
+  );
+  pointer-events: none;
+}
+
+/* ─── Glass Panel ─── */
+.km-glass {
+  background: var(--km-bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--km-border);
+  border-radius: 16px;
+}
+
+.km-glass-strong {
+  background: var(--km-bg-panel);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--km-border);
+  border-radius: 16px;
+}
+
+/* ─── Sidebar ─── */
+.kammelna-sidebar {
+  width: 300px;
+  min-width: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--km-bg-panel);
+  border-left: 1px solid var(--km-border);
+  z-index: 20;
+  overflow-y: auto;
+}
+
+.kammelna-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kammelna-sidebar::-webkit-scrollbar-thumb {
+  background: var(--km-gold-dim);
+  border-radius: 4px;
+}
+
+/* ─── Score Panel ─── */
+.km-score-panel {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 16px;
+}
+
+.km-score-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.km-score-label {
+  font-size: 13px;
+  color: var(--km-text-secondary);
+  font-weight: 600;
+}
+
+.km-score-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--km-gold-bright);
+  text-shadow: 0 0 10px rgba(212, 168, 83, 0.4);
+  line-height: 1;
+}
+
+.km-score-divider {
+  width: 2px;
+  height: 48px;
+  background: var(--km-border);
+  border-radius: 1px;
+}
+
+/* ─── Player Avatar ─── */
+.km-avatar-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.km-avatar-ring img,
+.km-avatar-ring .km-avatar-placeholder {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--km-gold-dim);
+  object-fit: cover;
+  background: var(--km-bg-secondary);
+}
+
+.km-avatar-ring.active img,
+.km-avatar-ring.active .km-avatar-placeholder {
+  border-color: var(--km-gold-bright);
+  box-shadow: var(--km-shadow-glow), 0 0 30px rgba(212, 168, 83, 0.2);
+  animation: km-pulse-ring 2s ease-in-out infinite;
+}
+
+@keyframes km-pulse-ring {
+  0%, 100% {
+    box-shadow: var(--km-shadow-glow), 0 0 10px rgba(212, 168, 83, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(212, 168, 83, 0.5), 0 0 50px rgba(212, 168, 83, 0.3);
+  }
+}
+
+.km-avatar-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--km-text-primary);
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.km-avatar-coins {
+  font-size: 11px;
+  color: var(--km-gold);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ─── Action Dock ─── */
+.kammelna-dock {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 24px;
+  border-radius: 24px;
+  z-index: 100;
+}
+
+.km-dock-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(40, 25, 15, 0.8);
+  border: 1px solid var(--km-border);
+  color: var(--km-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 11px;
+  font-weight: 700;
+  gap: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.km-dock-btn:hover:not(:disabled) {
+  background: rgba(60, 38, 22, 0.9);
+  border-color: var(--km-border-active);
+  transform: scale(1.08);
+}
+
+.km-dock-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.km-dock-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.km-dock-btn .km-dock-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.km-dock-btn .km-dock-label {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ─── Arena (main playing area) ─── */
+.kammelna-arena {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ─── Center Table Cards ─── */
+.km-center-cards {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 30;
+}
+
+/* ─── Hand Fan (Bottom) ─── */
+.kammelna-hand {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.kammelna-hand > * {
+  pointer-events: auto;
+}
+
+/* ─── Chat Panel ─── */
+.km-chat-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.km-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.km-chat-messages::-webkit-scrollbar {
+  width: 3px;
+}
+
+.km-chat-messages::-webkit-scrollbar-thumb {
+  background: var(--km-gold-dim);
+  border-radius: 3px;
+}
+
+.km-chat-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(40, 25, 15, 0.5);
+  font-size: 13px;
+}
+
+.km-chat-bubble img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--km-gold-dim);
+}
+
+.km-chat-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--km-border);
+}
+
+.km-chat-input input {
+  flex: 1;
+  background: rgba(30, 18, 12, 0.6);
+  border: 1px solid var(--km-border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  color: var(--km-text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.km-chat-input input::placeholder {
+  color: var(--km-text-muted);
+}
+
+.km-chat-input input:focus {
+  border-color: var(--km-border-active);
+}
+
+/* ─── Session Info ─── */
+.km-session-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--km-text-primary);
+}
+
+.km-session-props {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--km-text-secondary);
+}
+
+.km-session-prop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─── Player Positions (Arena) ─── */
+.km-player-top {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.km-player-left {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.km-player-right {
+  position: absolute;
+  right: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 20;
+}
+
+.km-player-bottom {
+  position: absolute;
+  bottom: 140px;
+  left: 160px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 60;
+}
+
+/* ─── Floor Card Glow ─── */
+.km-floor-glow {
+  position: relative;
+}
+
+.km-floor-glow::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 12px;
+  background: radial-gradient(ellipse, rgba(212, 168, 83, 0.4) 0%, transparent 70%);
+  animation: km-pulse-ring 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ─── Waiting State ─── */
+.km-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: var(--km-text-secondary);
+}
+
+.km-waiting h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--km-gold);
+}
+
+.km-waiting button {
+  padding: 10px 28px;
+  background: linear-gradient(135deg, var(--km-gold) 0%, var(--km-gold-dim) 100%);
+  color: var(--km-bg-primary);
+  font-weight: 800;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.km-waiting button:hover {
+  transform: scale(1.05);
+  box-shadow: var(--km-shadow-glow);
+}
+
+/* ─── Bidding Buttons (Kammelna style) ─── */
+.km-bid-btn {
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid var(--km-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(40, 25, 15, 0.8);
+  color: var(--km-text-primary);
+}
+
+.km-bid-btn:hover:not(:disabled) {
+  border-color: var(--km-border-active);
+  transform: scale(1.05);
+}
+
+.km-bid-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.km-bid-btn.sun {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2));
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.km-bid-btn.hokum {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(185, 28, 28, 0.2));
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ─── Toast Override ─── */
+.kammelna-board .toast-container {
+  top: 16px;
+  right: 320px; /* Account for sidebar */
+}
+
+/* ─── Trick Count Badge ─── */
+.km-trick-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--km-accent-red);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--km-bg-primary);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1200px) {
+  .kammelna-sidebar {
+    width: 260px;
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 900px) {
+  .kammelna-sidebar {
+    display: none;
+  }
+}

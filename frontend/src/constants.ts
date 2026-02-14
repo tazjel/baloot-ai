@@ -65,5 +65,6 @@ export const VISUAL_ASSETS = {
     { id: 'table_classic_green', name: 'Classic Green', type: 'css', value: '#1a472a' },
     { id: 'table_royal_blue', name: 'Royal Blue', type: 'css', value: '#1e3a8a' },
     { id: 'table_midnight', name: 'Midnight', type: 'css', value: '#0f172a' },
+    { id: 'table_kammelna', name: 'كمّلنا (Kammelna)', type: 'layout', value: 'kammelna' },
   ]
 };

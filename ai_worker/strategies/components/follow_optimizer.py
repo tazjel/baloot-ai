@@ -130,43 +130,67 @@ def optimize_follow(
         lowest_idx = min(same_suit, key=lambda i: _rank_index(hand[i].rank, mode))
         highest_idx = max(same_suit, key=lambda i: _rank_index(hand[i].rank, mode))
 
-        # — Partner winning → DODGE or FEED_PARTNER —
+        # — Partner winning → FEED_PARTNER or DODGE —
         if partner_winning:
-            # Feed high-value cards to partner's winning trick
-            feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 10]
-            if feedable and trick_points >= 5:
-                idx = max(feedable, key=lambda i: _card_points(hand[i].rank, mode))
+            # Tier 1: Feed A (11pts) or 10 (10pts) — massive point dump
+            big_feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 10]
+            if big_feedable:
+                idx = max(big_feedable, key=lambda i: _card_points(hand[i].rank, mode))
                 c = hand[idx]
-                return _result(idx, "FEED_PARTNER", 0.8,
+                return _result(idx, "FEED_PARTNER", 0.85,
                                f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) to partner")
+            # Tier 2: Feed K (4pts) or Q (3pts) — smaller but still valuable
+            mid_feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 3]
+            if mid_feedable and trick_points >= 5:
+                idx = max(mid_feedable, key=lambda i: _card_points(hand[i].rank, mode))
+                c = hand[idx]
+                return _result(idx, "FEED_PARTNER", 0.75,
+                               f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) to partner's trick")
+            # Tier 3: Just play lowest — dodge
             c = hand[lowest_idx]
             return _result(lowest_idx, "DODGE", 0.85,
                            f"Partner winning — play lowest {c.rank}{c.suit}")
+
+        # ── SECOND-HAND-LOW DISCIPLINE ──
+        # Seat 2: Play low unless master or high-value trick — let partner handle it
+        if seat == 2 and beaters:
+            masters = [i for i in beaters if _rank_index(hand[i].rank, mode) >= 7]  # Top rank = master-level
+            if masters and trick_points >= 10:
+                # We have the top card AND trick is valuable — take it
+                idx = min(masters, key=lambda i: _rank_index(hand[i].rank, mode))
+                c = hand[idx]
+                return _result(idx, "SECOND_HAND_HIGH", 0.75,
+                               f"2nd seat exception: take {trick_points}pts with master {c.rank}{c.suit}")
+            if trick_points < 10:
+                # Low-value trick — play low, let partner handle from seat 4
+                c = hand[lowest_idx]
+                return _result(lowest_idx, "SECOND_HAND_LOW", 0.7,
+                               f"2nd seat low: save strength, play {c.rank}{c.suit}")
 
         # — Can we beat the current winner? —
         if beaters:
             cheapest_beater = min(beaters, key=lambda i: _rank_index(hand[i].rank, mode))
 
-            # WIN_BIG: high-value trick
+            # WIN_BIG: high-value trick (15+ points) — prioritize regardless of seat
             if trick_points >= 15:
                 c = hand[cheapest_beater]
                 return _result(cheapest_beater, "WIN_BIG", 0.88,
                                f"{c.rank}{c.suit} beats {w_rank}; {trick_points}pts on table")
 
-            # DESPERATION: seat 4, opponent winning big pot
+            # DESPERATION: seat 4, opponent winning medium-value pot (10-14 pts)
             if seat == 4 and trick_points >= 10:
                 c = hand[cheapest_beater]
                 return _result(cheapest_beater, "DESPERATION", 0.75,
                                f"Seat 4, must win {trick_points}pt trick with {c.rank}{c.suit}")
 
-            # WIN_CHEAP: seat 4 = guaranteed win; seats 2-3 only if very high card
+            # WIN_CHEAP: seat 4 = guaranteed win for low-value tricks (<10 pts)
             if seat == 4:
                 c = hand[cheapest_beater]
                 return _result(cheapest_beater, "WIN_CHEAP", 0.9,
                                f"Seat 4 guaranteed win: {c.rank}{c.suit} beats {w_rank}")
 
-            # Seats 2/3: only win cheap with a top-3 card
-            if _rank_index(hand[cheapest_beater].rank, mode) >= 5:
+            # Seat 3: only win cheap with a top-3 card
+            if seat == 3 and _rank_index(hand[cheapest_beater].rank, mode) >= 5:
                 c = hand[cheapest_beater]
                 return _result(cheapest_beater, "WIN_CHEAP", 0.65,
                                f"Strong {c.rank}{c.suit} likely holds vs {w_rank}")
@@ -180,9 +204,16 @@ def optimize_follow(
     trump_cards = [i for i in off_suit if trump_suit and hand[i].suit == trump_suit]
     non_trump = [i for i in off_suit if not trump_suit or hand[i].suit != trump_suit]
 
-    # Partner winning → DODGE (don't waste trump)
+    # Partner winning → FEED_OFFSUIT or DODGE (don't waste trump)
     if partner_winning:
         discard = non_trump if non_trump else off_suit
+        # Feed high-point off-suit cards to partner (A, 10, K, Q)
+        feedable_off = [i for i in discard if _card_points(hand[i].rank, mode) >= 3]
+        if feedable_off and trick_points >= 5:
+            idx = max(feedable_off, key=lambda i: _card_points(hand[i].rank, mode))
+            c = hand[idx]
+            return _result(idx, "FEED_OFFSUIT", 0.78,
+                           f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) off-suit to partner")
         idx = min(discard, key=lambda i: _card_points(hand[i].rank, mode))
         c = hand[idx]
         return _result(idx, "DODGE", 0.8,

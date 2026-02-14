@@ -36,6 +36,7 @@ from .scoring_engine import ScoringEngine
 from .project_manager import ProjectManager
 from .akka_manager import AkkaManager
 from .sawa_manager import SawaManager
+from .baloot_manager import BalootManager
 from .qayd_engine import QaydEngine
 from .game_lifecycle import GameLifecycle
 from .player_manager import PlayerManager
@@ -81,6 +82,7 @@ class Game(StateBridgeMixin):
         self.project_manager = ProjectManager(self)
         self.akka_manager = AkkaManager(self)
         self.sawa_manager = SawaManager(self)
+        self.baloot_manager = BalootManager(self)
         self.challenge_phase = ChallengePhase(self)
         self.qayd_engine = QaydEngine(self)
         self.qayd_engine.reset()
@@ -302,6 +304,7 @@ class Game(StateBridgeMixin):
             "timerStartTime": getattr(self.timer,'start_time',0),
             "turnDuration": self.turn_duration, "serverTime": time.time(),
             "akkaState": self.state.akkaState.model_dump() if self.state.akkaState.active else None,
+            "balootState": self.baloot_manager.get_state() if hasattr(self, 'baloot_manager') else None,
             "gameId": self.room_id, "settings": self.state.settings,
             "resolvedCrimes": self.state.resolved_crimes,
         }

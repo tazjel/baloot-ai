@@ -85,12 +85,22 @@ class PlayingPhase:
         if metadata is None: metadata = {}
         
         self.game.table_cards.append({
-            'playerId': player.id, 
+            'playerId': player.id,
             'card': played_card,
             'playedBy': player.position,
             'metadata': metadata
         })
-        
+
+        # 5b. Baloot tracking: check if K or Q of trump was played
+        try:
+            if hasattr(self.game, 'baloot_manager'):
+                baloot_event = self.game.baloot_manager.on_card_played(player.position, played_card)
+                if baloot_event:
+                    metadata['baloot'] = baloot_event
+                    logger.info(f"[BALOOT] {baloot_event.get('phase', '?')}: {baloot_event.get('message', '')}")
+        except Exception as e:
+            logger.error(f"Baloot tracking error: {e}")
+
         # 6. Notify TrickManager / Resolve Trick
         if len(self.game.table_cards) == 4:
             self.game.resolve_trick()

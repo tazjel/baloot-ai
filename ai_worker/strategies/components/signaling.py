@@ -116,12 +116,15 @@ def get_ten_management_play(ctx: BotContext, legal_indices: list) -> dict | None
             suit_ranks = [x.rank for x in suit_cards]
 
             if 'A' not in suit_ranks and len(suit_cards) <= 2:
-                # Check if it's early enough to return safely
                 tricks_played = len(ctx.raw_state.get('currentRoundTricks', []))
                 if tricks_played <= 3:
-                    # Lone 10 — risky to hold. But only discard, don't lead it!
-                    # This is flagged for the discard logic, not lead logic
-                    pass
+                    # Lone 10 without Ace protection — lead it early to partner
+                    # before opponents can set up to capture it
+                    return {
+                        "action": "PLAY",
+                        "cardIndex": idx,
+                        "reasoning": f"Lone 10 Return: Unprotected 10{c.suit} — returning early"
+                    }
 
     return None
 

@@ -209,6 +209,24 @@ class ScoringEngine:
                 score_us *= multiplier
                 score_them *= multiplier
         
+        # Baloot Declaration (K+Q of trump) — IMMUNE to doubling
+        # Always exactly 2 GP per declaration, added AFTER multiplier
+        baloot_gp_us = 0
+        baloot_gp_them = 0
+        baloot_declarations = []
+        try:
+            if hasattr(self.game, 'baloot_manager'):
+                baloot_pts = self.game.baloot_manager.get_baloot_points()
+                baloot_gp_us = baloot_pts.get('us', 0)
+                baloot_gp_them = baloot_pts.get('them', 0)
+                baloot_declarations = self.game.baloot_manager.get_declarations()
+                score_us += baloot_gp_us
+                score_them += baloot_gp_them
+                if baloot_gp_us or baloot_gp_them:
+                    logger.info(f"[BALOOT] Scoring: us +{baloot_gp_us} GP, them +{baloot_gp_them} GP (immune to doubling)")
+        except Exception as e:
+            logger.error(f"Baloot scoring error: {e}")
+
         is_kaboot_us = (kaboot_winner == 'us')
         is_kaboot_them = (kaboot_winner == 'them')
 
@@ -237,7 +255,8 @@ class ScoringEngine:
             },
             'winner': 'us' if score_us > score_them else 'them',
             'baida': (score_us == score_them),
-            'project': self.game.game_mode 
+            'project': self.game.game_mode,
+            'balootDeclarations': baloot_declarations,
         }
         
         return round_result, score_us, score_them

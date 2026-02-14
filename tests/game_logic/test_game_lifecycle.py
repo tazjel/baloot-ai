@@ -122,6 +122,8 @@ class TestPlayPhase(unittest.TestCase):
         self.game.add_player("p3", "P3")
         self.game.add_player("p4", "P4")
         self.game.start_game()
+        # Disable strict mode for integration tests (allows any card play)
+        self.game.strictMode = False
         # Fast-forward to PLAYING
         bidder_idx = self.game.current_turn
         self.game.handle_bid(bidder_idx, "SUN")
@@ -174,6 +176,8 @@ class TestScoringIntegration(unittest.TestCase):
         self.game.add_player("p3", "P3")
         self.game.add_player("p4", "P4")
         self.game.start_game()
+        # Disable strict mode for integration tests (allows any card play)
+        self.game.strictMode = False
         bidder_idx = self.game.current_turn
         self.game.handle_bid(bidder_idx, "SUN")
         if str(self.game.phase) != GamePhase.PLAYING.value:

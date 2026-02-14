@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import Table from './components/Table';
+import KammelnaBoard from './components/kammelna/KammelnaBoard';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
 import { GameState, GamePhase, PlayerPosition, Suit, RoundResult } from './types';
@@ -204,20 +205,35 @@ const App: React.FC = () => {
       <div className="flex h-full w-full overflow-hidden bg-black font-tajawal text-white relative" dir="rtl">
         <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
           <FeatureErrorBoundary featureName="الطاولة">
-          <Table
-            gameState={gameState}
-            onPlayerAction={handlePlayerAction}
-            onChallenge={handleChallenge}
-            onAddBot={addBot}
-            onDebugAction={handleDebugAction}
-            isCuttingDeck={isCuttingDeck}
-            tableSkin={equippedItems.table}
-            cardSkin={equippedItems.card}
-            onFastForward={handleFastForward}
-            onEmoteClick={toggleEmoteMenu}
-            isSendingAction={isSendingAction}
-
-          />
+          {equippedItems.table === 'table_kammelna' ? (
+            <KammelnaBoard
+              gameState={gameState}
+              onPlayerAction={handlePlayerAction}
+              onChallenge={handleChallenge}
+              onAddBot={addBot}
+              onDebugAction={handleDebugAction}
+              isCuttingDeck={isCuttingDeck}
+              tableSkin={equippedItems.table}
+              cardSkin={equippedItems.card}
+              onFastForward={handleFastForward}
+              onEmoteClick={toggleEmoteMenu}
+              isSendingAction={isSendingAction}
+            />
+          ) : (
+            <Table
+              gameState={gameState}
+              onPlayerAction={handlePlayerAction}
+              onChallenge={handleChallenge}
+              onAddBot={addBot}
+              onDebugAction={handleDebugAction}
+              isCuttingDeck={isCuttingDeck}
+              tableSkin={equippedItems.table}
+              cardSkin={equippedItems.card}
+              onFastForward={handleFastForward}
+              onEmoteClick={toggleEmoteMenu}
+              isSendingAction={isSendingAction}
+            />
+          )}
           </FeatureErrorBoundary>
 
 

@@ -11,17 +11,58 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def calculate_hokum_strength(hand, trump_suit):
+def calculate_hokum_strength(hand, trump_suit, floor_card=None):
     """
     Advanced Hokum hand evaluation.
     Analyzes: trump power, trump length, distribution, side aces, losers.
     Score roughly 0-50+. Threshold ~18 to bid.
+
+    When floor_card is provided (Round 1 bidding), it's included in the
+    evaluation since the dealer will pick it up. The floor card contributes
+    to trump count, trump power, and distribution — but at a slight discount
+    because picking it up means discarding another card.
     """
     score = 0
 
+    # ── FLOOR CARD INTEGRATION ──
+    # In Round 1, the floor card joins your hand if you buy Hokum.
+    # Build an effective hand that includes the floor card for evaluation.
+    effective_hand = list(hand)
+    floor_bonus = 0
+    if floor_card and floor_card.suit == trump_suit:
+        # Floor card is trump — very valuable, add it to effective hand
+        effective_hand.append(floor_card)
+        # Bonus for floor card being a high trump
+        if floor_card.rank == 'J':
+            floor_bonus += 8  # Getting J from floor is huge
+        elif floor_card.rank == '9':
+            floor_bonus += 6  # 9 from floor is excellent
+        elif floor_card.rank == 'A':
+            floor_bonus += 3  # A from floor is good (but 3rd in Hokum)
+        elif floor_card.rank in ('10', 'K'):
+            floor_bonus += 2  # Supporting trump from floor
+        else:
+            floor_bonus += 1  # Even low trump from floor helps length
+    elif floor_card:
+        # Floor card is non-trump — still gives information
+        effective_hand.append(floor_card)
+        # Side Ace from floor card = extra trick
+        if floor_card.rank == 'A':
+            floor_bonus += 3  # Side Ace from floor
+        elif floor_card.rank in ('K', '10'):
+            floor_bonus += 1  # Some value from floor
+
+    # Discount: picking up floor card means discarding your worst card,
+    # but you're still net positive (6 cards → choose best 5+trump)
+    # Small discount since you lose a discard slot
+    if floor_card:
+        floor_bonus = max(0, floor_bonus - 1)
+
+    score += floor_bonus
+
     # Group cards by suit
     suits = {}
-    for c in hand:
+    for c in effective_hand:
         suits.setdefault(c.suit, []).append(c)
 
     my_trumps = suits.get(trump_suit, [])
@@ -65,7 +106,7 @@ def calculate_hokum_strength(hand, trump_suit):
 
     # ── SIDE ACES ──
     # Non-trump Aces = guaranteed tricks that don't cost trumps
-    side_aces = sum(1 for c in hand if c.rank == 'A' and c.suit != trump_suit)
+    side_aces = sum(1 for c in effective_hand if c.rank == 'A' and c.suit != trump_suit)
     score += side_aces * 5  # Each side Ace = 5 points (very valuable)
 
     # Side Kings with Aces = extra strength
@@ -124,7 +165,7 @@ def calculate_hokum_strength(hand, trump_suit):
         score -= 4
 
     # ── PROJECTS ──
-    projects = scan_hand_for_projects(hand, 'HOKUM')
+    projects = scan_hand_for_projects(effective_hand, 'HOKUM')
     if projects:
          for p in projects:
               raw_val = p.get('score', 0)

@@ -1,0 +1,47 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -Command \"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Claude Code needs your attention!', 'Claude Code', 'OK', 'Information')\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo REMINDER: Read CLAUDE.md for project rules. Run tests via pytest. Follow strategy module pattern. Do NOT modify game.py core without approval."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before completing, verify: 1) Did you modify any .py files? If so, remind the user to run tests. 2) Did you follow the strategy module pattern from CLAUDE.md? 3) Are all new functions documented with docstrings? If any checks fail, respond with {\"ok\": false, \"reason\": \"what still needs attention\"}. If everything looks good, respond with {\"ok\": true}."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -Command \"$input = [Console]::In.ReadToEnd(); $filePath = ($input | ConvertFrom-Json).tool_input.file_path; $protected = @('.env', 'package-lock.json', '.git'); foreach ($p in $protected) { if ($filePath -and $filePath -like \"*$p*\") { Write-Error \"BLOCKED: Cannot edit protected file '$filePath' (matches pattern '$p')\"; exit 2 } }; exit 0\""
+          }
+        ]
+      }
+    ]
+  }
+}

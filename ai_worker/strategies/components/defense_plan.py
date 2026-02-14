@@ -53,8 +53,6 @@ def plan_defense(
         notes.append(f"0/{tricks_played} tricks→break Kaboot")
     elif ace_n >= 2 or (has_ak and total >= 3.0) or has_j9_trump:
         strat = "ACTIVE"; notes.append(f"{ace_n}A str={total:.1f}→attack")
-    elif ace_n >= 2 or (has_ak and total >= 3.0) or has_j9_trump:
-        strat = "ACTIVE"; notes.append(f"{ace_n}A str={total:.1f}→attack")
     else:
         strat = "PASSIVE"; notes.append(f"{ace_n}A str={total:.1f}→conserve")
 

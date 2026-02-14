@@ -10,6 +10,8 @@ from ai_worker.strategies.components.lead_selector import select_lead
 from ai_worker.strategies.components.opponent_model import model_opponents
 from ai_worker.strategies.components.trick_review import review_tricks
 from ai_worker.strategies.components.cooperative_play import get_cooperative_lead, get_cooperative_follow
+from ai_worker.strategies.components.bid_reader import infer_from_bids
+from ai_worker.strategies.components.galoss_guard import galoss_check, get_emergency_action
 import logging
 
 logger = logging.getLogger(__name__)
@@ -19,6 +21,8 @@ class SunStrategy(StrategyComponent):
     """Handles all Sun mode playing logic (lead and follow)."""
 
     def get_decision(self, ctx: BotContext) -> dict | None:
+        partner_pos = self.get_partner_pos(ctx.player_index)
+
         # ENDGAME SOLVER: Perfect play when ≤3 cards remain
         if len(ctx.hand) <= 3:
             endgame = self._try_endgame(ctx)
@@ -28,7 +32,6 @@ class SunStrategy(StrategyComponent):
         # ── BRAIN: Cross-module orchestration ──
         try:
             from ai_worker.strategies.components.brain import consult_brain
-            partner_pos = self.get_partner_pos(ctx.player_index)
             bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
             tricks = ctx.raw_state.get('currentRoundTricks', [])
             our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
@@ -62,10 +65,11 @@ class SunStrategy(StrategyComponent):
                 hand=ctx.hand, table_cards=table_dicts, mode='SUN',
                 trump_suit=None, position=ctx.position,
                 we_are_buyers=(bidder_team == 'us'),
-                partner_winning=ctx.is_partner_winning() if hasattr(ctx, 'is_partner_winning') else False,
+                partner_winning=ctx.is_partner_winning(),
                 tricks_played=len(tricks), tricks_won_by_us=our_wins,
                 master_indices=master_idx, tracker_voids=voids,
                 partner_info=pi,
+                legal_indices=ctx.get_legal_moves(),
             )
             logger.debug(f"[BRAIN] conf={brain['confidence']} modules={brain['modules_consulted']} → {brain['reasoning']}")
             if brain['recommendation'] is not None and brain['confidence'] >= 0.7:
@@ -75,29 +79,63 @@ class SunStrategy(StrategyComponent):
             logger.debug(f"Brain skipped: {e}")
 
         # ── TRICK REVIEW: Mid-round strategy adaptation ──
+        self._trick_review = None
         try:
             tricks = ctx.raw_state.get('currentRoundTricks', [])
-            partner_pos = self.get_partner_pos(ctx.player_index)
             bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
-            tr = review_tricks(
+            self._trick_review = review_tricks(
                 my_position=ctx.position, trick_history=tricks,
                 mode='SUN', trump_suit=None, we_are_buyers=(bidder_team == 'us'),
             )
-            logger.debug(f"[TRICK_REVIEW] {tr['momentum']} {tr['our_tricks']}-{tr['their_tricks']} shift={tr['strategy_shift']}")
+            logger.debug(f"[TRICK_REVIEW] {self._trick_review['momentum']} {self._trick_review['our_tricks']}-{self._trick_review['their_tricks']} shift={self._trick_review['strategy_shift']}")
         except Exception as e:
             logger.debug(f"Trick review skipped: {e}")
 
         # ── OPPONENT MODEL: Threat assessment ──
+        self._opp_model = None
         try:
             bid_hist = ctx.raw_state.get('bidHistory', [])
             tricks = ctx.raw_state.get('currentRoundTricks', [])
-            opp = model_opponents(
+            self._opp_model = model_opponents(
                 my_position=ctx.position, bid_history=bid_hist,
                 trick_history=tricks, mode='SUN', trump_suit=None,
             )
-            logger.debug(f"[OPP_MODEL] danger={opp['combined_danger']} safe={opp['safe_lead_suits']} avoid={opp['avoid_lead_suits']}")
+            logger.debug(f"[OPP_MODEL] danger={self._opp_model['combined_danger']} safe={self._opp_model['safe_lead_suits']} avoid={self._opp_model['avoid_lead_suits']}")
         except Exception as e:
             logger.debug(f"Opponent model skipped: {e}")
+
+        # ── GALOSS GUARD: Emergency mode detection ──
+        self._galoss = None
+        try:
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            their_wins = len(tricks) - our_wins
+            # Calculate points from trick history
+            our_pts = sum(t.get('points', 0) for t in tricks if t.get('winner') in (ctx.position, partner_pos))
+            their_pts = sum(t.get('points', 0) for t in tricks if t.get('winner') not in (ctx.position, partner_pos))
+            self._galoss = galoss_check(
+                mode='SUN', we_are_buyers=(bidder_team == 'us'),
+                tricks_played=len(tricks), our_points=our_pts, their_points=their_pts,
+                our_tricks=our_wins, their_tricks=their_wins,
+            )
+            if self._galoss['emergency_mode']:
+                logger.debug(f"[GALOSS] {self._galoss['risk_level']}: {self._galoss['reasoning']}")
+                # Try emergency action
+                legal = ctx.get_legal_moves()
+                is_leading = not ctx.table_cards
+                emer = get_emergency_action(
+                    hand=ctx.hand, legal_indices=legal, mode='SUN',
+                    trump_suit=None, we_are_buyers=(bidder_team == 'us'),
+                    galoss_info=self._galoss, is_leading=is_leading,
+                    partner_winning=ctx.is_partner_winning() if not is_leading else False,
+                )
+                if emer:
+                    return {"action": "PLAY", "cardIndex": emer['card_index'],
+                            "reasoning": f"Galoss/{emer['strategy']}: {emer['reasoning']}"}
+        except Exception as e:
+            logger.debug(f"Galoss guard skipped: {e}")
 
         if not ctx.table_cards:
             # Check for Ashkal Signal first
@@ -109,10 +147,10 @@ class SunStrategy(StrategyComponent):
             return self._get_sun_follow(ctx)
 
     def _try_endgame(self, ctx: BotContext) -> dict | None:
-        """Attempt minimax solve if opponent hands are known."""
+        """Attempt minimax solve using ML or heuristic hand reconstruction."""
         try:
             from ai_worker.strategies.components.endgame_solver import solve_endgame
-            known = ctx.guess_hands() if ctx.mind and ctx.mind.active else None
+            known = ctx.guess_hands()
             if not known:
                 return None
             # Determine leader: if table is empty, we lead; otherwise first player on table
@@ -292,15 +330,58 @@ class SunStrategy(StrategyComponent):
                     _pi = ctx.read_partner_info()
                 except Exception:
                     pass
+            # Merge opponent model's avoid suits into voids for lead_selector
+            if self._opp_model:
+                for avoid_s in self._opp_model.get('avoid_lead_suits', []):
+                    if avoid_s not in _opp_voids:
+                        _opp_voids[avoid_s] = {'opp_model'}
+            # Merge trick_review avoid_suits into voids
+            if self._trick_review:
+                for avoid_s in self._trick_review.get('avoid_suits', []):
+                    if avoid_s not in _opp_voids:
+                        _opp_voids[avoid_s] = {'trick_review'}
+            # ── BID INFERENCE: Use bid history for card reading ──
+            try:
+                bid_hist = ctx.raw_state.get('bidHistory', [])
+                _fc = ctx.floor_card
+                _fc_dict = {'suit': _fc.suit, 'rank': _fc.rank} if _fc else None
+                bid_reads = infer_from_bids(
+                    my_position=ctx.position, bid_history=bid_hist,
+                    floor_card=_fc_dict, bidding_round=ctx.bidding_round,
+                )
+                # Merge bid inference avoid suits (declarer's strong suits)
+                for avoid_s in bid_reads.get('avoid_suits', []):
+                    if avoid_s not in _opp_voids:
+                        _opp_voids[avoid_s] = {'bid_reader'}
+                logger.debug(f"[BID_READ] decl={bid_reads.get('declarer_position')} avoid={bid_reads.get('avoid_suits')} target={bid_reads.get('target_suits')}")
+            except Exception as e:
+                logger.debug(f"Bid reader skipped: {e}")
+            # Build defense_info from opponent model
+            _def_info = None
+            if self._opp_model and not (bidder_team == 'us'):
+                safe = self._opp_model.get('safe_lead_suits', [])
+                _def_info = {
+                    'priority_suit': safe[0] if safe else None,
+                    'avoid_suit': self._opp_model.get('avoid_lead_suits', [None])[0] if self._opp_model.get('avoid_lead_suits') else None,
+                    'reasoning': self._opp_model.get('reasoning', ''),
+                }
             ls_result = select_lead(
                 hand=ctx.hand, mode='SUN', trump_suit=None,
                 we_are_buyers=(bidder_team == 'us'),
                 tricks_played=len(tricks), tricks_won_by_us=our_wins,
                 master_indices=master_idx, partner_info=_pi,
-                defense_info=None, trump_info=None,
+                defense_info=_def_info, trump_info=None,
                 opponent_voids=_opp_voids,
             )
-            if ls_result and ls_result.get('confidence', 0) >= 0.65:
+            # Adjust confidence threshold based on trick_review strategy_shift
+            _ls_threshold = 0.65
+            if self._trick_review:
+                shift = self._trick_review.get('strategy_shift', 'NONE')
+                if shift == 'AGGRESSIVE':
+                    _ls_threshold = 0.50  # Accept riskier leads when behind
+                elif shift == 'DAMAGE_CONTROL':
+                    _ls_threshold = 0.75  # Require higher confidence when collapsing
+            if ls_result and ls_result.get('confidence', 0) >= _ls_threshold:
                 logger.debug(f"[LEAD_SEL] {ls_result['strategy']}({ls_result['confidence']:.0%}): {ls_result['reasoning']}")
                 return {"action": "PLAY", "cardIndex": ls_result['card_index'],
                         "reasoning": f"LeadSel/{ls_result['strategy']}: {ls_result['reasoning']}"}
@@ -382,10 +463,18 @@ class SunStrategy(StrategyComponent):
         partner_pos = self.get_partner_pos(ctx.player_index)
         our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
         their_wins = len(tricks) - our_wins
+        # Collect buyer's void suits from CardTracker for defense_plan
+        buyer_void_suits = []
+        buyer_pos = ctx.bid_winner or ''
+        if buyer_pos:
+            for s in ['♠', '♥', '♦', '♣']:
+                if ctx.is_player_void(buyer_pos, s):
+                    buyer_void_suits.append(s)
         dplan = plan_defense(
             my_hand=ctx.hand, mode='SUN',
-            buyer_position=ctx.bid_winner or '', partner_position=partner_pos,
+            buyer_position=buyer_pos, partner_position=partner_pos,
             tricks_played=len(tricks), tricks_won_by_us=our_wins, tricks_won_by_them=their_wins,
+            void_suits=buyer_void_suits,
         )
         logger.debug(f"[DEFENSE] {dplan['reasoning']}")
 

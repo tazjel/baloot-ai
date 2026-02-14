@@ -156,6 +156,14 @@ class BotContext:
         except ValueError:
              return False
 
+    def is_partner_winning(self) -> bool:
+        """Check if partner is currently winning the trick on the table."""
+        if not self.table_cards or not self.winner_pos:
+            return False
+        positions = ['Bottom', 'Right', 'Top', 'Left']
+        partner_pos = positions[(self.player_index + 2) % 4]
+        return self.winner_pos == partner_pos
+
     def is_master_card(self, card):
         # Delegate to memory
         return self.memory.is_master(card.rank, card.suit, self.mode, self.trump)
@@ -234,12 +242,94 @@ class BotContext:
 
     def guess_hands(self):
         """
-        Uses the MindReader AI to predict opponent hands based on game history.
-        Returns: { player_id: { card_idx: probability } }
+        Predict opponent hands. Uses ML if available, otherwise falls back
+        to heuristic reconstruction from CardTracker voids + Bayesian probs.
+
+        Returns: { position: [Card, ...] } for all 3 other players,
+                 or None if reconstruction is impossible.
         """
         if self.mind and self.mind.active:
              return self.mind.infer_hands(self.raw_state)
-        return None
+        return self._heuristic_hand_reconstruction()
+
+    def _heuristic_hand_reconstruction(self):
+        """Reconstruct likely opponent hands using known voids + remaining cards.
+
+        Algorithm:
+        1. Get all unseen cards (not in my hand, not played)
+        2. For each opponent, eliminate suits they are void in
+        3. Distribute remaining cards proportionally using Bayesian probs
+        Returns dict of {position: [Card]} or None if data insufficient.
+        """
+        from game_engine.models.card import Card as CardModel
+        positions = ['Bottom', 'Right', 'Top', 'Left']
+        partner_pos = positions[(self.player_index + 2) % 4]
+        others = [p for p in positions if p != self.position]
+
+        # Get unseen cards (not in our hand, not played)
+        unseen = self.tracker.get_remaining_cards()
+        if not unseen:
+            return None
+
+        # Convert to Card objects for the endgame solver
+        unseen_cards = [CardModel(c.suit, c.rank) for c in unseen]
+
+        # Cards each player should have (estimated)
+        cards_per_player = self.memory.cards_remaining
+
+        # Build void sets per player
+        void_sets = {}
+        for pos in others:
+            void_sets[pos] = set()
+            for s in ['♠', '♥', '♦', '♣']:
+                if self.memory.is_void(pos, s):
+                    void_sets[pos].add(s)
+
+        # Filter eligible cards per player (not void)
+        eligible = {}
+        for pos in others:
+            eligible[pos] = [c for c in unseen_cards if c.suit not in void_sets[pos]]
+
+        # Greedy assignment: assign cards to players respecting voids
+        # Sort by most-constrained player first (fewest eligible cards)
+        assigned = {pos: [] for pos in others}
+        remaining_pool = list(unseen_cards)
+
+        for pos in sorted(others, key=lambda p: len(eligible.get(p, []))):
+            target_count = cards_per_player.get(pos, 0)
+            if target_count <= 0:
+                continue
+
+            # Pick from remaining pool, respecting voids, using Bayesian probs
+            valid = [c for c in remaining_pool if c.suit not in void_sets[pos]]
+            if not valid:
+                continue
+
+            # Sort by probability (higher Bayesian prob for this player's suit first)
+            def _prob_key(card):
+                return -self.memory.get_suit_probability(pos, card.suit)
+            valid.sort(key=_prob_key)
+
+            picked = valid[:target_count]
+            assigned[pos] = picked
+            for c in picked:
+                remaining_pool.remove(c)
+
+        # Distribute any leftover cards (rounding errors)
+        for c in remaining_pool:
+            for pos in others:
+                if len(assigned[pos]) < cards_per_player.get(pos, 0):
+                    if c.suit not in void_sets[pos]:
+                        assigned[pos].append(c)
+                        break
+
+        # Validate: all players should have the right number of cards
+        for pos in others:
+            expected = cards_per_player.get(pos, 0)
+            if len(assigned[pos]) != expected:
+                return None  # Reconstruction failed
+
+        return assigned
 
     def read_partner_info(self) -> dict | None:
         """Infer partner's likely holdings from bids and trick history.

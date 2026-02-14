@@ -117,17 +117,98 @@ def is_valid_move(
     return True
 
 def _get_current_winner_card(table_cards, game_mode, trump_suit) -> Optional[Card]:
-    # Placeholder for trick winner logic re-implementation
-    # For now, assumes winner is resolvable
-    return None
+    """Find the currently winning card on the table.
+
+    Evaluates all played cards considering suit-following and trump rules.
+    Returns the Card object that is currently winning the trick.
+    """
+    if not table_cards:
+        return None
+
+    order = ORDER_HOKUM if game_mode == 'HOKUM' else ORDER_SUN
+    led_card_dict = table_cards[0]['card']
+    led_card = led_card_dict if hasattr(led_card_dict, 'suit') else Card(led_card_dict['suit'], led_card_dict['rank'])
+    led_suit = led_card.suit
+
+    best_card = led_card
+    for tc in table_cards[1:]:
+        cd = tc['card']
+        c = cd if hasattr(cd, 'suit') else Card(cd['suit'], cd['rank'])
+
+        c_is_trump = (trump_suit and c.suit == trump_suit)
+        best_is_trump = (trump_suit and best_card.suit == trump_suit)
+
+        if c_is_trump and not best_is_trump:
+            best_card = c
+        elif c_is_trump and best_is_trump:
+            if order.index(c.rank) > order.index(best_card.rank):
+                best_card = c
+        elif not c_is_trump and not best_is_trump and c.suit == best_card.suit:
+            if order.index(c.rank) > order.index(best_card.rank):
+                best_card = c
+
+    return best_card
+
 
 def _get_current_winner_pos(table_cards, game_mode, trump_suit) -> str:
-    # Placeholder
-    return "Bottom"
+    """Find the position of the player currently winning the trick."""
+    if not table_cards:
+        return "Bottom"
+
+    order = ORDER_HOKUM if game_mode == 'HOKUM' else ORDER_SUN
+    led_card_dict = table_cards[0]['card']
+    led_card = led_card_dict if hasattr(led_card_dict, 'suit') else Card(led_card_dict['suit'], led_card_dict['rank'])
+
+    best_idx = 0
+    best_card = led_card
+    for i, tc in enumerate(table_cards[1:], start=1):
+        cd = tc['card']
+        c = cd if hasattr(cd, 'suit') else Card(cd['suit'], cd['rank'])
+
+        c_is_trump = (trump_suit and c.suit == trump_suit)
+        best_is_trump = (trump_suit and best_card.suit == trump_suit)
+
+        if c_is_trump and not best_is_trump:
+            best_card = c
+            best_idx = i
+        elif c_is_trump and best_is_trump:
+            if order.index(c.rank) > order.index(best_card.rank):
+                best_card = c
+                best_idx = i
+        elif not c_is_trump and not best_is_trump and c.suit == best_card.suit:
+            if order.index(c.rank) > order.index(best_card.rank):
+                best_card = c
+                best_idx = i
+
+    return table_cards[best_idx].get('playedBy', 'Bottom')
+
 
 def _can_beat_trump(hand: List[Card], target_card: Card) -> bool:
-    # Check if hand has higher trump
+    """Check if the hand contains a trump card that beats the target trump card."""
+    trump_cards = [c for c in hand if c.suit == target_card.suit]
+    if not trump_cards:
+        return False
+    for c in trump_cards:
+        if ORDER_HOKUM.index(c.rank) > ORDER_HOKUM.index(target_card.rank):
+            return True
     return False
 
+
 def _compare_cards(c1: Card, c2: Card, mode: str, trump: str) -> int:
-    return 0
+    """Compare two cards in the same suit.
+
+    Returns:
+        > 0 if c1 beats c2
+        < 0 if c2 beats c1
+        0 if equal (shouldn't happen with unique cards)
+    """
+    order = ORDER_HOKUM if mode == 'HOKUM' else ORDER_SUN
+    # If different suits, trump always wins
+    if c1.suit != c2.suit:
+        if trump and c1.suit == trump:
+            return 1
+        if trump and c2.suit == trump:
+            return -1
+        return 0  # Off-suit vs off-suit — led suit matters (handled by caller)
+    # Same suit — compare by rank order
+    return order.index(c1.rank) - order.index(c2.rank)

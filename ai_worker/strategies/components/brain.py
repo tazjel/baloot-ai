@@ -35,6 +35,7 @@ def consult_brain(
     master_indices: list[int],
     tracker_voids: dict[str, list[str]],
     partner_info: dict | None,
+    legal_indices: list[int] | None = None,
 ) -> dict:
     """Run the priority cascade and return a single play recommendation.
 
@@ -131,6 +132,13 @@ def consult_brain(
 
     # ── 6. Default ──────────────────────────────────────────────
     consulted.append("default")
+
+    # ── Legal index filtering ─────────────────────────────────
+    # Remove any opinions recommending illegal card indices
+    if legal_indices is not None:
+        legal_set = set(legal_indices)
+        opinions = [(n, idx, c, r) for n, idx, c, r in opinions
+                    if idx is None or idx in legal_set]
 
     # ── Cascade resolution ──────────────────────────────────────
     winner_name: str | None = None

@@ -19,13 +19,11 @@ def _pts(rank: str, mode: str) -> int:
 def _classify(pts: int) -> tuple[str, bool]:
     if pts >= 26:
         return "CRITICAL", True
+    # Walk thresholds in reverse to find the highest matching bracket
     for ceiling, label, worth in reversed(_THRESHOLDS):
-        if pts >= ceiling + (1 if ceiling > 0 else 0):
-            continue
-    for ceiling, label, worth in _THRESHOLDS:
-        if pts <= ceiling:
+        if pts >= ceiling:
             return label, worth
-    return "CRITICAL", True
+    return "EMPTY", False
 
 
 def evaluate_trick_value(table_cards: list[dict], mode: str) -> dict:

@@ -35,7 +35,10 @@ class GameLifecycle:
             return False
 
         self.reset_round_state()
-        self.game.dealer_index = random.randint(0, 3)
+        # Only randomize dealer on the very first round; subsequent rounds
+        # use the rotated dealer_index set by end_round().
+        if not self.game.past_round_results:
+            self.game.dealer_index = random.randint(0, 3)
         self.deal_initial_cards()
         self.game.phase = GamePhase.BIDDING.value
 
@@ -72,6 +75,9 @@ class GameLifecycle:
             self.game.qayd_state = self.game.qayd_engine.state
             
         # akka_state and sawa_state are reset by state.reset_round() automatically
+        # Reset Baloot tracker for new round
+        if hasattr(self.game, 'baloot_manager'):
+            self.game.baloot_manager.reset()
         self.game.reset_timer()
 
     def deal_initial_cards(self):
@@ -115,6 +121,10 @@ class GameLifecycle:
         # Auto-declare projects for all bots at start of play
         if hasattr(self.game, 'project_manager'):
             self.game.project_manager.auto_declare_bot_projects()
+
+        # Scan for Baloot holders (K+Q of trump) after full deal
+        if hasattr(self.game, 'baloot_manager'):
+            self.game.baloot_manager.scan_initial_hands()
 
     def end_round(self, skip_scoring: bool = False):
         """

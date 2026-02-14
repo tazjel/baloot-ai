@@ -75,6 +75,43 @@ def get_cooperative_lead(
                     "confidence": round(min(1.0, pconf * 0.8), 2),
                     "reasoning": f"Feed {hand[pick].rank}{s} to partner (strong suit)"}
 
+    # ENTRY_TRANSFER: Lead low in a suit where partner has the master,
+    # transferring the lead to them so they can cash their winning suits.
+    # This is the core of entry management — planning lead transfers.
+    for s in strong:
+        if s == trump_suit or s in void_suits:
+            continue
+        cands = by_suit.get(s, [])
+        if not cands:
+            continue
+        # Only transfer if we have low cards (we want partner to win)
+        low_entries = [i for i in cands if _rv(hand[i].rank, mode) <= 2]  # rank idx 0-2 = very low
+        if low_entries and len(cands) <= 2:
+            # Short suit with low cards + partner strong = perfect entry transfer
+            pick = min(low_entries, key=lambda i: _rv(hand[i].rank, mode))
+            return {"card_index": pick, "strategy": "ENTRY_TRANSFER",
+                    "confidence": round(min(1.0, pconf * 0.85), 2),
+                    "reasoning": f"Entry transfer: {hand[pick].rank}{s} to give partner the lead"}
+
+    # VOID_ENTRY: If we're void in partner's strong suit but have trumps,
+    # lead a suit where partner is void so they can ruff and take lead
+    if mode == "HOKUM" and trump_suit:
+        for s in ALL_SUITS:
+            if s == trump_suit or s in void_suits:
+                continue
+            if s in strong:
+                continue  # Don't void a suit partner is strong in
+            cands = by_suit.get(s, [])
+            if not cands:
+                continue
+            p_void_suits = set(partner_info.get("likely_void_suits", []))
+            if s in p_void_suits and partner_info.get("estimated_trumps", 0) >= 1:
+                # Partner void in this suit and has trumps → they'll ruff and take lead!
+                pick = min(cands, key=lambda i: _rv(hand[i].rank, mode))
+                return {"card_index": pick, "strategy": "VOID_ENTRY",
+                        "confidence": round(min(1.0, pconf * 0.7), 2),
+                        "reasoning": f"Lead {hand[pick].rank}{s} — partner void, can ruff to take lead"}
+
     return None  # no cooperative override
 
 

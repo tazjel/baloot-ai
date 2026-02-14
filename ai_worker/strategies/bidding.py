@@ -62,17 +62,36 @@ class BiddingStrategy:
                     logger.info(f"[BIDDING] Ace Trap: Skipping {suit} — floor Ace without J or 9")
                     continue
                 
-            score = calculate_hokum_strength(ctx.hand, suit)
+            # Include floor card in R1 evaluation (dealer picks it up)
+            fc_for_eval = ctx.floor_card if ctx.bidding_round == 1 else None
+            score = calculate_hokum_strength(ctx.hand, suit, floor_card=fc_for_eval)
             if score > best_hokum_score:
                 best_hokum_score = score
                 best_suit = suit
         
-        # 3b. Trick Projection — expected tricks for logging & confidence
+        # 3b. Trick Projection — expected tricks for confidence & score adjustment
+        # For Hokum R1, include floor card in trick projection if it's trump
+        hokum_proj_hand = list(ctx.hand)
+        if best_suit and ctx.floor_card and ctx.bidding_round == 1 and ctx.floor_card.suit == best_suit:
+            hokum_proj_hand.append(ctx.floor_card)
+
         sun_proj = project_tricks(ctx.hand, 'SUN')
-        hokum_proj = project_tricks(ctx.hand, 'HOKUM', best_suit) if best_suit else None
+        hokum_proj = project_tricks(hokum_proj_hand, 'HOKUM', best_suit) if best_suit else None
         sun_et = sun_proj['expected_tricks']
+        sun_losers = sun_proj.get('losers', 8)
         hokum_et = hokum_proj['expected_tricks'] if hokum_proj else 0
-        logger.debug(f"[BIDDING] Trick projection: SUN ET={sun_et} | HOKUM({best_suit}) ET={hokum_et}")
+        hokum_losers = hokum_proj.get('losers', 8) if hokum_proj else 8
+        logger.debug(f"[BIDDING] Trick projection: SUN ET={sun_et} L={sun_losers} | HOKUM({best_suit}) ET={hokum_et} L={hokum_losers}")
+
+        # Loser penalty — high losers = hand won't deliver even with good HCP
+        if sun_losers >= 5:
+            sun_score -= 3  # Too many losers for SUN
+        elif sun_losers >= 4:
+            sun_score -= 1
+        if hokum_losers >= 5:
+            best_hokum_score -= 2  # Too many losers for HOKUM
+        elif hokum_losers >= 4:
+            best_hokum_score -= 1
 
         # 3c. Hand Shape Analysis — distribution adjustments
         try:
@@ -162,32 +181,106 @@ class BiddingStrategy:
                   if not (ctx.floor_card and ctx.floor_card.rank == 'A'):
                        return {"action": "ASHKAL", "reasoning": f"Strong Sun Hand + Dealer Privilege (Score {sun_score})"}
         
-        # 6. Defensive / Psychological Logic — "Suicide Bid" / Project Denial
+        # 6. Defensive Bidding Inference — read opponent bid history
+        # Analyze what opponents have bid to adjust our strategy
+        bid_history = ctx.raw_state.get('bidHistory', [])
+        partner_pos = self._get_partner_pos_name(ctx.position)
+        opp_bid_info = self._analyze_opponent_bids(bid_history, ctx.position, partner_pos)
+
+        if opp_bid_info['opponent_bid_sun']:
+            # Opponent bid SUN — they have a strong balanced hand
+            # Lower our SUN threshold to compete (counter-bid)
+            # but raise HOKUM threshold (their strength is in raw honors)
+            sun_threshold -= 2  # Compete aggressively for SUN
+            hokum_threshold += 2  # Their honors hurt us in Hokum too
+            logger.debug(f"[BIDDING] Opp bid SUN — competing SUN (-2), cautious HOKUM (+2)")
+
+        if opp_bid_info['opponent_bid_hokum_suit']:
+            opp_trump = opp_bid_info['opponent_bid_hokum_suit']
+            # Opponent showed trump preference — they likely hold J/9 in that suit
+            # If we're considering the same suit, be very cautious
+            if best_suit == opp_trump:
+                hokum_threshold += 6  # Very dangerous to bid same suit as opponent
+                logger.debug(f"[BIDDING] Opp bid {opp_trump} — same suit! Raise threshold +6")
+            else:
+                # Different suit — opponent's trump commitment means fewer honors elsewhere
+                hokum_threshold -= 1  # Slight advantage in a different suit
+
+        if opp_bid_info['opponent_passed_r1'] and ctx.bidding_round == 2:
+            # Both opponents passed R1 — they're weak in floor suit
+            # This means our side suits are safer; slightly lower thresholds
+            sun_threshold -= 1
+            hokum_threshold -= 1
+            logger.debug("[BIDDING] Both opps passed R1 — field is weak, lower thresholds")
+
+        if opp_bid_info['partner_bid_and_opp_competed']:
+            # Partner bid but opponent competed over them — opponent is strong
+            # Be cautious about overbidding
+            sun_threshold += 2
+            hokum_threshold += 2
+            logger.debug("[BIDDING] Opp competed over partner — cautious (+2)")
+
+        # 6b. Defensive / Psychological Logic — "Suicide Bid" / Project Denial
         if current_bid:
              bidder_pos = current_bid.get('bidder')
-             if bidder_pos != self._get_partner_pos_name(ctx.position):
+             if bidder_pos != partner_pos:
                   # Opponents bidding in a critical situation
                   if situation in ('DESPERATE', 'MATCH_POINT'):
                        if current_bid.get('type') == 'SUN':
                             hokum_threshold -= 8
         
         # 7. Final Decision — Sun > Hokum priority
+        # Trick projection as bid safety gate: require minimum expected tricks
+        # to avoid bidding on hands with high HCP but no trick-taking shape
+        is_desperate = situation in ('DESPERATE', 'MATCH_POINT')
+        sun_trick_ok = sun_et >= 2.5 or is_desperate
+        hokum_trick_ok = hokum_et >= 2.0 or is_desperate
+
+        # Graduated trick bonus/penalty (reward trick-rich hands, penalize mirages)
+        # SUN: need ≥3 tricks to be viable, ≥4 to be strong
+        if sun_et >= 5.0:
+            sun_score += 5  # Dominant trick count
+        elif sun_et >= 4.0:
+            sun_score += 3
+        elif sun_et >= 3.0:
+            sun_score += 1
+        elif sun_et < 2.0 and not is_desperate:
+            sun_score -= 3  # HCP mirage: high points but can't win tricks
+
+        # HOKUM: need ≥2.5 tricks to be viable
+        if hokum_et >= 5.0:
+            best_hokum_score += 5  # Dominant
+        elif hokum_et >= 4.0:
+            best_hokum_score += 3
+        elif hokum_et >= 3.0:
+            best_hokum_score += 1
+        elif hokum_et < 1.5 and not is_desperate:
+            best_hokum_score -= 3  # Weak shape despite trump honors
+
+        # Quick trick confidence: min_tricks is the floor (guaranteed wins)
+        sun_min = sun_proj.get('min_tricks', 0)
+        hokum_min = hokum_proj.get('min_tricks', 0) if hokum_proj else 0
+        if sun_min >= 3:
+            sun_score += 2  # 3+ guaranteed tricks = very safe
+        if hokum_min >= 3:
+            best_hokum_score += 2
+
         # Check gamble override for borderline hands
         sun_normalized = sun_score / 35.0  # Normalize to 0-1 range
         hokum_normalized = best_hokum_score / 30.0
-        
-        if sun_score >= sun_threshold: 
+
+        if sun_score >= sun_threshold and sun_trick_ok:
             return {"action": "SUN", "reasoning": f"Strong Sun Hand (Score {sun_score}, ET={sun_et}) [{situation}]"}
         elif should_gamble(ctx.match_score_us, ctx.match_score_them, sun_normalized, 'SUN'):
-            if sun_score >= sun_threshold - 4:  # Only gamble on near-threshold hands
+            if sun_score >= sun_threshold - 4 and sun_trick_ok:
                 return {"action": "SUN", "reasoning": f"Gamble Sun (Score {sun_score}, ET={sun_et}) [{situation}]"}
-            
+
         if not has_hokum_bid:
-            if best_hokum_score >= hokum_threshold and best_suit:
+            if best_hokum_score >= hokum_threshold and best_suit and hokum_trick_ok:
                  reason = f"Good {best_suit} Suit (Score {best_hokum_score}, ET={hokum_et}) [{situation}]"
                  return {"action": "HOKUM", "suit": best_suit, "reasoning": reason}
             elif should_gamble(ctx.match_score_us, ctx.match_score_them, hokum_normalized, 'HOKUM'):
-                if best_hokum_score >= hokum_threshold - 4 and best_suit:
+                if best_hokum_score >= hokum_threshold - 4 and best_suit and hokum_trick_ok:
                     return {"action": "HOKUM", "suit": best_suit, "reasoning": f"Gamble {best_suit} (Score {best_hokum_score}, ET={hokum_et}) [{situation}]"}
         
         return {"action": "PASS", "reasoning": f"Hand too weak (Sun:{sun_score} Hokum:{best_hokum_score}) [{situation}]"}
@@ -213,6 +306,52 @@ class BiddingStrategy:
         pairs = {'Bottom': 'Top', 'Top': 'Bottom', 'Right': 'Left', 'Left': 'Right'}
         return pairs.get(my_pos, 'Unknown')
 
+    def _analyze_opponent_bids(self, bid_history, my_pos, partner_pos):
+        """Analyze opponent bid history to extract defensive intelligence.
+
+        Returns a dict with:
+        - opponent_bid_sun: True if any opponent bid SUN
+        - opponent_bid_hokum_suit: The suit an opponent bid HOKUM for (or None)
+        - opponent_passed_r1: True if all opponents passed in what appears to be R1
+        - partner_bid_and_opp_competed: True if partner bid but opponent outbid them
+        """
+        opp_bid_sun = False
+        opp_hokum_suit = None
+        opp_passes = 0
+        opp_count = 0
+        partner_bid = False
+        opp_bid_after_partner = False
+
+        for entry in bid_history or []:
+            player = entry.get('player', entry.get('bidder', ''))
+            action = entry.get('action', entry.get('type', 'PASS'))
+            suit = entry.get('suit')
+
+            is_opponent = (player != my_pos and player != partner_pos)
+            is_partner = (player == partner_pos)
+
+            if is_opponent:
+                opp_count += 1
+                if action == 'PASS':
+                    opp_passes += 1
+                elif action == 'SUN':
+                    opp_bid_sun = True
+                elif action == 'HOKUM' and suit:
+                    opp_hokum_suit = suit
+                # Check if opponent bid after partner
+                if action in ('SUN', 'HOKUM') and partner_bid:
+                    opp_bid_after_partner = True
+
+            if is_partner and action in ('SUN', 'HOKUM'):
+                partner_bid = True
+
+        return {
+            'opponent_bid_sun': opp_bid_sun,
+            'opponent_bid_hokum_suit': opp_hokum_suit,
+            'opponent_passed_r1': opp_count >= 2 and opp_passes >= 2,
+            'partner_bid_and_opp_competed': partner_bid and opp_bid_after_partner,
+        }
+
     def _get_gablak_decision(self, ctx: BotContext):
         """Handle Gablak window — steal bid if we have a strong hand."""
         sun_score = calculate_sun_strength(ctx.hand)
@@ -227,7 +366,8 @@ class BiddingStrategy:
                 continue
             if ctx.bidding_round == 2 and ctx.floor_card and suit == ctx.floor_card.suit:
                 continue
-            score = calculate_hokum_strength(ctx.hand, suit)
+            fc_for_eval = ctx.floor_card if ctx.bidding_round == 1 else None
+            score = calculate_hokum_strength(ctx.hand, suit, floor_card=fc_for_eval)
             if score >= 24:
                 return {"action": "HOKUM", "suit": suit, "reasoning": f"Gablak Steal: Strong {suit} ({score})"}
         

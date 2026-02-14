@@ -13,9 +13,16 @@ logger = logging.getLogger(__name__)
 
 def calculate_sun_strength(hand):
     """
-    Advanced Sun hand evaluation.
+    Calibrated Sun hand evaluation.
     Analyzes: quick tricks, suit quality, stoppers, distribution, projects.
     Score roughly 0-50+. Threshold ~22 to bid.
+
+    Calibration notes (v2):
+    - Removed double-counting between quick tricks and HCP
+    - Quick tricks are the PRIMARY valuation (trick-taking power)
+    - HCP replaced with a lighter "honor density" bonus (avoids overlap)
+    - Penalties for exposed suits are more aggressive
+    - Stopper count gates: unstoppable suits = huge risk in SUN
     """
     score = 0
 
@@ -24,7 +31,7 @@ def calculate_sun_strength(hand):
     for c in hand:
         suits.setdefault(c.suit, []).append(c)
 
-    # ── QUICK TRICKS ──
+    # ── QUICK TRICKS (PRIMARY VALUATION) ──
     # Each suit is evaluated for guaranteed winning tricks
     quick_tricks = 0
     for s, cards in suits.items():
@@ -34,20 +41,38 @@ def calculate_sun_strength(hand):
             quick_tricks += 1  # Ace = 1 guaranteed trick
             if 'K' in ranks:
                 quick_tricks += 0.5  # A-K = 1.5 tricks (K protected by A)
-            if '10' in ranks:
-                quick_tricks += 0.5  # A-10 = Ace protects 10
+                if '10' in ranks:
+                    quick_tricks += 0.5  # A-K-10 = 2 tricks (fully protected)
+            elif '10' in ranks:
+                quick_tricks += 0.3  # A-10 without K = partial protection
         elif 'K' in ranks:
-            # Unprotected King — risky, only half a trick
-            if len(cards) >= 2:
+            # Unprotected King — risky, only a fraction of a trick
+            if len(cards) >= 3:
                 quick_tricks += 0.5  # K with length = some chance
-            # K alone in a suit = loser (opponent leads Ace)
+            elif len(cards) >= 2:
+                quick_tricks += 0.3  # K with one cover
 
-    score += quick_tricks * 6  # Each quick trick ≈ 6 points of score
+    score += quick_tricks * 5  # Each quick trick ≈ 5 points (reduced from 6)
 
-    # ── HIGH CARD POINTS ──
-    rank_values = {'A': 5, '10': 4, 'K': 3, 'Q': 2, 'J': 1}
-    hcp = sum(rank_values.get(c.rank, 0) for c in hand)
-    score += hcp
+    # ── HONOR DENSITY (replaces HCP to avoid double-counting) ──
+    # Only count non-Ace honors that weren't already captured in quick tricks
+    # This rewards depth of honors without re-counting Aces
+    honor_density = 0
+    for s, cards in suits.items():
+        ranks = [c.rank for c in cards]
+        length = len(cards)
+        # Count supporting honors (not Aces — those are in quick tricks)
+        for r in ranks:
+            if r == '10' and 'A' not in ranks:
+                honor_density += 2  # Unprotected 10 has value but risky
+            elif r == '10' and 'A' in ranks:
+                pass  # Already counted in quick tricks
+            elif r == 'K' and 'A' not in ranks and length >= 2:
+                honor_density += 1  # Protected K without Ace = some value
+            elif r == 'Q' and length >= 2:
+                honor_density += 0.5  # Queen with cover = minor value
+
+    score += honor_density
 
     # ── SUIT QUALITY ──
     for s, cards in suits.items():
@@ -56,49 +81,52 @@ def calculate_sun_strength(hand):
 
         # Long suit bonus — 4+ cards in a suit creates extra tricks
         if length >= 5:
-            score += 4  # Very long suit, lots of tricks
+            has_top = 'A' in ranks or ('K' in ranks and '10' in ranks)
+            score += 4 if has_top else 2  # Long suit needs tops to run
         elif length >= 4:
-            score += 2  # Good length
+            has_top = 'A' in ranks
+            score += 2 if has_top else 1  # 4-card suit needs Ace to run
 
-        # Isolated honors penalty — Q or K alone in a suit
+        # Isolated honors penalty — honor alone in a suit
         if length == 1:
             if ranks[0] in ['K', 'Q']:
-                score -= 3  # Bare King/Queen = loser
+                score -= 3  # Bare King/Queen = guaranteed loser
             elif ranks[0] in ['10']:
-                score -= 2  # Bare 10 = likely loser
+                score -= 3  # Bare 10 = almost guaranteed loser
             elif ranks[0] in ['7', '8', '9']:
-                score -= 1  # Singleton low = gets trumped (but this is Sun)
-
-        # Honor combinations
-        if 'A' in ranks and 'K' in ranks and '10' in ranks:
-            score += 3  # A-K-10 = commanding suit
-        elif 'A' in ranks and 'K' in ranks:
-            score += 2  # A-K = solid control
-        elif 'K' in ranks and 'Q' in ranks:
-            score += 1  # K-Q = some control
+                score -= 1  # Singleton low = opponent runs suit through
 
         # Unguarded suits penalty (no honor at all in a 2-card suit)
         if length == 2 and not any(r in ['A', 'K', 'Q'] for r in ranks):
-            score -= 1  # Doubleton with no honors
+            score -= 2  # Doubleton with no honors = suit runs against us
 
-    # ── STOPPER COUNT ──
-    # Suits where we can stop opponent's leads
+    # ── STOPPER COUNT (CRITICAL FOR SUN) ──
+    # In SUN, opponents can run any unstoppable suit for free tricks
     stoppers = 0
-    for s, cards in suits.items():
+    unstoppable_suits = []
+    for s in ['♠', '♥', '♦', '♣']:
+        cards = suits.get(s, [])
         ranks = [c.rank for c in cards]
+        length = len(cards)
         if 'A' in ranks:
             stoppers += 1
-        elif 'K' in ranks and len(cards) >= 2:
+        elif 'K' in ranks and length >= 2:
             stoppers += 1  # K with cover
-        elif 'Q' in ranks and len(cards) >= 3:
+        elif 'Q' in ranks and length >= 3:
             stoppers += 1  # Q with double cover
+        elif length >= 4:
+            stoppers += 1  # Pure length can stop (they run out)
+        else:
+            unstoppable_suits.append(s)
 
     if stoppers >= 4:
         score += 4  # All suits stopped — safe Sun hand
     elif stoppers >= 3:
         score += 2
+    elif stoppers == 2:
+        score -= 2  # Two unstoppable suits = dangerous
     elif stoppers <= 1:
-        score -= 3  # Too many exposed suits
+        score -= 5  # Critical vulnerability — opponents run 2+ suits
 
     # ── PROJECTS ──
     projects = scan_hand_for_projects(hand, 'SUN')

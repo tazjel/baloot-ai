@@ -149,6 +149,10 @@ def deserialize_game(data: dict) -> Game:
     game.deck.cards = [c for c in game.deck.cards if c.id not in dealt_ids]
 
     # Rebuild managers
+    from .akka_manager import AkkaManager
+    from .sawa_manager import SawaManager
+    from .baloot_manager import BalootManager
+
     game.graveyard = Graveyard()
     for trick in game.round_history:
         game.graveyard.commit_trick(trick.get('cards', []))
@@ -157,6 +161,9 @@ def deserialize_game(data: dict) -> Game:
     game.trick_manager = TrickManager(game)
     game.scoring_engine = ScoringEngine(game)
     game.project_manager = ProjectManager(game)
+    game.akka_manager = AkkaManager(game)
+    game.sawa_manager = SawaManager(game)
+    game.baloot_manager = BalootManager(game)
     game.challenge_phase = ChallengePhase(game)
     game.qayd_engine = QaydEngine(game)
 

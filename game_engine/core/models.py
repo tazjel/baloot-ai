@@ -40,6 +40,10 @@ class EventType(str, Enum):
     AKKA_DECLARED    = "AKKA_DECLARED"
     AKKA_REJECTED    = "AKKA_REJECTED"
 
+    # Baloot (K+Q of Trump)
+    BALOOT_ANNOUNCED = "BALOOT_ANNOUNCED"     # Phase 1: first K/Q played
+    BALOOT_DECLARED  = "BALOOT_DECLARED"       # Phase 2: second K/Q played, scored
+
     # Sawa
     SAWA_CLAIMED     = "SAWA_CLAIMED"
     SAWA_ACCEPTED    = "SAWA_ACCEPTED"

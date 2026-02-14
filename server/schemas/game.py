@@ -72,5 +72,6 @@ class GameStateModel(BaseModel):
     gameId: str
     settings: Dict[str, Any] = {}
     resolvedCrimes: List[Any] = []
+    balootState: Optional[Dict[str, Any]] = None
 
     model_config = ConfigDict(populate_by_name=True)
