@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Users, Play, Copy, Loader, Wifi } from 'lucide-react';
 import socketService from '../services/SocketService';
 import { devLogger } from '../utils/devLogger';
+import { useAuth } from '../contexts/AuthContext';
 
 interface MultiplayerLobbyProps {
     onBack: () => void;
@@ -10,11 +11,19 @@ interface MultiplayerLobbyProps {
 }
 
 const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ onBack, onGameStart }) => {
+    const { user } = useAuth();
     const [playerName, setPlayerName] = useState(() => {
+        if (user?.firstName) return user.firstName;
         const profile = localStorage.getItem('baloot_user_profile');
         return profile ? JSON.parse(profile).firstName : '';
     });
     const [roomCode, setRoomCode] = useState('');
+
+    useEffect(() => {
+        if (user?.firstName) {
+            setPlayerName(user.firstName);
+        }
+    }, [user]);
     const [error, setError] = useState('');
     const [isConnecting, setIsConnecting] = useState(false);
     const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
@@ -105,9 +114,11 @@ const MultiplayerLobby: React.FC<MultiplayerLobbyProps> = ({ onBack, onGameStart
                             type="text"
                             value={playerName}
                             onChange={(e) => setPlayerName(e.target.value)}
-                            className="w-full bg-[#121212] border border-gray-600 rounded-lg p-3 text-white focus:border-yellow-500 focus:outline-none transition-colors"
+                            disabled={!!user}
+                            className={`w-full bg-[#121212] border border-gray-600 rounded-lg p-3 text-white focus:border-yellow-500 focus:outline-none transition-colors ${user ? 'opacity-50 cursor-not-allowed' : ''}`}
                             placeholder="Enter your name"
                         />
+                        {user && <p className="text-xs text-green-500 mt-1">Logged in as {user.name} ({user.tier})</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

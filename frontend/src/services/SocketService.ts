@@ -24,12 +24,14 @@ class SocketService {
 
     connect() {
         if (!this.socket) {
+            const token = localStorage.getItem('baloot_auth_token');
             this.socket = io(SERVER_URL, {
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 16000,
+                auth: { token }
             });
             this.socket.on('connect', () => {
                 this.reconnectAttempt = 0;

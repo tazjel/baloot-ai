@@ -43,7 +43,43 @@ def user():
     elif points >= 1400: tier = "Gold"
     elif points >= 1200: tier = "Silver"
 
-    return {"user": request.user, "leaguePoints": points, "tier": tier}
+    coins = user_record.coins if user_record else 0
+    owned_items = user_record.owned_items if user_record else []
+    equipped_items = user_record.equipped_items if user_record else {}
+
+    return {
+        "user": request.user,
+        "leaguePoints": points,
+        "tier": tier,
+        "coins": coins,
+        "ownedItems": owned_items,
+        "equippedItems": equipped_items
+    }
+
+
+@action('user/update', method=['POST', 'OPTIONS'])
+@token_required
+@action.uses(db)
+def update_user():
+    """Protected endpoint to update user profile (coins, inventory)."""
+    user_id = request.user.get('user_id')
+    data = request.json
+    if not data:
+        return {"success": False, "error": "No data provided"}
+
+    update_data = {}
+    if 'coins' in data:
+        update_data['coins'] = data['coins']
+    if 'ownedItems' in data:
+        update_data['owned_items'] = data['ownedItems']
+    if 'equippedItems' in data:
+        update_data['equipped_items'] = data['equippedItems']
+
+    if update_data:
+        db(db.app_user.id == user_id).update(**update_data)
+        db.commit()
+
+    return {"success": True}
 
 
 @action('signup', method=['POST', 'OPTIONS'])
@@ -109,3 +145,5 @@ def bind_auth(safe_mount):
     safe_mount('/signup', 'POST', signup)
     safe_mount('/signup', 'OPTIONS', signup)
     safe_mount('/signin', 'POST', signin)
+    safe_mount('/user/update', 'POST', update_user)
+    safe_mount('/user/update', 'OPTIONS', update_user)
