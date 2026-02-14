@@ -369,7 +369,15 @@ def render_test_manager_tab():
             )
         with col2:
             st.markdown("<br>", unsafe_allow_html=True)
-            run_clicked = st.button("▶️ Run Tests", type="primary", width='stretch', key="tm_run")
+            run_clicked = st.button("▶️ Run Tests", type="primary", use_container_width=True, key="tm_run")
+
+        # Custom target input
+        custom_target = st.text_input(
+            "🎯 Run Custom Target (optional)",
+            placeholder="e.g. tests/unit/test_scoring.py::test_sun_scoring",
+            key="tm_custom_target",
+            help="Enter a specific test node ID, file path, or pytest expression. Overrides scope above."
+        )
 
         # Options row
         oc1, oc2, oc3, oc4, oc5 = st.columns(5)
@@ -380,7 +388,11 @@ def render_test_manager_tab():
         with_cov   = oc5.checkbox("📊 Coverage", key="tm_coverage", value=True)
 
         if run_clicked:
-            target = "tests/" if selected == "All Tests" else f"tests/{selected}/"
+            # Custom target overrides scope dropdown
+            if custom_target and custom_target.strip():
+                target = custom_target.strip()
+            else:
+                target = "tests/" if selected == "All Tests" else f"tests/{selected}/"
             extra = []
             if verbose:   extra.append("-v")
             if fail_fast: extra.append("-x")
@@ -465,15 +477,69 @@ def render_test_manager_tab():
         st.subheader("🗂️ Test Explorer")
 
         total_files = sum(len(v) for v in modules.values())
-        st.caption(f"📁 {len(modules)} modules · 📄 {total_files} test files")
+        # Count total test functions (rough estimate from file count)
+        total_test_count = 0
+        report = st.session_state.get("tm_last_report")
+        file_results = {}
+        if report:
+            for t in report.get("tests", []):
+                total_test_count += 1
+                nid = t.get("nodeid", "")
+                fp = nid.split("::")[0] if "::" in nid else nid
+                if fp not in file_results:
+                    file_results[fp] = {"passed": 0, "failed": 0}
+                if t.get("outcome") == "passed":
+                    file_results[fp]["passed"] += 1
+                elif t.get("outcome") == "failed":
+                    file_results[fp]["failed"] += 1
+
+        ec1, ec2, ec3 = st.columns(3)
+        ec1.metric("📁 Modules", len(modules))
+        ec2.metric("📄 Test Files", total_files)
+        ec3.metric("🧪 Known Tests", total_test_count if total_test_count else "Run to count")
+
+        # Build module-level badges from last run
+        mod_badges = {}
+        for fp, res in file_results.items():
+            # Extract module from file path (e.g. "tests/unit/test_x.py" → "unit")
+            parts = fp.replace("\\", "/").split("/")
+            if len(parts) >= 2 and parts[0] == "tests":
+                mod = parts[1] if len(parts) > 2 else "root"
+            else:
+                mod = "root"
+            if mod not in mod_badges:
+                mod_badges[mod] = {"passed": 0, "failed": 0}
+            mod_badges[mod]["passed"] += res["passed"]
+            mod_badges[mod]["failed"] += res["failed"]
 
         for mod_name, files in sorted(modules.items()):
             icon = TEST_MODULES.get(mod_name, "📁")
-            with st.expander(f"{icon} **{mod_name}/** — {len(files)} files"):
+            # Module-level badge from last run
+            badge = ""
+            if mod_name in mod_badges:
+                mb = mod_badges[mod_name]
+                if mb["failed"] > 0:
+                    badge = f" 🔴 {mb['failed']} fail"
+                else:
+                    badge = f" 🟢 {mb['passed']} pass"
+
+            with st.expander(f"{icon} **{mod_name}/**{badge} — {len(files)} files"):
                 for fi in files:
-                    ca, cb = st.columns([5, 1])
+                    # File-level badge
+                    file_badge = ""
+                    fp_key = fi["path"].replace("\\", "/")
+                    if fp_key in file_results:
+                        fr = file_results[fp_key]
+                        if fr["failed"] > 0:
+                            file_badge = f"🔴 {fr['failed']}F/{fr['passed']}P"
+                        else:
+                            file_badge = f"🟢 {fr['passed']}P"
+
+                    ca, cb, cc = st.columns([4, 1, 1])
                     ca.markdown(f"`{fi['name']}.py` — {fi['size_kb']} KB")
-                    if cb.button("▶️", key=f"run_{fi['path']}"):
+                    if file_badge:
+                        cb.markdown(file_badge)
+                    if cc.button("▶️", key=f"run_{fi['path']}"):
                         with st.spinner(f"Running {fi['name']}..."):
                             res = _run_pytest(fi["path"])
                         if res["success"]:
