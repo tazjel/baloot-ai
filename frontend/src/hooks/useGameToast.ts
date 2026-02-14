@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
-export type ToastType = 'turn' | 'akka' | 'sawa' | 'project' | 'trick' | 'error' | 'info';
+export type ToastType = 'turn' | 'akka' | 'sawa' | 'project' | 'trick' | 'error' | 'info' | 'baloot' | 'kaboot';
 
 export interface Toast {
     id: string;
@@ -17,6 +17,15 @@ const DEDUP_WINDOW = 1500; // Prevent duplicate toasts within this window
 export function useGameToast() {
     const [toasts, setToasts] = useState<Toast[]>([]);
     const lastToastRef = useRef<{ message: string; time: number } | null>(null);
+    const timerMapRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+    // Cleanup all toast timers on unmount
+    useEffect(() => {
+        return () => {
+            timerMapRef.current.forEach(timer => clearTimeout(timer));
+            timerMapRef.current.clear();
+        };
+    }, []);
 
     const addToast = useCallback((message: string, type: ToastType, icon: string = '📢') => {
         const now = Date.now();
@@ -38,13 +47,21 @@ export function useGameToast() {
             return next.slice(0, MAX_TOASTS);
         });
 
-        // Auto-remove after duration
-        setTimeout(() => {
+        // Auto-remove after duration (tracked for cleanup)
+        const timerId = setTimeout(() => {
+            timerMapRef.current.delete(id);
             setToasts(prev => prev.filter(t => t.id !== id));
         }, TOAST_DURATION);
+        timerMapRef.current.set(id, timerId);
     }, []);
 
     const dismissToast = useCallback((id: string) => {
+        // Clear the auto-remove timer when manually dismissed
+        const timer = timerMapRef.current.get(id);
+        if (timer) {
+            clearTimeout(timer);
+            timerMapRef.current.delete(id);
+        }
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 

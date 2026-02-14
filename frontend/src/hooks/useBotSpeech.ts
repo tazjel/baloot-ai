@@ -27,8 +27,23 @@ export function useBotSpeech(players: Player[]) {
     const playersRef = useRef(players);
     useEffect(() => { playersRef.current = players; }, [players]);
 
+    // Track active speech timers per player to cancel overlapping timeouts
+    const speechTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+    const isMountedRef = useRef(true);
+
+    // Cleanup all timers on unmount + set mounted flag
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            speechTimersRef.current.forEach(t => clearTimeout(t));
+            speechTimersRef.current.clear();
+        };
+    }, []);
+
     useEffect(() => {
         const cleanup = socketService.onBotSpeak((data) => {
+            if (!isMountedRef.current) return; // Guard against unmount race
             const { playerIndex, text, emotion } = data;
             setPlayerSpeech(prev => ({ ...prev, [playerIndex]: text }));
 
@@ -37,7 +52,13 @@ export function useBotSpeech(players: Player[]) {
             const personality = player ? getPersonality(player) : 'BALANCED';
             speak(text, personality);
 
-            setTimeout(() => {
+            // Cancel previous timer for this player (prevents overlapping clears)
+            const prevTimer = speechTimersRef.current.get(playerIndex);
+            if (prevTimer) clearTimeout(prevTimer);
+
+            const timer = setTimeout(() => {
+                if (!isMountedRef.current) return; // Guard against unmount race
+                speechTimersRef.current.delete(playerIndex);
                 setPlayerSpeech(prev => {
                     const newState = { ...prev };
                     if (newState[playerIndex] === text) {
@@ -46,6 +67,7 @@ export function useBotSpeech(players: Player[]) {
                     return newState;
                 });
             }, 5000);
+            speechTimersRef.current.set(playerIndex, timer);
         });
 
         return () => {

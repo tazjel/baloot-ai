@@ -1,10 +1,17 @@
 """
 Client telemetry log handler.
 """
+import os
 import time
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Ensure logs directory exists at import time
+os.makedirs('logs', exist_ok=True)
+
+# Limit log line length to prevent log injection / disk exhaustion
+MAX_LOG_LINE_LEN = 2000
 
 
 def register(sio):
@@ -13,10 +20,12 @@ def register(sio):
     @sio.event
     def client_log(sid, data):
         """Receive telemetry logs from client"""
+        if not isinstance(data, dict):
+            return
         try:
-            category = data.get('category', 'CLIENT')
-            level = data.get('level', 'INFO')
-            msg = data.get('message', '')
+            category = str(data.get('category', 'CLIENT'))[:32]
+            level = str(data.get('level', 'INFO'))[:8]
+            msg = str(data.get('message', ''))[:MAX_LOG_LINE_LEN]
 
             log_line = f"[{level}] [{category}] {msg}"
             logger.info(f"[CLIENT-LOG] [SID:{sid}] {log_line}")

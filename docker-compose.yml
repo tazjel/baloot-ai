@@ -1,6 +1,6 @@
 
-
 services:
+  # ── Redis: Required for AI worker memory, rate limiting, session storage ──
   redis:
     image: redis:alpine
     ports:
@@ -9,18 +9,28 @@ services:
       - redis_data:/data
     networks:
       - baloot_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
-  # AI Worker (The Brain) - To be implemented later
-  # ai_worker:
-  #   build: .
-  #   command: python -m ai_worker.worker
-  #   depends_on:
-  #     - redis
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379/0
-  #     - GEMINI_API_KEY=${GEMINI_API_KEY}
-  #   networks:
-  #     - baloot_net
+  # ── Redis Commander: Web UI for inspecting Redis (debug profile only) ──
+  # Start with: docker compose --profile debug up -d
+  # Access at: http://localhost:8081
+  redis-ui:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - baloot_net
+    profiles:
+      - debug
 
 networks:
   baloot_net:

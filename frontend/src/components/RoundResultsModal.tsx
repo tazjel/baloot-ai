@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { RoundResult } from '../types';
+import { RoundResult, DeclaredProject } from '../types';
 import { ArrowLeft } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -55,6 +55,10 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
 
     const bidderLabel = bidderTeam === 'us' ? 'فريقنا' : bidderTeam === 'them' ? 'فريقهم' : '-';
 
+    // Detect Kaboot (one team got 0 tricks)
+    const isKaboot = (result.us.aklat === 0 || result.them.aklat === 0) && (result.us.aklat + result.them.aklat > 0);
+    const kabootWinner = result.us.aklat === 0 ? 'them' : 'us';
+
     // Custom label for Qayd/Violation
     let stateLabel = isBidderWinner ? 'ربحانة' : 'خسرانة';
     if (result.reason && result.reason.includes('QAYD')) {
@@ -67,26 +71,25 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
 
     // Helper to format projects for display
     // Example: "20 سرا"
-    const formatProjects = (projects: any[]) => {
+    const PROJECT_NAMES: Record<string, string> = {
+        'SIRA': 'سرا',
+        'FIFTY': 'خمسين',
+        'HUNDRED': 'مية',
+        'FOUR_HUNDRED': 'أربعمية',
+        'BALOOT': 'بلوت',
+    };
+
+    const formatProjects = (projects: DeclaredProject[]) => {
         if (!projects || projects.length === 0) return null;
         return projects.map((p, idx) => {
-            let name = p.type;
-            if (p.type === 'SIRA') name = 'سرا';
-            if (p.type === 'FIFTY') name = 'خمسين';
-            if (p.type === 'HUNDRED') name = 'مية';
-            if (p.type === 'FOUR_HUNDRED') name = 'أربعمية';
-            if (p.type === 'BALOOT') name = 'بلوت';
-
-            // Points usually: Score (e.g. 20) + Name
-            // But if HOKUM, score is divided?
-            // Usually display RAW decl score (e.g. 20) not game points (2).
+            const name = PROJECT_NAMES[p.type] || p.type;
             const score = p.score || 0;
             return <div key={idx} className="text-xs font-bold text-slate-700">{score} {name}</div>
         });
     };
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 font-tajawal" dir="rtl">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 font-tajawal" dir="rtl" role="dialog" aria-modal="true" aria-label="Round results">
             {/* Main Card Container - Simulating the beige/paper look */}
             <div className="relative w-full max-w-lg bg-[#e8e4dc] rounded-xl shadow-2xl overflow-hidden border-4 border-[#8c7b6b]">
 
@@ -101,6 +104,16 @@ const RoundResultsModal: React.FC<RoundResultsModalProps> = ({ result, bidderTea
                         <span className={`font-black text-xl ${stateColor}`}>{stateLabel}</span>
                     </div>
                 </div>
+
+                {/* Kaboot (Galoss) Banner */}
+                {isKaboot && (
+                    <div className="mx-4 mb-2 bg-gradient-to-r from-rose-600 to-red-700 text-white p-3 rounded-lg shadow-lg border border-rose-400 text-center animate-pulse">
+                        <div className="text-2xl font-black mb-0.5">كبوت! 🏆</div>
+                        <div className="text-sm opacity-90">
+                            {kabootWinner === 'us' ? 'فريقنا أخذ جميع الأكلات' : 'فريقهم أخذ جميع الأكلات'}
+                        </div>
+                    </div>
+                )}
 
                 {/* "Nashra" (Bulletin) Section */}
                 <div className="relative mx-4 mb-4 bg-[#dcdcdc] rounded-lg overflow-hidden border border-stone-300">

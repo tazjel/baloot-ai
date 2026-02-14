@@ -8,8 +8,7 @@ point, and knowing when to abort a failed sweep attempt.
 from __future__ import annotations
 from collections import Counter
 
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
+from ai_worker.strategies.constants import ORDER_SUN, ORDER_HOKUM
 
 
 def _order(mode: str) -> list[str]:

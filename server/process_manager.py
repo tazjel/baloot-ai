@@ -25,15 +25,15 @@ class Heartbeat:
             })
             self.redis.expire(self.key, self.ttl)
         except Exception as e:
-            # Don't crash on heartbeat failure
-            pass
+            # Don't crash on heartbeat failure, but log it
+            logger.debug(f"Heartbeat beat failed: {e}")
 
     def stop(self):
         """Clean up on exit"""
         try:
             self.redis.delete(self.key)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Heartbeat stop cleanup failed: {e}")
 
 class Reaper:
     """Utilities to find and kill zombies"""

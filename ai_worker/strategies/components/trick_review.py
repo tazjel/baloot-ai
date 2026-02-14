@@ -6,9 +6,9 @@ strategic shifts (CONSERVATIVE / AGGRESSIVE / DAMAGE_CONTROL).
 """
 from __future__ import annotations
 
+from ai_worker.strategies.constants import PTS_SUN, PTS_HOKUM
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
-_PTS = {"SUN": {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2},
-        "HOKUM": {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}}
+_PTS = {"SUN": PTS_SUN, "HOKUM": PTS_HOKUM}
 
 
 def _team(pos: str) -> int:

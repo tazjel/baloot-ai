@@ -20,10 +20,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2}
-PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}
+from ai_worker.strategies.constants import ORDER_SUN, ORDER_HOKUM, PTS_SUN, PTS_HOKUM
 
 
 def _estimate_remaining_points(

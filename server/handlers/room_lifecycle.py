@@ -1,6 +1,8 @@
 """
 Room lifecycle handlers: connect, disconnect, create_room, join_room, add_bot, check_start.
 """
+import html
+import re
 import time
 import logging
 
@@ -10,6 +12,26 @@ from server.rate_limiter import limiter
 import server.auth_utils as auth_utils
 
 logger = logging.getLogger(__name__)
+
+# --- Input Sanitization ---
+MAX_ROOM_ID_LEN = 64
+MAX_PLAYER_NAME_LEN = 32
+_CONTROL_CHARS = re.compile(r'[\x00-\x1f\x7f-\x9f]')
+
+
+def _sanitize_player_name(raw: str) -> str:
+    """Sanitize player name: strip control chars, HTML-escape, limit length."""
+    if not isinstance(raw, str) or not raw.strip():
+        return 'Guest'
+    name = _CONTROL_CHARS.sub('', raw)        # remove control characters
+    name = html.escape(name.strip())          # escape HTML entities
+    name = name[:MAX_PLAYER_NAME_LEN]         # enforce length limit
+    return name if name else 'Guest'
+
+
+def _validate_room_id(room_id) -> bool:
+    """Validate room ID format: non-empty string within length limit."""
+    return isinstance(room_id, str) and 0 < len(room_id) <= MAX_ROOM_ID_LEN
 
 
 def register(sio, connected_users):
@@ -48,6 +70,8 @@ def register(sio, connected_users):
         # Cleanup auth memory
         if sid in connected_users:
             del connected_users[sid]
+        # Cleanup player-to-room tracking
+        room_manager.untrack_player(sid)
 
     @sio.event
     def create_room(sid, data):
@@ -58,18 +82,40 @@ def register(sio, connected_users):
             return {'success': False, 'error': 'Rate limit exceeded. Please wait.'}
 
         room_id = room_manager.create_room()
+        if not room_id:
+            return {'success': False, 'error': 'Server at capacity. Please try again later.'}
         return {'success': True, 'roomId': room_id}
 
     @sio.event
     def join_room(sid, data):
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Invalid request format'}
+
+        # Rate Limit: 10 per minute per SID
+        if not limiter.check_limit(f"join_room:{sid}", 10, 60):
+            return {'success': False, 'error': 'Too many join attempts. Please wait.'}
+
         from server.handlers.game_lifecycle import handle_bot_turn
-        
+
         room_id = data.get('roomId')
-        player_name = data.get('playerName', 'Guest')
+        if not _validate_room_id(room_id):
+            return {'success': False, 'error': 'Invalid roomId'}
+
+        player_name = _sanitize_player_name(data.get('playerName', 'Guest'))
 
         game = room_manager.get_game(room_id)
         if not game:
             return {'success': False, 'error': 'Room not found'}
+
+        # Duplicate-join guard: if SID is already in game, return existing state
+        existing = next((p for p in game.players if p.id == sid), None)
+        if existing:
+            sio.enter_room(sid, room_id)
+            return {
+                'success': True,
+                'gameState': game.get_game_state(),
+                'yourIndex': existing.index
+            }
 
         # RESERVED SEAT LOGIC (For Replay Forks)
         reserved = next((p for p in game.players if p.id == "RESERVED_FOR_USER"), None)
@@ -92,6 +138,7 @@ def register(sio, connected_users):
             room_manager.save_game(game)
 
         sio.enter_room(sid, room_id)
+        room_manager.track_player(sid, room_id)
 
         # For testing: Auto-add 3 bots when first player joins
         if len(game.players) == 1:
@@ -127,10 +174,19 @@ def register(sio, connected_users):
 
     @sio.event
     def add_bot(sid, data):
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Invalid request format'}
+
+        # Rate Limit: 10 per minute per SID
+        if not limiter.check_limit(f"add_bot:{sid}", 10, 60):
+            return {'success': False, 'error': 'Too many requests. Please wait.'}
+
         from server.handlers.game_lifecycle import handle_bot_turn
-        
+
         room_id = data.get('roomId')
-        if not room_id or room_id not in room_manager.games:
+        if not _validate_room_id(room_id):
+            return {'success': False, 'error': 'Invalid roomId'}
+        if room_id not in room_manager.games:
             return {'success': False, 'error': 'Room not found'}
 
         game = room_manager.games[room_id]
@@ -161,9 +217,14 @@ def register(sio, connected_users):
 
     @sio.event
     def check_start(sid, data):
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Invalid request format'}
+
         from server.handlers.game_lifecycle import handle_bot_turn
-        
+
         room_id = data.get('roomId')
+        if not _validate_room_id(room_id):
+            return {'success': False, 'error': 'Invalid roomId'}
         game = room_manager.get_game(room_id)
         if game and len(game.players) == 4:
             if game.start_game():

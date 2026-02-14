@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
+from ai_worker.strategies.constants import ALL_SUITS
 
 
 def _partner_of(pos: str) -> str:

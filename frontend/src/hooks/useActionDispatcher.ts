@@ -97,7 +97,7 @@ export const useActionDispatcher = ({
         }, 150);
 
         return () => clearTimeout(timer);
-    }, [gameState.isFastForwarding, gameState.phase, gameState.currentTurnIndex, gameState.tableCards, gameState.isTrickTransitioning]);
+    }, [gameState.isFastForwarding, gameState.phase, gameState.currentTurnIndex, gameState.tableCards, gameState.isTrickTransitioning, handleCardPlay]);
 
     // --- DEBUG / SETTINGS ---
     const handleDebugAction = (action: string, pl?: any) => {

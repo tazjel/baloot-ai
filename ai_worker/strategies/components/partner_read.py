@@ -7,7 +7,7 @@ action adjusts per-suit strength scores and void/trump estimates.
 from __future__ import annotations
 from collections import defaultdict
 
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
+from ai_worker.strategies.constants import ALL_SUITS
 HIGH_RANKS = {"A", "10", "K"}
 LOW_RANKS = {"7", "8"}
 _partner = lambda p: ["Bottom","Right","Top","Left"][(["Bottom","Right","Top","Left"].index(p)+2)%4]

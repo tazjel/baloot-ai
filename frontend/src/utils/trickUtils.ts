@@ -46,6 +46,10 @@ export const isValidMove = (
     isLocked: boolean = false,
     strictMode: boolean = true
 ): boolean => {
+    // Null/undefined guard — prevent crash on missing card data
+    if (!card || !card.suit || !card.rank) return false;
+    if (!hand || hand.length === 0) return false;
+
     if (!strictMode) return true;
 
     // Lead player

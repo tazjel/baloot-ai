@@ -110,6 +110,7 @@ export const usePlayingLogic = ({
         }, gameState.settings.turnDuration * 1000);
 
         return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- gameState fields used inside closure are tracked via the 4 deps above; handleBiddingAction/handleCardPlay/addSystemMessage are stable refs
     }, [gameState.currentTurnIndex, gameState.phase, gameState.settings.turnDuration, roomId]);
 
     return {

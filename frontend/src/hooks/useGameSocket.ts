@@ -49,7 +49,8 @@ export const useGameSocket = (): UseGameSocketReturn => {
     const [myIndex, setMyIndex] = useState<number>(0);
     const myIndexRef = useRef(0);
     const [isSendingAction, setIsSendingAction] = useState(false);
-    
+    const isSendingRef = useRef(false);
+
     // Callbacks storage for game updates
     const gameUpdateCallbackRef = useRef<((state: GameState) => void) | null>(null);
 
@@ -173,54 +174,64 @@ export const useGameSocket = (): UseGameSocketReturn => {
         }
     }, [rotateGameState]);
 
+    // Keep roomId ref in sync for stable callbacks
+    const roomIdRef = useRef(roomId);
+    useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+
     /**
      * Send action to server with optimistic locking
+     * Uses refs for isSending and roomId to avoid stale closures
      */
     const sendAction = useCallback((action: string, payload?: any, onComplete?: (res: any) => void) => {
-        if (!roomId) {
+        const currentRoomId = roomIdRef.current;
+        if (!currentRoomId) {
             console.warn("[useGameSocket] Cannot send action - not connected to room");
             return;
         }
 
         // Block duplicate actions (except all Qayd multi-step wizard actions)
-        if (isSendingAction && !action.startsWith('QAYD')) {
+        if (isSendingRef.current && !action.startsWith('QAYD')) {
             console.warn("[useGameSocket] Action blocked - already sending");
             return;
         }
 
+        isSendingRef.current = true;
         setIsSendingAction(true);
         devLogger.log('SOCKET', `Sending Action: ${action}`, payload);
 
         const wrappedCallback = (res: any) => {
+            isSendingRef.current = false;
             setIsSendingAction(false);
             if (onComplete) onComplete(res);
         };
 
         // Route actions to appropriate socket service methods
         if (action === 'PLAY') {
-            socketService.sendAction(roomId, 'PLAY', payload, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'PLAY', payload, wrappedCallback);
         } else if (['SUN', 'HOKUM', 'PASS', 'ASHKAL'].includes(action)) {
-            socketService.sendAction(roomId, 'BID', { action: action, suit: payload?.suit }, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'BID', { action: action, suit: payload?.suit }, wrappedCallback);
         } else if (action === 'DECLARE_PROJECT') {
-            socketService.sendAction(roomId, 'DECLARE_PROJECT', payload, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'DECLARE_PROJECT', payload, wrappedCallback);
         } else if (action === 'SAWA_CLAIM') {
-            socketService.sendAction(roomId, 'SAWA_CLAIM', {}, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'SAWA_CLAIM', {}, wrappedCallback);
         } else if (action === 'SAWA_RESPONSE') {
-            socketService.sendAction(roomId, 'SAWA_RESPONSE', payload, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'SAWA_RESPONSE', payload, wrappedCallback);
         } else if (action === 'NEXT_ROUND') {
-            socketService.sendAction(roomId, 'NEXT_ROUND', {}, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'NEXT_ROUND', {}, wrappedCallback);
         } else if (action.startsWith('QAYD')) {
-            socketService.sendAction(roomId, action, payload, wrappedCallback);
+            socketService.sendAction(currentRoomId, action, payload, wrappedCallback);
         } else if (action === 'DOUBLE') {
             console.warn("[useGameSocket] Doubling not fully implemented in Python yet.");
+            isSendingRef.current = false;
             setIsSendingAction(false);
         } else if (action === 'UPDATE_SETTINGS') {
-            socketService.sendAction(roomId, 'UPDATE_SETTINGS', payload, wrappedCallback);
+            socketService.sendAction(currentRoomId, 'UPDATE_SETTINGS', payload, wrappedCallback);
         } else {
             console.warn("[useGameSocket] Unhandled Server Action:", action);
+            isSendingRef.current = false;
             setIsSendingAction(false);
         }
-    }, [roomId, isSendingAction]);
+    }, []); // Stable callback — uses refs for mutable values
 
     /**
      * Add bot to game
@@ -267,6 +278,7 @@ export const useGameSocket = (): UseGameSocketReturn => {
         });
 
         return () => {
+            gameUpdateCallbackRef.current = null; // Prevent stale updates after unmount
             if (cleanupUpdate) cleanupUpdate();
             if (cleanupStart) cleanupStart();
         };

@@ -112,6 +112,17 @@ export interface RoundResult {
   reason?: string;
 }
 
+/** Extended round data from server replay system — includes trick-level detail. */
+export interface MatchHistoryRound extends RoundResult {
+  bid?: Bid;
+  scores?: { us: DetailedScore; them: DetailedScore };
+  tricks?: {
+    cards: { card: CardModel; playedBy: string }[];
+    winner?: string;
+    points?: number;
+  }[];
+}
+
 
 
 export enum ProjectType {
@@ -196,7 +207,7 @@ export interface GameState {
   phase: GamePhase;
   biddingPhase?: string; // e.g. "GABLAK_WINDOW"
   tableCards: { card: CardModel; playedBy: PlayerPosition; metadata?: TableCardMetadata }[];
-  gameMode?: string;
+  gameMode?: 'SUN' | 'HOKUM';
   trumpSuit?: Suit;
   bid: Bid;
   teamScores: { us: number; them: number };
@@ -209,7 +220,7 @@ export interface GameState {
     playedBy?: string[];
     winner?: string;
     points?: number;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }[];
 
   floorCard: CardModel | null;
@@ -250,7 +261,7 @@ export interface GameState {
   akkaState?: { claimer: PlayerPosition; suits: string[]; timestamp: number } | null;
 
   // Debug/Dev
-  fullMatchHistory?: any[];
+  fullMatchHistory?: MatchHistoryRound[];
   analytics?: {
     winProbability: { trick: number; us: number }[];
     blunders?: { [key: string]: number }; // Map "Bottom": count
@@ -260,6 +271,6 @@ export interface GameState {
     forked_at_round?: number;
     forked_at_trick?: number;
     original_final_scores?: { us: number; them: number };
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }

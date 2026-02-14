@@ -27,6 +27,45 @@ class HokumStrategy(StrategyComponent):
             if endgame:
                 return endgame
 
+        # ── Bayesian suit probabilities for opponents ──
+        partner_pos = self.get_partner_pos(ctx.player_index)
+        _suit_probs: dict[str, dict[str, float]] | None = None
+        try:
+            if ctx.memory and hasattr(ctx.memory, 'suit_probability') and ctx.memory.suit_probability:
+                opp_positions = [p.get('position') for p in ctx.raw_state.get('players', [])
+                                 if p.get('position') not in (ctx.position, partner_pos)]
+                _suit_probs = {pos: ctx.memory.suit_probability.get(pos, {})
+                               for pos in opp_positions if pos}
+        except Exception:
+            pass
+
+        # ── TRICK REVIEW: Mid-round strategy adaptation ──
+        self._trick_review = None
+        try:
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            partner_pos = self.get_partner_pos(ctx.player_index)
+            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
+            self._trick_review = review_tricks(
+                my_position=ctx.position, trick_history=tricks,
+                mode='HOKUM', trump_suit=ctx.trump, we_are_buyers=(bidder_team == 'us'),
+            )
+            logger.debug(f"[TRICK_REVIEW] {self._trick_review['momentum']} {self._trick_review['our_tricks']}-{self._trick_review['their_tricks']} shift={self._trick_review['strategy_shift']}")
+        except Exception as e:
+            logger.debug(f"Trick review skipped: {e}")
+
+        # ── OPPONENT MODEL: Threat assessment ──
+        self._opp_model = None
+        try:
+            bid_hist = ctx.raw_state.get('bidHistory', [])
+            tricks = ctx.raw_state.get('currentRoundTricks', [])
+            self._opp_model = model_opponents(
+                my_position=ctx.position, bid_history=bid_hist,
+                trick_history=tricks, mode='HOKUM', trump_suit=ctx.trump,
+            )
+            logger.debug(f"[OPP_MODEL] danger={self._opp_model['combined_danger']} safe={self._opp_model['safe_lead_suits']} avoid={self._opp_model['avoid_lead_suits']}")
+        except Exception as e:
+            logger.debug(f"Opponent model skipped: {e}")
+
         # ── BRAIN: Cross-module orchestration ──
         try:
             from ai_worker.strategies.components.brain import consult_brain
@@ -67,6 +106,8 @@ class HokumStrategy(StrategyComponent):
                 master_indices=master_idx, tracker_voids=voids,
                 partner_info=pi,
                 legal_indices=ctx.get_legal_moves(),
+                opponent_info=self._opp_model,
+                trick_review_info=self._trick_review,
             )
             logger.debug(f"[BRAIN] conf={brain['confidence']} modules={brain['modules_consulted']} → {brain['reasoning']}")
             if brain['recommendation'] is not None and brain['confidence'] >= 0.7:
@@ -74,33 +115,6 @@ class HokumStrategy(StrategyComponent):
                         "reasoning": f"BRAIN({brain['confidence']}): {brain['reasoning']}"}
         except Exception as e:
             logger.debug(f"Brain skipped: {e}")
-
-        # ── TRICK REVIEW: Mid-round strategy adaptation ──
-        self._trick_review = None
-        try:
-            tricks = ctx.raw_state.get('currentRoundTricks', [])
-            partner_pos = self.get_partner_pos(ctx.player_index)
-            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
-            self._trick_review = review_tricks(
-                my_position=ctx.position, trick_history=tricks,
-                mode='HOKUM', trump_suit=ctx.trump, we_are_buyers=(bidder_team == 'us'),
-            )
-            logger.debug(f"[TRICK_REVIEW] {self._trick_review['momentum']} {self._trick_review['our_tricks']}-{self._trick_review['their_tricks']} shift={self._trick_review['strategy_shift']}")
-        except Exception as e:
-            logger.debug(f"Trick review skipped: {e}")
-
-        # ── OPPONENT MODEL: Threat assessment ──
-        self._opp_model = None
-        try:
-            bid_hist = ctx.raw_state.get('bidHistory', [])
-            tricks = ctx.raw_state.get('currentRoundTricks', [])
-            self._opp_model = model_opponents(
-                my_position=ctx.position, bid_history=bid_hist,
-                trick_history=tricks, mode='HOKUM', trump_suit=ctx.trump,
-            )
-            logger.debug(f"[OPP_MODEL] danger={self._opp_model['combined_danger']} safe={self._opp_model['safe_lead_suits']} avoid={self._opp_model['avoid_lead_suits']}")
-        except Exception as e:
-            logger.debug(f"Opponent model skipped: {e}")
 
         # ── GALOSS GUARD: Emergency mode detection ──
         self._galoss = None
@@ -352,6 +366,7 @@ class HokumStrategy(StrategyComponent):
                 master_indices=master_idx, partner_info=_pi,
                 defense_info=_def_info, trump_info=tplan,
                 opponent_voids=_opp_voids,
+                suit_probs=_suit_probs,
             )
             # Adjust confidence threshold based on trick_review strategy_shift
             _ls_threshold = 0.65
@@ -681,6 +696,7 @@ class HokumStrategy(StrategyComponent):
                     partner_winning=True, partner_card_index=_partner_card_idx,
                     trick_points=trick_points, tricks_remaining=8 - len(tricks),
                     we_are_buyers=(bidder_team == 'us'),
+                    suit_probs=_suit_probs,
                 )
                 if fo_result and fo_result.get('confidence', 0) >= 0.6:
                     logger.debug(f"[FOLLOW_OPT] {fo_result['tactic']}({fo_result['confidence']:.0%}): {fo_result['reasoning']}")
@@ -724,6 +740,7 @@ class HokumStrategy(StrategyComponent):
                         partner_winning=False, partner_card_index=_partner_card_idx,
                         trick_points=trick_points, tricks_remaining=8 - len(tricks),
                         we_are_buyers=(bidder_team == 'us'),
+                        suit_probs=_suit_probs,
                     )
                     if fo_result and fo_result.get('confidence', 0) >= 0.6:
                         logger.debug(f"[FOLLOW_OPT] {fo_result['tactic']}({fo_result['confidence']:.0%}): {fo_result['reasoning']}")

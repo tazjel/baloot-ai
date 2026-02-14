@@ -8,10 +8,9 @@ from __future__ import annotations
 
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
 TEAMS = {"Bottom": 0, "Top": 0, "Right": 1, "Left": 1}
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2, "9": 0, "8": 0, "7": 0}
-PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3, "8": 0, "7": 0}
+from ai_worker.strategies.constants import (
+    ORDER_SUN, ORDER_HOKUM, PTS_SUN_FULL as PTS_SUN, PTS_HOKUM_FULL as PTS_HOKUM,
+)
 _nxt = lambda p: POSITIONS[(POSITIONS.index(p) + 1) % 4]
 _pts = lambda r, m: (PTS_HOKUM if m == "HOKUM" else PTS_SUN)[r]
 

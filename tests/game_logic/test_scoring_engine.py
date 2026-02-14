@@ -184,6 +184,39 @@ class TestDoublingMultiplier(_ScoringTestBase):
         self.assertEqual(score_them, 0)
 
 
+class TestGPOverflow(_ScoringTestBase):
+    """Tests for GP tiebreak overflow fix (11.1a) — total_gp > target_total."""
+
+    def test_overflow_subtracted_from_non_bidder(self):
+        """When rounding produces GP > target, excess is removed from non-bidder."""
+        se = self.game.scoring_engine
+        # Craft values where both round UP, producing total > 16
+        # e.g. us=86, them=76 raw+ardh → us=9, them=8 → 17 > 16
+        # bidder_team='us' → subtract excess from 'them'
+        result = se.calculate_game_points_with_tiebreak(76, 66, 10, 10, 'us')
+        total = result['game_points']['us'] + result['game_points']['them']
+        self.assertEqual(total, 16, "Total GP must equal 16 in HOKUM even when rounding overflows")
+
+    def test_overflow_does_not_go_negative(self):
+        """Excess subtraction should never produce negative GP."""
+        se = self.game.scoring_engine
+        # Extreme case: one team has almost all points
+        result = se.calculate_game_points_with_tiebreak(140, 0, 10, 0, 'them')
+        self.assertGreaterEqual(result['game_points']['us'], 0)
+        self.assertGreaterEqual(result['game_points']['them'], 0)
+        total = result['game_points']['us'] + result['game_points']['them']
+        self.assertEqual(total, 16)
+
+    def test_sun_overflow_target_26(self):
+        """In Sun mode, total should be 26."""
+        self.game.game_mode = 'SUN'
+        self.game.bid = {'bidder': 'Bottom', 'type': 'SUN', 'suit': None}
+        se = self.game.scoring_engine
+        result = se.calculate_game_points_with_tiebreak(68, 62, 10, 10, 'us')
+        total = result['game_points']['us'] + result['game_points']['them']
+        self.assertEqual(total, 26, "Total GP must equal 26 in SUN")
+
+
 class TestProjectIntegration(_ScoringTestBase):
     """Tests for projects integrated into final scoring."""
 

@@ -1,10 +1,22 @@
 import jwt
 import time
 import os
+import logging
 import server.settings as settings
 
+logger = logging.getLogger(__name__)
+
 # Use settings.SESSION_SECRET_KEY if available, otherwise fallback or env
+_INSECURE_DEFAULTS = {'dev-secret-key-change-in-prod', 'secret', 'changeme', ''}
+
 SECRET_KEY = settings.SESSION_SECRET_KEY or os.environ.get('JWT_SECRET', 'dev-secret-key-change-in-prod')
+
+# Warn on insecure defaults (but don't crash — allows dev mode)
+if SECRET_KEY in _INSECURE_DEFAULTS or len(SECRET_KEY) < 16:
+    logger.warning(
+        "⚠️  JWT_SECRET is insecure or too short! "
+        "Set a strong JWT_SECRET (32+ chars) in environment for production."
+    )
 
 def generate_token(user_id, email, first_name, last_name):
     """

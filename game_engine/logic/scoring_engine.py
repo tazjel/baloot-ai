@@ -33,10 +33,15 @@ class ScoringEngine:
         """Calculates raw card points (Abnat) for both teams including Last Trick bonus."""
         card_abnat_us = 0
         card_abnat_them = 0
-        
+
+        if not self.game.round_history:
+            return 0, 0, {'us': 0, 'them': 0}
+
         for trick in self.game.round_history:
              winner_pos = trick['winner']
-             winner_p = next(p for p in self.game.players if p.position == winner_pos)
+             winner_p = next((p for p in self.game.players if p.position == winner_pos), None)
+             if not winner_p:
+                 continue
              if winner_p.team == 'us': card_abnat_us += trick['points']
              else: card_abnat_them += trick['points']
              
@@ -88,7 +93,12 @@ class ScoringEngine:
              else:
                   gp_us += diff
         elif total_gp > target_total:
-             pass
+             diff = total_gp - target_total
+             # Subtract excess from non-bidder team (mirrors the < case)
+             if bidder_team == 'us':
+                  gp_them = max(0, gp_them - diff)
+             else:
+                  gp_us = max(0, gp_us - diff)
 
         if gp_us > gp_them:
              winner = 'us'

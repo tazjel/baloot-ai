@@ -1,10 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { GameState } from '../types';
 import { soundManager } from '../services/SoundManager';
 
 export const useEmotes = (gameState: GameState, addSystemMessage: (msg: string) => void) => {
     const [isEmoteMenuOpen, setIsEmoteMenuOpen] = useState(false);
     const [flyingItems, setFlyingItems] = useState<{ id: string, type: string, startX: number, startY: number, endX: number, endY: number }[]>([]);
+    const flyingTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+    const isMountedRef = useRef(true);
+
+    // Cleanup all flying item timers on unmount
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            flyingTimersRef.current.forEach(t => clearTimeout(t));
+            flyingTimersRef.current.clear();
+        };
+    }, []);
 
     const handleSendEmote = (msg: string) => {
         addSystemMessage(`أنا: ${msg} `);
@@ -25,7 +37,12 @@ export const useEmotes = (gameState: GameState, addSystemMessage: (msg: string) 
         const newItem = { id: Date.now().toString(), type: itemId, startX: 50, startY: 90, endX, endY };
         setFlyingItems(prev => [...prev, newItem]);
         soundManager.playShuffleSound();
-        setTimeout(() => setFlyingItems(prev => prev.filter(i => i.id !== newItem.id)), 1000);
+        const timer = setTimeout(() => {
+            if (!isMountedRef.current) return;
+            flyingTimersRef.current.delete(timer);
+            setFlyingItems(prev => prev.filter(i => i.id !== newItem.id));
+        }, 1000);
+        flyingTimersRef.current.add(timer);
     };
 
     const toggleEmoteMenu = () => setIsEmoteMenuOpen(prev => !prev);

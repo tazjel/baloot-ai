@@ -2,6 +2,9 @@ from game_engine.models.card import Card
 from game_engine.models.constants import ORDER_SUN, ORDER_HOKUM, BiddingPhase, BidType
 from ai_worker.personality import PersonalityProfile, BALANCED
 import functools
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BotContext:
     """Typed wrapper for game state to simplify bot logic."""
@@ -17,7 +20,10 @@ class BotContext:
 
     def _parse_player(self, game_state: dict, player_index: int):
         """Extract player identity, hand, and team from game state."""
-        p_data = game_state['players'][player_index]
+        players = game_state.get('players', [])
+        if not players or player_index < 0 or player_index >= len(players):
+            raise ValueError(f"Invalid player_index {player_index} for {len(players)} players")
+        p_data = players[player_index]
         self.hand = [Card(c['suit'], c['rank']) for c in p_data['hand']]
         self.position = p_data.get('position', 'Unknown')
         self.name = p_data.get('name', f"Player {player_index}")
@@ -194,7 +200,11 @@ class BotContext:
         Uses shared validation logic.
         """
         from game_engine.logic.validation import is_move_legal
-        
+
+        if not self.hand:
+            logger.error(f"[BotContext] get_legal_moves called with empty hand for {self.position}")
+            return []
+
         legal_indices = []
         players_team_map = self.players_team_map
         table_cards = self.raw_state.get('tableCards', [])

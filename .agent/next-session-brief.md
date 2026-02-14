@@ -1,21 +1,17 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-13 14:11 | **Scan Results Below**
+> **Generated**: 2026-02-14 (updated by Claude session 5) | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
 | Metric | Value |
 |--------|-------|
-| Backend source files | 125 (game_engine: 45, ai_worker: 40, server: 40) |
-| Frontend files | 95 (.tsx: 49, .ts: 46) |
-| Test files | 76 (ratio: **0.61** ⚠️ — target 0.70) |
-| Tests collected | **493** ✅ |
-| Last Pass Rate | **100%** (493/493) ✅ |
-| Last Code Coverage | **54.2%** ⚠️ |
-| Last Test Run | 2026-02-13 14:09 |
+| Backend source files | ~130 (game_engine: 45, ai_worker: 42, server: 42) |
+| Frontend files | ~95 (.tsx: 49, .ts: 46) |
+| Tests collected | **462** ✅ (bot + game_logic suites) |
+| Last Pass Rate | **100%** (462/462) ✅ |
+| Last Test Run | 2026-02-14 |
 | TypeScript errors | **0** ✅ |
-| `as any` casts | **0** ✅ |
-| Debug console.logs | **0** ✅ |
 | TODO/FIXME/HACK | **2** (ai_worker/memory.py, ai_worker/mcts/utils.py) |
 
 ### Backend Hotspots (>15 KB)
@@ -66,34 +62,86 @@
 ### Mission 6: "The Surgeon" — Backend God-File Decomposition ✅
 > Completed 2026-02-13 via Jules PR. Extracted: `qayd_state_machine.py`, `qayd_penalties.py`, `game_lifecycle.py`, `player_manager.py`, `trick_resolver.py`. Core files all reduced in size.
 
-### Mission 12: "The Dashboard" — Test Manager Intelligence Center ✅ 🆕
-> Completed 2026-02-13. Built full Test Manager tab in Command Center: coverage heatmap (pytest-cov), slow test detector, parallel execution (pytest-xdist), flaky tracker, run history with coverage trends. Fixed brain_view.py infinite rerun loop.
+### Mission 12: "The Dashboard" — Test Manager Intelligence Center ✅
+> Completed 2026-02-13. Built full Test Manager tab in Command Center.
+
+### Mission 13: "The Contract" — Frontend Feature Gaps + Accessibility ✅
+> Completed 2026-02-14. Added baloot/kaboot toast types, Kaboot banner in RoundResults, enhanced ScoreSheet tooltips (Arabic labels), ARIA accessibility across 6 modals + 10 icon buttons + 5 toggle switches.
+
+### Mission 14: "The Fortress" — Server Security Hardening ✅
+> Completed 2026-02-14. XSS sanitization (player names), rate limiting with Redis + memory fallback, room capacity limits (500), JWT secret validation, CORS configuration, error handler improvements.
+
+### Mission 15: "The Consolidator" — Constants + Brain Wiring ✅
+> Completed 2026-02-14. Created shared `constants.py` replacing 14+ duplicated files. Wired opponent_model into brain cascade (step 4). trick_review now adjusts brain threshold (0.4-0.6). Bayesian suit_probs fed into lead_selector + follow_optimizer. sun.py/hokum.py reordered for correct data flow.
+
+---
+
+## Mission 12 (New): "Frontend Stability" — Fix Memory Leaks & Crashes ✅
+> Completed 2026-02-14. Fixed 9 hooks with memory leaks, stale closures, and timer issues. 0 TS errors.
+
+### What Was Fixed
+- **useGameToast.ts**: Toast auto-remove timers now tracked in Map ref, cleared on unmount + manual dismiss
+- **useGameSocket.ts**: `gameUpdateCallbackRef` cleared on socket cleanup to prevent stale state updates
+- **useBotSpeech.ts**: Added `isMountedRef` guard — socket callback + speech timers skip updates after unmount
+- **useEmotes.ts**: Added `isMountedRef` guard — flying item timers skip state update if unmounted
+- **useGameAudio.ts**: Cancel `window.speechSynthesis` on unmount to stop orphaned speech
+- **useActionDispatcher.ts**: Added missing `handleCardPlay` to fast-forward effect dependency array
+- **usePlayingLogic.ts**: Documented stable-ref deps with eslint-disable comment (offline mode timer)
+- **useReplayNavigation.ts**: Removed `selectedTrickIdx` from interval deps — uses functional updater + ref to prevent interval churn
+- **useShop.ts**: Flush pending debounced save on unmount using refs to prevent data loss
+
+---
+
+## Mission 6 (New): "Test Fortress" — Expand Test Coverage ✅
+> Completed 2026-02-14. +109 new tests (353→462). All 6 subtasks done.
+
+### What Was Added
+- **test_baloot_declaration.py** (24 tests): Scan/no-scan, phase 1/2, points immunity, SUN mode exclusion, serialization, non-holder
+- **test_scoring_integration.py** (29 tests): Full SUN/HOKUM rounds, Kaboot, Khasara flip, doubled/tripled, Gahwa, projects+tricks, tiebreak, last trick bonus, rounding, edge cases
+- **test_strategy_modules.py** (23 tests): GalossGuard (6), CooperativePlay (5), FollowOptimizer (6), BidReader (6)
+- **test_endgame_solver.py** (11 tests): 2/3-card minimax, trick resolution, empty/single hand, Kaboot pressure, partial/unknown hands fallback
+- **test_bidding_edge_cases.py** (22 tests): Kawesh (4), phase transitions (7), serialization (4), input validation (4), score pressure (3)
+- **test_round_trip.py** already comprehensive — no additions needed
 
 ---
 
 ## 🎯 Active Missions
 
-## Mission 11: "The Guardian" — Fix Latent Bugs
-> Address known bugs discovered during testing (~1 hour)
+## Mission 16: "The Mind" — Bot Personality & Difficulty System 🔄 IN PROGRESS
+> Started 2026-02-14. M16.1-16.3 complete, M16.4-16.6 remaining.
 
-### Tasks
+### Completed
+- **M16.1**: Expanded `personality.py` — 4 profiles (Saad/Khalid/Abu Fahad/Majed) with 7 playing attributes (trump_lead_bias, point_greed, risk_tolerance, kaboot_pursuit, false_signal_rate, partner_trust, doubling_confidence)
+- **M16.2**: Created `ai_worker/strategies/difficulty.py` — DifficultyLevel enum (EASY/MEDIUM/HARD/KHALID), apply_difficulty_to_play(), apply_difficulty_to_bid(), helpers
+- **M16.3**: Created `ai_worker/strategies/components/personality_filter.py` — apply_personality_to_play() with deceptive play, trump lead bias, point greed modifiers
 
-- [ ] **Fix `project_manager.py` get_proj_sig** — crashes on multi-project hands (found during Mission 7)
-- [ ] **Audit Qayd Engine edge cases** — `qayd_engine.py` (21 KB) still has complex state machine; verify penalty calculations at round boundaries
-- [ ] **Server handler error paths** — `game_logger.py`, `sherlock_scanner.py` — verify graceful handling of malformed data
+### Remaining (Next Session)
+- [ ] **M16.4**: Wire personality_filter + difficulty into agent.py decision pipeline (agent.py already read)
+- [ ] **M16.5**: Wire personality into sun.py/hokum.py bidding thresholds
+- [ ] **M16.6**: Frontend difficulty selector in pre-game lobby
+- [ ] **M16.7**: Tests — `tests/bot/test_personality.py`, `tests/bot/test_difficulty.py`
 
-### Key Files
-| File | Change |
-|------|--------|
-| `game_engine/logic/project_manager.py` | Fix get_proj_sig crash |
-| `game_engine/logic/qayd_engine.py` | Audit penalty edge cases |
-| `server/game_logger.py` | Error path hardening |
+### Key Wiring Plan (M16.4)
+In agent.py `get_decision()`, after strategy returns decision:
+1. `decision = apply_personality_to_play(decision, ctx, legal_indices)` — personality filter
+2. `decision = apply_difficulty_to_play(decision, difficulty_level, legal_indices)` — difficulty noise
+3. `decision = self._enforce_legality(ctx, decision)` — legality guardrail (already exists)
 
-### Verification
-```powershell
-python -m pytest tests/game_logic/test_project_manager.py -v
-python -m pytest tests/ -v --tb=short
-```
+For bidding: apply personality bias to thresholds in bidding.py, then difficulty noise via apply_difficulty_to_bid().
+
+---
+
+## Mission 11: "The Guardian" — Fix Latent Bugs ✅
+> Completed 2026-02-14. 21 new tests added (332→353). All subtasks 11.1-11.5 done.
+
+### What Was Fixed
+- **project_manager.py**: `get_proj_sig` now handles Card objects, dicts, missing 'cards' key, non-list types
+- **room_manager.py**: Replaced `redis_store.keys("game:*")` with `redis_store.scan()` in `clear_all_games()` and `games` property
+- **bot_context.py**: Added empty hand guard in `get_legal_moves()` + added logger
+- **agent.py**: Split catch-all exception into expected errors (ERROR) vs unexpected (CRITICAL)
+- **game_actions.py**: Added BID payload type validation (action=str, suit∈♠♥♦♣) + turnDuration range check (1-120s)
+- **is_kawesh_hand**: Now handles Card objects, dicts, empty/None hands via getattr + isinstance
+- **Scoring engine**: 9 tests locking HOKUM rounding (.5→down, .6→up), SUN rounding, GP overflow, empty history
 
 ---
 
@@ -213,12 +261,50 @@ python -m pytest tests/bot/ -v
 
 ---
 
+## New Game Improvement Missions (16-22)
+
+### Mission 16: "The Mind" — Bot Personality & Difficulty System
+> 4 bot personalities (Aggressive/Conservative/Tricky/Balanced) + 4 difficulty levels (Easy/Medium/Hard/Khalid)
+> Key files: `ai_worker/strategies/personality.py` (new), `ai_worker/strategies/difficulty.py` (new), sun.py, hokum.py, bidding.py, frontend difficulty selector
+
+### Mission 17: "The Teacher" — Interactive Tutorial & Learning Mode
+> Step-by-step tutorial (7 lessons), hint system (bid/play hints from bot AI), practice mode with undo/redo and card reveal
+> Key files: `frontend/src/components/Tutorial.tsx` (new), `frontend/src/hooks/useHintSystem.ts` (new), server hint API
+
+### Mission 18: "The Showman" — Game Feel & Polish
+> Card animations (deal/play/trick-win/Kaboot), expanded sound design, visual polish (felt texture, shadows, turn indicator), mobile responsive
+> Key files: `frontend/src/hooks/useCardAnimation.ts` (new), SoundManager.ts, SettingsModal.tsx, index.css
+
+### Mission 19: "The Historian" — Match Replay & Statistics
+> Visual replay with playback controls, player stats dashboard, achievements, match export/share
+> Key files: `frontend/src/services/StatsTracker.ts` (new), useReplayNavigation.ts, MatchReviewModal.tsx
+
+### Mission 20: "The Arena" — Multiplayer & Social Features
+> Room browser, private rooms, quick match, reconnection, spectator mode, quick chat, team chat, player profiles, XP/levels, leaderboard
+> Key files: MultiplayerLobby.tsx, room_manager.py, socket_handler.py, EmoteMenu.tsx
+
+### Mission 21: "The Brain Surgeon" — Advanced AI Intelligence
+> Probabilistic memory (Mind's Eye), score-aware play engine, endplay/squeeze detection, self-play evaluation harness
+> Key files: memory.py, `score_context.py` (new), endgame_solver.py, `scripts/self_play.py` (new)
+
+### Mission 22: "The Stage" — Production-Ready Game Experience
+> Arabic-first localization (RTL), code splitting, PWA/offline support, Dockerfiles, CI/CD pipeline
+> Key files: `frontend/src/i18n/` (new), service worker, Dockerfiles (new), `.github/workflows/` (new)
+
+---
+
 ## 📊 Priority Matrix
 
 | Mission | Impact | Effort | Risk | Order |
 |---------|--------|--------|------|-------|
 | **11. The Guardian** | 🔴 High | 🟢 Low | 🟢 Low | ① Bug Fixes |
-| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Coverage to 70% |
-| **10. The Scalpel** | 🔴 High | 🟢 Low | 🟡 Medium | ③ Hygiene |
-| **8. The Polish** | 🔴 High | 🔴 High | 🟡 Medium | ④ UX |
-| **9. The Strategist** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑤ AI |
+| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Coverage |
+| **12. Frontend Stability** | 🔴 High | 🟡 Medium | 🟢 Low | ③ Stability |
+| **16. The Mind** | 🔴 High | 🟡 Medium | 🟢 Low | ④ Bot Personality |
+| **18. The Showman** | 🔴 High | 🔴 High | 🟡 Medium | ⑤ Game Feel |
+| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑥ Tutorial |
+| **7. Brain Expansion** | 🟡 Medium | 🟡 Medium | 🟡 Medium | ⑦ AI Wiring |
+| **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑧ Advanced AI |
+| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑨ Replay/Stats |
+| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑩ Multiplayer |
+| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑪ Production |

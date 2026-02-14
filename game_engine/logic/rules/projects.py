@@ -119,8 +119,13 @@ def is_kawesh_hand(hand):
     Checks if a hand qualifies for 'Kawesh' (No court cards: A, K, Q, J, 10).
     Hand must be devoid of these ranks.
     """
-    court_ranks = ['A', 'K', 'Q', 'J', '10']
+    if not hand:
+        return False
+    court_ranks = {'A', 'K', 'Q', 'J', '10'}
     for card in hand:
-         if card.rank in court_ranks:
-              return False
+        rank = getattr(card, 'rank', None)
+        if rank is None and isinstance(card, dict):
+            rank = card.get('rank')
+        if rank in court_ranks:
+            return False
     return True

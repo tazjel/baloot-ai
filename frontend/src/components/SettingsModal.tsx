@@ -26,13 +26,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
     };
 
     return (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label="Settings">
             <div className="w-96 bg-[#1a1a1a] border border-gray-700 rounded-2xl shadow-2xl relative flex flex-col max-h-[90vh]">
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-800">
                     <h2 className="text-xl font-bold text-white">Settings</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors" aria-label="Close settings">
                         <X size={24} />
                     </button>
                 </div>
@@ -59,7 +59,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                     {activeTab === 'SETTINGS' ? (
                         <div className="space-y-4">
                             {/* Sound Toggle */}
-                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" onClick={toggleSound}>
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="switch" aria-checked={settings.soundEnabled} aria-label="Sound effects" tabIndex={0} onClick={toggleSound} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSound(); } }}>
                                 <div className="flex items-center gap-3">
                                     {settings.soundEnabled ? <Volume2 className="text-green-500" /> : <VolumeX className="text-red-500" />}
                                     <span className="text-gray-200">Sound Effects</span>
@@ -70,7 +70,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                             </div>
 
                             {/* Strict Mode Toggle */}
-                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" onClick={toggleStrict}>
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="switch" aria-checked={settings.strictMode} aria-label="Strict rules mode" tabIndex={0} onClick={toggleStrict} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleStrict(); } }}>
                                 <div className="flex items-center gap-3">
                                     <ShieldAlert className={settings.strictMode ? "text-blue-500" : "text-gray-500"} />
                                     <div className="flex flex-col">
@@ -84,7 +84,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                             </div>
 
                             {/* Turn Timer */}
-                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" onClick={cycleDuration}>
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="button" aria-label={`Turn timer: ${settings.turnDuration} seconds`} tabIndex={0} onClick={cycleDuration} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycleDuration(); } }}>
                                 <div className="flex items-center gap-3">
                                     <Clock className="text-amber-500" />
                                     <span className="text-gray-200">Turn Timer</span>
@@ -93,7 +93,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                             </div>
 
                             {/* Game Speed */}
-                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" onClick={toggleSpeed}>
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="button" aria-label={`Game speed: ${settings.gameSpeed}`} tabIndex={0} onClick={toggleSpeed} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSpeed(); } }}>
                                 <div className="flex items-center gap-3">
                                     <Zap className={settings.gameSpeed === 'FAST' ? "text-yellow-400" : "text-gray-500"} />
                                     <span className="text-gray-200">Game Speed</span>
@@ -102,7 +102,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                             </div>
 
                             {/* Card Language Toggle */}
-                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" onClick={() => onUpdate({ ...settings, cardLanguage: settings.cardLanguage === 'EN' ? 'AR' : 'EN' })}>
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="button" aria-label={`Card language: ${settings.cardLanguage || 'EN'}`} tabIndex={0} onClick={() => onUpdate({ ...settings, cardLanguage: settings.cardLanguage === 'EN' ? 'AR' : 'EN' })} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUpdate({ ...settings, cardLanguage: settings.cardLanguage === 'EN' ? 'AR' : 'EN' }); } }}>
                                 <div className="flex items-center gap-3">
                                     <Globe className="text-cyan-400" />
                                     <div className="flex flex-col">

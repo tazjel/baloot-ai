@@ -8,11 +8,10 @@ from __future__ import annotations
 from collections import defaultdict
 
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
+from ai_worker.strategies.constants import ALL_SUITS, PTS_SUN, PTS_HOKUM
 _HIGH = {"A", "10", "K"}
 _LOW = {"7", "8"}
-_PTS = {"SUN": {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2},
-        "HOKUM": {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}}
+_PTS = {"SUN": PTS_SUN, "HOKUM": PTS_HOKUM}
 
 
 def _partner_of(pos: str) -> str:

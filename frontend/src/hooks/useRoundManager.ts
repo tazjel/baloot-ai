@@ -18,6 +18,7 @@ export const useRoundManager = ({
     addSystemMessage,
     playAkkaSound,
 }: UseRoundManagerArgs) => {
+    const roundTransitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isCuttingDeckRef = useRef(false);
     const [isCuttingDeck, setIsCuttingDeckState] = [
         isCuttingDeckRef.current,
@@ -176,7 +177,12 @@ export const useRoundManager = ({
                     };
                 }
 
-                setTimeout(() => startNewRound((prev.dealerIndex + 1) % 4, { us: globalUs, them: globalThem }), 1500);
+                // Store timer ref for cleanup on unmount
+                if (roundTransitionTimerRef.current) clearTimeout(roundTransitionTimerRef.current);
+                roundTransitionTimerRef.current = setTimeout(() => {
+                    roundTransitionTimerRef.current = null;
+                    startNewRound((prev.dealerIndex + 1) % 4, { us: globalUs, them: globalThem });
+                }, 1500);
 
                 return {
                     ...prev,
@@ -204,6 +210,16 @@ export const useRoundManager = ({
             };
         });
     }, [startNewRound, setGameState]);
+
+    // --- Cleanup on unmount ---
+    useEffect(() => {
+        return () => {
+            if (roundTransitionTimerRef.current) {
+                clearTimeout(roundTransitionTimerRef.current);
+                roundTransitionTimerRef.current = null;
+            }
+        };
+    }, []);
 
     // --- TRANSITION EFFECTS ---
     useEffect(() => {

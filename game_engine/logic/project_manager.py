@@ -65,8 +65,13 @@ class ProjectManager:
                       def _card_str(c):
                           if hasattr(c, 'rank'):
                               return f"{c.rank}{c.suit}"
-                          return f"{c.get('rank', '?')}{c.get('suit', '?')}"
-                      cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
+                          if isinstance(c, dict):
+                              return f"{c.get('rank', '?')}{c.get('suit', '?')}"
+                          return '?'
+                      cards = p.get('cards', [])
+                      if not isinstance(cards, (list, tuple)):
+                          cards = []
+                      cards_sig = "-".join(sorted([_card_str(c) for c in cards]))
                       return f"{p.get('type', '?')}|{p.get('rank', '?')}|{p.get('suit', 'ANY')}|{cards_sig}"
 
                   # Filter unique matches only
@@ -118,8 +123,13 @@ class ProjectManager:
                 def _card_str(c):
                     if hasattr(c, 'rank'):
                         return f"{c.rank}{c.suit}"
-                    return f"{c.get('rank', '?')}{c.get('suit', '?')}"
-                cards_sig = "-".join(sorted([_card_str(c) for c in p.get('cards', [])]))
+                    if isinstance(c, dict):
+                        return f"{c.get('rank', '?')}{c.get('suit', '?')}"
+                    return '?'
+                cards = p.get('cards', [])
+                if not isinstance(cards, (list, tuple)):
+                    cards = []
+                cards_sig = "-".join(sorted([_card_str(c) for c in cards]))
                 return f"{p.get('type', '?')}|{p.get('rank', '?')}|{p.get('suit', 'ANY')}|{cards_sig}"
 
             for proj in hand_projs:

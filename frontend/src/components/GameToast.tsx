@@ -15,6 +15,8 @@ const TYPE_STYLES: Record<ToastType, string> = {
     trick:   'border-cyan-400/60 bg-gradient-to-r from-cyan-900/80 to-cyan-800/70 text-cyan-100',
     error:   'border-red-400/60 bg-gradient-to-r from-red-900/80 to-red-800/70 text-red-100',
     info:    'border-white/30 bg-gradient-to-r from-gray-900/80 to-gray-800/70 text-gray-100',
+    baloot:  'border-yellow-400/60 bg-gradient-to-r from-yellow-800/90 to-amber-700/80 text-yellow-50',
+    kaboot:  'border-rose-400/60 bg-gradient-to-r from-rose-900/90 to-pink-800/80 text-rose-50',
 };
 
 export default function GameToast({ toasts, onDismiss }: GameToastProps) {

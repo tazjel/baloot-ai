@@ -60,7 +60,7 @@ const VictoryModal: React.FC<VictoryModalProps> = ({ scores, onRematch, onHome, 
     }, [isWin]);
 
     return (
-        <div className="absolute inset-0 z-[300] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-1000">
+        <div className="absolute inset-0 z-[300] flex items-center justify-center bg-black/95 backdrop-blur-xl animate-in fade-in duration-1000" role="dialog" aria-modal="true" aria-label={isWin ? 'Victory' : 'Defeat'}>
             {isWin && <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />}
 
             <div className="relative z-10 text-center flex flex-col items-center">

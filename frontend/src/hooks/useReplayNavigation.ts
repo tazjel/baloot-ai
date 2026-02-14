@@ -1,28 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { MatchHistoryRound } from '../types';
 
-export const useReplayNavigation = (fullMatchHistory: any[]) => {
+export const useReplayNavigation = (fullMatchHistory: MatchHistoryRound[]) => {
     const [selectedRoundIdx, setSelectedRoundIdx] = useState(0);
     const [selectedTrickIdx, setSelectedTrickIdx] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    const currentRound = (fullMatchHistory && fullMatchHistory.length > 0) ? fullMatchHistory[selectedRoundIdx] : { roundNumber: 0, tricks: [], bid: {}, scores: {} };
+    const currentRound = (fullMatchHistory && fullMatchHistory.length > 0) ? fullMatchHistory[selectedRoundIdx] : null;
     const tricks = currentRound?.tricks || [];
     const currentTrick = tricks[selectedTrickIdx];
 
-    // Auto-Play Logic
+    // Use ref for tricks length to avoid interval restarts on every tick
+    const tricksLengthRef = useRef(tricks.length);
+    useEffect(() => { tricksLengthRef.current = tricks.length; }, [tricks.length]);
+
+    // Auto-Play Logic — stable interval, only restarts when isPlaying or tricks.length changes
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isPlaying) {
-            interval = setInterval(() => {
-                if (selectedTrickIdx < tricks.length - 1) {
-                    setSelectedTrickIdx(prev => prev + 1);
+        if (!isPlaying || tricks.length === 0) return;
+
+        const interval = setInterval(() => {
+            setSelectedTrickIdx(prev => {
+                if (prev < tricksLengthRef.current - 1) {
+                    return prev + 1;
                 } else {
-                    setIsPlaying(false); // Stop at end of round
+                    setIsPlaying(false);
+                    return prev;
                 }
-            }, 1500); // 1.5s per trick
-        }
+            });
+        }, 1500);
+
         return () => clearInterval(interval);
-    }, [isPlaying, selectedTrickIdx, tricks.length]);
+    }, [isPlaying, tricks.length]);
 
     const nextTrick = () => {
         if (selectedTrickIdx < tricks.length - 1) setSelectedTrickIdx(prev => prev + 1);

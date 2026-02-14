@@ -1,8 +1,9 @@
 import { io, Socket } from "socket.io-client";
 import { GameState } from "../types";
 import { devLogger } from "../utils/devLogger";
+import { API_BASE_URL } from "../config";
 
-const SERVER_URL = "http://localhost:3005"; // Direct connection to Backend (Bypasses Proxy)
+const SERVER_URL = API_BASE_URL;
 
 interface ApiResponse {
     success: boolean;
@@ -15,6 +16,10 @@ class SocketService {
     private connectionStatusCallbacks: ((status: 'connected' | 'disconnected' | 'reconnecting', attempt?: number) => void)[] = [];
     private reconnectAttempt = 0;
     private maxReconnectAttempts = 5;
+
+    // Stored room context for auto-rejoin on reconnect
+    private activeRoomId: string | null = null;
+    private activePlayerName: string | null = null;
 
     connect() {
         if (!this.socket) {
@@ -47,6 +52,18 @@ class SocketService {
                 this.reconnectAttempt = 0;
                 devLogger.log('SOCKET', 'Reconnected successfully');
                 this.emitConnectionStatus('connected');
+
+                // Auto-rejoin room if we were in one before disconnect
+                if (this.activeRoomId && this.activePlayerName) {
+                    devLogger.log('SOCKET', 'Auto-rejoining room after reconnect', { roomId: this.activeRoomId });
+                    this.joinRoom(this.activeRoomId, this.activePlayerName, (res) => {
+                        if (res.success) {
+                            devLogger.log('SOCKET', 'Auto-rejoin successful');
+                        } else {
+                            devLogger.error('SOCKET', 'Auto-rejoin failed', { error: res.error });
+                        }
+                    });
+                }
             });
             this.socket.io.on('reconnect_failed', () => {
                 devLogger.error('SOCKET', `Reconnection failed after ${this.maxReconnectAttempts} attempts`);
@@ -71,6 +88,9 @@ class SocketService {
 
     joinRoom(roomId: string, playerName: string, callback: (res: ApiResponse) => void) {
         if (!this.socket) return;
+        // Store room context for auto-rejoin on reconnect
+        this.activeRoomId = roomId;
+        this.activePlayerName = playerName;
         this.socket.emit('join_room', { roomId, playerName }, callback);
     }
 

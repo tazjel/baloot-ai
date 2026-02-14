@@ -6,13 +6,9 @@ outputs as parameters, does NOT import other strategy modules.
 """
 from __future__ import annotations
 
-ORDER_SUN: list[str] = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM: list[str] = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-ALL_SUITS: list[str] = ["♠", "♥", "♦", "♣"]
-
-# Point values by mode
-_PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2}
-_PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}
+from ai_worker.strategies.constants import (
+    ORDER_SUN, ORDER_HOKUM, ALL_SUITS, PTS_SUN as _PTS_SUN, PTS_HOKUM as _PTS_HOKUM,
+)
 
 
 def _card_value(card, mode: str) -> int:
@@ -47,8 +43,15 @@ def select_lead(
     defense_info: dict | None,
     trump_info: dict | None,
     opponent_voids: dict[str, set],
+    suit_probs: dict[str, dict[str, float]] | None = None,
 ) -> dict:
     """Select the best card to lead with.
+
+    Args:
+        suit_probs: Bayesian per-opponent suit probabilities from CardMemory.
+            Format: {position: {suit: probability, ...}, ...}
+            When provided, suits where opponents have low probability are
+            preferred (safer leads).
 
     Returns:
         dict with card_index, strategy, confidence, reasoning.
@@ -62,6 +65,15 @@ def select_lead(
     for s, positions in (opponent_voids or {}).items():
         if positions:
             voided.add(s)
+
+    # Build suit safety scores from Bayesian probabilities
+    # Lower opponent probability = safer to lead (less likely they can win/trump)
+    _suit_safety: dict[str, float] = {}
+    if suit_probs:
+        for s in ALL_SUITS:
+            opp_probs = [p.get(s, 0.5) for p in suit_probs.values()]
+            # Average opponent probability of holding this suit
+            _suit_safety[s] = 1.0 - (sum(opp_probs) / max(len(opp_probs), 1))
 
     # Helper: pick best index from a list of candidates
     def _best_idx(indices: list[int]) -> int:
@@ -126,27 +138,38 @@ def select_lead(
                         "reasoning": f"Feed partner's strong {ps} — lead {c.rank}{c.suit}"}
 
     # ── 6. LONG_RUN ──
-    for s, indices in sorted(suits.items(), key=lambda kv: -len(kv[1])):
+    # Sort by length, break ties using Bayesian safety (prefer suits opps can't beat)
+    for s, indices in sorted(suits.items(),
+                             key=lambda kv: (-len(kv[1]), -_suit_safety.get(kv[0], 0.5))):
         if s == trump_suit or s in voided:
             continue
         if len(indices) >= 4:
             top_idx = _best_idx(indices)
             c = hand[top_idx]
+            safety = _suit_safety.get(s, 0.5)
+            conf = 0.65 + (0.1 if safety > 0.7 else 0.0)  # Boost if opps unlikely to hold
             return {"card_index": top_idx, "strategy": "LONG_RUN",
-                    "confidence": 0.65,
-                    "reasoning": f"Long run: {len(indices)} in {s}, lead {c.rank}{c.suit}"}
+                    "confidence": round(min(1.0, conf), 2),
+                    "reasoning": f"Long run: {len(indices)} in {s}, lead {c.rank}{c.suit}"
+                                 + (f" (safe={safety:.0%})" if _suit_safety else "")}
 
     # ── 7. SAFE_LEAD ──
-    # Longest non-trump suit not voided by opponents
+    # Longest non-trump suit not voided by opponents; prefer Bayesian-safe suits
     safe_suits = {s: idxs for s, idxs in suits.items()
                   if s != trump_suit and s not in voided}
     if safe_suits:
-        best_s = max(safe_suits, key=lambda s: (len(safe_suits[s]), _rank_index(hand[_best_idx(safe_suits[s])].rank, mode)))
+        best_s = max(safe_suits, key=lambda s: (
+            len(safe_suits[s]),
+            _suit_safety.get(s, 0.5),  # Prefer suits opponents unlikely hold
+            _rank_index(hand[_best_idx(safe_suits[s])].rank, mode),
+        ))
         idx = _best_idx(safe_suits[best_s])
         c = hand[idx]
+        safety = _suit_safety.get(best_s, 0.5)
         return {"card_index": idx, "strategy": "SAFE_LEAD",
                 "confidence": 0.5,
-                "reasoning": f"Safe lead: {c.rank}{c.suit} from {len(safe_suits[best_s])}-card {best_s}"}
+                "reasoning": f"Safe lead: {c.rank}{c.suit} from {len(safe_suits[best_s])}-card {best_s}"
+                             + (f" (safe={safety:.0%})" if _suit_safety else "")}
 
     # Fallback: lead highest card regardless
     idx = _best_idx(list(range(len(hand))))

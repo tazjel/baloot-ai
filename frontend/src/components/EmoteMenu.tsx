@@ -17,12 +17,12 @@ const THROWABLES = [
 
 const EmoteMenu: React.FC<EmoteMenuProps> = ({ onSelectEmote, onSelectThrowable, onClose }) => {
     return (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#1e1e1e] border border-gray-600 rounded-xl shadow-2xl p-4 w-72 z-50 animate-in fade-in slide-in-from-bottom-4">
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#1e1e1e] border border-gray-600 rounded-xl shadow-2xl p-4 w-72 z-50 animate-in fade-in slide-in-from-bottom-4" role="menu" aria-label="Quick chat and throwables">
 
             {/* Header */}
             <div className="flex justify-between items-center mb-4 text-xs font-bold text-gray-400 uppercase tracking-wider">
                 <span>Quick Chat</span>
-                <button onClick={onClose} className="hover:text-white">✕</button>
+                <button onClick={onClose} className="hover:text-white" aria-label="Close emote menu">✕</button>
             </div>
 
             {/* Quick Chat Grid */}

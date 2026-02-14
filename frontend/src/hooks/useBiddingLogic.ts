@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { GameState, GamePhase, PlayerPosition, Suit, DeclaredProject } from '../types';
 import { detectProjects, sortHand } from '../utils/gameLogic';
 
@@ -19,6 +19,17 @@ export const useBiddingLogic = ({
     startNewRound,
     turnStartTimeRef,
 }: UseBiddingLogicArgs) => {
+    const redealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Cleanup redeal timer on unmount
+    useEffect(() => {
+        return () => {
+            if (redealTimerRef.current) {
+                clearTimeout(redealTimerRef.current);
+                redealTimerRef.current = null;
+            }
+        };
+    }, []);
 
     const handleBiddingAction = (playerIndex: number, action: string, payload?: any) => {
         const speechText = action === 'PASS' ? 'Bass' : action === 'SUN' ? 'Sun' : action === 'HOKUM' ? 'Hokum' : action;
@@ -45,7 +56,12 @@ export const useBiddingLogic = ({
                         addSystemMessage("الجولة الثانية من الشراء");
                     } else {
                         addSystemMessage("Gash! Everyone passed. Redealing...");
-                        setTimeout(() => startNewRound((dealerIdx + 1) % 4, prev.matchScores), 1500);
+                        if (redealTimerRef.current) clearTimeout(redealTimerRef.current);
+                        const scores = prev.matchScores;
+                        redealTimerRef.current = setTimeout(() => {
+                            redealTimerRef.current = null;
+                            startNewRound((dealerIdx + 1) % 4, scores);
+                        }, 1500);
                         return prev;
                     }
                 }

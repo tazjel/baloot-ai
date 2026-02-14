@@ -15,22 +15,44 @@ from server.logging_utils import GameLoggerAdapter
 
 logger = logging.getLogger(__name__)
 
+MAX_ROOMS = 500  # Maximum concurrent rooms to prevent memory exhaustion
+
+
 class RoomManager:
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(RoomManager, cls).__new__(cls)
-            cls._instance._local_cache = {} 
+            cls._instance._local_cache = {}
+            cls._instance._sid_to_room: dict[str, str] = {}  # SID → room_id
         return cls._instance
 
     def create_room(self):
+        # Enforce max rooms limit
+        active_count = len(self._local_cache)
+        if active_count >= MAX_ROOMS:
+            logger.warning(f"Max rooms limit reached ({MAX_ROOMS}). Denying create_room.")
+            return None
+
         room_id = str(uuid.uuid4())[:8]
         game = Game(room_id)
         self.save_game(game)
         rlog = GameLoggerAdapter(logger, room_id=room_id)
         rlog.info("Created room (Persisted to Redis)")
         return room_id
+
+    def track_player(self, sid: str, room_id: str):
+        """Track which room a player (SID) belongs to for disconnect cleanup."""
+        self._sid_to_room[sid] = room_id
+
+    def untrack_player(self, sid: str):
+        """Remove player tracking on disconnect."""
+        self._sid_to_room.pop(sid, None)
+
+    def get_room_for_sid(self, sid: str):
+        """Return the room_id a given SID is in, or None."""
+        return self._sid_to_room.get(sid)
 
     def get_game(self, room_id):
         if not room_id: return None
@@ -63,8 +85,6 @@ class RoomManager:
         if not game: return
         rlog = GameLoggerAdapter(logger, room_id=game.room_id)
         try:
-            self._local_cache[game.room_id] = game
-            
             if redis_store:
                 def _json_fallback(obj):
                     """Safety net for objects that slip through to_json()."""
@@ -75,12 +95,18 @@ class RoomManager:
                     raise TypeError(f"Unable to serialize: {type(obj)}")
                 game_json = json.dumps(game.to_json(), default=_json_fallback)
                 redis_store.setex(f"game:{game.room_id}", 3600, game_json)
+                # Update local cache ONLY after Redis write succeeds
+                self._local_cache[game.room_id] = game
             else:
+                # No Redis — local cache is the only storage
+                self._local_cache[game.room_id] = game
                 rlog.info("Redis SAVE -> SKIPPED (No RedisStore)")
         except (TypeError, ValueError) as e:
             rlog.error(f"Serialization Error: {e}")
         except ConnectionError as e:
             rlog.error(f"Redis Connection Error saving: {e}")
+            # Still update local cache as fallback when Redis is down
+            self._local_cache[game.room_id] = game
         except Exception as e:
             rlog.exception(f"Unexpected error saving game: {e}")
 
@@ -97,10 +123,18 @@ class RoomManager:
         """Dev utility to clear all persisted games from Redis on startup."""
         if not redis_store: return
         try:
-            keys = redis_store.keys("game:*")
-            if keys:
-                redis_store.delete(*keys)
-                logger.warning(f"CLEARED {len(keys)} Zombie Games from Redis.")
+            # Use SCAN instead of KEYS to avoid blocking Redis on large datasets
+            deleted = 0
+            cursor = 0
+            while True:
+                cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                if keys:
+                    redis_store.delete(*keys)
+                    deleted += len(keys)
+                if cursor == 0:
+                    break
+            if deleted:
+                logger.warning(f"CLEARED {deleted} Zombie Games from Redis.")
         except ConnectionError as e:
             logger.error(f"Failed to clear Redis games (connection): {e}")
         except Exception as e:
@@ -110,13 +144,18 @@ class RoomManager:
     def games(self):
         all_games = {}
         if not redis_store: return self._local_cache
-        
+
         try:
-            keys = redis_store.keys("game:*")
-            for k in keys:
-                rid = k.decode('utf-8').split(":")[-1]
-                game = self.get_game(rid)
-                if game: all_games[rid] = game
+            # Use SCAN instead of KEYS to avoid blocking Redis
+            cursor = 0
+            while True:
+                cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                for k in keys:
+                    rid = k.decode('utf-8').split(":")[-1] if isinstance(k, bytes) else k.split(":")[-1]
+                    game = self.get_game(rid)
+                    if game: all_games[rid] = game
+                if cursor == 0:
+                    break
             return all_games
         except ConnectionError as e:
              logger.error(f"Error listing Redis games (connection): {e}")

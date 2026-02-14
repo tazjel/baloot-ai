@@ -6,12 +6,9 @@ avoiding their voids, drawing trumps on their behalf, and making
 smart discards that protect the partnership.
 """
 from __future__ import annotations
-
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
-_PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2}
-_PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}
+from ai_worker.strategies.constants import (
+    ORDER_SUN, ORDER_HOKUM, ALL_SUITS, PTS_SUN as _PTS_SUN, PTS_HOKUM as _PTS_HOKUM,
+)
 
 
 def _rv(rank: str, mode: str) -> int:

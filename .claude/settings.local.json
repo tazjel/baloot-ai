@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(pip list:*)",
+      "Bash(pip show:*)",
+      "Bash(npm run:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(echo:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "WebFetch(domain:www.pagat.com)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(redis-cli:*)",
+      "Bash(findstr:*)",
+      "Bash(measure-object:*)",
+      "Bash(select-object -ExpandProperty Count)"
+    ]
+  }
+}

@@ -6,20 +6,20 @@ advice using a strict priority cascade:
   1. Kaboot Pursuit  — sweep override when winning every trick
   2. Point Density   — evaluate if the current trick is worth fighting
   3. Trump Manager   — HOKUM lead strategy (DRAW / PRESERVE / CROSS_RUFF)
-  4. Defense Plan    — defender lead guidance (priority / avoid suits)
-  5. Partner Signal  — lead toward partner's inferred strong suits
-  6. Default         — yield to existing heuristics
+  4. Opponent Model  — avoid dangerous suits, prefer safe leads
+  5. Defense Plan    — defender lead guidance (priority / avoid suits)
+  6. Partner Signal  — lead toward partner's inferred strong suits
+  7. Default         — yield to existing heuristics
 
-When a module returns confidence ≥ 0.5 it wins and the cascade stops.
+Confidence threshold is dynamically adjusted by trick_review momentum.
+When a module returns confidence ≥ threshold it wins and the cascade stops.
 If multiple consulted modules agree on the same index, confidence gets
 a +0.1 boost.
 """
 from __future__ import annotations
-
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-PV_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2, "9": 0, "8": 0, "7": 0}
-PV_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3, "8": 0, "7": 0}
+from ai_worker.strategies.constants import (
+    ORDER_SUN, ORDER_HOKUM, PTS_SUN_FULL as PV_SUN, PTS_HOKUM_FULL as PV_HOKUM,
+)
 
 
 def consult_brain(
@@ -36,11 +36,17 @@ def consult_brain(
     tracker_voids: dict[str, list[str]],
     partner_info: dict | None,
     legal_indices: list[int] | None = None,
+    opponent_info: dict | None = None,
+    trick_review_info: dict | None = None,
 ) -> dict:
     """Run the priority cascade and return a single play recommendation.
 
-    Each module is checked in order; the first to return confidence >= 0.5
+    Each module is checked in order; the first to return confidence >= threshold
     wins.  Secondary opinions that agree boost the winner's confidence.
+
+    New optional params:
+        opponent_info: output of model_opponents() — safe/avoid suits, danger
+        trick_review_info: output of review_tricks() — momentum, strategy_shift
     """
     if not hand:
         return _out(None, 0.0, [], "empty hand")
@@ -51,6 +57,27 @@ def consult_brain(
     consulted: list[str] = []
     # Collect (module_name, index, confidence, reason) from each active module
     opinions: list[tuple[str, int | None, float, str]] = []
+
+    # ── Trick Review: dynamic confidence threshold ────────────
+    # Default cascade threshold is 0.5; trick_review shifts it
+    threshold = 0.5
+    if trick_review_info:
+        consulted.append("trick_review")
+        shift = trick_review_info.get("strategy_shift", "NONE")
+        momentum = trick_review_info.get("momentum", "TIED")
+        if shift == "AGGRESSIVE":
+            threshold = 0.4   # Accept riskier plays when behind
+        elif shift == "DAMAGE_CONTROL" or momentum == "COLLAPSING":
+            threshold = 0.6   # Require higher confidence when collapsing
+        elif shift == "CONSERVATIVE":
+            threshold = 0.55  # Slightly tighter when protecting a lead
+
+    # Build opponent avoid/safe suit sets for use across cascade
+    opp_avoid: set[str] = set()
+    opp_safe: list[str] = []
+    if opponent_info:
+        opp_avoid = set(opponent_info.get("avoid_lead_suits", []))
+        opp_safe = opponent_info.get("safe_lead_suits", [])
 
     # ── 1. Kaboot Pursuit ───────────────────────────────────────
     pursuing = (tricks_won_by_us == tricks_played and tricks_played > 0
@@ -107,19 +134,37 @@ def consult_brain(
                                  f"PRESERVE: ≤1 trump→lead side {hand[best_nt].rank}"
                                  f"{hand[best_nt].suit}"))
 
-    # ── 4. Defense Plan (defending, leading) ────────────────────
+    # ── 4. Opponent Model (leading) ─────────────────────────────
+    if opponent_info and leading and opp_safe:
+        consulted.append("opponent_model")
+        danger = opponent_info.get("combined_danger", 0)
+        # Pick strongest card in a safe suit
+        safe_cards = [i for i in range(len(hand)) if hand[i].suit in opp_safe
+                      and hand[i].suit != trump_suit]
+        if safe_cards:
+            pick = max(safe_cards, key=lambda i: (
+                pv.get(hand[i].rank, 0), order.index(hand[i].rank)))
+            # Confidence scales with danger: higher danger = stronger signal
+            conf = min(0.85, 0.45 + danger * 0.4)
+            opinions.append(("opponent_model", pick, round(conf, 2),
+                             f"opp danger {danger:.0%}→safe lead "
+                             f"{hand[pick].rank}{hand[pick].suit}"))
+
+    # ── 5. Defense Plan (defending, leading) ────────────────────
     if not we_are_buyers and leading:
         consulted.append("defense_plan")
         enemy_void_suits = {s for s, ps in tracker_voids.items() if ps}
+        # Also avoid suits flagged by opponent model
+        avoid_all = enemy_void_suits | opp_avoid
         non_trump = [i for i in range(len(hand))
-                     if hand[i].suit != trump_suit and hand[i].suit not in enemy_void_suits]
+                     if hand[i].suit != trump_suit and hand[i].suit not in avoid_all]
         if non_trump:
             best_def = max(non_trump, key=lambda i: (
                 pv.get(hand[i].rank, 0), order.index(hand[i].rank)))
             opinions.append(("defense_plan", best_def, 0.55,
                              f"defend: safe lead {hand[best_def].rank}{hand[best_def].suit}"))
 
-    # ── 5. Partner Signal ───────────────────────────────────────
+    # ── 6. Partner Signal ───────────────────────────────────────
     if partner_info and partner_info.get("likely_strong_suits") and leading:
         consulted.append("partner_signal")
         target = partner_info["likely_strong_suits"][0]
@@ -130,7 +175,7 @@ def consult_brain(
             opinions.append(("partner_signal", pick, conf,
                              f"partner strong in {target}→lead {hand[pick].rank}{hand[pick].suit}"))
 
-    # ── 6. Default ──────────────────────────────────────────────
+    # ── 7. Default ──────────────────────────────────────────────
     consulted.append("default")
 
     # ── Legal index filtering ─────────────────────────────────
@@ -147,7 +192,7 @@ def consult_brain(
     reason = "no module confident"
 
     for name, idx, c, r in opinions:
-        if c >= 0.5:
+        if c >= threshold:
             winner_name, rec, conf, reason = name, idx, c, r
             break
 

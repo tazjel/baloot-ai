@@ -2,12 +2,13 @@ import React from 'react';
 import { X, ChevronLeft, ChevronRight, Play, ChevronDown, ChevronUp } from 'lucide-react';
 import MiniCard from './review/MiniCard';
 import { useReplayNavigation } from '../hooks/useReplayNavigation';
+import { MatchHistoryRound, Player } from '../types';
 
 interface MatchReviewModalProps {
     isOpen: boolean;
     onClose: () => void;
-    fullMatchHistory: any[];
-    players: any[];
+    fullMatchHistory: MatchHistoryRound[];
+    players: Player[];
 }
 
 const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fullMatchHistory, players }) => {
@@ -44,7 +45,7 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
     }
 
     return (
-        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/90 backdrop-blur-md p-4" role="dialog" aria-modal="true" aria-label="Game review">
             <div className="bg-[#1a1a1a] w-full max-w-5xl h-[90vh] rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
 
                 {/* Header */}
@@ -52,7 +53,7 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
                     <h2 className="text-2xl font-black text-white flex items-center gap-3">
                         <span className="text-[var(--color-premium-gold)]">GAME REVIEW</span>
                         <span className="text-sm bg-white/10 px-3 py-1 rounded-full text-gray-300 font-normal">
-                            Round {currentRound.roundNumber} / {fullMatchHistory.length}
+                            Round {currentRound?.roundNumber ?? 0} / {fullMatchHistory.length}
                         </span>
                     </h2>
                     <div className="flex items-center gap-4">
@@ -65,7 +66,7 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
                                 <ChevronDown size={20} />
                             </button>
                         </div>
-                        <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors">
+                        <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-2 rounded-full text-white transition-colors" aria-label="Close game review">
                             <X size={24} />
                         </button>
                     </div>
@@ -115,16 +116,16 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
                                 <div className="flex flex-col items-center">
                                     <span className="text-[9px] uppercase text-gray-400 font-bold tracking-widest">Bid</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-amber-400 font-black text-lg">{currentRound.bid?.type}</span>
-                                        <span className="text-white/60 text-xs">by {getPlayerName(currentRound.bid?.bidder)}</span>
+                                        <span className="text-amber-400 font-black text-lg">{currentRound?.bid?.type}</span>
+                                        <span className="text-white/60 text-xs">by {getPlayerName(currentRound?.bid?.bidder ?? '')}</span>
                                     </div>
                                 </div>
                                 <div className="w-px h-8 bg-white/20" />
                                 <div className="flex flex-col items-center">
                                     <span className="text-[9px] uppercase text-gray-400 font-bold tracking-widest">Score</span>
                                     <div className="flex gap-3 text-base font-bold">
-                                        <span className="text-blue-400">Us: {currentRound.scores?.us?.result}</span>
-                                        <span className="text-red-400">Them: {currentRound.scores?.them?.result}</span>
+                                        <span className="text-blue-400">Us: {currentRound?.scores?.us?.result}</span>
+                                        <span className="text-red-400">Them: {currentRound?.scores?.them?.result}</span>
                                     </div>
                                 </div>
                             </div>
@@ -150,7 +151,7 @@ const MatchReviewModal: React.FC<MatchReviewModalProps> = ({ isOpen, onClose, fu
                                     <div className="col-start-2 row-start-2 flex flex-col items-center justify-center w-24 h-24 sm:w-32 sm:h-32 bg-black/40 rounded-full border border-white/10 backdrop-blur-md shadow-[0_0_30px_rgba(0,0,0,0.3)]">
                                         <div className="text-[8px] sm:text-[10px] text-gray-300 uppercase mb-1 tracking-widest">Winner</div>
                                         <div className="font-black text-lg sm:text-2xl text-[var(--color-premium-gold)] text-center px-1 leading-none mb-1">
-                                            {getPlayerName(currentTrick.winner)}
+                                            {getPlayerName(currentTrick.winner ?? '')}
                                         </div>
                                         <div className="text-xs font-mono text-green-400 bg-green-900/30 px-2 py-0.5 rounded flex items-center gap-1">
                                             <span className="text-[8px]">+</span>{currentTrick.points}

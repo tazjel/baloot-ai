@@ -15,8 +15,7 @@ save for critical ruff), and NEUTRAL (enemy trumps exhausted).
 """
 from __future__ import annotations
 
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
+from ai_worker.strategies.constants import ORDER_HOKUM, ALL_SUITS
 
 
 def manage_trumps(

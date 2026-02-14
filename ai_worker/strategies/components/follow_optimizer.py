@@ -6,13 +6,9 @@ dodging, trumping, and shedding scenarios for both SUN and HOKUM modes.
 """
 from __future__ import annotations
 
-ORDER_SUN: list[str] = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM: list[str] = ["7", "8", "Q", "K", "10", "A", "9", "J"]
-ALL_SUITS: list[str] = ["♠", "♥", "♦", "♣"]
-
-# Point values by mode
-_PTS_SUN = {"A": 11, "10": 10, "K": 4, "Q": 3, "J": 2}
-_PTS_HOKUM = {"J": 20, "9": 14, "A": 11, "10": 10, "K": 4, "Q": 3}
+from ai_worker.strategies.constants import (
+    ORDER_SUN, ORDER_HOKUM, ALL_SUITS, PTS_SUN as _PTS_SUN, PTS_HOKUM as _PTS_HOKUM,
+)
 
 
 def _rank_index(rank: str, mode: str) -> int:
@@ -80,6 +76,7 @@ def optimize_follow(
     trick_points: int,
     tricks_remaining: int,
     we_are_buyers: bool,
+    suit_probs: dict[str, dict[str, float]] | None = None,
 ) -> dict:
     """Optimize follow-suit card selection.
 
@@ -96,6 +93,8 @@ def optimize_follow(
         trick_points: total points currently on table
         tricks_remaining: tricks left in round
         we_are_buyers: whether our team bought the bid
+        suit_probs: Bayesian per-opponent suit probabilities. Used for
+            smarter discard decisions (shed from suits opps are void in).
 
     Returns:
         dict with card_index, tactic, confidence, reasoning.
@@ -249,13 +248,27 @@ def optimize_follow(
     discard_pool = non_trump if non_trump else off_suit
     if discard_pool:
         # Prefer cards from shortest suits (void creation)
+        # When Bayesian probs available, also prefer suits opps are unlikely to hold
+        # (discarding from "dead" suits preserves cards in suits we might still win)
         suits_count: dict[str, int] = {}
         for i in discard_pool:
             s = hand[i].suit
             suits_count[s] = suits_count.get(s, 0) + 1
-        idx = min(discard_pool,
-                  key=lambda i: (suits_count.get(hand[i].suit, 0),
-                                 _card_points(hand[i].rank, mode)))
+
+        def _shed_key(i: int) -> tuple:
+            s = hand[i].suit
+            suit_len = suits_count.get(s, 0)
+            pts = _card_points(hand[i].rank, mode)
+            # If Bayesian probs available, prefer shedding from suits opponents
+            # are unlikely to hold (low avg probability = "dead" suit for opps)
+            if suit_probs:
+                opp_probs = [p.get(s, 0.5) for p in suit_probs.values()]
+                avg_opp = sum(opp_probs) / max(len(opp_probs), 1)
+            else:
+                avg_opp = 0.5
+            return (suit_len, avg_opp, pts)
+
+        idx = min(discard_pool, key=_shed_key)
         c = hand[idx]
         return _result(idx, "SHED_SAFE", 0.5,
                        f"Void — discard {c.rank}{c.suit}")

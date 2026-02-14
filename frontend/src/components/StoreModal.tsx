@@ -35,7 +35,7 @@ const StoreModal: React.FC<StoreModalProps> = ({ userProfile, onClose, onPurchas
     const filteredItems = ITEMS.filter(item => item.type === activeTab);
 
     return (
-        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md">
+        <div className="absolute inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-md" role="dialog" aria-modal="true" aria-label="Store">
             <div className="w-full max-w-4xl bg-[#1e1e1e] border border-gray-700 rounded-2xl shadow-2xl flex flex-col h-[600px] overflow-hidden">
 
                 {/* Header */}
@@ -52,7 +52,7 @@ const StoreModal: React.FC<StoreModalProps> = ({ userProfile, onClose, onPurchas
                             <Coins size={16} className="text-yellow-500" />
                             <span className="text-yellow-500 font-bold">{userProfile.coins}</span>
                         </div>
-                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors" aria-label="Close store">
                             <X className="text-white" />
                         </button>
                     </div>

@@ -94,6 +94,9 @@ class BiddingEngine:
     @classmethod
     def from_dict(cls, data: dict, players) -> 'BiddingEngine':
         """Reconstruct engine from serialized dict + live player objects."""
+        if not players or len(players) != 4:
+            raise ValueError(f"BiddingEngine.from_dict requires exactly 4 players, got {len(players) if players else 0}")
+
         from game_engine.models.card import Card
         floor_card_d = data.get('floor_card')
         floor_card = Card(floor_card_d['suit'], floor_card_d['rank']) if floor_card_d else None
@@ -168,7 +171,13 @@ class BiddingEngine:
 
     def process_bid(self, player_idx, action, suit=None, variant=None):
         logger.info(f"Process Bid: P{player_idx} wants {action} (Suit: {suit}, Phase: {self.phase.value})")
-        
+
+        # 0. Input validation
+        if not isinstance(player_idx, int) or player_idx < 0 or player_idx >= 4:
+            return {"error": f"Invalid player index: {player_idx}"}
+        if not isinstance(action, str) or not action:
+            return {"error": "Invalid bid action"}
+
         # 1. State Verification
         if self.phase == BiddingPhase.FINISHED:
              return {"error": "Bidding is finished"}
@@ -195,7 +204,9 @@ class BiddingEngine:
         2. Pre-Bid: Redeal, SAME Dealer.
         3. Post-Bid: Redeal, ROTATE Dealer (Dealer Rotation).
         """
-        player = next(p for p in self.players if p.index == player_idx)
+        player = next((p for p in self.players if p.index == player_idx), None)
+        if not player:
+            return {"error": f"Player {player_idx} not found"}
         
         if not is_kawesh_hand(player.hand):
              return {"error": "Cannot call Kawesh with points (A, K, Q, J, 10) in hand"}

@@ -8,6 +8,7 @@
 # Ephemeral artifacts
 diagnostics/
 logs/
+captures/
 
 # Python
 __pycache__/

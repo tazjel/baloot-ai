@@ -200,8 +200,12 @@ class BotAgent:
 
              return {"action": "PASS"}
 
+        except (KeyError, IndexError, AttributeError, TypeError, ValueError) as e:
+            logger.error(f"Bot Agent Error ({type(e).__name__}): {e}")
+            traceback.print_exc()
+            return {"action": "PASS", "cardIndex": 0}
         except Exception as e:
-            logger.error(f"Bot Agent Error: {e}")
+            logger.critical(f"Bot Agent Unexpected Error ({type(e).__name__}): {e}")
             traceback.print_exc()
             return {"action": "PASS", "cardIndex": 0}
 

@@ -7,9 +7,7 @@ tricks, and shape classification from BALANCED to EXTREME.
 from __future__ import annotations
 from collections import Counter
 
-ALL_SUITS = ["♠", "♥", "♦", "♣"]
-ORDER_SUN = ["7", "8", "9", "J", "Q", "K", "10", "A"]
-ORDER_HOKUM = ["7", "8", "Q", "K", "10", "A", "9", "J"]
+from ai_worker.strategies.constants import ALL_SUITS, ORDER_SUN, ORDER_HOKUM
 
 # ── 8-CARD DISTRIBUTIONS (Baloot deals 8 cards across 4 suits) ──
 # (sorted pattern tuple) → (type, sun_adj, hokum_adj)

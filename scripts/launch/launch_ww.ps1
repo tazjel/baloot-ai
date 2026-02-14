@@ -5,8 +5,41 @@ param (
 Write-Host "=== 🚀 Launching Full Baloot Game Stack (/WW) ===" -ForegroundColor Cyan
 if ($Headless) { Write-Host "   👻 HEADLESS MODE ACTIVE" -ForegroundColor DarkGray }
 
+# 0. Ensure Docker Desktop is running (idempotent)
+Write-Host "`n[0/4] Ensuring Docker Desktop..." -ForegroundColor Yellow
+$dockerProcess = Get-Process "Docker Desktop" -ErrorAction SilentlyContinue
+if ($dockerProcess) {
+    Write-Host "   ✅ Docker Desktop is already running." -ForegroundColor Green
+} else {
+    $dockerExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerExe) {
+        Write-Host "   ⚠️ Docker Desktop not running. Launching..." -ForegroundColor Yellow
+        Start-Process $dockerExe
+        Write-Host "   ⏳ Waiting for Docker Daemon to initialize..." -NoNewline
+        $maxWait = 60; $waited = 0; $dockerReady = $false
+        while ($waited -lt $maxWait) {
+            $waited++
+            try {
+                $null = docker info 2>&1
+                if ($LASTEXITCODE -eq 0) { $dockerReady = $true; break }
+            } catch {}
+            Start-Sleep -Seconds 2
+            Write-Host "." -NoNewline
+        }
+        if ($dockerReady) {
+            Write-Host " ✅ Ready!" -ForegroundColor Green
+        } else {
+            Write-Host " ❌ Timed out!" -ForegroundColor Red
+            Write-Host "   Docker failed to start. Redis may not be available." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "   ⚠️ Docker Desktop not installed at expected path." -ForegroundColor Yellow
+        Write-Host "   Will try local Redis instead." -ForegroundColor Yellow
+    }
+}
+
 # 1. Cleanup: Kill previous Backend/Frontend windows and free ports
-Write-Host "🧹 Cleaning up previous sessions..." -ForegroundColor Gray
+Write-Host "`n[1/4] Cleaning up previous sessions..." -ForegroundColor Gray
 
 $pidFile = "logs/.ww_pids"
 
@@ -66,6 +99,7 @@ function Wait-For-Http ($port, $name) {
 }
 
 # 2. Redis Strategy (Local -> Docker)
+Write-Host "`n[2/4] Checking Redis..." -ForegroundColor Yellow
 $redis_running = Get-Process redis-server -ErrorAction SilentlyContinue
 
 if ($redis_running) {
@@ -73,8 +107,8 @@ if ($redis_running) {
 } else {
     Write-Host "⚠️ Local Redis not running. Checking for Docker..." -ForegroundColor Yellow
     
-    # 1. Ensure Docker is running (Only if we need it)
-    & ./scripts/ensure_docker.ps1
+    # Fallback: ensure Docker is running (Step 0 should have handled this already)
+    & ./scripts/launch/ensure_docker.ps1
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Wrapper: Docker failed to start AND Local Redis is missing." -ForegroundColor Red
         # Fallthrough to error message below...

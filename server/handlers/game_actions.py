@@ -14,15 +14,35 @@ from server.handlers.game_lifecycle import (
 
 logger = logging.getLogger(__name__)
 
+VALID_ACTIONS = {
+    'BID', 'PLAY', 'DECLARE_PROJECT', 'DOUBLE',
+    'SAWA', 'SAWA_CLAIM', 'SAWA_QAYD', 'QAYD',
+    'QAYD_TRIGGER', 'QAYD_MENU_SELECT', 'QAYD_VIOLATION_SELECT',
+    'QAYD_SELECT_CRIME', 'QAYD_SELECT_PROOF', 'QAYD_ACCUSATION',
+    'QAYD_CONFIRM', 'QAYD_CANCEL', 'AKKA',
+    'UPDATE_SETTINGS', 'NEXT_ROUND',
+}
+
 
 def register(sio):
     """Register the game_action event handler on the given sio instance."""
 
     @sio.event
     def game_action(sid, data):
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Invalid request format'}
+
         room_id = data.get('roomId')
         action = data.get('action')
         payload = data.get('payload', {})
+
+        # Validate input types
+        if not isinstance(room_id, str) or not room_id or len(room_id) > 64:
+            return {'success': False, 'error': 'Invalid roomId'}
+        if not isinstance(action, str) or action not in VALID_ACTIONS:
+            return {'success': False, 'error': f'Unknown action: {action}'}
+        if not isinstance(payload, dict):
+            payload = {}
 
         game = room_manager.get_game(room_id)
         if not game:
@@ -53,7 +73,13 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
     result = {'success': False}
 
     if action == 'BID':
-        result = game.handle_bid(player.index, payload.get('action'), payload.get('suit'))
+        bid_action = payload.get('action')
+        bid_suit = payload.get('suit')
+        if bid_action is not None and not isinstance(bid_action, str):
+            return {'success': False, 'error': 'Invalid bid action type'}
+        if bid_suit is not None and (not isinstance(bid_suit, str) or bid_suit not in ('♠', '♥', '♦', '♣')):
+            return {'success': False, 'error': f'Invalid bid suit: {bid_suit}'}
+        result = game.handle_bid(player.index, bid_action, bid_suit)
 
     elif action == 'PLAY':
         result = _handle_play(game, player, payload)
@@ -124,8 +150,14 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
 
     elif action == 'UPDATE_SETTINGS':
         if 'turnDuration' in payload:
-            game.turn_duration = float(payload['turnDuration'])
-            logger.info(f"Updated Turn Duration to {game.turn_duration}s for room {room_id}")
+            try:
+                td = float(payload['turnDuration'])
+                if not (1.0 <= td <= 120.0):
+                    return {'success': False, 'error': 'turnDuration must be between 1 and 120 seconds'}
+                game.turn_duration = td
+                logger.info(f"Updated Turn Duration to {game.turn_duration}s for room {room_id}")
+            except (TypeError, ValueError):
+                return {'success': False, 'error': 'Invalid turnDuration value'}
         if 'strictMode' in payload:
             game.strictMode = bool(payload['strictMode'])
             logger.info(f"Updated strictMode to {game.strictMode} for room {room_id}")
@@ -143,12 +175,18 @@ def _dispatch_action(sio, game, player, action, payload, room_id):
 
 
 def _handle_play(game, player, payload):
-    """Handle PLAY action."""
+    """Handle PLAY action with validated cardIndex."""
+    card_index = payload.get('cardIndex')
+    if not isinstance(card_index, int) or card_index < 0 or card_index > 7:
+        return {'success': False, 'error': f'Invalid cardIndex: {card_index}'}
+
     metadata = payload.get('metadata', {})
+    if not isinstance(metadata, dict):
+        metadata = {}
     if 'cardId' in payload:
         metadata['cardId'] = payload['cardId']
 
-    return game.play_card(player.index, payload.get('cardIndex'), metadata=metadata)
+    return game.play_card(player.index, card_index, metadata=metadata)
 
 
 def _handle_next_round(sio, game, room_id):

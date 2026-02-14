@@ -25,10 +25,10 @@ const Sidebar: React.FC<SidebarProps> = ({ scores, matchScores, roundHistory, us
 
       {/* --- Top Icons --- */}
       <div className="flex justify-between px-4 py-3 bg-white/50 border-b border-gray-200/50">
-        <button className="text-gray-500 hover:text-red-500 transition-colors"><LogOut size={20} /></button>
-        <button className="text-gray-500 hover:text-blue-500 transition-colors"><HelpCircle size={20} /></button>
-        <button className="text-gray-500 hover:text-gray-800 transition-colors"><Settings size={20} /></button>
-        <button className="text-gray-500 hover:text-gray-800 transition-colors"><Volume2 size={20} /></button>
+        <button className="text-gray-500 hover:text-red-500 transition-colors" aria-label="Log out"><LogOut size={20} /></button>
+        <button className="text-gray-500 hover:text-blue-500 transition-colors" aria-label="Help"><HelpCircle size={20} /></button>
+        <button className="text-gray-500 hover:text-gray-800 transition-colors" aria-label="Settings"><Settings size={20} /></button>
+        <button className="text-gray-500 hover:text-gray-800 transition-colors" aria-label="Toggle sound"><Volume2 size={20} /></button>
       </div>
 
       {/* --- Session Info --- */}
@@ -92,7 +92,7 @@ const Sidebar: React.FC<SidebarProps> = ({ scores, matchScores, roundHistory, us
             placeholder="رسالتك..."
             className="flex-1 bg-white/70 border border-gray-200 rounded-full px-4 py-2 text-gray-800 text-right text-sm placeholder-gray-400 focus:outline-none focus:border-amber-400 transition-colors"
           />
-          <button className="p-2 bg-amber-500 hover:bg-amber-400 rounded-full text-white transition-colors shadow-md">
+          <button className="p-2 bg-amber-500 hover:bg-amber-400 rounded-full text-white transition-colors shadow-md" aria-label="Send message">
             <MessageSquare size={16} />
           </button>
         </div>

@@ -24,6 +24,7 @@ import { soundManager } from './services/SoundManager';
 import { getInvalidMoveReason } from './utils/gameLogic';
 import ErrorBoundary from './components/ErrorBoundary';
 import FeatureErrorBoundary from './components/FeatureErrorBoundary';
+import ConnectionBanner from './components/ConnectionBanner';
 import { devLogger } from './utils/devLogger';
 
 import { useEmotes } from './hooks/useEmotes';
@@ -262,9 +263,11 @@ const App: React.FC = () => {
           </div>
         ))}
 
+        <FeatureErrorBoundary featureName="المتجر">
         {isStoreOpen && <StoreModal userProfile={userProfile} onClose={() => setIsStoreOpen(false)} onPurchase={handlePurchaseWrapper} onEquip={handleEquip} ownedItems={ownedItems} equippedItems={equippedItems} />}
+        </FeatureErrorBoundary>
 
-
+        <FeatureErrorBoundary featureName="الإعدادات">
         {isSettingsOpen && <SettingsModal
           settings={gameState.settings}
           equippedItems={equippedItems}
@@ -272,23 +275,32 @@ const App: React.FC = () => {
           onEquip={handleEquip}
           onClose={() => setIsSettingsOpen(false)}
         />}
+        </FeatureErrorBoundary>
+        <FeatureErrorBoundary featureName="الترقية">
         {levelUpData && <LevelUpModal newLevel={levelUpData.newLevel} rewards={levelUpData.rewards} onClose={() => setLevelUpData(null)} />}
+        </FeatureErrorBoundary>
+        <FeatureErrorBoundary featureName="النتيجة">
         {gameState.phase === GamePhase.GameOver && <VictoryModal scores={gameState.matchScores} onHome={() => { setCurrentView('LOBBY'); startNewRound(); }} onRematch={() => startNewRound()} onReview={() => setShowReviewModal(true)} />}
+        </FeatureErrorBoundary>
 
         {/* Match Review Modal */}
+        <FeatureErrorBoundary featureName="مراجعة المباراة">
         <MatchReviewModal
           isOpen={showReviewModal}
           onClose={() => setShowReviewModal(false)}
           fullMatchHistory={gameState.fullMatchHistory || []}
           players={gameState.players}
         />
+        </FeatureErrorBoundary>
 
         {/* Variant Selection Modal (Open/Closed) */}
+        <FeatureErrorBoundary featureName="اختيار النوع">
         <VariantSelectionModal
           phase={gameState.phase}
           isMyTurn={gameState.players.find(p => p.position === PlayerPosition.Bottom)?.isActive || false}
           onSelect={(variant) => handlePlayerAction('VARIANT_SELECTED', { variant })}
         />
+        </FeatureErrorBoundary>
 
 
         {/* Round Results Modal */}
@@ -315,6 +327,7 @@ const App: React.FC = () => {
 
   return (
     <GameLayout variant='mobile'>
+      <ConnectionBanner />
       <ErrorBoundary>
         {content}
       </ErrorBoundary>

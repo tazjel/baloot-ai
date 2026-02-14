@@ -221,6 +221,9 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
+        role="alertdialog"
+        aria-modal="true"
+        aria-label="Dispute review"
         style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
       >
         <motion.div
@@ -236,7 +239,8 @@ const DisputeModal: React.FC<DisputeModalProps> = ({ gameState, onAction, onClos
                style={{ background: BG_DARK, borderBottom: `1px solid ${BORDER}` }}>
             {step !== 'RESULT' && (
               <button onClick={() => onAction('QAYD_CANCEL')}
-                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
+                className="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                aria-label="Cancel dispute">
                 <X size={20} />
               </button>
             )}

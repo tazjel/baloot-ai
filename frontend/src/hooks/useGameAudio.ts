@@ -30,6 +30,15 @@ export const useGameAudio = (gameState: GameState, addToast?: AddToastFn): UseGa
     const prevSawaRef = useRef<boolean>(false);
     const prevProjectRevealRef = useRef<boolean>(false);
 
+    // Cancel any in-progress speech synthesis on unmount
+    useEffect(() => {
+        return () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
     /**
      * Text-to-speech for bidding actions
      */

@@ -75,17 +75,23 @@ def _sawa_timer_task(sio, game, room_id, timer_seconds=3):
     try:
         sio.sleep(timer_seconds)
 
+        # Verify game/room still exists after sleep
+        live_game = room_manager.get_game(room_id)
+        if not live_game:
+            logger.warning(f"Sawa timer: room {room_id} no longer exists after sleep")
+            return
+
         # Check if Sawa is still pending (a human may have called SAWA_QAYD already)
-        if not game.sawa_state.active or game.sawa_state.status != 'PENDING_TIMER':
+        if not live_game.sawa_state.active or live_game.sawa_state.status != 'PENDING_TIMER':
             return  # Already resolved by human action
 
-        result = game.handle_sawa_timeout()
+        result = live_game.handle_sawa_timeout()
         if result.get('success'):
-            room_manager.save_game(game)
-            broadcast_game_update(sio, game, room_id)
+            room_manager.save_game(live_game)
+            broadcast_game_update(sio, live_game, room_id)
 
-            if game.phase in ("FINISHED", "GAMEOVER"):
-                sio.start_background_task(auto_restart_round, sio, game, room_id)
+            if live_game.phase in ("FINISHED", "GAMEOVER"):
+                sio.start_background_task(auto_restart_round, sio, live_game, room_id)
     except Exception as e:
         logger.error(f"Sawa timer task error: {e}")
 
