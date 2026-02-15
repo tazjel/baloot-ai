@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 # --- Re-export all endpoint functions for backward compatibility ---
 from server.routes.auth import user, signup, signin, token_required
+from server.routes.shop import purchase_item, equip_item, add_coins
 from server.routes.game import save_score, leaderboard, health_check, catch_all_v2
 from server.routes.brain import (
     get_training_data, submit_training,
@@ -64,8 +65,10 @@ def bind(app):
     from server.routes.brain import bind_brain
     from server.routes.puzzles import bind_puzzles
     from server.routes.qayd import bind_qayd
+    from server.routes.shop import bind_shop
 
     bind_auth(safe_mount)
+    bind_shop(safe_mount)
     bind_brain(safe_mount)
     bind_puzzles(safe_mount)
     bind_qayd(safe_mount)
