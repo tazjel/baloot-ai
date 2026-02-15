@@ -20,6 +20,36 @@ class GameEvent:
 
 
 @dataclass
+class PlayerState:
+    """State of a single player."""
+    id: int = -1
+    name: str = "Unknown"
+    hand: list[str] = field(default_factory=list)
+    position: str = "BOTTOM"  # TOP, BOTTOM, LEFT, RIGHT
+    is_dealer: bool = False
+    is_me: bool = False
+
+
+@dataclass
+class BoardState:
+    """Full snapshot of the game board."""
+    players: list[PlayerState] = field(default_factory=list)
+    center_cards: list[str] = field(default_factory=list)
+    current_player_id: int = -1
+    phase: str = "WAITING"
+    trump_suit: Optional[str] = None
+    contract: Optional[str] = None
+    scores: dict[str, int] = field(default_factory=lambda: {"US": 0, "THEM": 0})
+    dealer_id: int = -1
+    last_action: str = "None"
+    event_index: int = 0
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+
+@dataclass
 class CaptureSession:
     """Metadata for a raw capture file."""
     file_path: str

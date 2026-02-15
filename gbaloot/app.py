@@ -63,7 +63,7 @@ with st.sidebar:
 
     section = st.radio(
         "Section",
-        ["📡 Capture", "⚙️ Process", "📁 Organize", "🔍 Review", "✅ Do"],
+        ["📡 Capture", "⚙️ Process", "📁 Organize", "🔍 Review", "📊 Benchmark", "✅ Do"],
         label_visibility="collapsed",
     )
 
@@ -114,6 +114,9 @@ elif section == "📁 Organize":
     render()
 elif section == "🔍 Review":
     from gbaloot.sections.review import render
+    render()
+elif section == "📊 Benchmark":
+    from gbaloot.sections.benchmark import render
     render()
 elif section == "✅ Do":
     from gbaloot.sections.do import render

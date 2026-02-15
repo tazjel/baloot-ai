@@ -8,7 +8,8 @@ import json
 from pathlib import Path
 from datetime import datetime
 from ..core.decoder import GameDecoder, decode_card
-from ..core.models import ProcessedSession
+from ..core.models import ProcessedSession, GameEvent, BoardState
+from ..core.reconstructor import reconstruct_timeline
 
 ACTION_COLORS = {
     "a_card_played": "#58a6ff", "a_cards_eating": "#f0883e",
@@ -72,17 +73,36 @@ def render():
 
 def _render_session_review(session: ProcessedSession):
     stats = session.stats or {}
-    events = session.events or []
-
-    # Stats
+    events_data = session.events or []
+    
+    # 1. Reconstruct Timeline
+    @st.cache_data
+    def _get_timeline(data):
+        events = [GameEvent(**e) for e in data]
+        return reconstruct_timeline(events)
+    
+    timeline = _get_timeline(events_data)
+    
+    # Header stats
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total", stats.get("total_messages", 0))
     c2.metric("Decoded", stats.get("decoded_ok", 0))
     c3.metric("Errors", stats.get("decode_errors", 0))
     dur = 0
-    if events and len(events) > 1:
-        dur = (events[-1].get("timestamp", 0) - events[0].get("timestamp", 0)) / 1000
+    if events_data and len(events_data) > 1:
+        dur = (events_data[-1].get("timestamp", 0) - events_data[0].get("timestamp", 0)) / 1000
     c4.metric("Duration", f"{dur:.0f}s")
+
+    # 2. Playback Control
+    st.markdown("---")
+    st.markdown("##### 🏎️ Visual Playback")
+    
+    if not timeline:
+        st.warning("No timeline data to visualize.")
+    else:
+        idx = st.slider("Scrub Timeline", 0, len(timeline)-1, 0, key="rev_scrub")
+        current_state = timeline[idx]
+        _render_visual_board(current_state)
 
     # Action breakdown
     actions = stats.get("actions_found", {})
@@ -131,6 +151,121 @@ def _render_session_review(session: ProcessedSession):
             if errs:
                 for err in errs:
                     st.warning(err)
+
+def _render_visual_board(state: BoardState):
+    """Renders a CSS-based game board."""
+    st.markdown("""
+    <style>
+    .baloot-board {
+        display: grid;
+        grid-template-areas:
+            ". top ."
+            "left center right"
+            ". bottom .";
+        grid-template-columns: 1fr 2fr 1fr;
+        grid-template-rows: 1fr 2fr 1fr;
+        gap: 15px;
+        background-color: #1a4a1a;
+        padding: 24px;
+        border-radius: 12px;
+        border: 4px solid #3d2b1f;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        color: white;
+        font-family: 'Inter', sans-serif;
+    }
+    .player-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 10px;
+    }
+    .p-top { grid-area: top; }
+    .p-bottom { grid-area: bottom; border-color: #58a6ff; background: rgba(88,166,255,0.1); }
+    .p-left { grid-area: left; }
+    .p-right { grid-area: right; }
+    .p-center { 
+        grid-area: center; 
+        background: rgba(0,0,0,0.3); 
+        border: 2px dashed rgba(255,255,255,0.2);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+    .card {
+        width: 45px;
+        height: 65px;
+        background: white;
+        border-radius: 4px;
+        margin: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: black;
+        font-weight: bold;
+        font-size: 0.8rem;
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+    .suit-H { color: #f85149; }
+    .suit-D { color: #f85149; }
+    .suit-C { color: black; }
+    .suit-S { color: black; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Prepare player boxes
+    slots = {"TOP": "p-top", "BOTTOM": "p-bottom", "LEFT": "p-left", "RIGHT": "p-right"}
+    players_html = ""
+    for p in state.players:
+        cls = slots.get(p.position, "p-bottom")
+        dealer_tag = " <span style='color:#f8e3a1'>💎</span>" if p.is_dealer else ""
+        active_style = "border: 2px solid #58a6ff;" if p.id == state.current_player_id else ""
+        
+        # Hand display
+        hand_html = '<div style="display:flex; flex-wrap:wrap; justify-content:center; margin-top:5px;">'
+        for card in p.hand:
+            c_val, c_suit = _parse_card(card)
+            hand_html += f'<div class="card suit-{c_suit}">{c_val}{c_suit}</div>'
+        hand_html += '</div>'
+        
+        players_html += f"""
+        <div class="player-box {cls}" style="{active_style}">
+            <div style="font-size:0.8rem; opacity:0.8;">{p.name}{dealer_tag}</div>
+            {hand_html}
+        </div>"""
+
+    # Center cards
+    center_html = ""
+    for card in state.center_cards:
+        c_val, c_suit = _parse_card(card)
+        center_html += f'<div class="card suit-{c_suit}">{c_val}{c_suit}</div>'
+
+    board_html = f"""
+    <div class="baloot-board">
+        {players_html}
+        <div class="player-box p-center">
+            {center_html}
+        </div>
+    </div>
+    """
+    st.markdown(board_html, unsafe_allow_html=True)
+    
+    # Contract details
+    st.write(f"**Phase:** {state.phase} | **Contract:** {state.contract} | **Trump:** {state.trump_suit} | **Score:** US {state.scores['US']} - THEM {state.scores['THEM']}")
+
+def _parse_card(card_str: str):
+    """Converts card ID/string to readable value and suit."""
+    if not card_str: return "?", "?"
+    # Simple mapping for now, assuming standard Baloot notation if already decoded
+    # or raw SFS values. Reconstructor should have normalized these.
+    # For now, just split if it's like '7H'
+    if len(card_str) >= 2:
+        return card_str[:-1], card_str[-1]
+    return card_str, "?"
 
 
 def _get_sessions(d: Path) -> list[Path]:
