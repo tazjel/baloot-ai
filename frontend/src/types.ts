@@ -178,6 +178,8 @@ export interface UserProfile {
   lastName?: string;
   email?: string;
   disableProfessor?: boolean;
+  ownedItems?: string[];
+  equippedItems?: { card: string; table: string };
 }
 
 export interface DeclaredProject {

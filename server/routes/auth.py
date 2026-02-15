@@ -43,7 +43,14 @@ def user():
     elif points >= 1400: tier = "Gold"
     elif points >= 1200: tier = "Silver"
 
-    return {"user": request.user, "leaguePoints": points, "tier": tier}
+    return {
+        "user": request.user,
+        "leaguePoints": points,
+        "tier": tier,
+        "coins": user_record.coins if user_record else 1000,
+        "ownedItems": user_record.owned_items if user_record else [],
+        "equippedItems": user_record.equipped_items if user_record else {}
+    }
 
 
 @action('signup', method=['POST', 'OPTIONS'])
@@ -98,7 +105,16 @@ def signin():
     if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
         response.status = 200
-        return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
+        return {
+            "email": user.email,
+            "firstName": user.first_name,
+            "lastName": user.last_name,
+            "token": token,
+            "coins": user.coins,
+            "ownedItems": user.owned_items,
+            "equippedItems": user.equipped_items,
+            "leaguePoints": user.league_points
+        }
 
     return {"error": "Invalid credentials"}
 

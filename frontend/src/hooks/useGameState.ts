@@ -12,6 +12,7 @@ import { useBiddingLogic } from './useBiddingLogic';
 import { usePlayingLogic } from './usePlayingLogic';
 import { useActionDispatcher } from './useActionDispatcher';
 import { AccountingEngine } from '../services/AccountingEngine';
+import { AuthService } from '../services/AuthService';
 
 const INITIAL_GAME_STATE: GameState = {
     players: [
@@ -120,6 +121,21 @@ export const useGameState = () => {
             setGameState(prev => ({ ...newState, settings: prev.settings }));
         });
     }, [socket]);
+
+    // ===== USER PROFILE SYNC =====
+    useEffect(() => {
+        const fetchUser = async () => {
+            if (AuthService.getToken()) {
+                try {
+                    const profile = await AuthService.getUser();
+                    setUserProfile(prev => ({ ...prev, ...profile }));
+                } catch (e) {
+                    console.error("Failed to load user profile", e);
+                }
+            }
+        };
+        fetchUser();
+    }, []);
 
     // ===== USER PROFILE PERSISTENCE =====
     useEffect(() => {
