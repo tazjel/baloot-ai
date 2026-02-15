@@ -15,6 +15,7 @@ from ai_worker.strategies.components.score_pressure import (
 )
 from ai_worker.strategies.components.trick_projection import project_tricks
 from ai_worker.strategies.components.hand_shape import evaluate_shape
+from ai_worker.strategies.components.bid_analysis import analyze_opponent_bids, evaluate_gablak
 from ai_worker.strategies.difficulty import get_bid_noise
 import logging
 
@@ -29,7 +30,8 @@ class BiddingStrategy:
         elif phase == BiddingPhase.VARIANT_SELECTION:
              return self.get_variant_decision(ctx)
         elif phase == BiddingPhase.GABLAK_WINDOW:
-             return self._get_gablak_decision(ctx)
+             return evaluate_gablak(ctx.hand, ctx.floor_card, ctx.bidding_round,
+                                    SUITS, calculate_sun_strength, calculate_hokum_strength)
 
         # 2. Floor-Card-Aware Hand Pattern Recognition
         # Check combined hand (5 cards + floor card) for premium patterns
@@ -196,7 +198,7 @@ class BiddingStrategy:
         # Analyze what opponents have bid to adjust our strategy
         bid_history = ctx.raw_state.get('bidHistory', [])
         partner_pos = self._get_partner_pos_name(ctx.position)
-        opp_bid_info = self._analyze_opponent_bids(bid_history, ctx.position, partner_pos)
+        opp_bid_info = analyze_opponent_bids(bid_history, ctx.position, partner_pos)
 
         if opp_bid_info['opponent_bid_sun']:
             # Opponent bid SUN — they have a strong balanced hand
@@ -316,73 +318,6 @@ class BiddingStrategy:
     def _get_partner_pos_name(self, my_pos):
         pairs = {'Bottom': 'Top', 'Top': 'Bottom', 'Right': 'Left', 'Left': 'Right'}
         return pairs.get(my_pos, 'Unknown')
-
-    def _analyze_opponent_bids(self, bid_history, my_pos, partner_pos):
-        """Analyze opponent bid history to extract defensive intelligence.
-
-        Returns a dict with:
-        - opponent_bid_sun: True if any opponent bid SUN
-        - opponent_bid_hokum_suit: The suit an opponent bid HOKUM for (or None)
-        - opponent_passed_r1: True if all opponents passed in what appears to be R1
-        - partner_bid_and_opp_competed: True if partner bid but opponent outbid them
-        """
-        opp_bid_sun = False
-        opp_hokum_suit = None
-        opp_passes = 0
-        opp_count = 0
-        partner_bid = False
-        opp_bid_after_partner = False
-
-        for entry in bid_history or []:
-            player = entry.get('player', entry.get('bidder', ''))
-            action = entry.get('action', entry.get('type', 'PASS'))
-            suit = entry.get('suit')
-
-            is_opponent = (player != my_pos and player != partner_pos)
-            is_partner = (player == partner_pos)
-
-            if is_opponent:
-                opp_count += 1
-                if action == 'PASS':
-                    opp_passes += 1
-                elif action == 'SUN':
-                    opp_bid_sun = True
-                elif action == 'HOKUM' and suit:
-                    opp_hokum_suit = suit
-                # Check if opponent bid after partner
-                if action in ('SUN', 'HOKUM') and partner_bid:
-                    opp_bid_after_partner = True
-
-            if is_partner and action in ('SUN', 'HOKUM'):
-                partner_bid = True
-
-        return {
-            'opponent_bid_sun': opp_bid_sun,
-            'opponent_bid_hokum_suit': opp_hokum_suit,
-            'opponent_passed_r1': opp_count >= 2 and opp_passes >= 2,
-            'partner_bid_and_opp_competed': partner_bid and opp_bid_after_partner,
-        }
-
-    def _get_gablak_decision(self, ctx: BotContext):
-        """Handle Gablak window — steal bid if we have a strong hand."""
-        sun_score = calculate_sun_strength(ctx.hand)
-        
-        # Steal with Sun if we have a very strong hand
-        if sun_score >= 28:
-            return {"action": "SUN", "reasoning": f"Gablak Steal: Strong Sun ({sun_score})"}
-        
-        # Steal Hokum if we have dominant trump
-        for suit in SUITS:
-            if ctx.bidding_round == 1 and ctx.floor_card and suit != ctx.floor_card.suit:
-                continue
-            if ctx.bidding_round == 2 and ctx.floor_card and suit == ctx.floor_card.suit:
-                continue
-            fc_for_eval = ctx.floor_card if ctx.bidding_round == 1 else None
-            score = calculate_hokum_strength(ctx.hand, suit, floor_card=fc_for_eval)
-            if score >= 24:
-                return {"action": "HOKUM", "suit": suit, "reasoning": f"Gablak Steal: Strong {suit} ({score})"}
-        
-        return {"action": "PASS", "reasoning": "Waive Gablak"}
 
     def get_doubling_decision(self, ctx: BotContext):
         """Smart doubling — uses advanced doubling engine with score awareness."""

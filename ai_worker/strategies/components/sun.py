@@ -159,30 +159,6 @@ class SunStrategy(StrategyComponent):
         else:
             return self._get_sun_follow(ctx)
 
-    def _try_endgame(self, ctx: BotContext) -> dict | None:
-        """Attempt minimax solve using ML or heuristic hand reconstruction."""
-        try:
-            from ai_worker.strategies.components.endgame_solver import solve_endgame
-            known = ctx.guess_hands()
-            if not known:
-                return None
-            # Determine leader: if table is empty, we lead; otherwise first player on table
-            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
-            result = solve_endgame(
-                my_hand=ctx.hand,
-                known_hands=known,
-                my_position=ctx.position,
-                leader_position=leader,
-                mode=ctx.mode or 'SUN',
-                trump_suit=ctx.trump,
-            )
-            if result and result.get('reasoning', '').startswith('Minimax'):
-                return {"action": "PLAY", "cardIndex": result['cardIndex'],
-                        "reasoning": f"Endgame Solver: {result['reasoning']}"}
-        except Exception as e:
-            logger.debug(f"Endgame solver skipped: {e}")
-        return None
-
     def _check_ashkal_signal(self, ctx: BotContext):
         """
         Check if the game is in Ashkal state and if we need to respond to a color request.
@@ -326,146 +302,20 @@ class SunStrategy(StrategyComponent):
 
         # ── LEAD SELECTOR: Consult specialized lead module ──
         try:
-            tricks = ctx.raw_state.get('currentRoundTricks', [])
-            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
-            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
-            # Collect opponent voids
-            _opp_voids: dict[str, set] = {}
-            my_team = ctx.team
-            for s in ['♠', '♥', '♦', '♣']:
-                for p in ctx.raw_state.get('players', []):
-                    if p.get('team') != my_team and ctx.is_player_void(p.get('position'), s):
-                        _opp_voids.setdefault(s, set()).add(p.get('position'))
-            # Partner read
-            _pi = None
-            if hasattr(ctx, 'read_partner_info'):
-                try:
-                    _pi = ctx.read_partner_info()
-                except Exception:
-                    pass
-            # Merge opponent model's avoid suits into voids for lead_selector
-            if self._opp_model:
-                for avoid_s in self._opp_model.get('avoid_lead_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'opp_model'}
-            # Merge trick_review avoid_suits into voids
-            if self._trick_review:
-                for avoid_s in self._trick_review.get('avoid_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'trick_review'}
-            # ── BID INFERENCE: Use bid history for card reading ──
-            try:
-                bid_hist = ctx.raw_state.get('bidHistory', [])
-                _fc = ctx.floor_card
-                _fc_dict = {'suit': _fc.suit, 'rank': _fc.rank} if _fc else None
-                bid_reads = infer_from_bids(
-                    my_position=ctx.position, bid_history=bid_hist,
-                    floor_card=_fc_dict, bidding_round=ctx.bidding_round,
-                )
-                # Merge bid inference avoid suits (declarer's strong suits)
-                for avoid_s in bid_reads.get('avoid_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'bid_reader'}
-                logger.debug(f"[BID_READ] decl={bid_reads.get('declarer_position')} avoid={bid_reads.get('avoid_suits')} target={bid_reads.get('target_suits')}")
-            except Exception as e:
-                logger.debug(f"Bid reader skipped: {e}")
-            # Build defense_info from opponent model
-            _def_info = None
-            if self._opp_model and not (bidder_team == 'us'):
-                safe = self._opp_model.get('safe_lead_suits', [])
-                _def_info = {
-                    'priority_suit': safe[0] if safe else None,
-                    'avoid_suit': self._opp_model.get('avoid_lead_suits', [None])[0] if self._opp_model.get('avoid_lead_suits') else None,
-                    'reasoning': self._opp_model.get('reasoning', ''),
-                }
-            ls_result = select_lead(
-                hand=ctx.hand, mode='SUN', trump_suit=None,
-                we_are_buyers=(bidder_team == 'us'),
-                tricks_played=len(tricks), tricks_won_by_us=our_wins,
-                master_indices=master_idx, partner_info=_pi,
-                defense_info=_def_info, trump_info=None,
-                opponent_voids=_opp_voids,
-                suit_probs=_suit_probs,
+            from ai_worker.strategies.components.lead_preparation import prepare_and_select_lead
+            ls_decision = prepare_and_select_lead(
+                ctx, mode='SUN', trump_suit=None, partner_pos=partner_pos,
+                bidder_team=bidder_team, opp_model=self._opp_model,
+                trick_review=self._trick_review, suit_probs=_suit_probs,
             )
-            # Adjust confidence threshold based on trick_review strategy_shift
-            _ls_threshold = 0.65
-            if self._trick_review:
-                shift = self._trick_review.get('strategy_shift', 'NONE')
-                if shift == 'AGGRESSIVE':
-                    _ls_threshold = 0.50  # Accept riskier leads when behind
-                elif shift == 'DAMAGE_CONTROL':
-                    _ls_threshold = 0.75  # Require higher confidence when collapsing
-            if ls_result and ls_result.get('confidence', 0) >= _ls_threshold:
-                logger.debug(f"[LEAD_SEL] {ls_result['strategy']}({ls_result['confidence']:.0%}): {ls_result['reasoning']}")
-                return {"action": "PLAY", "cardIndex": ls_result['card_index'],
-                        "reasoning": f"LeadSel/{ls_result['strategy']}: {ls_result['reasoning']}"}
+            if ls_decision:
+                return ls_decision
         except Exception as e:
             logger.debug(f"Lead selector skipped: {e}")
 
-        best_card_idx = 0
-        max_score = -100
-
-        for i, c in enumerate(ctx.hand):
-            score = 0
-            is_master = ctx.is_master_card(c)
-            
-            if is_master:
-                score += 100
-
-            rank = c.rank
-            if rank == 'A': score += 20
-            elif rank == '10': score += 15
-            elif rank == 'K':
-                if any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand): score += 18
-                else: score += 5
-
-            if rank in ['7', '8']: score += 2
-            if rank in ['Q', 'J'] and not any(x.rank in ['A', 'K'] and x.suit == c.suit for x in ctx.hand):
-                score -= 10
-
-            # CARD COUNTING: Check remaining cards in this suit
-            if ctx.memory:
-                remaining_in_suit = ctx.memory.get_remaining_in_suit(c.suit)
-                remaining_ranks = [r['rank'] for r in remaining_in_suit if r['rank'] != c.rank]
-                
-                # Penalize leading non-master cards into suits with higher remaining cards
-                if not is_master and remaining_ranks:
-                    higher_exists = False
-                    for r in remaining_ranks:
-                        try:
-                            if ORDER_SUN.index(r) > ORDER_SUN.index(c.rank):
-                                higher_exists = True
-                                break
-                        except ValueError:
-                            continue
-                    if higher_exists:
-                        score -= 15
-                
-                # BONUS: If suit has only 1-2 remaining cards and we have the master
-                if is_master and len(remaining_in_suit) <= 3:
-                    score += 10
-
-            # VOID DANGER: Avoid leading suits where opponents are void
-            my_team = ctx.team
-            for p in ctx.raw_state.get('players', []):
-                if p.get('team') != my_team:
-                    if ctx.is_player_void(p.get('position'), c.suit):
-                        score -= 30
-                        break
-
-            # SUIT LENGTH: Prefer leading from long suits (more control)
-            suit_count = sum(1 for x in ctx.hand if x.suit == c.suit)
-            score += suit_count * 3
-
-            if score > max_score:
-                max_score = score
-                best_card_idx = i
-
-        reason = "Sun Lead"
-        if ctx.is_master_card(ctx.hand[best_card_idx]):
-            reason = "Leading Master Card"
-
-        return {"action": "PLAY", "cardIndex": best_card_idx, "reasoning": reason}
+        # Heuristic fallback scoring
+        from ai_worker.strategies.components.heuristic_lead import score_sun_lead
+        return score_sun_lead(ctx)
 
     def _get_defensive_lead_sun(self, ctx: BotContext):
         """Defensive lead when OPPONENTS won the Sun bid.

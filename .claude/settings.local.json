@@ -30,7 +30,8 @@
       "Bash(measure-object:*)",
       "Bash(select-object -ExpandProperty Count)",
       "Bash(find:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(python3:*)"
     ]
   }
 }

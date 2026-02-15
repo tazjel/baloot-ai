@@ -3,6 +3,10 @@ import { useState, useEffect, useRef } from 'react';
 /**
  * Animates a number from its previous value to the target using requestAnimationFrame.
  * Uses ease-out cubic for smooth deceleration.
+ *
+ * @param target - The target number to animate towards.
+ * @param duration - Animation duration in milliseconds (default: 400).
+ * @returns The current interpolated display value.
  */
 export function useAnimatedNumber(target: number, duration = 400): number {
     const [display, setDisplay] = useState(target);

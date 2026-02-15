@@ -152,29 +152,6 @@ class HokumStrategy(StrategyComponent):
         else:
             return self._get_hokum_follow(ctx)
 
-    def _try_endgame(self, ctx: BotContext) -> dict | None:
-        """Attempt minimax solve using ML or heuristic hand reconstruction."""
-        try:
-            from ai_worker.strategies.components.endgame_solver import solve_endgame
-            known = ctx.guess_hands()
-            if not known:
-                return None
-            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
-            result = solve_endgame(
-                my_hand=ctx.hand,
-                known_hands=known,
-                my_position=ctx.position,
-                leader_position=leader,
-                mode=ctx.mode or 'HOKUM',
-                trump_suit=ctx.trump,
-            )
-            if result and result.get('reasoning', '').startswith('Minimax'):
-                return {"action": "PLAY", "cardIndex": result['cardIndex'],
-                        "reasoning": f"Endgame Solver: {result['reasoning']}"}
-        except Exception as e:
-            logger.debug(f"Endgame solver skipped: {e}")
-        return None
-
     def _get_hokum_lead(self, ctx: BotContext):
         best_card_idx = 0
         max_score = -100
@@ -310,174 +287,21 @@ class HokumStrategy(StrategyComponent):
 
         # ── LEAD SELECTOR: Consult specialized lead module ──
         try:
-            our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
-            master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
-            # Collect opponent voids
-            _opp_voids: dict[str, set] = {}
-            for s in ['♠', '♥', '♦', '♣']:
-                for p in ctx.raw_state.get('players', []):
-                    if p.get('team') != my_team and ctx.is_player_void(p.get('position'), s):
-                        _opp_voids.setdefault(s, set()).add(p.get('position'))
-            # Partner read
-            _pi = None
-            if hasattr(ctx, 'read_partner_info'):
-                try:
-                    _pi = ctx.read_partner_info()
-                except Exception:
-                    pass
-            # Merge opponent model's avoid suits into voids for lead_selector
-            if self._opp_model:
-                for avoid_s in self._opp_model.get('avoid_lead_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'opp_model'}
-            # Merge trick_review avoid_suits into voids
-            if self._trick_review:
-                for avoid_s in self._trick_review.get('avoid_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'trick_review'}
-            # ── BID INFERENCE: Use bid history for card reading ──
-            try:
-                bid_hist = ctx.raw_state.get('bidHistory', [])
-                _fc = ctx.floor_card
-                _fc_dict = {'suit': _fc.suit, 'rank': _fc.rank} if _fc else None
-                bid_reads = infer_from_bids(
-                    my_position=ctx.position, bid_history=bid_hist,
-                    floor_card=_fc_dict, bidding_round=ctx.bidding_round,
-                )
-                for avoid_s in bid_reads.get('avoid_suits', []):
-                    if avoid_s not in _opp_voids:
-                        _opp_voids[avoid_s] = {'bid_reader'}
-                logger.debug(f"[BID_READ] decl={bid_reads.get('declarer_position')} avoid={bid_reads.get('avoid_suits')} target={bid_reads.get('target_suits')}")
-            except Exception as e:
-                logger.debug(f"Bid reader skipped: {e}")
-            # Build defense_info from opponent model
-            _def_info = None
-            if self._opp_model and not (bidder_team == 'us'):
-                safe = self._opp_model.get('safe_lead_suits', [])
-                _def_info = {
-                    'priority_suit': safe[0] if safe else None,
-                    'avoid_suit': self._opp_model.get('avoid_lead_suits', [None])[0] if self._opp_model.get('avoid_lead_suits') else None,
-                    'reasoning': self._opp_model.get('reasoning', ''),
-                }
-            ls_result = select_lead(
-                hand=ctx.hand, mode='HOKUM', trump_suit=trump,
-                we_are_buyers=(bidder_team == 'us'),
-                tricks_played=len(tricks), tricks_won_by_us=our_wins,
-                master_indices=master_idx, partner_info=_pi,
-                defense_info=_def_info, trump_info=tplan,
-                opponent_voids=_opp_voids,
-                suit_probs=_suit_probs,
+            from ai_worker.strategies.components.lead_preparation import prepare_and_select_lead
+            ls_decision = prepare_and_select_lead(
+                ctx, mode='HOKUM', trump_suit=trump, partner_pos=partner_pos,
+                bidder_team=bidder_team, opp_model=self._opp_model,
+                trick_review=self._trick_review, suit_probs=_suit_probs,
+                trump_info=tplan,
             )
-            # Adjust confidence threshold based on trick_review strategy_shift
-            _ls_threshold = 0.65
-            if self._trick_review:
-                shift = self._trick_review.get('strategy_shift', 'NONE')
-                if shift == 'AGGRESSIVE':
-                    _ls_threshold = 0.50
-                elif shift == 'DAMAGE_CONTROL':
-                    _ls_threshold = 0.75
-            if ls_result and ls_result.get('confidence', 0) >= _ls_threshold:
-                logger.debug(f"[LEAD_SEL] {ls_result['strategy']}({ls_result['confidence']:.0%}): {ls_result['reasoning']}")
-                return {"action": "PLAY", "cardIndex": ls_result['card_index'],
-                        "reasoning": f"LeadSel/{ls_result['strategy']}: {ls_result['reasoning']}"}
+            if ls_decision:
+                return ls_decision
         except Exception as e:
             logger.debug(f"Lead selector skipped: {e}")
 
-        for i, c in enumerate(ctx.hand):
-            score = 0
-            is_trump = (c.suit == trump)
-            is_master = ctx.is_master_card(c)
-
-            # VOID AVOIDANCE: Check if opponents are void in this suit
-            is_danger = False
-            if not is_trump:
-                for p in ctx.raw_state.get('players', []):
-                    if p.get('team') != my_team:
-                        if ctx.is_player_void(p.get('position'), c.suit):
-                            is_danger = True
-                            break
-
-            if is_trump:
-                if should_open_trump:
-                    score += 40
-
-                master_bonus = 100
-                if not (remaining_enemy_trumps > 0):
-                    master_bonus = 10  # Save for ruffing
-
-                if is_master:
-                    score += master_bonus
-                elif c.rank == 'J':
-                    if should_open_trump:
-                        score += 80
-                    else:
-                        score += 10
-                elif c.rank == '9':
-                    if should_open_trump:
-                        score += 60
-                    else:
-                        score += 5
-                else:
-                    score += 10
-            else:
-                # Non-Trump
-                if is_master:
-                    score += 50
-                elif c.rank == 'A':
-                    score += 30
-                else:
-                    has_ace = any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand)
-                    if not has_ace:
-                        if c.rank == 'K': score -= 15
-                        elif c.rank == 'Q': score -= 10
-                        elif c.rank == 'J': score -= 5
-
-                if is_danger:
-                    score -= 200  # NUCLEAR DETERRENT
-
-                # CROSS-RUFF PENALTY: If this suit is ruffable, heavy penalty
-                if c.suit in ruffable_suits:
-                    score -= 50
-
-                # CARD COUNTING: Use memory to check remaining cards
-                if ctx.memory:
-                    remaining = ctx.memory.get_remaining_in_suit(c.suit)
-                    remaining_ranks = [r['rank'] for r in remaining if r['rank'] != c.rank]
-                    
-                    # Penalize leading non-masters into contested suits
-                    if not is_master and remaining_ranks:
-                        higher_exists = False
-                        for r in remaining_ranks:
-                            try:
-                                from game_engine.models.constants import ORDER_SUN
-                                if ORDER_SUN.index(r) > ORDER_SUN.index(c.rank):
-                                    higher_exists = True
-                                    break
-                            except ValueError:
-                                continue
-                        if higher_exists:
-                            score -= 10
-                    
-                    # SINGLETON DANGER: A lone non-master card gets eaten
-                    suit_count = sum(1 for x in ctx.hand if x.suit == c.suit)
-                    if suit_count == 1 and not is_master:
-                        score -= 20  # Lone card that can't win
-
-                # SUIT LENGTH: Prefer leading from long suits
-                suit_count = sum(1 for x in ctx.hand if x.suit == c.suit)
-                score += suit_count * 3
-
-            if score > max_score:
-                max_score = score
-                best_card_idx = i
-
-        reason = "Hokum Lead"
-        if ctx.is_master_card(ctx.hand[best_card_idx]):
-            reason = "Leading Master Card"
-        if ctx.hand[best_card_idx].suit == trump and should_open_trump:
-            reason = "Smart Sahn (Drawing Trumps)"
-
-        return {"action": "PLAY", "cardIndex": best_card_idx, "reasoning": reason}
+        # Heuristic fallback scoring
+        from ai_worker.strategies.components.heuristic_lead import score_hokum_lead
+        return score_hokum_lead(ctx, trump, should_open_trump, remaining_enemy_trumps, ruffable_suits)
 
     def _get_defensive_lead_hokum(self, ctx: BotContext):
         """Defensive lead when OPPONENTS won the Hokum bid.
@@ -615,57 +439,19 @@ class HokumStrategy(StrategyComponent):
         except Exception as e:
             logger.debug(f"Cooperative follow skipped: {e}")
 
-        # 1. Void Clause
+        # 1. Void Clause — seat-aware trumping decision
         if not follows:
-            has_trumps = any(c.suit == trump for c in ctx.hand)
             partner_pos = self.get_partner_pos(ctx.player_index)
             is_partner_winning = (winner_pos == partner_pos)
 
-            if has_trumps and not is_partner_winning:
-                trumps = [i for i, c in enumerate(ctx.hand) if c.suit == trump]
-
-                if winning_card.suit == trump:
-                    over_trumps = [i for i in trumps if ctx._compare_ranks(ctx.hand[i].rank, winning_card.rank, 'HOKUM')]
-                    if over_trumps:
-                        best_idx = self.find_lowest_rank_card(ctx, over_trumps, ORDER_HOKUM)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Over-trumping (Economy)"}
-                    else:
-                        return self.get_trash_card(ctx)
-                else:
-                    # SMART TRUMPING: Consider trick value and seat position
-                    low_trumps = [i for i in trumps if ctx.hand[i].rank in ['7', '8', 'Q', 'K']]
-                    high_trumps = [i for i in trumps if ctx.hand[i].rank in ['J', '9', 'A', '10']]
-                    
-                    if seat == 4:
-                        # 4TH SEAT: Guaranteed win — use lowest trump always
-                        best_idx = self.find_lowest_rank_card(ctx, trumps, ORDER_HOKUM)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat: Guaranteed Trump"}
-                    elif seat == 2:
-                        # 2ND SEAT: Conservative trumping — only trump high-value tricks
-                        if trick_points >= 10 or not high_trumps:
-                            if low_trumps:
-                                best_idx = self.find_lowest_rank_card(ctx, low_trumps, ORDER_HOKUM)
-                                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Cheap Trump (Worth It)"}
-                            else:
-                                best_idx = self.find_lowest_rank_card(ctx, trumps, ORDER_HOKUM)
-                                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Forced Trump"}
-                        else:
-                            # Low value, partner might handle it — discard instead
-                            return self.get_trash_card(ctx)
-                    else:
-                        # 3RD SEAT: Aggressive trumping
-                        if trick_points >= 10 or not high_trumps:
-                            best_idx = self.find_lowest_rank_card(ctx, trumps, ORDER_HOKUM)
-                            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Eating with Trump"}
-                        elif low_trumps:
-                            best_idx = self.find_lowest_rank_card(ctx, low_trumps, ORDER_HOKUM)
-                            return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Cheap Trump Eat"}
-                        else:
-                            return self.get_trash_card(ctx)
-            
-            # Partner winning or no trumps — discard smart
-            if has_trumps and is_partner_winning:
-                return self.get_trash_card(ctx)
+            try:
+                from ai_worker.strategies.components.void_trumping import decide_void_trump
+                trump_decision = decide_void_trump(
+                    ctx, trump, winning_card, seat, trick_points, is_partner_winning)
+                if trump_decision:
+                    return trump_decision
+            except Exception as e:
+                logger.debug(f"Void trumping skipped: {e}")
 
             return self.get_trash_card(ctx)
 

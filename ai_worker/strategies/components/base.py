@@ -172,6 +172,33 @@ class StrategyComponent(ABC):
         )
         return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Smart Discard"}
 
+    def _try_endgame(self, ctx: BotContext) -> dict | None:
+        """Attempt minimax solve using ML or heuristic hand reconstruction.
+
+        Shared by both HokumStrategy and SunStrategy for endgame positions (<=3 cards).
+        """
+        try:
+            from ai_worker.strategies.components.endgame_solver import solve_endgame
+            known = ctx.guess_hands()
+            if not known:
+                return None
+            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
+            result = solve_endgame(
+                my_hand=ctx.hand,
+                known_hands=known,
+                my_position=ctx.position,
+                leader_position=leader,
+                mode=ctx.mode or 'SUN',
+                trump_suit=ctx.trump,
+            )
+            if result and result.get('reasoning', '').startswith('Minimax'):
+                return {"action": "PLAY", "cardIndex": result['cardIndex'],
+                        "reasoning": f"Endgame Solver: {result['reasoning']}"}
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"Endgame solver skipped: {e}")
+        return None
+
     @staticmethod
     def get_partner_pos(my_idx: int) -> str:
         """Get the position name of the partner (across the table)."""

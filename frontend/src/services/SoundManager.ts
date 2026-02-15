@@ -285,7 +285,7 @@ export class SoundManager {
     // M18: NEW BID SOUNDS
     // ========================================
 
-    // SFX: Pass — Low muted triangle, quick decay
+    /** Plays a pass bid sound — low muted triangle with quick decay (80Hz, lowpass filtered). */
     public playPassSound() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -314,7 +314,7 @@ export class SoundManager {
         osc.stop(t + 0.2);
     }
 
-    // SFX: Hokum bid — Bold sine with harmonic
+    /** Plays a Hokum bid sound — bold sine 660Hz with 1320Hz harmonic, 0.4s decay. */
     public playHokumSound() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -350,7 +350,7 @@ export class SoundManager {
         osc2.stop(t + 0.4);
     }
 
-    // SFX: Sun bid — 3-note ascending arpeggio C6-E6-G6
+    /** Plays a Sun bid sound — 3-note ascending arpeggio (C6, E6, G6). */
     public playSunSound() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -377,7 +377,7 @@ export class SoundManager {
         });
     }
 
-    // SFX: Double — Deep sawtooth snap with noise burst
+    /** Plays a double/triple bid sound — deep sawtooth 60Hz snap with white noise burst. */
     public playDoubleSound() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -428,7 +428,7 @@ export class SoundManager {
     // M18: KABOOT CELEBRATION SOUND
     // ========================================
 
-    // SFX: Kaboot — Deep bass + brass chord
+    /** Plays a Kaboot celebration sound — deep bass 55Hz with brass chord (A4, C#5, E5, A5). */
     public playKabootSound() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -480,7 +480,7 @@ export class SoundManager {
     // M18: VICTORY / DEFEAT JINGLES
     // ========================================
 
-    // SFX: Victory — Ascending C5-E5-G5-C6 major arpeggio
+    /** Plays a victory jingle — ascending C major arpeggio (C5, E5, G5, C6) with shimmer harmonics. */
     public playVictoryJingle() {
         if (this.isMuted) return;
         const ctx = this.getContext();
@@ -521,7 +521,7 @@ export class SoundManager {
         });
     }
 
-    // SFX: Defeat — Descending C5-Bb4-G4-Eb4 minor, slightly detuned
+    /** Plays a defeat jingle — descending minor (C5, Bb4, G4, Eb4) with detuned chorus effect. */
     public playDefeatJingle() {
         if (this.isMuted) return;
         const ctx = this.getContext();
