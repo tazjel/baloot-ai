@@ -52,6 +52,7 @@ class ExtractedRound:
     @param tricks: Ordered list of ExtractedTrick for this round.
     @param scores_before: Per-seat score array at round start.
     @param scores_after: Per-seat score array at round end.
+    @param bid_sequence: Optional extracted bidding sequence for this round (G2).
     """
     round_index: int
     game_mode_raw: str
@@ -60,6 +61,7 @@ class ExtractedRound:
     tricks: list[ExtractedTrick] = field(default_factory=list)
     scores_before: list[int] = field(default_factory=list)
     scores_after: list[int] = field(default_factory=list)
+    bid_sequence: Optional[object] = None  # ExtractedBidSequence (avoid circular import)
 
 
 @dataclass

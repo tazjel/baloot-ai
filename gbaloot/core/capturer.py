@@ -5,6 +5,7 @@ Cloned from tools/capture_archive.py for standalone use.
 Launches a browser, injects a WS interceptor, and records all traffic.
 """
 import json
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -89,13 +90,11 @@ WS_INTERCEPTOR_JS = r"""
                     window.__ws_messages.push({ t: Date.now(), type: 'RECV', data: decoded, size: e.data.byteLength });
                     window.__ws_msg_count++;
                 } else if (e.data instanceof Blob) {
-                    const idx = window.__ws_messages.length;
-                    window.__ws_messages.push({ t: Date.now(), type: 'RECV', data: '[decoding-blob:' + e.data.size + ']', size: e.data.size });
+                    var entry = { t: Date.now(), type: 'RECV', data: '[decoding-blob:' + e.data.size + ']', size: e.data.size };
+                    window.__ws_messages.push(entry);
                     window.__ws_msg_count++;
                     decodeBlobToBuffer(e.data, function(decoded) {
-                        if (idx < window.__ws_messages.length) {
-                            window.__ws_messages[idx].data = decoded;
-                        }
+                        entry.data = decoded;
                     });
                 } else {
                     window.__ws_messages.push({ t: Date.now(), type: 'RECV', data: '[unknown-type]', size: 0 });
@@ -158,8 +157,38 @@ def save_capture(all_ws: list, output_dir: Path, label: str = "live") -> Path:
     return output_file
 
 
+# ── Event Classification (for smart screenshot triggers) ──────────
+# R5: Import from canonical event_types module (single source of truth)
+from gbaloot.core.event_types import GAME_EVENT_CATEGORIES
+
+
+def classify_event(message: dict) -> str | None:
+    """
+    Classify a WS message into a game event type.
+    Returns event name or None if not a game event.
+
+    R4: Uses delimiter-aware matching instead of bare substring to avoid
+    false positives (e.g. 'pass' matching 'password').
+    """
+    data_str = str(message.get("data", ""))
+    for event_type, keywords in GAME_EVENT_CATEGORIES.items():
+        for kw in keywords:
+            pattern = r'(?:^|["\s,{:])' + re.escape(kw) + r'(?:["\s,}:]|$)'
+            if re.search(pattern, data_str, re.IGNORECASE):
+                return event_type
+    return None
+
+
+def classify_batch(messages: list) -> list[tuple[dict, str | None]]:
+    """Classify a batch of messages. Returns list of (message, event_type) tuples."""
+    return [(msg, classify_event(msg)) for msg in messages]
+
+
 class GameCapturer:
     """High-level capture manager for use from Streamlit UI."""
+
+    # R8: Memory bound — cap the message buffer to prevent OOM on long sessions
+    MAX_MESSAGES = 50_000
 
     def __init__(self, output_dir: Path):
         self.output_dir = output_dir
@@ -189,6 +218,11 @@ class GameCapturer:
         """Collect new messages from the browser page."""
         msgs = collect_messages(page)
         self.all_ws.extend(msgs)
+        # R8: Warn if approaching memory limit
+        if len(self.all_ws) > self.MAX_MESSAGES:
+            excess = len(self.all_ws) - self.MAX_MESSAGES
+            print(f"\n  [!] Message buffer exceeded {self.MAX_MESSAGES} limit, trimming {excess} oldest messages")
+            self.all_ws = self.all_ws[-self.MAX_MESSAGES:]
         return len(msgs)
 
     def save(self, label: str = "gbaloot") -> Path:

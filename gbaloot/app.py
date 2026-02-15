@@ -63,7 +63,7 @@ with st.sidebar:
 
     section = st.radio(
         "Section",
-        ["📡 Capture", "⚙️ Process", "📁 Organize", "🔍 Review", "📊 Benchmark", "✅ Do"],
+        ["📡 Capture", "⚙️ Process", "📁 Organize", "🔍 Review", "📊 Benchmark", "📈 Analytics", "✅ Do"],
         label_visibility="collapsed",
     )
 
@@ -81,6 +81,27 @@ with st.sidebar:
     n_sessions = len(list(sessions_dir.glob("*_processed.json")))
     n_tasks = len(list(tasks_dir.glob("*.json")))
 
+    # Load manifest for health breakdown
+    health_line = ""
+    try:
+        from gbaloot.core.session_manifest import load_manifest
+        manifest = load_manifest(sessions_dir)
+        if manifest:
+            health_line = (
+                f"🟢 {manifest.good_count} "
+                f"🟡 {manifest.partial_count} "
+                f"🔴 {manifest.empty_count}"
+            )
+    except Exception:
+        pass
+
+    health_row = ""
+    if health_line:
+        health_row = f"""
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span>Health</span><span style="font-size: 0.8rem;">{health_line}</span>
+        </div>"""
+
     st.markdown(f"""
     <div style="background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 12px; font-size: 0.85rem;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
@@ -89,6 +110,7 @@ with st.sidebar:
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span>📊 Sessions</span><span style="color: #f0883e; font-weight: 600;">{n_sessions}</span>
         </div>
+        {health_row}
         <div style="display: flex; justify-content: space-between;">
             <span>✅ Tasks</span><span style="color: #7ee787; font-weight: 600;">{n_tasks}</span>
         </div>
@@ -117,6 +139,9 @@ elif section == "🔍 Review":
     render()
 elif section == "📊 Benchmark":
     from gbaloot.sections.benchmark import render
+    render()
+elif section == "📈 Analytics":
+    from gbaloot.sections.analytics import render
     render()
 elif section == "✅ Do":
     from gbaloot.sections.do import render

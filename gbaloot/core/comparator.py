@@ -120,6 +120,8 @@ class ComparisonReport:
     @param engine_points_team_02: Points for seats 0+2 team.
     @param engine_points_team_13: Points for seats 1+3 team.
     @param extraction_warnings: Warnings from trick extraction.
+    @param point_analyses: Per-round point analysis (G3).
+    @param point_consistency_pct: Percentage of complete rounds with correct card point totals.
     """
     session_path: str
     generated_at: str
@@ -132,6 +134,8 @@ class ComparisonReport:
     engine_points_team_02: int
     engine_points_team_13: int
     extraction_warnings: list[str]
+    point_analyses: list = field(default_factory=list)
+    point_consistency_pct: float = 0.0
 
     def to_dict(self) -> dict:
         """Serialize to plain dict."""
@@ -200,6 +204,19 @@ class GameComparator:
                     divergence_breakdown.get(c.divergence_type, 0) + 1
                 )
 
+        # G3: Point analysis per round
+        point_analyses = []
+        point_consistency_pct = 0.0
+        try:
+            from gbaloot.core.point_tracker import analyze_session_points
+            point_analyses = analyze_session_points(extraction)
+            complete = [pa for pa in point_analyses if pa.is_complete_round]
+            if complete:
+                consistent = sum(1 for pa in complete if pa.card_points_consistent)
+                point_consistency_pct = round(consistent / len(complete) * 100.0, 1)
+        except Exception as e:
+            logger.warning("Point analysis failed: %s", e)
+
         return ComparisonReport(
             session_path=session_path,
             generated_at=datetime.now().isoformat(),
@@ -212,6 +229,8 @@ class GameComparator:
             engine_points_team_02=points_team_02,
             engine_points_team_13=points_team_13,
             extraction_warnings=extraction.extraction_warnings,
+            point_analyses=point_analyses,
+            point_consistency_pct=point_consistency_pct,
         )
 
     def compare_session_file(self, session_file: Path) -> ComparisonReport:
@@ -468,20 +487,29 @@ def generate_scorecard(reports: list[ComparisonReport]) -> dict:
             key = (report.session_path, tc.round_index)
             round_groups.setdefault(key, []).append(tc)
 
-    # Check round point totals (only complete 8-trick rounds)
+    # G3: Use real point analysis from reports when available
     rounds_checked = 0
     rounds_points_ok = 0
 
-    for _key, tricks in round_groups.items():
-        if len(tricks) != 8:
-            continue  # Incomplete round, skip
-        rounds_checked += 1
-        total_pts = sum(tc.engine_points for tc in tricks)
-        mode = tricks[0].game_mode
-        # Expected card points (excluding last trick bonus)
-        expected = 120 if mode == "SUN" else 152
-        if total_pts == expected:
-            rounds_points_ok += 1
+    has_point_analyses = any(report.point_analyses for report in reports)
+    if has_point_analyses:
+        for report in reports:
+            for pa in report.point_analyses:
+                if pa.is_complete_round:
+                    rounds_checked += 1
+                    if pa.card_points_consistent:
+                        rounds_points_ok += 1
+    else:
+        # Fallback: legacy self-check (sum per-trick engine_points)
+        for _key, tricks in round_groups.items():
+            if len(tricks) != 8:
+                continue
+            rounds_checked += 1
+            total_pts = sum(tc.engine_points for tc in tricks)
+            mode = tricks[0].game_mode
+            expected = 120 if mode == "SUN" else 152
+            if total_pts == expected:
+                rounds_points_ok += 1
 
     def _make_category(correct: int, total: int) -> dict:
         pct = (correct / total * 100.0) if total > 0 else 0.0

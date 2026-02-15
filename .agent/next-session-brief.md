@@ -103,6 +103,15 @@
 ### GBaloot Benchmark Lab ✅
 > Completed 2026-02-15. Dual-engine comparison: 96.8% trick agreement.
 
+### GBaloot Phase 2 (G5-G9) ✅
+> Completed 2026-02-16. Full pipeline overhaul:
+> - G5: Reconstructor rewrite (SFS2X protocol, 43 tests)
+> - G6: Session manifest + health classification (27 tests)
+> - G7: Test Fortress Phase 2 + event types (74 tests)
+> - G8: Match analytics + 7th Analytics tab (20 tests)
+> - G9: Report exporter + download buttons (18 tests)
+> - Final: 413 GBaloot + 502 main = 915 total tests, 0 failures
+
 ---
 
 ## 🎯 Active Missions

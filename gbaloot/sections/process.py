@@ -156,7 +156,21 @@ def _batch_decode(capture_files: list[Path]):
         except Exception as e:
             st.warning(f"Failed to decode {f.name}: {e}")
 
-    st.success(f"Batch complete: {processed} new files processed")
+    skipped = len(capture_files) - processed
+    st.success(f"Batch complete: {processed} new, {skipped} already processed")
+
+    # Rebuild manifest after batch processing
+    try:
+        from gbaloot.core.session_manifest import build_manifest, save_manifest
+        manifest = build_manifest(sessions_dir)
+        save_manifest(manifest, sessions_dir)
+        st.caption(
+            f"Manifest updated: 🟢 {manifest.good_count} good, "
+            f"🟡 {manifest.partial_count} partial, "
+            f"🔴 {manifest.empty_count} empty"
+        )
+    except Exception:
+        pass
 
 
 def _render_results():

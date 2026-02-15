@@ -10,6 +10,7 @@ from datetime import datetime
 from ..core.decoder import GameDecoder, decode_card
 from ..core.models import ProcessedSession, GameEvent, BoardState
 from ..core.reconstructor import reconstruct_timeline
+from ..core.session_manifest import load_manifest, get_entry_by_filename, HEALTH_ICONS
 
 ACTION_COLORS = {
     "a_card_played": "#58a6ff", "a_cards_eating": "#f0883e",
@@ -38,7 +39,14 @@ def render():
         if not session_files:
             st.info("No processed sessions. Use **Process** tab first.")
             return
-        selected = st.selectbox("Select Session", [f.name for f in session_files], key="rev_session")
+        manifest = load_manifest(sessions_dir)
+        def _rev_label(name: str) -> str:
+            if manifest:
+                entry = get_entry_by_filename(manifest, name)
+                if entry:
+                    return f"{HEALTH_ICONS.get(entry.health, '')} {name}"
+            return name
+        selected = st.selectbox("Select Session", [f.name for f in session_files], format_func=_rev_label, key="rev_session")
         sel_path = next(f for f in session_files if f.name == selected)
         session = ProcessedSession.load(sel_path)
         _render_session_review(session)
@@ -238,11 +246,17 @@ def _render_visual_board(state: BoardState):
             {hand_html}
         </div>"""
 
-    # Center cards
+    # Center cards — now (seat, card_string) tuples
     center_html = ""
-    for card in state.center_cards:
-        c_val, c_suit = _parse_card(card)
-        center_html += f'<div class="card suit-{c_suit}">{c_val}{c_suit}</div>'
+    for item in state.center_cards:
+        if isinstance(item, (list, tuple)) and len(item) == 2:
+            seat, card_str = item
+            c_val, c_suit = _parse_card(card_str)
+            label = f"S{seat}"
+            center_html += f'<div class="card suit-{c_suit}"><div style="font-size:0.5rem;opacity:0.5">{label}</div>{c_val}{c_suit}</div>'
+        else:
+            c_val, c_suit = _parse_card(str(item))
+            center_html += f'<div class="card suit-{c_suit}">{c_val}{c_suit}</div>'
 
     board_html = f"""
     <div class="baloot-board">
@@ -253,17 +267,30 @@ def _render_visual_board(state: BoardState):
     </div>
     """
     st.markdown(board_html, unsafe_allow_html=True)
-    
-    # Contract details
-    st.write(f"**Phase:** {state.phase} | **Contract:** {state.contract} | **Trump:** {state.trump_suit} | **Score:** US {state.scores['US']} - THEM {state.scores['THEM']}")
 
-def _parse_card(card_str: str):
-    """Converts card ID/string to readable value and suit."""
-    if not card_str: return "?", "?"
-    # Simple mapping for now, assuming standard Baloot notation if already decoded
-    # or raw SFS values. Reconstructor should have normalized these.
-    # For now, just split if it's like '7H'
-    if len(card_str) >= 2:
+    # Status bar — use new field names
+    mode_label = state.game_mode or "—"
+    trump_label = state.trump_suit or "—"
+    scores = state.scores if isinstance(state.scores, list) else [0, 0, 0, 0]
+    score_str = f"T1 {scores[0]+scores[2]} — T2 {scores[1]+scores[3]}" if len(scores) == 4 else "—"
+    st.write(f"**Phase:** {state.phase} | **Mode:** {mode_label} | **Trump:** {trump_label} | **Trick:** {state.trick_number} | **Round:** {state.round_number} | **Score:** {score_str}")
+
+SUIT_CSS: dict[str, str] = {"♥": "H", "♦": "D", "♣": "C", "♠": "S"}
+
+def _parse_card(card_str: str) -> tuple[str, str]:
+    """Parse a card string like ``'A♠'`` or ``'10♥'`` into (rank, CSS-class-letter).
+
+    Returns ('?', '?') for unparsable input.
+    """
+    if not card_str:
+        return "?", "?"
+    # Unicode suit is always the last character
+    suit_char = card_str[-1]
+    css = SUIT_CSS.get(suit_char)
+    if css:
+        return card_str[:-1], css
+    # Fallback: old format like "7H"
+    if len(card_str) >= 2 and card_str[-1] in "HSDC":
         return card_str[:-1], card_str[-1]
     return card_str, "?"
 

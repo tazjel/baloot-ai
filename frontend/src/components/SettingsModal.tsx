@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { GameSettings } from '../types';
-import { X, Volume2, VolumeX, Zap, ShieldAlert, Clock, Globe, Palette, Sliders, Moon, Sun, Sparkles } from 'lucide-react';
+import { X, Volume2, VolumeX, Zap, ShieldAlert, Clock, Globe, Palette, Sliders, Moon, Sun, Sparkles, Lightbulb } from 'lucide-react';
 import { VISUAL_ASSETS } from '../constants';
 
 interface SettingsModalProps {
@@ -133,6 +133,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, equippedItems, 
                                 </div>
                                 <div className={`w-10 h-5 rounded-full relative transition-colors ${settings.animationsEnabled !== false ? 'bg-pink-600' : 'bg-gray-600'}`}>
                                     <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all ${settings.animationsEnabled !== false ? 'translate-x-5' : ''}`} />
+                                </div>
+                            </div>
+
+                            {/* AI Hints Toggle */}
+                            <div className="flex items-center justify-between p-3 bg-[#252525] rounded-xl hover:bg-[#2a2a2a] transition-colors cursor-pointer" role="switch" aria-checked={settings.showHints !== false} aria-label="AI Hints" tabIndex={0} onClick={() => onUpdate({ ...settings, showHints: settings.showHints === false ? true : false })} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUpdate({ ...settings, showHints: settings.showHints === false ? true : false }); } }}>
+                                <div className="flex items-center gap-3">
+                                    <Lightbulb className={settings.showHints !== false ? "text-amber-400" : "text-gray-500"} />
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-200">AI Hints</span>
+                                        <span className="text-xs text-gray-500">تلميحات الذكاء الاصطناعي</span>
+                                    </div>
+                                </div>
+                                <div className={`w-10 h-5 rounded-full relative transition-colors ${settings.showHints !== false ? 'bg-amber-600' : 'bg-gray-600'}`}>
+                                    <div className={`absolute top-1 left-1 w-3 h-3 bg-white rounded-full transition-all ${settings.showHints !== false ? 'translate-x-5' : ''}`} />
                                 </div>
                             </div>
 

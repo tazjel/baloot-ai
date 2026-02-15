@@ -81,6 +81,14 @@ export interface GameSettings {
   theme?: 'auto' | 'light' | 'dark'; // M18: Theme preference
   animationsEnabled?: boolean; // M18: Toggle animations
   soundVolumes?: { cards: number; ui: number; events: number; bids: number }; // M18: Per-category volume (0-1)
+  showHints?: boolean; // M17.2: AI hint system
+}
+
+export interface HintResult {
+  action: string;        // 'SUN' | 'HOKUM' | 'PASS' | 'ASHKAL' | 'PLAY'
+  cardIndex?: number;    // Index in player.hand (for play phase)
+  suit?: Suit;           // Recommended suit (for HOKUM bid)
+  reasoning: string;     // Arabic explanation text
 }
 
 export interface DetailedScore {

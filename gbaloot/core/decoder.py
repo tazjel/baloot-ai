@@ -63,16 +63,8 @@ RANK_MAP = {
     "j": "J", "q": "Q", "k": "K",
 }
 
-# Known game actions
-GAME_ACTIONS = {
-    "a_bid", "a_card_played", "a_cards_eating", "a_accept_next_move",
-    "a_back", "find_match", "game_loaded", "game_state", "game_stat",
-    "switch_seat", "hokom", "pass", "chat", "sira",
-    "a_draw", "a_new_game", "a_rematch", "a_leave", "a_kick",
-    "a_emoji", "a_sticker", "a_player_joined", "a_player_left",
-    "a_round_end", "a_hand_dealt", "a_score_update", "a_trick_end",
-    "a_disconnect", "a_reconnect", "a_timeout",
-}
+# R5: Import from canonical event_types (single source of truth)
+from gbaloot.core.event_types import ALL_GAME_ACTIONS as GAME_ACTIONS
 
 # Short field name → readable name
 FIELD_NAME_MAP = {

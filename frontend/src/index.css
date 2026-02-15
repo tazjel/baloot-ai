@@ -787,6 +787,25 @@ html.reduce-motion *::after {
   animation: trumpShimmer 2s ease-in-out infinite;
 }
 
+/* === M17.2: AI HINT GLOW === */
+@keyframes hintPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    border-color: rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), inset 0 0 8px rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.9);
+  }
+}
+
+.hint-glow {
+  border: 2px solid rgba(245, 158, 11, 0.5);
+  border-radius: 8px;
+  animation: hintPulse 1.5s ease-in-out infinite;
+  z-index: 61 !important;
+}
+
 /* === M18: KABOOT CELEBRATION BURST === */
 @keyframes kabootBurst {
   0% {

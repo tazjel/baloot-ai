@@ -4,10 +4,12 @@ import { GameState, Player, PlayerPosition, GamePhase, Suit } from '../types';
 import { useBotSpeech } from '../hooks/useBotSpeech';
 import { useGameTension } from '../hooks/useGameTension';
 import { useGameToast } from '../hooks/useGameToast';
+import { useHintSystem } from '../hooks/useHintSystem';
 import { canDeclareAkka, sortHand } from '../utils/gameLogic';
 import { soundManager } from '../services/SoundManager';
 import ActionBar from './ActionBar';
 import GameToast from './GameToast';
+import HintOverlay from './HintOverlay';
 
 import HandFan from './HandFan';
 
@@ -71,6 +73,9 @@ export default function Table({
     const [showProfessor, setShowProfessor] = useState(false);
 
     const { tension, bpm } = useGameTension(gameState);
+
+    // AI Hint System (M17.2)
+    const { hint, isHintVisible, requestHint, dismissHint } = useHintSystem(gameState);
 
     // ═══ EVENT DETECTION → TOASTS ═══
 
@@ -306,6 +311,7 @@ export default function Table({
                         gameMode={(gameState.gameMode as 'SUN' | 'HOKUM') || 'SUN'}
                         trumpSuit={gameState.trumpSuit}
                         settings={settings}
+                        hintedCardIndex={isHintVisible && hint?.action === 'PLAY' && hint.cardIndex !== undefined ? hint.cardIndex : null}
                     />
                 </div>
             )}
@@ -327,6 +333,8 @@ export default function Table({
                 akkaState={akkaState}
             />
 
+            <HintOverlay hint={hint} isVisible={isHintVisible} onDismiss={dismissHint} />
+
             <ActionBar
                 gameState={gameState}
                 me={me}
@@ -336,6 +344,8 @@ export default function Table({
                 selectedCardIndex={selectedCardIndex}
                 settings={settings}
                 onEmoteClick={onEmoteClick}
+                onHintRequest={requestHint}
+                hintedAction={isHintVisible ? hint?.action ?? null : null}
             />
 
             {/* Dealer Badge */}

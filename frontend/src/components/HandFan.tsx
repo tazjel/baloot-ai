@@ -7,6 +7,7 @@ import { sortHand } from '../utils/gameLogic';
 interface HandFanProps {
     hand: CardModel[];
     selectedCardIndex: number | null;
+    hintedCardIndex?: number | null;
     isMyTurn: boolean;
     onCardClick: (index: number) => void;
     cardSkin?: string;
@@ -34,6 +35,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
 
     hand,
     selectedCardIndex,
+    hintedCardIndex,
     isMyTurn,
     onCardClick,
     cardSkin = 'card_default',
@@ -85,6 +87,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
                 // Find original index in unsorted hand to pass back to parent
                 const originalIndex = hand.findIndex(c => c.id === card.id);
                 const isSelected = selectedCardIndex === originalIndex;
+                const isHinted = hintedCardIndex === originalIndex;
 
                 // Visual Grouping Logic
                 const groupIdx = cardGroups[card.id] || 0;
@@ -114,6 +117,7 @@ const HandFanComponent: React.FC<HandFanProps> = ({
                             }
                             opacity-100
                             ${gameMode === 'HOKUM' && trumpSuit && card.suit === trumpSuit ? 'trump-glow' : ''}
+                            ${isHinted ? 'hint-glow' : ''}
                         `}
                         style={{
                             transformOrigin: 'bottom center',
@@ -144,6 +148,7 @@ const HandFan = React.memo(HandFanComponent, (prev, next) => {
     // Custom comparison for performance
     if (prev.isMyTurn !== next.isMyTurn) return false;
     if (prev.selectedCardIndex !== next.selectedCardIndex) return false;
+    if (prev.hintedCardIndex !== next.hintedCardIndex) return false;
     if (prev.hand.length !== next.hand.length) return false;
     if (prev.gameMode !== next.gameMode) return false;
     if (prev.trumpSuit !== next.trumpSuit) return false;

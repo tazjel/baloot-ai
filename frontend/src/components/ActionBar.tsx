@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { GameState, GamePhase, Suit, Player } from '../types';
 import { Spade, Heart, Club, Diamond } from './SuitIcons';
-import { Gavel, Megaphone, Sun, RefreshCw, X, Trophy, Smile } from 'lucide-react';
+import { Gavel, Megaphone, Sun, RefreshCw, X, Trophy, Smile, Lightbulb } from 'lucide-react';
 import { canDeclareAkka, canDeclareKawesh, scanHandForAkka } from '../utils/gameLogic';
 import { soundManager } from '../services/SoundManager';
 import { motion, AnimatePresence, Variants, HTMLMotionProps } from 'framer-motion';
@@ -15,6 +15,8 @@ interface ActionBarProps {
     selectedCardIndex: number | null;
     settings?: any;
     onEmoteClick?: () => void;
+    onHintRequest?: () => void;
+    hintedAction?: string | null;
 }
 
 const ActionBar: React.FC<ActionBarProps> = ({
@@ -25,7 +27,9 @@ const ActionBar: React.FC<ActionBarProps> = ({
     availableProjects,
     selectedCardIndex,
     settings,
-    onEmoteClick
+    onEmoteClick,
+    onHintRequest,
+    hintedAction
 }) => {
     const { phase, biddingRound, floorCard, bid } = gameState;
 
@@ -220,6 +224,19 @@ const ActionBar: React.FC<ActionBarProps> = ({
                         <span className="text-[10px] sm:text-xs font-bold font-tajawal">تعابير</span>
                     </ActionButton>
                 )}
+
+                {/* 6. HINT (M17.2) */}
+                {settings?.showHints !== false && onHintRequest && (
+                    <ActionButton
+                        onClick={onHintRequest}
+                        disabled={!isMyTurn}
+                        activeClass="bg-amber-800 text-amber-200"
+                        data-testid="btn-hint-play"
+                    >
+                        <div className="text-amber-400 mb-1"><Lightbulb size={20} /></div>
+                        <span className="text-[10px] sm:text-xs font-bold font-tajawal">تلميح</span>
+                    </ActionButton>
+                )}
             </motion.div>
         );
     };
@@ -233,20 +250,39 @@ const ActionBar: React.FC<ActionBarProps> = ({
             exit="exit"
             className="absolute bottom-0 sm:bottom-1 left-1/2 z-[100] flex items-center gap-3 sm:gap-4 bg-black/20 px-6 py-3 rounded-t-[2rem] border-t border-x border-white/5 backdrop-blur-sm"
         >
-            <ActionButton onClick={() => onPlayerAction('SUN')} disabled={!isMyTurn}>
+            <ActionButton onClick={() => onPlayerAction('SUN')} disabled={!isMyTurn}
+                className={hintedAction === 'SUN' || hintedAction === 'ASHKAL' ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-transparent' : ''}
+            >
                 <Sun size={20} className="text-amber-400 mb-1" />
                 <span className="text-[10px] sm:text-xs font-bold">SUN</span>
             </ActionButton>
 
-            <ActionButton onClick={() => onPlayerAction('HOKUM')} disabled={!isMyTurn}>
+            <ActionButton onClick={() => onPlayerAction('HOKUM')} disabled={!isMyTurn}
+                className={hintedAction === 'HOKUM' ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-transparent' : ''}
+            >
                 <Gavel size={20} className="text-rose-500 mb-1" />
                 <span className="text-[10px] sm:text-xs font-bold">HOKUM</span>
             </ActionButton>
 
-            <ActionButton onClick={() => onPlayerAction('PASS')} disabled={!isMyTurn}>
+            <ActionButton onClick={() => onPlayerAction('PASS')} disabled={!isMyTurn}
+                className={hintedAction === 'PASS' ? 'ring-2 ring-amber-400 ring-offset-1 ring-offset-transparent' : ''}
+            >
                 <div className="text-zinc-400 mb-1 font-bold">X</div>
                 <span className="text-[10px] sm:text-xs font-bold">PASS</span>
             </ActionButton>
+
+            {/* HINT (M17.2) */}
+            {settings?.showHints !== false && onHintRequest && (
+                <ActionButton
+                    onClick={onHintRequest}
+                    disabled={!isMyTurn}
+                    activeClass="bg-amber-800 text-amber-200"
+                    data-testid="btn-hint-bid"
+                >
+                    <Lightbulb size={20} className="text-amber-400 mb-1" />
+                    <span className="text-[10px] sm:text-xs font-bold font-tajawal">تلميح</span>
+                </ActionButton>
+            )}
 
             {canDeclareKawesh(me.hand) && (
                 <ActionButton

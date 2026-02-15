@@ -10,4 +10,5 @@ export { useGameTension } from './useGameTension';
 export { useLocalBot } from './useLocalBot';
 export { usePlayingLogic } from './usePlayingLogic';
 export { useRoundManager } from './useRoundManager';
+export { useHintSystem } from './useHintSystem';
 export { useVoice } from './useVoice';

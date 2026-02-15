@@ -21,31 +21,73 @@ class GameEvent:
 
 @dataclass
 class PlayerState:
-    """State of a single player."""
-    id: int = -1
+    """State of a single player at a given moment.
+
+    @param seat: 0-indexed seat number (0-3).
+    @param name: Display name.
+    @param hand: List of card strings (e.g., ``["A♠", "K♥"]``).
+    @param cards_remaining: Number of cards left in hand.
+    @param position: Visual position on the board.
+    @param is_dealer: True if this player is dealing.
+    @param is_me: True if this is the local (captured) player.
+    """
+    seat: int = -1
     name: str = "Unknown"
     hand: list[str] = field(default_factory=list)
+    cards_remaining: int = 0
     position: str = "BOTTOM"  # TOP, BOTTOM, LEFT, RIGHT
     is_dealer: bool = False
     is_me: bool = False
+    # Compat alias
+    @property
+    def id(self) -> int:
+        return self.seat
 
 
 @dataclass
 class BoardState:
-    """Full snapshot of the game board."""
+    """Full snapshot of the game board.
+
+    Stores center_cards as ``(seat, card_string)`` tuples for seat attribution.
+    phase uses SFS2X gStg mapping: WAITING, BIDDING, PLAYING, TRICK_COMPLETE.
+    """
     players: list[PlayerState] = field(default_factory=list)
-    center_cards: list[str] = field(default_factory=list)
-    current_player_id: int = -1
-    phase: str = "WAITING"
-    trump_suit: Optional[str] = None
-    contract: Optional[str] = None
-    scores: dict[str, int] = field(default_factory=lambda: {"US": 0, "THEM": 0})
-    dealer_id: int = -1
-    last_action: str = "None"
+    center_cards: list[tuple[int, str]] = field(default_factory=list)
+    current_player_seat: int = -1
+    phase: str = "WAITING"      # WAITING / BIDDING / PLAYING / TRICK_COMPLETE
+    game_mode: str = ""         # SUN / HOKUM / "" (unmapped)
+    trump_suit: Optional[str] = None   # Unicode suit symbol (e.g. "♥") or None
+    bidding_history: list[dict] = field(default_factory=list)
+    scores: list[int] = field(default_factory=lambda: [0, 0, 0, 0])
+    dealer_seat: int = -1
+    trick_number: int = 0
+    round_number: int = 0
+    lead_suit: Optional[str] = None    # Unicode suit of trick lead
+    last_action_desc: str = ""         # Human-readable last action
     event_index: int = 0
 
+    # Legacy compat properties
+    @property
+    def current_player_id(self) -> int:
+        return self.current_player_seat
+
+    @property
+    def dealer_id(self) -> int:
+        return self.dealer_seat
+
+    @property
+    def last_action(self) -> str:
+        return self.last_action_desc
+
+    @property
+    def contract(self) -> Optional[str]:
+        return self.game_mode or None
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Serialize to a plain dict (center_cards as lists for JSON compat)."""
+        d = asdict(self)
+        d["center_cards"] = [[s, c] for s, c in (self.center_cards or [])]
+        return d
 
 
 
