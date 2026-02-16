@@ -7,49 +7,41 @@
 | Metric | Value |
 |--------|-------|
 | Backend source files | **155** (game_engine: 46, ai_worker: 69, server: 40) |
-| Frontend files | **103** (.tsx: 55, .ts: 48) |
+| Frontend files | **106** (.tsx/.ts) |
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **100%** (1147/1147) — 0 failures ✅ |
+| Last Pass Rate | **98.9%** (516/522) — 6 failures ⚠️ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-16 |
+| Last Test Run | 2026-02-14 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
 | `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
-| TODO/FIXME/HACK | **2** (ai_worker only) |
+| TODO/FIXME/HACK | **2** (ai_worker: `memory.py`, `mcts/utils.py`) |
 
 ### Backend Hotspots (>15 KB)
 | File | Size | Status |
 |------|------|--------|
-| `ai_worker/strategies/components/hokum.py` | 32.8 KB | 🔴 Critical — grew since M10 |
-| `ai_worker/strategies/components/sun.py` | 29.1 KB | 🔴 Critical — grew since M10 |
+| `ai_worker/strategies/components/hokum.py` | 32.8 KB | 🔴 Critical |
+| `ai_worker/strategies/components/sun.py` | 29.1 KB | 🔴 Critical |
 | `game_engine/logic/qayd_engine.py` | 21.4 KB | 🟡 Large |
 | `game_engine/logic/game.py` | 20.4 KB | 🟡 Large |
 | `ai_worker/strategies/bidding.py` | 19.2 KB | 🟡 Large |
-| `ai_worker/bot_context.py` | 17.2 KB | 🟡 New hotspot |
+| `ai_worker/bot_context.py` | 17.2 KB | 🟡 Large |
 | `game_engine/logic/trick_manager.py` | 16.7 KB | 🟡 Unchanged |
 | `ai_worker/mcts/fast_game.py` | 16.2 KB | 🟡 Unchanged |
 
 ### Frontend Hotspots (>10 KB)
 | File | Size | Status |
 |------|------|--------|
-| `services/SoundManager.ts` | 18.8 KB | 🔴 New (M18 growth) |
-| `components/SettingsModal.tsx` | 18.2 KB | 🔴 Grew (M16/M18) |
+| `components/SettingsModal.tsx` | 19.8 KB | 🔴 Critical |
+| `services/SoundManager.ts` | 18.8 KB | 🔴 Critical |
 | `services/AccountingEngine.test.ts` | 18.2 KB | 🟡 Test file |
-| `services/AccountingEngine.ts` | 15.9 KB | 🟡 Unchanged |
-| `components/MatchReviewModal.tsx` | 15.6 KB | 🟡 Unchanged |
-| `components/ActionBar.tsx` | 15.4 KB | 🟡 Unchanged |
-| `hooks/useRoundManager.test.ts` | 14.3 KB | 🟡 Test file |
-| `components/Table.tsx` | 14.3 KB | 🟡 Unchanged |
-| `App.tsx` | 14.3 KB | 🟡 Grew (M18) |
-| `components/source platform/ClassicBoard.tsx` | 14.2 KB | 🟡 New |
-| `components/DisputeModal.tsx` | 14.0 KB | 🟡 Unchanged |
-| `components/table/GameArena.tsx` | 13.2 KB | 🟡 Unchanged |
+| `components/ActionBar.tsx` | 17.2 KB | 🔴 Critical |
+| `services/AccountingEngine.ts` | 15.9 KB | 🟡 Large |
+| `components/MatchReviewModal.tsx` | 15.6 KB | 🟡 Large |
+| `components/Table.tsx` | 14.8 KB | 🟡 Large |
+| `services/hintService.ts` | 10.7 KB | 🟡 New |
+| `components/classic/ClassicArena.tsx` | 11.1 KB | 🟡 New |
 | `hooks/useRoundManager.ts` | 11.8 KB | 🟡 Unchanged |
-| `services/botService.ts` | 11.3 KB | 🟡 Unchanged |
-| `hooks/useGameSocket.ts` | 11.2 KB | 🟡 Unchanged |
-| `components/source platform/source platformActionDock.tsx` | 11.2 KB | 🟡 New |
-| `components/RoundResultsModal.tsx` | 11.1 KB | 🟡 Grew (M18) |
-| `components/source platform/source platformArena.tsx` | 11.1 KB | 🟡 New |
 
 ---
 
@@ -122,20 +114,28 @@
 > - 80 StateBuilder tests + 9 decoder tests = 995 total (502 main + 493 GBaloot)
 
 ### Mobile Archive Parser & Benchmark ✅
-> Completed 2026-02-16. 109 source platform mobile archives parsed, 100% engine agreement:
+> Completed 2026-02-16. 109 mobile archives parsed, 100% engine agreement:
 > - archive_parser.py: JSON loading, validation, bidding resolution (gm=3 ashkal = SUN)
 > - archive_trick_extractor.py: Engine-computed trick winners (e=6 p field is NOT winner)
 > - run_archive_benchmark.py: Full benchmark runner with scorecard output
 > - 8,107 tricks across 1,095 rounds, 0 divergences, 100% point consistency
-> - Trump determination: explicit suit bids > fc (first card) suit, NOT ts field
 > - 48 new tests (17 parser + 31 extractor) = 1043 total (502 main + 541 GBaloot)
 
 ### Archive Rules Validation & Strategy Insights ✅
 > Completed 2026-02-16. Full scoring + bidding validation across 109 archives:
-> - archive_scoring_validator.py: GP conversion (floor/5 SUN, asymmetric/10 HOKUM), khasara, kaboot (100%), radda doubling, gahwa, baloot immunity — 87.5% GP agreement, 98.8% card abnat, 99.1% cumulative
-> - archive_bidding_validator.py: 12,291 bid events, mode distribution (HOKUM 53%, SUN 34%, Ashkal 13%), R1/R2 phase analysis, doubling chains (4.1%), bidder position stats
-> - strategy_insights_from_archives.md: Actionable AI recommendations (SUN khasara 28.5% vs HOKUM 15.9%, kaboot 13.8% SUN viable pursuit, position 1 advantage 29%)
-> - 104 new tests (46 scoring + 58 bidding) = 1147 total (502 main + 645 GBaloot)
+> - archive_scoring_validator.py: GP conversion, khasara, kaboot (100%), radda doubling
+> - archive_bidding_validator.py: 12,291 bid events, mode distribution
+> - strategy_insights_from_archives.md: Actionable AI recommendations
+> - 104 new tests = 1147 total (502 main + 645 GBaloot)
+
+### GBaloot Capture Session v2 — Workflow Improvements ✅
+> Completed 2026-02-16. Built 5 improvements to the capture pipeline:
+> - `capture_session.py`: Single-command CLI launcher with WS + screenshot capture
+> - Event-triggered screenshots (bid, card played, trick won, round over)
+> - Session labeling convention (`hokum_aggressive_01`, `sun_defensive_02`)
+> - Post-session auto-pipeline (decode → extract → benchmark on exit)
+> - `tools/screenshot_diff.py`: SSIM-based visual comparison utility
+> - Enhanced `capturer.py` with `classify_event()` and `GAME_EVENT_KEYWORDS`
 
 ---
 
@@ -144,10 +144,10 @@
 ## Mission 23: "The Surgeon II" — AI Strategy File Decomposition
 > Effort estimate (~2 hours) | Priority: ① — Low-risk hygiene
 
-`hokum.py` ballooned to 32.8 KB and `sun.py` to 29.1 KB (both grew since Mission 10). These are the largest files in the codebase and urgently need decomposition.
+`hokum.py` = 32.8 KB and `sun.py` = 29.1 KB are the largest files in the codebase. Frontend hotspots `SettingsModal.tsx` (19.8 KB) and `ActionBar.tsx` (17.2 KB) also need splitting.
 
 ### Tasks
-- [ ] **Decompose `hokum.py` (32.8 KB)** — extract trump management, defensive play, and partner coordination into separate components
+- [ ] **Decompose `hokum.py` (32.8 KB)** — extract trump management, defensive play, and partner coordination
   - [ ] Create `ai_worker/strategies/components/hokum_defense.py`
   - [ ] Create `ai_worker/strategies/components/hokum_trumping.py`
   - [ ] Reduce `hokum.py` to <15 KB orchestrator
@@ -156,7 +156,8 @@
   - [ ] Create `ai_worker/strategies/components/sun_leading.py`
   - [ ] Reduce `sun.py` to <15 KB orchestrator
 - [ ] **Decompose `SoundManager.ts` (18.8 KB)** — extract sound definitions from player logic
-- [ ] **Decompose `SettingsModal.tsx` (18.2 KB)** — extract theme/audio/game sections into sub-components
+- [ ] **Decompose `SettingsModal.tsx` (19.8 KB)** — extract theme/audio/game sections into sub-components
+- [ ] **Decompose `ActionBar.tsx` (17.2 KB)** — separate bidding/playing action modes
 
 ### Key Files
 | File | Change |
@@ -165,6 +166,7 @@
 | `ai_worker/strategies/components/sun.py` | Split into 3 files |
 | `frontend/src/services/SoundManager.ts` | Split definitions |
 | `frontend/src/components/SettingsModal.tsx` | Extract sections |
+| `frontend/src/components/ActionBar.tsx` | Extract modes |
 
 ### Verification
 - All 522+ tests pass
@@ -176,10 +178,10 @@
 ## Mission 7 Phase 2: "The Shield" — Test Coverage to 70%
 > Effort estimate (~3 hours) | Priority: ② — Coverage gap
 
-Test ratio is 0.55 (target 0.70) and code coverage is 53.9% (target 70%). Also need to fix 6 failing tests.
+Test ratio is 0.55 (target 0.70), code coverage is 53.9% (target 70%), and 6 tests are currently failing.
 
 ### Tasks
-- [ ] **Fix 6 Failing Tests** — investigate and fix the 6 failures from the last run (522 total, 516 passed)
+- [ ] **Fix 6 Failing Tests** — investigate and fix the 6 failures (522 total, 516 passed)
 - [ ] **Trick Manager Edge Cases** — Trump overtrump, void suit + forced play
 - [ ] **Qayd Engine Coverage** — State transitions, penalty edge cases
 - [ ] **Server Tests** — `bot_orchestrator.py`, `room_manager.py`, `socket_handler.py`
@@ -201,8 +203,35 @@ python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-rep
 
 ---
 
+## Mission 24: "The Observer" — GBaloot Live Capture & Benchmark Sprint
+> Effort estimate (~2 hours) | Priority: ③ — Empirical validation
+
+Run live capture sessions and benchmark against the engine. The new `capture_session.py` CLI is ready.
+
+### Tasks
+- [ ] **Capture 3+ Hokum sessions** — `python gbaloot/capture_session.py --label hokum_study_01`
+- [ ] **Capture 3+ Sun sessions** — same CLI, different labels
+- [ ] **Run full benchmark** — process captures through decode → extract → compare
+- [ ] **Analyze divergences** — document any engine disagreements
+- [ ] **Screenshot diff analysis** — `python gbaloot/tools/screenshot_diff.py --session <label>`
+- [ ] **Update benchmark scorecard** — aim for ≥99% trick agreement
+
+### Key Files
+| File | Change |
+|------|--------|
+| `gbaloot/capture_session.py` | Launch point |
+| `gbaloot/tools/screenshot_diff.py` | Post-capture analysis |
+| `gbaloot/core/comparator.py` | Engine comparison |
+
+### Verification
+- At least 6 capture sessions with WS data
+- Screenshot coverage of key game moments
+- Divergence count documented
+
+---
+
 ## Mission 8: "The Polish" — Frontend UX Sprint
-> Effort estimate (~3 hours) | Priority: ③ — User experience
+> Effort estimate (~3 hours) | Priority: ④ — User experience
 
 ### Tasks
 - [ ] **Card Play Animations** — animate cards from hand → table, trick-win sweep
@@ -212,9 +241,8 @@ python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-rep
 - [ ] **Frontend Decomposition** — split remaining hotspots:
   - [ ] `AccountingEngine.ts` (15.9 KB) → extract transaction vs. balance
   - [ ] `MatchReviewModal.tsx` (15.6 KB) → extract round detail panels
-  - [ ] `ActionBar.tsx` (15.4 KB) → separate bidding/playing modes
+  - [ ] `Table.tsx` (14.8 KB) → extract card layout
   - [ ] `DisputeModal.tsx` (14.0 KB) → move logic to dispute/ subfolder
-  - [ ] `GameArena.tsx` (13.2 KB) → extract card layout
 
 ### Verification
 - Playwright screenshots at 375px and 768px viewports
@@ -223,7 +251,7 @@ python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-rep
 ---
 
 ## Mission 9: "The Strategist" — Smarter Bot AI
-> Effort estimate (~3 hours) | Priority: ④ — Bot intelligence
+> Effort estimate (~3 hours) | Priority: ⑤ — Bot intelligence
 
 ### Tasks
 - [ ] **Partner Signaling** — lead strong suits to signal; track partner patterns
@@ -247,7 +275,7 @@ python -m pytest tests/bot/ -v
 ---
 
 ## Mission 17: "The Teacher" — Interactive Tutorial & Learning Mode
-> Effort estimate (~4 hours) | Priority: ⑤ — User onboarding
+> Effort estimate (~4 hours) | Priority: ⑥ — User onboarding
 
 ### Tasks
 - [ ] **Tutorial System** — 7-lesson step-by-step guide
@@ -263,7 +291,7 @@ python -m pytest tests/bot/ -v
 ---
 
 ## Mission 19: "The Historian" — Match Replay & Statistics
-> Effort estimate (~3 hours) | Priority: ⑥ — Engagement
+> Effort estimate (~3 hours) | Priority: ⑦ — Engagement
 
 ### Tasks
 - [ ] **Visual Replay** — playback controls, speed adjustment
@@ -273,7 +301,7 @@ python -m pytest tests/bot/ -v
 ---
 
 ## Mission 21: "The Brain Surgeon" — Advanced AI Intelligence
-> Effort estimate (~4 hours) | Priority: ⑦ — Advanced AI
+> Effort estimate (~4 hours) | Priority: ⑧ — Advanced AI
 
 ### Tasks
 - [ ] **Probabilistic Memory** (Mind's Eye) — Bayesian card tracking
@@ -284,7 +312,7 @@ python -m pytest tests/bot/ -v
 ---
 
 ## Mission 20: "The Arena" — Multiplayer & Social Features
-> Effort estimate (~5 hours) | Priority: ⑧ — Social
+> Effort estimate (~5 hours) | Priority: ⑨ — Social
 
 ### Tasks
 - [ ] **Room Browser** — lobby with room list, filters
@@ -295,7 +323,7 @@ python -m pytest tests/bot/ -v
 ---
 
 ## Mission 22: "The Stage" — Production-Ready Game Experience
-> Effort estimate (~5 hours) | Priority: ⑨ — Production
+> Effort estimate (~5 hours) | Priority: ⑩ — Production
 
 ### Tasks
 - [ ] **Arabic-First Localization** — RTL support, i18n
@@ -311,10 +339,11 @@ python -m pytest tests/bot/ -v
 |---------|--------|--------|------|-------|
 | **23. Surgeon II** | 🔴 High | 🟢 Low | 🟢 Low | ① Decomposition |
 | **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Test Coverage |
-| **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ③ UX Sprint |
-| **9. The Strategist** | 🟡 Medium | 🟡 Medium | 🟡 Medium | ④ Bot AI |
-| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑤ Tutorial |
-| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑥ Replay/Stats |
-| **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑦ Advanced AI |
-| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑧ Multiplayer |
-| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑨ Production |
+| **24. The Observer** | 🔴 High | 🟢 Low | 🟢 Low | ③ Live Benchmark |
+| **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ④ UX Sprint |
+| **9. The Strategist** | 🟡 Medium | 🟡 Medium | 🟡 Medium | ⑤ Bot AI |
+| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑥ Tutorial |
+| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑦ Replay/Stats |
+| **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑧ Advanced AI |
+| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑨ Multiplayer |
+| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑩ Production |
