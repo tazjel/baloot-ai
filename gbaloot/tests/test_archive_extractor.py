@@ -1,4 +1,4 @@
-"""Tests for the Kammelna mobile archive trick extractor."""
+"""Tests for the source platform mobile archive trick extractor."""
 from __future__ import annotations
 
 import json
@@ -408,10 +408,10 @@ class TestExtractTricks:
 class TestRealArchiveData:
     """Test against actual archive files if available."""
 
-    ARCHIVE_DIR = Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "kammelna_export" / "savedGames"
+    ARCHIVE_DIR = Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "mobile_export" / "savedGames"
 
     @pytest.mark.skipif(
-        not (Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "kammelna_export" / "savedGames").exists(),
+        not (Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "mobile_export" / "savedGames").exists(),
         reason="Archive data not available",
     )
     def test_all_archives_extract_without_errors(self):
@@ -428,7 +428,7 @@ class TestRealArchiveData:
                     assert 0 <= trick.winner_seat <= 3
 
     @pytest.mark.skipif(
-        not (Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "kammelna_export" / "savedGames").exists(),
+        not (Path(__file__).resolve().parent.parent / "data" / "archive_captures" / "mobile_export" / "savedGames").exists(),
         reason="Archive data not available",
     )
     def test_leader_chain_consistency(self):

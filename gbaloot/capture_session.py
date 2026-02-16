@@ -33,7 +33,7 @@ from gbaloot.core.capturer import (
 from gbaloot.core.event_types import SCREENSHOT_TRIGGERS
 
 # ── Constants ────────────────────────────────────────────────────────
-DEFAULT_URL = "https://kammelna.com/baloot/"
+DEFAULT_URL = "https://source platform.com/baloot/"
 CAPTURES_DIR = ROOT / "data" / "captures"
 SESSIONS_DIR = ROOT / "data" / "sessions"
 SCREENSHOTS_DIR = ROOT / "data" / "captures" / "screenshots"
@@ -96,7 +96,7 @@ def parse_args():
         "--username",
         type=str,
         default=None,
-        help="Your Kammelna username (required for --autopilot seat detection)"
+        help="Your source platform username (required for --autopilot seat detection)"
     )
     return parser.parse_args()
 
@@ -357,7 +357,7 @@ def main():
 
     # Validate autopilot args
     if args.autopilot and not args.username:
-        print("❌ --autopilot requires --username (your Kammelna username)")
+        print("❌ --autopilot requires --username (your source platform username)")
         sys.exit(1)
 
     autopilot_label = '✅ Enabled' if args.autopilot else '❌ Disabled'

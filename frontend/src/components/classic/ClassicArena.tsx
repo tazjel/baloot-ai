@@ -5,7 +5,7 @@ import Card from '../Card';
 import { Plus } from 'lucide-react';
 import { getPlayedCardAnimation } from '../../utils/animationUtils';
 
-interface KammelnaArenaProps {
+interface ClassicArenaProps {
     gameState: GameState;
     players: Player[];
     me: Player;
@@ -27,7 +27,7 @@ interface KammelnaArenaProps {
     isPaused: boolean;
 }
 
-export default function KammelnaArena({
+export default function ClassicArena({
     gameState,
     players,
     me,
@@ -47,7 +47,7 @@ export default function KammelnaArena({
     playerSpeech,
     onAddBot,
     isPaused = false,
-}: KammelnaArenaProps) {
+}: ClassicArenaProps) {
     const partner = players[2];
     const rightPlayer = players[1];
     const leftPlayer = players[3];
@@ -119,7 +119,7 @@ export default function KammelnaArena({
     };
 
     return (
-        <div className="kammelna-arena">
+        <div className="classic-arena">
             {/* Center: Waiting State */}
             {gameState.phase === GamePhase.Waiting && (
                 <div className="km-waiting" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 50 }}>

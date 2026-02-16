@@ -1,5 +1,5 @@
 """
-Archive Trick Extractor -- Convert Kammelna mobile archive events into
+Archive Trick Extractor -- Convert source platform mobile archive events into
 ExtractedTrick / ExtractedRound / ExtractionResult objects for the
 GBaloot comparison pipeline.
 
@@ -63,7 +63,7 @@ BID_SUIT_MAP: dict[str, str] = {
 def extract_tricks_from_archive(
     archive_path: Path,
 ) -> ExtractionResult:
-    """Extract all tricks from a Kammelna mobile archive file.
+    """Extract all tricks from a source platform mobile archive file.
 
     Parses the archive, walks each round's event stream, collects card
     plays in groups of 4, and computes trick winners using the engine.

@@ -541,7 +541,7 @@ class TestValidateAllBidding:
     def report(self):
         """Run bidding analysis once against all archives."""
         archive_dir = Path(
-            "gbaloot/data/archive_captures/kammelna_export/savedGames"
+            "gbaloot/data/archive_captures/mobile_export/savedGames"
         )
         if not archive_dir.exists():
             pytest.skip("Archive data not available")

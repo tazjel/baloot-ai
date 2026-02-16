@@ -9,14 +9,14 @@ import { soundManager } from '../../services/SoundManager';
 import { devLogger } from '../../utils/devLogger';
 import GameToast from '../GameToast';
 
-import KammelnaArena from './KammelnaArena';
-import KammelnaHandFan from './KammelnaHandFan';
-import KammelnaActionDock from './KammelnaActionDock';
-import KammelnaSidebar from './KammelnaSidebar';
-import './kammelna.css';
+import ClassicArena from './ClassicArena';
+import ClassicHandFan from './ClassicHandFan';
+import ClassicActionDock from './ClassicActionDock';
+import ClassicSidebar from './ClassicSidebar';
+import './classic.css';
 
 // Uses the same interface as Table.tsx for drop-in swap
-interface KammelnaBoardProps {
+interface ClassicBoardProps {
     gameState: GameState;
     onPlayerAction: (action: string, payload?: any) => void;
     onDebugAction?: (action: string, payload?: any) => void;
@@ -31,20 +31,20 @@ interface KammelnaBoardProps {
     isPaused?: boolean;
 }
 
-export default function KammelnaBoard({
+export default function ClassicBoard({
     gameState,
     onPlayerAction,
     onChallenge,
     onAddBot,
     onDebugAction,
     isCuttingDeck = false,
-    tableSkin = 'table_kammelna',
+    tableSkin = 'table_classic',
     cardSkin = 'card_default',
     onFastForward,
     onEmoteClick,
     isSendingAction = false,
     isPaused = false
-}: KammelnaBoardProps) {
+}: ClassicBoardProps) {
     // --- HOOKS (identical to Table.tsx) ---
     const { players = [], currentTurnIndex = 0, phase, tableCards = [], floorCard, bid, settings, declarations, matchScores = { us: 0, them: 0 }, sawaState, isProjectRevealing, akkaState } = gameState || {};
 
@@ -105,8 +105,8 @@ export default function KammelnaBoard({
     const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
 
     useEffect(() => {
-        devLogger.log('KAMMELNA', 'KammelnaBoard Mounted', { phase: gameState?.phase });
-        return () => { devLogger.log('KAMMELNA', 'KammelnaBoard Unmounted'); };
+        devLogger.log('CLASSIC', 'ClassicBoard Mounted', { phase: gameState?.phase });
+        return () => { devLogger.log('CLASSIC', 'ClassicBoard Unmounted'); };
     }, []);
 
     useEffect(() => {
@@ -152,7 +152,7 @@ export default function KammelnaBoard({
     // --- LOADING CHECK ---
     if (!gameState || !gameState.players || gameState.players.length < 4 || !me) {
         return (
-            <div className="kammelna-board" style={{ alignItems: 'center', justifyContent: 'center' }}>
+            <div className="classic-board" style={{ alignItems: 'center', justifyContent: 'center' }}>
                 <div className="km-waiting">
                     <h2>Loading...</h2>
                 </div>
@@ -164,7 +164,7 @@ export default function KammelnaBoard({
 
     // --- EVENT HANDLERS ---
     const handleCardClick = (idx: number) => {
-        devLogger.log('KAMMELNA', 'Card Clicked', { idx, phase, isMyTurn });
+        devLogger.log('CLASSIC', 'Card Clicked', { idx, phase, isMyTurn });
 
         if (phase === GamePhase.Playing && isMyTurn) {
             if (selectedCardIndex === idx) {
@@ -185,9 +185,9 @@ export default function KammelnaBoard({
 
     // --- RENDER ---
     return (
-        <div className="kammelna-board">
+        <div className="classic-board">
             {/* Carpet Background */}
-            <div className="kammelna-carpet" style={{
+            <div className="classic-carpet" style={{
                 background: `
                     radial-gradient(ellipse at 30% 50%, rgba(139, 69, 19, 0.15) 0%, transparent 50%),
                     radial-gradient(ellipse at 70% 30%, rgba(120, 50, 20, 0.1) 0%, transparent 40%),
@@ -216,7 +216,7 @@ export default function KammelnaBoard({
             <GameToast toasts={toasts} onDismiss={dismissToast} />
 
             {/* Main Arena */}
-            <KammelnaArena
+            <ClassicArena
                 gameState={gameState}
                 players={players}
                 me={me}
@@ -261,7 +261,7 @@ export default function KammelnaBoard({
                         filter: 'drop-shadow(0 0 8px rgba(212, 168, 83, 0.2))'
                     } : {})
                 }}>
-                    <KammelnaHandFan
+                    <ClassicHandFan
                         hand={me.hand}
                         selectedCardIndex={selectedCardIndex}
                         isMyTurn={isMyTurn}
@@ -275,7 +275,7 @@ export default function KammelnaBoard({
             )}
 
             {/* Action Dock */}
-            <KammelnaActionDock
+            <ClassicActionDock
                 gameState={gameState}
                 me={me}
                 isMyTurn={isMyTurn}
@@ -287,7 +287,7 @@ export default function KammelnaBoard({
             />
 
             {/* Sidebar */}
-            <KammelnaSidebar
+            <ClassicSidebar
                 gameState={gameState}
                 matchScores={matchScores}
             />

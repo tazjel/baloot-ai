@@ -8,7 +8,7 @@
 
 ## Overview
 
-This session continued the Qayd (قيد) implementation, focusing on making bots detect crimes only after proof emerges (Kammelna-style), fixing penalty bugs, and understanding exact UX requirements from Kammelna screenshots.
+This session continued the Qayd (قيد) implementation, focusing on making bots detect crimes only after proof emerges (source platform-style), fixing penalty bugs, and understanding exact UX requirements from source platform screenshots.
 
 ---
 
@@ -53,14 +53,14 @@ This session continued the Qayd (قيد) implementation, focusing on making bots
 | Issue | Description |
 |-------|-------------|
 | Wrong team penalized | User cheated but got points instead of losing them |
-| Timer too short | 5 seconds instead of Kammelna's 60 seconds |
+| Timer too short | 5 seconds instead of source platform's 60 seconds |
 | Game mode confusion | Sun mode gave 16 points instead of 26 |
 | Score RTL | Column order may be wrong (لنا should be right) |
 | Double appearance | Qayd menu appeared, disappeared, then came back |
 
 ---
 
-## Kammelna Analysis (From User's 5 Screenshots)
+## source platform Analysis (From User's 5 Screenshots)
 
 | Image | Screen | Key Elements |
 |-------|--------|--------------|
@@ -72,7 +72,7 @@ This session continued the Qayd (قيد) implementation, focusing on making bots
 
 ---
 
-## Next Steps (Kammelna UX Redesign)
+## Next Steps (source platform UX Redesign)
 
 1. **Fix timer**: 5s → 60s
 2. **Single card selection** for manual Qayd (crime only, not crime+proof)
@@ -101,4 +101,4 @@ This session continued the Qayd (قيد) implementation, focusing on making bots
 - User is on Windows
 - User took a break at ~10 PM
 - Referenced document: `docs/mychat_withClaude.md` (previous Claude session)
-- User uploaded 5 Kammelna screenshots for reference
+- User uploaded 5 source platform screenshots for reference

@@ -5,7 +5,7 @@ import { canDeclareAkka, canDeclareKawesh, scanHandForAkka } from '../../utils/g
 import { soundManager } from '../../services/SoundManager';
 import { Trophy, Megaphone, RefreshCw, Gavel, Smile, Sun } from 'lucide-react';
 
-interface KammelnaActionDockProps {
+interface ClassicActionDockProps {
     gameState: GameState;
     me: Player;
     isMyTurn: boolean;
@@ -23,7 +23,7 @@ const PROJECT_LABELS: Record<string, string> = {
     'FOUR_HUNDRED': '400',
 };
 
-export default function KammelnaActionDock({
+export default function ClassicActionDock({
     gameState,
     me,
     isMyTurn,
@@ -32,7 +32,7 @@ export default function KammelnaActionDock({
     selectedCardIndex,
     settings,
     onEmoteClick
-}: KammelnaActionDockProps) {
+}: ClassicActionDockProps) {
     const { phase } = gameState;
     const [showProjectMenu, setShowProjectMenu] = useState(false);
 
@@ -68,7 +68,7 @@ export default function KammelnaActionDock({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="kammelna-dock km-glass-strong"
+                className="classic-dock km-glass-strong"
             >
                 <button className="km-bid-btn sun" onClick={() => onPlayerAction('SUN')} disabled={!isMyTurn}>
                     <Sun size={18} style={{ marginBottom: 2 }} /> صن
@@ -107,7 +107,7 @@ export default function KammelnaActionDock({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="kammelna-dock km-glass-strong"
+                className="classic-dock km-glass-strong"
             >
                 <button className="km-bid-btn" onClick={() => onPlayerAction('PASS')} disabled={!isMyTurn}>✕ بس</button>
                 <button className="km-bid-btn" onClick={() => onPlayerAction('DOUBLE')} disabled={!isMyTurn || !canDouble}>x2 دبل</button>
@@ -130,7 +130,7 @@ export default function KammelnaActionDock({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="kammelna-dock km-glass-strong"
+                className="classic-dock km-glass-strong"
             >
                 <button className="km-bid-btn" onClick={() => onPlayerAction('OPEN')} disabled={!isMyTurn}
                     style={{ background: 'linear-gradient(135deg, rgba(39, 174, 96, 0.3), rgba(22, 160, 80, 0.2))', borderColor: 'rgba(39, 174, 96, 0.4)' }}>
@@ -154,7 +154,7 @@ export default function KammelnaActionDock({
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="kammelna-dock km-glass-strong"
+                className="classic-dock km-glass-strong"
             >
                 {/* Projects */}
                 <div style={{ position: 'relative' }}>

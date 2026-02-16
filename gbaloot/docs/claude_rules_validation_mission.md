@@ -45,7 +45,7 @@
 
 ### 🎯 Validation Strategy — How Do We Know If We're Right?
 
-11. **Ground Truth Hierarchy**: If our engine says one thing and the archive says another, we assume the archive is right. But what if the archive has a bug? How would we detect a Kammelna engine bug vs our bug? (Hint: check if the archive's own numbers are internally consistent — does `e1 + e2` always equal the expected total? Do `s1/s2` accumulate correctly?)
+11. **Ground Truth Hierarchy**: If our engine says one thing and the archive says another, we assume the archive is right. But what if the archive has a bug? How would we detect a source platform engine bug vs our bug? (Hint: check if the archive's own numbers are internally consistent — does `e1 + e2` always equal the expected total? Do `s1/s2` accumulate correctly?)
 
 12. **Statistical vs Exhaustive**: Do we need to validate ALL 1,095 rounds, or can we validate a stratified sample (e.g., 50 HOKUM rounds, 50 SUN, 10 Kaboot, 10 doubled, 10 with declarations) and extrapolate? What's the risk of sampling vs exhaustive?
 
@@ -53,7 +53,7 @@
     - A. Data parsing bug (our parser misread the archive)
     - B. Mapping bug (index/suit conversion error)
     - C. Genuine rule difference (our engine implements a rule differently)
-    - D. Kammelna bug (the archive data is internally inconsistent)
+    - D. source platform bug (the archive data is internally inconsistent)
     - How will you distinguish A-D quickly?
 
 14. **Edge Case Hunting**: Which edge cases are most likely to expose bugs?
@@ -89,7 +89,7 @@
 
 ### What We've Already Proven (DO NOT REDO)
 - **8,107 tricks** across **1,095 rounds** from **109 real game archives** — **100% trick winner agreement** ✅
-- Trick resolution logic (`get_trick_winner_index()`) is verified identical to Kammelna
+- Trick resolution logic (`get_trick_winner_index()`) is verified identical to source platform
 - Card mapping, player indexing, trump suit encoding — all verified
 - Leader chain (trick N+1 leader = trick N winner) — 100% validated
 
@@ -118,7 +118,7 @@ Everything else:
 ## 2. The Archive Data You'll Use
 
 ### Game Replays (109 files)
-**Location**: `gbaloot/data/archive_captures/kammelna_export/savedGames/*.json`
+**Location**: `gbaloot/data/archive_captures/mobile_export/savedGames/*.json`
 
 Each file contains complete game replays with event arrays. The format is fully documented in `gbaloot/docs/claude_mobile_archive_mission.md`. **READ THAT FILE FIRST.**
 
@@ -195,7 +195,7 @@ Each file contains complete game replays with event arrays. The format is fully 
 ```
 
 ### Highlight Images (9 PNG files)
-**Location**: `gbaloot/data/archive_captures/kammelna_export/highlights/`
+**Location**: `gbaloot/data/archive_captures/mobile_export/highlights/`
 
 These are **PNG screenshot images** (not structured data) of statistical summaries from the mobile app:
 
@@ -465,7 +465,7 @@ Validate:
 
 Use your vision capabilities to read each PNG file and extract insights:
 
-**Files**: `gbaloot/data/archive_captures/kammelna_export/highlights/`
+**Files**: `gbaloot/data/archive_captures/mobile_export/highlights/`
 
 For each image, produce a structured analysis:
 

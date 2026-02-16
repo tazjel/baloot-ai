@@ -1,5 +1,5 @@
 """
-Archive Scoring Validator — Validate Kammelna mobile archive scoring rules.
+Archive Scoring Validator — Validate source platform mobile archive scoring rules.
 
 Validates card abnat, GP conversion, khasara, kaboot, doubling, declarations,
 cumulative scores, and the full scoring pipeline against archive data.
@@ -56,7 +56,7 @@ GAHWA_FLAT = 152
 def card_gp_sun(card_abnat: int) -> int:
     """Convert SUN card abnat to GP: floor(abnat / 5).
 
-    NOTE: Kammelna uses floor division (truncation), NOT rounding.
+    NOTE: source platform uses floor division (truncation), NOT rounding.
     This differs from our game engine which uses (val*2)/10 with >=0.5 rounding.
     """
     return card_abnat // 5
@@ -640,7 +640,7 @@ if __name__ == "__main__":
     import sys
     logging.basicConfig(level=logging.WARNING)
 
-    archive_dir = Path("gbaloot/data/archive_captures/kammelna_export/savedGames")
+    archive_dir = Path("gbaloot/data/archive_captures/mobile_export/savedGames")
     if len(sys.argv) > 1:
         archive_dir = Path(sys.argv[1])
 

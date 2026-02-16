@@ -28,7 +28,7 @@ You are an expert Game Backend and Frontend Engineer auditing the "Baloot AI" co
 **Use this specification as the STRICT Source of Truth for validating the Qayd logic.**
 
 ### 1. Functional Overview
-This system replicates the **Kammelna** forensic experience.
+This system replicates the **source platform** forensic experience.
 **Core Mandate:** Cheating remains "hidden" until physically challenged. The system allows players to challenge violations, pause the game, and adjudicate penalties.
 
 ### 2. The Qayd UX Cycle (5-Step Flow)

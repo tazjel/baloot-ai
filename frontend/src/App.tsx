@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import Table from './components/Table';
-import KammelnaBoard from './components/kammelna/KammelnaBoard';
+import ClassicBoard from './components/classic/ClassicBoard';
 import Lobby from './components/Lobby';
 import socketService from './services/SocketService';
 import { GameState, GamePhase, PlayerPosition, Suit, RoundResult, BotDifficulty } from './types';
@@ -240,8 +240,8 @@ const App: React.FC = () => {
       <div className="flex h-full w-full overflow-hidden bg-black font-tajawal text-white relative" dir="rtl">
         <div className="flex-1 relative bg-black shadow-[inset_0_0_100px_rgba(0,0,0,0.8)] h-full">
           <FeatureErrorBoundary featureName="الطاولة">
-          {equippedItems.table === 'table_kammelna' ? (
-            <KammelnaBoard
+          {equippedItems.table === 'table_classic' ? (
+            <ClassicBoard
               gameState={gameState}
               onPlayerAction={handlePlayerAction}
               onChallenge={handleChallenge}

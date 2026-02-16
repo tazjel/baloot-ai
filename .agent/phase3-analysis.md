@@ -38,7 +38,7 @@
 | ActionBar.tsx | 390 |
 | Table.tsx | 376 |
 | App.tsx | 372 |
-| KammelnaBoard.tsx | 363 |
+| ClassicBoard.tsx | 363 |
 
 ### GBaloot Status
 - All modules tested, 413 tests, 0 failures

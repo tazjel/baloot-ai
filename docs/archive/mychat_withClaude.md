@@ -1,17 +1,17 @@
-# Chat Summary with Claude - Kammelna Qayd Implementation
+# Chat Summary with Claude - source platform Qayd Implementation
 
 **Date:** February 3, 2026
-**Session Focus:** Analyzing Kammelna's Qayd (Penalty) System & Building Matching Component
+**Session Focus:** Analyzing source platform's Qayd (Penalty) System & Building Matching Component
 
 ---
 
 ## Overview
 
-This session focused on understanding and replicating Kammelna's Qayd (قيد) penalty system for the Baloot AI application. The user shared video screenshots of Kammelna's implementation, and we analyzed the complete workflow to create a matching component.
+This session focused on understanding and replicating source platform's Qayd (قيد) penalty system for the Baloot AI application. The user shared video screenshots of source platform's implementation, and we analyzed the complete workflow to create a matching component.
 
 ---
 
-## Key Discoveries from Kammelna Screenshots
+## Key Discoveries from source platform Screenshots
 
 ### 1. Qayd Main Menu (3 Options)
 When clicking the **قيدها** button, a popup appears with:
@@ -56,7 +56,7 @@ When Qayd is successful:
 ## Files Created/Modified
 
 ### New File: `frontend/components/overlays/QaydOverlay.tsx`
-Complete Kammelna-style Qayd overlay with:
+Complete source platform-style Qayd overlay with:
 - Main menu (3 options)
 - Violation type selection (Hokum: 4 types, Sun: 2 types)
 - Trick history panel with card selection
@@ -73,7 +73,7 @@ Complete Kammelna-style Qayd overlay with:
 
 ---
 
-## Kammelna Qayd Workflow Diagram
+## source platform Qayd Workflow Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -183,7 +183,7 @@ type SunViolation = 'REVOKE' | 'NO_HIGHER_CARD';
 - User is on Windows
 - Main project path: `C:\Users\MiEXCITE\Projects\baloot-ai`
 - User took a break, returning at 10 PM
-- User wants game to match Kammelna but with focus on **modern scientific research for education**
+- User wants game to match source platform but with focus on **modern scientific research for education**
 
 ---
 

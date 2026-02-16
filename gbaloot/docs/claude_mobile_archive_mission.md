@@ -1,16 +1,16 @@
 # Mission: Mobile Archive Parser & Benchmark Integration
 
 > **Priority**: HIGH — We have 109 real game sessions ready for engine validation.  
-> **Goal**: Parse Kammelna's mobile JSON archives → feed into GBaloot benchmark pipeline → achieve 100% trick resolution agreement.
+> **Goal**: Parse source platform's mobile JSON archives → feed into GBaloot benchmark pipeline → achieve 100% trick resolution agreement.
 
 ---
 
 ## 1. Context & What We Have
 
-We pulled **109 saved game JSON files** from the Kammelna mobile app via ADB.
+We pulled **109 saved game JSON files** from the source platform mobile app via ADB.
 
-**Location**: `gbaloot/data/archive_captures/kammelna_export/savedGames/*.json`  
-**Bonus data**: `gbaloot/data/archive_captures/kammelna_export/highlights/` (9 stat files: bidStrength, catchings, cheatings, kaboot, lostBid, picWithAce, projectsScores, tensHunt, wonBid)
+**Location**: `gbaloot/data/archive_captures/mobile_export/savedGames/*.json`  
+**Bonus data**: `gbaloot/data/archive_captures/mobile_export/highlights/` (9 stat files: bidStrength, catchings, cheatings, kaboot, lostBid, picWithAce, projectsScores, tensHunt, wonBid)
 
 Each JSON file is a **complete game replay** — every bid, every card played, every trick winner, every round result. This is the richest dataset we've ever had.
 
@@ -197,7 +197,7 @@ Create a new module that:
 ```python
 # Proposed interface
 def parse_mobile_archive(archive_path: Path) -> list[dict]:
-    """Parse a Kammelna mobile archive JSON into GBaloot-compatible events.
+    """Parse a source platform mobile archive JSON into GBaloot-compatible events.
     
     Returns a list of event dicts matching the format expected by
     trick_extractor.extract_tricks() and comparator.compare_session().
@@ -255,7 +255,7 @@ For each round in game["rs"]:
 
 A script that:
 
-1. Scans `gbaloot/data/archive_captures/kammelna_export/savedGames/`
+1. Scans `gbaloot/data/archive_captures/mobile_export/savedGames/`
 2. Parses each game using the archive extractor
 3. Feeds each `ExtractionResult` into `GameComparator`
 4. Generates comparison reports and scorecard
@@ -268,7 +268,7 @@ from pathlib import Path
 from gbaloot.core.comparator import GameComparator, generate_scorecard
 from gbaloot.tools.archive_trick_extractor import extract_tricks_from_archive
 
-ARCHIVE_DIR = Path("gbaloot/data/archive_captures/kammelna_export/savedGames")
+ARCHIVE_DIR = Path("gbaloot/data/archive_captures/mobile_export/savedGames")
 
 def main():
     comparator = GameComparator()
@@ -451,7 +451,7 @@ gbaloot/
 │   └── test_archive_extractor.py  # Extractor tests
 └── data/
     └── archive_captures/
-        └── kammelna_export/
+        └── mobile_export/
             ├── savedGames/        # 109 JSON files (already here)
             └── highlights/        # 9 stat files (already here)
 ```

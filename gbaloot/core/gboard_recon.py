@@ -166,7 +166,7 @@ RECON_SCRIPTS: dict[str, str] = {
     }""",
 
     # ── 4. Unity Instance Probe ──────────────────────────────────
-    # The Unity instance is local-scoped in Kammelna, but we might find
+    # The Unity instance is local-scoped in source platform, but we might find
     # references via the canvas or framework globals
     "unity_probe": """() => {
         const result = {};

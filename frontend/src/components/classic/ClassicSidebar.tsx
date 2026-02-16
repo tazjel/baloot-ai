@@ -1,18 +1,18 @@
 import React from 'react';
 import { GameState, GamePhase } from '../../types';
-import './kammelna.css';
+import './classic.css';
 
-interface KammelnaSidebarProps {
+interface ClassicSidebarProps {
     gameState: GameState;
     matchScores: { us: number; them: number };
 }
 
-export default function KammelnaSidebar({ gameState, matchScores }: KammelnaSidebarProps) {
+export default function ClassicSidebar({ gameState, matchScores }: ClassicSidebarProps) {
     const { settings, roundHistory, bid } = gameState;
     const roundNum = (roundHistory?.length || 0) + 1;
 
     return (
-        <div className="kammelna-sidebar">
+        <div className="classic-sidebar">
             {/* Session Header */}
             <div className="km-glass-strong">
                 <div className="km-session-header">

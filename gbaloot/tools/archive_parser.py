@@ -1,7 +1,7 @@
 """
-Archive Parser -- Load and validate Kammelna mobile archive JSON files.
+Archive Parser -- Load and validate source platform mobile archive JSON files.
 
-Mobile archives are complete game replays captured from the Kammelna Android
+Mobile archives are complete game replays captured from the source platform Android
 app.  Each JSON file contains every bid, card play, trick winner, and round
 result for an entire game session.
 
@@ -104,7 +104,7 @@ class ArchiveGame:
 # ── Main Parsing Function ────────────────────────────────────────────
 
 def parse_archive(archive_path: Path) -> ArchiveGame:
-    """Parse a Kammelna mobile archive JSON file.
+    """Parse a source platform mobile archive JSON file.
 
     Loads the JSON, validates required fields, extracts game metadata,
     and resolves bidding outcomes (game mode, trump suit) for each round.

@@ -1,4 +1,4 @@
-# Live Kammelna Session Capture
+# Live source platform Session Capture
 # User: abobani6
 # Base timestamp: 1771206223731
 # Format: relative_ms|direction|hex_bytes

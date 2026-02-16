@@ -160,13 +160,13 @@ We do NOT call `ScoringEngine` or `GameComparator`. We implement the math indepe
 
 ### Q11. Ground Truth Hierarchy
 
-**Internal consistency checks to detect Kammelna bugs:**
+**Internal consistency checks to detect source platform bugs:**
 1. `e1 + e2` must equal 152 (HOKUM) or 120 (SUN) — if not, archive is corrupt
 2. `s` values across all rounds must sum to header `s1`/`s2` — if not, accumulation bug
 3. `p = e + declarations + last_trick_bonus` must hold — if not, archive p formula differs
 4. Kaboot rounds must have one team winning all 8 tricks
 
-If the archive fails internal consistency, it's a Kammelna bug (category D). If it's consistent but disagrees with our engine, investigate our engine (category C).
+If the archive fails internal consistency, it's a source platform bug (category D). If it's consistent but disagrees with our engine, investigate our engine (category C).
 
 ### Q12. Statistical vs Exhaustive
 
@@ -181,7 +181,7 @@ Reasons:
 ### Q13. Divergence Response Plan
 
 Priority order for triage:
-1. **Check internal consistency** first — if e1+e2 != expected, it's our parsing (A) or Kammelna (D)
+1. **Check internal consistency** first — if e1+e2 != expected, it's our parsing (A) or source platform (D)
 2. **Check our card abnat computation** — if we compute wrong trick points, it's a mapping bug (B) or our point table is wrong
 3. **Compare GP conversion** — if abnat matches but GP doesn't, it's a rounding rule difference (C)
 4. **Pattern analysis** — cluster divergences by game_mode, multiplier level, kaboot status to identify systemic issues

@@ -1,7 +1,7 @@
 """
 Archive Bidding Validator — Extract and validate bidding statistics from archives.
 
-Walks all e=2 (bid) events across 109 Kammelna mobile game archives to:
+Walks all e=2 (bid) events across 109 source platform mobile game archives to:
 1. Validate bidding rules (turn order, bid overrides, phase transitions)
 2. Compute aggregate statistics (mode distribution, doubling, waraq rate, etc.)
 3. Extract per-round bidding details for downstream strategy analysis.
@@ -567,7 +567,7 @@ if __name__ == "__main__":
     import sys
 
     archive_dir = Path(
-        "gbaloot/data/archive_captures/kammelna_export/savedGames"
+        "gbaloot/data/archive_captures/mobile_export/savedGames"
     )
     if len(sys.argv) > 1:
         archive_dir = Path(sys.argv[1])

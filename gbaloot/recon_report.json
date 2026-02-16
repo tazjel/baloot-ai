@@ -1,12 +1,12 @@
 {
   "session": "live_test_2026-02-16",
-  "platform": "kammelna.com/baloot/",
+  "platform": "source platform.com/baloot/",
   "username": "abobani6",
 
   "architecture": {
     "game_engine": "Unity WebGL 3.5.1 (canvas #unity-canvas in #game-container, 3840x1641)",
     "networking": "SFS2X (binary protocol over WSS, inside Unity WASM — NOT exposed as window.SFS2X)",
-    "sfs_server": "baloot1.kammelna.com/websocket",
+    "sfs_server": "baloot1.source platform.com/websocket",
     "chat": "Strophe XMPP (non-game)",
     "notifications": "SignalR 5.0.17 via globalSignalRConnection (WebSocket transport)",
     "unity_instance": "local-scoped (no window.unityInstance), createUnityInstance available"
@@ -16,7 +16,7 @@
     "sfs2x_not_global": "SFS2X JS API is NOT on window — bundled inside Unity WASM build",
     "sfs_client_not_global": "No SmartFox client instance found on window globals",
     "binary_type": "blob (Unity expects Blob — changing to arraybuffer BREAKS the game)",
-    "ws_connection": "Established to baloot1.kammelna.com/websocket (WSS)",
+    "ws_connection": "Established to baloot1.source platform.com/websocket (WSS)",
     "protocol_confirmed": "Standard SFS2X binary: 0x80 header, SFSObject/SFSArray types",
     "decoder_works": "Python SFS2XDecoder successfully decodes live messages (100%)"
   },

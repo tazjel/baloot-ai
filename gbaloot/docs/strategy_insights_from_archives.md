@@ -1,7 +1,7 @@
-# Strategy Insights from 109 Kammelna Archive Games
+# Strategy Insights from 109 source platform Archive Games
 
 **Generated from**: 109 games, 1,629 rounds (1,095 played + 534 waraq)
-**Data source**: Mobile Kammelna archives (real human player games)
+**Data source**: Mobile source platform archives (real human player games)
 
 ---
 

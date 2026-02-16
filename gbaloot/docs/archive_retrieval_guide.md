@@ -51,12 +51,12 @@ Write this down — you'll need it for the phone setup.
 Open PowerShell and run:
 
 ```powershell
-mitmdump --mode regular --save-stream-filter "~d kammelna" -w gbaloot_archive_capture.flow --set flow_detail=3
+mitmdump --mode regular --save-stream-filter "~d source platform" -w gbaloot_archive_capture.flow --set flow_detail=3
 ```
 
 **What this command does:**
 - `--mode regular` — runs as a standard HTTP/HTTPS proxy
-- `--save-stream-filter "~d kammelna"` — only saves traffic to/from the source domain
+- `--save-stream-filter "~d source platform"` — only saves traffic to/from the source domain
 - `-w gbaloot_archive_capture.flow` — saves to this file
 - `--set flow_detail=3` — shows full request/response details in the terminal
 
@@ -186,7 +186,7 @@ Some Android apps use **certificate pinning** — they only trust specific certi
 
 2. **Use Frida** to bypass cert pinning (advanced):
    - Requires a rooted phone or an emulator
-   - Script: `frida -U -f com.kammelna.baloot -l bypass_pinning.js`
+   - Script: `frida -U -f com.source platform.baloot -l bypass_pinning.js`
 
 3. **Use an Android emulator** (BlueStacks, LDPlayer, or Android Studio emulator):
    - Install the Source app on the emulator
@@ -249,7 +249,7 @@ If configuring your physical phone is difficult, use an emulator:
 emulator -avd Pixel_7_API_34 -http-proxy 192.168.1.105:8080
 # 3. Install cert on the emulator
 # 4. Install Source APK via adb:
-adb install kammelna.apk
+adb install source platform.apk
 # 5. Log in and browse archives
 ```
 

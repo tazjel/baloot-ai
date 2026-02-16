@@ -70,7 +70,7 @@
 
 ## 🤝 Mission 8: The "matchmaker" (Queue Logic)
 
-**Context**: Currently, we only have manual room creation. To complete against "Kammelna", we need an instant "Play Now" button (Roadmap Section 2.1).
+**Context**: Currently, we only have manual room creation. To complete against "source platform", we need an instant "Play Now" button (Roadmap Section 2.1).
 
 **Prompt for Claude:**
 > "Implement a Matchmaking Queue in `server/services/matchmaker.py`.

@@ -1,5 +1,5 @@
 """
-GBaloot Archive Benchmark Runner -- Compare 109 Kammelna mobile archive
+GBaloot Archive Benchmark Runner -- Compare 109 source platform mobile archive
 sessions against our game engine's trick resolution logic.
 
 Usage:
@@ -37,7 +37,7 @@ ARCHIVE_DIR = (
     Path(__file__).resolve().parent.parent
     / "data"
     / "archive_captures"
-    / "kammelna_export"
+    / "mobile_export"
     / "savedGames"
 )
 
@@ -126,7 +126,7 @@ def compare_extraction(
 def main():
     """Run the archive benchmark."""
     print("=" * 65)
-    print("  GBaloot Archive Benchmark -- 109 Kammelna Mobile Sessions")
+    print("  GBaloot Archive Benchmark -- 109 source platform Mobile Sessions")
     print("=" * 65)
     print()
 

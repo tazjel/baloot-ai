@@ -1,5 +1,5 @@
 """
-GBoard — JavaScript injection actuator for the Kammelna game platform.
+GBoard — JavaScript injection actuator for the source platform game platform.
 
 Executes BotAgent decisions by reverse-engineering the game's internal
 JavaScript objects and invoking them directly via page.evaluate().

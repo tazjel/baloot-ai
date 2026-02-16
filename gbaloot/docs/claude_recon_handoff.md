@@ -1,6 +1,6 @@
 # GBoard Recon Handoff — Live Session Active
 
-> **Time-sensitive**: A live capture session is running RIGHT NOW with Kammelna open in a headed Playwright browser. You have a window to do live JS inspection before we close it.
+> **Time-sensitive**: A live capture session is running RIGHT NOW with source platform open in a headed Playwright browser. You have a window to do live JS inspection before we close it.
 
 ---
 
@@ -9,7 +9,7 @@
 ### Live Capture Session
 - **Session**: `recon_live_04` — running for ~30 minutes
 - **Status**: Active capture, 2,048+ WS messages collected, 46 screenshots
-- **Browser**: Headed Playwright Chromium at `https://kammelna.com/baloot/`
+- **Browser**: Headed Playwright Chromium at `https://source platform.com/baloot/`
 - **Command**: `python gbaloot/capture_session.py --label recon_live_04 --no-pipeline`
 - **Data file**: `gbaloot/data/captures/game_capture_recon_live_04_autosave.json`
 
@@ -19,7 +19,7 @@
 | Layer | Technology | Version | Role |
 |-------|-----------|---------|------|
 | Game Engine | Unity WebGL | 3.5.1 | Canvas rendering |
-| Networking | **SFS2X** (SmartFoxServer) | 1.7.17 | ALL game traffic — binary over `wss://baloot1.kammelna.com:8443/websocket` |
+| Networking | **SFS2X** (SmartFoxServer) | 1.7.17 | ALL game traffic — binary over `wss://baloot1.source platform.com:8443/websocket` |
 | Chat | Strophe XMPP | — | ejabberd chat |
 | Other | SignalR | 5.0.17 | Non-game services (notifications) |
 
@@ -79,7 +79,7 @@ Our existing `SFS2XDecoder` in `gbaloot/core/decoder.py` successfully decoded **
 
 ### Do you want to run live JS recon before we close the browser?
 
-The Playwright browser is still open at `https://kammelna.com/baloot/`. You can:
+The Playwright browser is still open at `https://source platform.com/baloot/`. You can:
 
 1. **Run `page.evaluate()` scripts** to probe deeper into:
    - The SFS2X client instance (`window.SFS2X` namespace) — find the `.send()` method for injecting commands

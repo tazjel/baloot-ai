@@ -46,7 +46,7 @@ Capture (Playwright WS) → Decode (SFS2X binary) → Extract (tricks/bids)
 - `logging.getLogger(__name__)` for debug output
 - Type hints on all function signatures
 - Tests use pytest, run with: `python -m pytest gbaloot/tests/ --tb=short -q`
-- Never use the word "Kammelna" in code — use "Source" or "source platform"
+- Never use the word "source platform" in code — use "Source" or "source platform"
 - Source uses 1-indexed seats; our engine uses 0-indexed
 
 ---
@@ -702,5 +702,5 @@ The response might use SFS2X-style encoding even over HTTP. If so, reuse the exi
 - Don't modify `CLAUDE.md` — that's project-level, not GBaloot-specific
 - Don't break existing test baselines without justification
 - Don't add external dependencies beyond Python stdlib + existing requirements
-- Don't use the word "Kammelna" in code — use "Source" or "source platform"
+- Don't use the word "source platform" in code — use "Source" or "source platform"
 - Don't create classes where a pure function would suffice

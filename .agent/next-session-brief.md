@@ -41,15 +41,15 @@
 | `hooks/useRoundManager.test.ts` | 14.3 KB | 🟡 Test file |
 | `components/Table.tsx` | 14.3 KB | 🟡 Unchanged |
 | `App.tsx` | 14.3 KB | 🟡 Grew (M18) |
-| `components/kammelna/KammelnaBoard.tsx` | 14.2 KB | 🟡 New |
+| `components/source platform/ClassicBoard.tsx` | 14.2 KB | 🟡 New |
 | `components/DisputeModal.tsx` | 14.0 KB | 🟡 Unchanged |
 | `components/table/GameArena.tsx` | 13.2 KB | 🟡 Unchanged |
 | `hooks/useRoundManager.ts` | 11.8 KB | 🟡 Unchanged |
 | `services/botService.ts` | 11.3 KB | 🟡 Unchanged |
 | `hooks/useGameSocket.ts` | 11.2 KB | 🟡 Unchanged |
-| `components/kammelna/KammelnaActionDock.tsx` | 11.2 KB | 🟡 New |
+| `components/source platform/source platformActionDock.tsx` | 11.2 KB | 🟡 New |
 | `components/RoundResultsModal.tsx` | 11.1 KB | 🟡 Grew (M18) |
-| `components/kammelna/KammelnaArena.tsx` | 11.1 KB | 🟡 New |
+| `components/source platform/source platformArena.tsx` | 11.1 KB | 🟡 New |
 
 ---
 
@@ -122,7 +122,7 @@
 > - 80 StateBuilder tests + 9 decoder tests = 995 total (502 main + 493 GBaloot)
 
 ### Mobile Archive Parser & Benchmark ✅
-> Completed 2026-02-16. 109 Kammelna mobile archives parsed, 100% engine agreement:
+> Completed 2026-02-16. 109 source platform mobile archives parsed, 100% engine agreement:
 > - archive_parser.py: JSON loading, validation, bidding resolution (gm=3 ashkal = SUN)
 > - archive_trick_extractor.py: Engine-computed trick winners (e=6 p field is NOT winner)
 > - run_archive_benchmark.py: Full benchmark runner with scorecard output

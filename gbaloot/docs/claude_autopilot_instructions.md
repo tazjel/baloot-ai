@@ -1,7 +1,7 @@
 # Mission: Build the GBaloot Autopilot
 
 **Objective**: Build a closed-loop autopilot that lets our `BotAgent` play autonomously
-on the Source platform (Kammelna) by intercepting SFS2X WebSocket traffic, translating
+on the Source platform (source platform) by intercepting SFS2X WebSocket traffic, translating
 it into the `game_state` dict BotAgent expects, obtaining decisions, and **injecting
 JavaScript directly into the game framework** to execute moves — no pixel clicking.
 
@@ -17,7 +17,7 @@ JavaScript directly into the game framework** to execute moves — no pixel clic
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                         Kammelna (Browser Tab)                               │
+│                         source platform (Browser Tab)                               │
 │  ┌──────────┐   WS Binary    ┌──────────┐   GameEvent[]   ┌─────────────┐  │
 │  │  SFS2X   │───────────────▶│ Decoder  │────────────────▶│ StateBuilder│  │
 │  │  Server  │                │(existing)│                 │   (NEW)     │  │
@@ -513,11 +513,11 @@ def is_my_turn(self) -> bool:
 **THIS IS THE CORE FOCUS.** The GBoard must interact with the game by
 **reverse-engineering the game's internal JavaScript objects** and invoking
 their methods directly via `page.evaluate()`. No pixel clicking. No DOM selectors.
-Kammelna renders to a `<canvas>` element using a JS game framework.
+source platform renders to a `<canvas>` element using a JS game framework.
 
 ### 4.1 Why JS Injection Is The Only Reliable Strategy
 
-Kammelna is a **canvas/WebGL game** — there are NO `<div data-card="...">` elements
+source platform is a **canvas/WebGL game** — there are NO `<div data-card="...">` elements
 to click. The entire game board is painted onto a single `<canvas>`. This means:
 
 - **DOM selectors don't work** — there is nothing to `.querySelector()` for cards
@@ -1084,7 +1084,7 @@ The GBoard development is a **two-phase process**:
 
 ```
 PHASE 1: RECON (human-in-the-loop)
-  1. Open Kammelna in Playwright (headful mode)
+  1. Open source platform in Playwright (headful mode)
   2. Join a game, wait for cards to be dealt
   3. Run `save_recon_report(page)` → gbaloot/recon_report.json
   4. READ the report carefully
@@ -1275,7 +1275,7 @@ Add an `--autopilot` flag to the existing capture session:
 parser.add_argument("--autopilot", action="store_true",
                     help="Enable autopilot mode (bot plays for you)")
 parser.add_argument("--username", type=str,
-                    help="Your Kammelna username (for seat detection)")
+                    help="Your source platform username (for seat detection)")
 
 # In the main session loop, after page is ready:
 if args.autopilot:
@@ -1374,7 +1374,7 @@ def test_state_builder_game_state():
 ### 8.2 GBoard Recon Test (Live Browser)
 
 ```python
-# Run this with a live Kammelna session in the browser:
+# Run this with a live source platform session in the browser:
 async def test_gboard_recon(page):
     from gbaloot.core.gboard_recon import run_full_recon
 

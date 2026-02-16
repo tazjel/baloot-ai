@@ -1,7 +1,7 @@
 /**
  * QaydOverlay — Thin compatibility wrapper.
  * 
- * The canonical Qayd UI is DisputeModal.tsx (Kammelna 5-step flow).
+ * The canonical Qayd UI is DisputeModal.tsx (source platform 5-step flow).
  * This file re-exports it with the old QaydOverlay prop interface so
  * Table.tsx doesn't need import changes.
  */

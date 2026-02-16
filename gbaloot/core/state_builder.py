@@ -194,7 +194,7 @@ class StateBuilder:
     def _process_join_room(self, fields: dict):
         """Extract player names from JoinRoom event (a=4).
 
-        In live Kammelna, the JoinRoom response carries room variables
+        In live source platform, the JoinRoom response carries room variables
         including 'pinfo' which lists player names and IDs:
 
           fields.p.r[8] → list of room variables
@@ -338,7 +338,7 @@ class StateBuilder:
     def _discover_identity(self, payload: dict):
         """Find which seat we occupy by matching username to sn0..sn3 or pinfo[].n.
 
-        Live Kammelna uses TWO player-name formats:
+        Live source platform uses TWO player-name formats:
           1. sn0..sn3 — flat fields, one per seat (original format)
           2. pinfo — array of {n: name, i: id, ...} dicts, indexed by seat
         """
@@ -534,7 +534,7 @@ class StateBuilder:
             if decl:
                 self.game_state["declarations"] = decl
 
-        # Player identity from pinfo (live Kammelna format)
+        # Player identity from pinfo (live source platform format)
         pinfo = payload.get("pinfo")
         if isinstance(pinfo, list):
             for src_seat, info in enumerate(pinfo):

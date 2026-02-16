@@ -295,8 +295,8 @@ Multiple hooks register event listeners or timers without proper cleanup:
 - [ ] 12.2d **useBotSpeech overlap**: Multiple rapid messages create overlapping timeouts. Use unique message IDs and track active timeouts per player in refs
 
 ### 12.3 Performance Optimizations
-- [ ] 12.3a **Memoize Table/KammelnaBoard**: Wrap in `React.memo` with custom comparison — only re-render when `phase`, `tableCards`, `currentTurnIndex`, or `players[].hand` change
-- [ ] 12.3b **Consolidate toast logic**: Toast detection is duplicated in Table.tsx, KammelnaBoard.tsx, and useGameAudio. Extract to single `useToastDetector` hook
+- [ ] 12.3a **Memoize Table/ClassicBoard**: Wrap in `React.memo` with custom comparison — only re-render when `phase`, `tableCards`, `currentTurnIndex`, or `players[].hand` change
+- [ ] 12.3b **Consolidate toast logic**: Toast detection is duplicated in Table.tsx, ClassicBoard.tsx, and useGameAudio. Extract to single `useToastDetector` hook
 - [ ] 12.3c **Debounce localStorage writes**: `useShop` writes to localStorage on every state change. Add 500ms debounce
 - [ ] 12.3d **useMemo for card validity**: Legal move calculation in `usePlayingLogic` should be memoized — currently recalculates on every render
 

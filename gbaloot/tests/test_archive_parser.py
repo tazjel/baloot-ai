@@ -1,4 +1,4 @@
-"""Tests for the Kammelna mobile archive parser."""
+"""Tests for the source platform mobile archive parser."""
 from __future__ import annotations
 
 import json

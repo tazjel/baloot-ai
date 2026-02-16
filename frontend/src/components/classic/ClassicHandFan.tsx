@@ -4,7 +4,7 @@ import { CardModel, Suit } from '../../types';
 import Card from '../Card';
 import { sortHand } from '../../utils/gameLogic';
 
-interface KammelnaHandFanProps {
+interface ClassicHandFanProps {
     hand: CardModel[];
     selectedCardIndex: number | null;
     isMyTurn: boolean;
@@ -15,7 +15,7 @@ interface KammelnaHandFanProps {
     settings?: any;
 }
 
-const KammelnaHandFanComponent: React.FC<KammelnaHandFanProps> = ({
+const ClassicHandFanComponent: React.FC<ClassicHandFanProps> = ({
     hand,
     selectedCardIndex,
     isMyTurn,
@@ -53,7 +53,7 @@ const KammelnaHandFanComponent: React.FC<KammelnaHandFanProps> = ({
     const totalWidth = cardWidth + (totalCards - 1) * overlap;
 
     return (
-        <div className="kammelna-hand" style={{ width: totalWidth, height: 140 }}>
+        <div className="classic-hand" style={{ width: totalWidth, height: 140 }}>
             {sortedHand.map((card, idx) => {
                 const originalIndex = hand.findIndex(c => c.id === card.id);
                 const isSelected = selectedCardIndex === originalIndex;
@@ -115,7 +115,7 @@ const KammelnaHandFanComponent: React.FC<KammelnaHandFanProps> = ({
     );
 };
 
-const KammelnaHandFan = React.memo(KammelnaHandFanComponent, (prev, next) => {
+const ClassicHandFan = React.memo(ClassicHandFanComponent, (prev, next) => {
     if (prev.isMyTurn !== next.isMyTurn) return false;
     if (prev.selectedCardIndex !== next.selectedCardIndex) return false;
     if (prev.hand.length !== next.hand.length) return false;
@@ -125,4 +125,4 @@ const KammelnaHandFan = React.memo(KammelnaHandFanComponent, (prev, next) => {
     return true;
 });
 
-export default KammelnaHandFan;
+export default ClassicHandFan;
