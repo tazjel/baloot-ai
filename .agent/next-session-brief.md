@@ -1,6 +1,6 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-15 | **Scan Results Below**
+> **Generated**: 2026-02-16 | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
@@ -10,7 +10,7 @@
 | Frontend files | **103** (.tsx: 55, .ts: 48) |
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **100%** (995/995) — 0 failures ✅ |
+| Last Pass Rate | **100%** (1043/1043) — 0 failures ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
 | Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
@@ -120,6 +120,15 @@
 > - Decoder: fixed keepalive 0x3F + JoinRoom two-pass identity bugs
 > - Live session captured: 1339 events, 12 min, 100% decode rate, 634 game_states
 > - 80 StateBuilder tests + 9 decoder tests = 995 total (502 main + 493 GBaloot)
+
+### Mobile Archive Parser & Benchmark ✅
+> Completed 2026-02-16. 109 Kammelna mobile archives parsed, 100% engine agreement:
+> - archive_parser.py: JSON loading, validation, bidding resolution (gm=3 ashkal = SUN)
+> - archive_trick_extractor.py: Engine-computed trick winners (e=6 p field is NOT winner)
+> - run_archive_benchmark.py: Full benchmark runner with scorecard output
+> - 8,107 tricks across 1,095 rounds, 0 divergences, 100% point consistency
+> - Trump determination: explicit suit bids > fc (first card) suit, NOT ts field
+> - 48 new tests (17 parser + 31 extractor) = 1043 total (502 main + 541 GBaloot)
 
 ---
 
