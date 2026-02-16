@@ -1,6 +1,10 @@
+"""Sun mode orchestrator — delegates to extracted modules.
+
+Lead logic stays here; follow logic in sun_follow.py,
+defensive lead + signals in sun_defense.py.
+"""
 from ai_worker.strategies.components.base import StrategyComponent
 from ai_worker.bot_context import BotContext
-from game_engine.models.constants import POINT_VALUES_SUN, ORDER_SUN
 from ai_worker.strategies.components.signaling import (
     get_role, should_attempt_kaboot, should_break_kaboot,
     get_barqiya_response, get_ten_management_play
@@ -12,6 +16,8 @@ from ai_worker.strategies.components.trick_review import review_tricks
 from ai_worker.strategies.components.cooperative_play import get_cooperative_lead, get_cooperative_follow
 from ai_worker.strategies.components.bid_reader import infer_from_bids
 from ai_worker.strategies.components.galoss_guard import galoss_check, get_emergency_action
+from ai_worker.strategies.components.sun_defense import get_defensive_lead_sun, check_ashkal_signal, check_partner_signals_sun
+from ai_worker.strategies.components.sun_follow import get_sun_follow
 import logging
 
 logger = logging.getLogger(__name__)
@@ -30,12 +36,12 @@ class SunStrategy(StrategyComponent):
                 return endgame
 
         # ── Bayesian suit probabilities for opponents ──
-        _suit_probs: dict[str, dict[str, float]] | None = None
+        self._suit_probs: dict[str, dict[str, float]] | None = None
         try:
             if ctx.memory and hasattr(ctx.memory, 'suit_probability') and ctx.memory.suit_probability:
                 opp_positions = [p.get('position') for p in ctx.raw_state.get('players', [])
                                  if p.get('position') not in (ctx.position, partner_pos)]
-                _suit_probs = {pos: ctx.memory.suit_probability.get(pos, {})
+                self._suit_probs = {pos: ctx.memory.suit_probability.get(pos, {})
                                for pos in opp_positions if pos}
         except Exception:
             pass
@@ -73,7 +79,6 @@ class SunStrategy(StrategyComponent):
             tricks = ctx.raw_state.get('currentRoundTricks', [])
             our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
             master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
-            # Build table card dicts
             table_dicts = []
             for tc in (ctx.table_cards or []):
                 tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
@@ -81,7 +86,6 @@ class SunStrategy(StrategyComponent):
                     table_dicts.append(tc_card)
                 elif hasattr(tc_card, 'rank'):
                     table_dicts.append({"rank": tc_card.rank, "suit": tc_card.suit})
-            # Tracker voids
             voids: dict[str, list[str]] = {}
             for s in ['♠', '♥', '♦', '♣']:
                 void_players = []
@@ -91,7 +95,6 @@ class SunStrategy(StrategyComponent):
                         void_players.append(pos)
                 if void_players:
                     voids[s] = void_players
-            # Partner info
             pi = None
             if hasattr(ctx, 'read_partner_info'):
                 try:
@@ -125,7 +128,6 @@ class SunStrategy(StrategyComponent):
             bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
             our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
             their_wins = len(tricks) - our_wins
-            # Calculate points from trick history
             our_pts = sum(t.get('points', 0) for t in tricks if t.get('winner') in (ctx.position, partner_pos))
             their_pts = sum(t.get('points', 0) for t in tricks if t.get('winner') not in (ctx.position, partner_pos))
             self._galoss = galoss_check(
@@ -135,7 +137,6 @@ class SunStrategy(StrategyComponent):
             )
             if self._galoss['emergency_mode']:
                 logger.debug(f"[GALOSS] {self._galoss['risk_level']}: {self._galoss['reasoning']}")
-                # Try emergency action
                 legal = ctx.get_legal_moves()
                 is_leading = not ctx.table_cards
                 emer = get_emergency_action(
@@ -152,78 +153,18 @@ class SunStrategy(StrategyComponent):
 
         if not ctx.table_cards:
             # Check for Ashkal Signal first
-            ashkal_move = self._check_ashkal_signal(ctx)
+            ashkal_move = check_ashkal_signal(ctx, partner_pos)
             if ashkal_move:
                 return ashkal_move
             return self._get_sun_lead(ctx)
         else:
-            return self._get_sun_follow(ctx)
-
-    def _check_ashkal_signal(self, ctx: BotContext):
-        """
-        Check if the game is in Ashkal state and if we need to respond to a color request.
-        """
-        bid = ctx.raw_state.get('bid', {})
-        if not bid.get('isAshkal'):
-            return None
-
-        bidder_pos = bid.get('bidder')
-        partner_pos = self.get_partner_pos(ctx.player_index)
-
-        if bidder_pos != partner_pos:
-            return None  # We only signal for partner's Ashkal
-
-        round_num = bid.get('round', 1)
-
-        floor_suit = None
-        if ctx.floor_card:
-            floor_suit = ctx.floor_card.suit
-        elif ctx.raw_state.get('floorCard'):
-            floor_suit = ctx.raw_state['floorCard'].get('suit')
-
-        if not floor_suit:
-            return None
-
-        colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
-        floor_color = colors.get(floor_suit)
-
-        target_color = None
-        if round_num == 1:
-            target_color = floor_color  # Same Color
-        else:
-            target_color = 'BLACK' if floor_color == 'RED' else 'RED'
-
-        target_suits = [s for s, c in colors.items() if c == target_color]
-
-        best_idx = -1
-        max_score = -100
-
-        for i, c in enumerate(ctx.hand):
-            if c.suit in target_suits:
-                score = 0
-                if c.rank == 'A': score += 10
-                elif c.rank == '10': score += 8
-                elif c.rank == 'K': score += 6
-                elif c.rank == 'Q': score += 4
-                elif c.rank == 'J': score += 2
-                else: score += 0
-
-                if score > max_score:
-                    max_score = score
-                    best_idx = i
-
-        if best_idx != -1:
-            return {
-                "action": "PLAY",
-                "cardIndex": best_idx,
-                "reasoning": f"Ashkal Response (Round {round_num}): Playing {target_color} for Partner"
-            }
-
-        return None
+            return get_sun_follow(ctx, self, suit_probs=self._suit_probs)
 
     def _get_sun_lead(self, ctx: BotContext):
+        partner_pos = self.get_partner_pos(ctx.player_index)
+
         # DEFENSIVE LEAD: When opponents won the bid, play defensively
-        bidder_team = 'us' if ctx.bid_winner in [ctx.position, self.get_partner_pos(ctx.player_index)] else 'them'
+        bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
         if bidder_team == 'them':
             # KABOOT BREAKER: If opponents are sweeping, use masters to deny
             if should_break_kaboot(ctx):
@@ -232,7 +173,7 @@ class SunStrategy(StrategyComponent):
                         return {"action": "PLAY", "cardIndex": i,
                                 "reasoning": "KABOOT BREAKER: Leading master to deny sweep"}
 
-            defensive = self._get_defensive_lead_sun(ctx)
+            defensive = get_defensive_lead_sun(ctx, partner_pos)
             if defensive:
                 return defensive
 
@@ -240,7 +181,6 @@ class SunStrategy(StrategyComponent):
         if bidder_team == 'us' and should_attempt_kaboot(ctx):
             from ai_worker.strategies.components.kaboot_pursuit import pursue_kaboot
             tricks = ctx.raw_state.get('currentRoundTricks', [])
-            partner_pos = self.get_partner_pos(ctx.player_index)
             our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
             master_idx = [i for i, c in enumerate(ctx.hand) if ctx.is_master_card(c)]
             kp = pursue_kaboot(
@@ -254,11 +194,10 @@ class SunStrategy(StrategyComponent):
                         "reasoning": f"KABOOT {kp['status']}: {kp['reasoning']}"}
 
         # CHECK PARTNER SIGNALS with Barqiya timing awareness
-        signal = self._check_partner_signals(ctx)
+        signal = check_partner_signals_sun(ctx, partner_pos)
         if signal:
             sig_type = signal.get('type')
             if sig_type == 'URGENT_CALL':
-                # BARQIYA: Use timing-aware response
                 legal = ctx.get_legal_moves()
                 barq = get_barqiya_response(ctx, signal, legal)
                 if barq:
@@ -306,7 +245,7 @@ class SunStrategy(StrategyComponent):
             ls_decision = prepare_and_select_lead(
                 ctx, mode='SUN', trump_suit=None, partner_pos=partner_pos,
                 bidder_team=bidder_team, opp_model=self._opp_model,
-                trick_review=self._trick_review, suit_probs=_suit_probs,
+                trick_review=self._trick_review, suit_probs=self._suit_probs,
             )
             if ls_decision:
                 return ls_decision
@@ -316,291 +255,3 @@ class SunStrategy(StrategyComponent):
         # Heuristic fallback scoring
         from ai_worker.strategies.components.heuristic_lead import score_sun_lead
         return score_sun_lead(ctx)
-
-    def _get_defensive_lead_sun(self, ctx: BotContext):
-        """Defensive lead when OPPONENTS won the Sun bid.
-        Strategy: Lead short suits to create voids, attack weak spots."""
-        from ai_worker.strategies.components.defense_plan import plan_defense
-
-        # Consult defensive planner for strategy guidance
-        tricks = ctx.raw_state.get('currentRoundTricks', [])
-        partner_pos = self.get_partner_pos(ctx.player_index)
-        our_wins = sum(1 for t in tricks if t.get('winner') in (ctx.position, partner_pos))
-        their_wins = len(tricks) - our_wins
-        # Collect buyer's void suits from CardTracker for defense_plan
-        buyer_void_suits = []
-        buyer_pos = ctx.bid_winner or ''
-        if buyer_pos:
-            for s in ['♠', '♥', '♦', '♣']:
-                if ctx.is_player_void(buyer_pos, s):
-                    buyer_void_suits.append(s)
-        dplan = plan_defense(
-            my_hand=ctx.hand, mode='SUN',
-            buyer_position=buyer_pos, partner_position=partner_pos,
-            tricks_played=len(tricks), tricks_won_by_us=our_wins, tricks_won_by_them=their_wins,
-            void_suits=buyer_void_suits,
-        )
-        logger.debug(f"[DEFENSE] {dplan['reasoning']}")
-
-        best_idx = 0
-        max_score = -100
-
-        # Calculate suit lengths
-        suit_lengths = {}
-        for s in ['♠', '♥', '♦', '♣']:
-            suit_lengths[s] = sum(1 for c in ctx.hand if c.suit == s)
-
-        for i, c in enumerate(ctx.hand):
-            score = 0
-            is_master = ctx.is_master_card(c)
-            length = suit_lengths.get(c.suit, 0)
-
-            # PRIORITY 1: Cash guaranteed masters — they can't lose
-            if is_master:
-                score += 80
-                # Bonus for masters in short suits (extract value then get void)
-                if length <= 2:
-                    score += 30
-
-            # PRIORITY 2: Lead SHORT suits to create voids for future tricks
-            if length == 1 and not is_master:
-                score += 25  # Singleton — lead to void yourself
-            elif length == 2:
-                score += 15  # Doubleton
-
-            # PRIORITY 3: Lead through declarer's WEAK suits
-            # Attack suits where opponents showed weakness (discards)
-            my_team = ctx.team
-            for p in ctx.raw_state.get('players', []):
-                if p.get('team') != my_team:
-                    # Bonus for leading suits where opponent is weak
-                    if ctx.memory:
-                        remaining = ctx.memory.get_remaining_in_suit(c.suit)
-                        if len(remaining) <= 2:  # Suit is nearly exhausted
-                            score += 10
-
-            # PENALTY: Don't lead unsupported honors (K without A, Q without K-A)
-            if c.rank == 'K' and not any(x.rank == 'A' and x.suit == c.suit for x in ctx.hand):
-                score -= 20  # Bare King = gift to opponents
-            if c.rank == 'Q' and not any(x.rank in ['A', 'K'] and x.suit == c.suit for x in ctx.hand):
-                score -= 15
-
-            # PENALTY: Don't lead 10s and Aces into long contested suits (point hemorrhage)
-            if c.rank in ['A', '10'] and not is_master and length >= 3:
-                score -= 10
-
-            if score > max_score:
-                max_score = score
-                best_idx = i
-
-        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "Defensive Lead (Sun)"}
-
-    def _get_sun_follow(self, ctx: BotContext):
-        lead_suit = ctx.lead_suit
-        winning_card = ctx.winning_card
-        winner_pos = ctx.winner_pos
-
-        follows = [i for i, c in enumerate(ctx.hand) if c.suit == lead_suit]
-        if not follows:
-            return self.get_trash_card(ctx)
-
-        partner_pos = self.get_partner_pos(ctx.player_index)
-        is_partner_winning = (winner_pos == partner_pos)
-        
-        # SEAT-AWARE POSITIONAL PLAY
-        seat = len(ctx.table_cards) + 1  # 2nd, 3rd, or 4th seat
-        is_last_to_play = (seat == 4)
-        
-        # TRICK VALUE: Calculate how many points are on the table
-        trick_points = 0
-        for tc in ctx.table_cards:
-            tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
-            if isinstance(tc_card, dict):
-                trick_points += POINT_VALUES_SUN.get(tc_card.get('rank', ''), 0)
-            elif hasattr(tc_card, 'rank'):
-                trick_points += POINT_VALUES_SUN.get(tc_card.rank, 0)
-
-        # ── COOPERATIVE FOLLOW: Partner-aware follow override ──
-        try:
-            _pi = None
-            if hasattr(ctx, 'read_partner_info'):
-                try: _pi = ctx.read_partner_info()
-                except Exception: pass
-            if _pi:
-                coop_f = get_cooperative_follow(
-                    hand=ctx.hand, legal_indices=follows, partner_info=_pi,
-                    led_suit=lead_suit, mode='SUN', trump_suit=None,
-                    partner_winning=is_partner_winning, trick_points=trick_points,
-                )
-                if coop_f and coop_f.get('confidence', 0) >= 0.6:
-                    logger.debug(f"[COOP_FOLLOW] {coop_f['tactic']}({coop_f['confidence']:.0%}): {coop_f['reasoning']}")
-                    return {"action": "PLAY", "cardIndex": coop_f['card_index'],
-                            "reasoning": f"CoopFollow/{coop_f['tactic']}: {coop_f['reasoning']}"}
-        except Exception as e:
-            logger.debug(f"Cooperative follow skipped: {e}")
-
-        # ── FOLLOW OPTIMIZER: Consult specialized follow-suit module ──
-        try:
-            bidder_team = 'us' if ctx.bid_winner in [ctx.position, partner_pos] else 'them'
-            # Build table_cards dicts for the optimizer
-            _fo_table = []
-            for tc in ctx.table_cards:
-                tc_card = tc.get('card', tc) if isinstance(tc, dict) else tc
-                if isinstance(tc_card, dict):
-                    _fo_table.append({"rank": tc_card.get('rank', ''), "suit": tc_card.get('suit', ''), "position": tc.get('playedBy', '')})
-                elif hasattr(tc_card, 'rank'):
-                    _fo_table.append({"rank": tc_card.rank, "suit": tc_card.suit, "position": tc.get('playedBy', '')})
-            # Find partner's card index in table_cards
-            _partner_card_idx = None
-            for ti, tc in enumerate(ctx.table_cards):
-                if tc.get('playedBy') == partner_pos:
-                    _partner_card_idx = ti
-                    break
-            tricks = ctx.raw_state.get('currentRoundTricks', [])
-            fo_result = optimize_follow(
-                hand=ctx.hand, legal_indices=follows, table_cards=_fo_table,
-                led_suit=lead_suit, mode='SUN', trump_suit=None, seat=seat,
-                partner_winning=is_partner_winning, partner_card_index=_partner_card_idx,
-                trick_points=trick_points, tricks_remaining=8 - len(tricks),
-                we_are_buyers=(bidder_team == 'us'),
-                suit_probs=_suit_probs,
-            )
-            if fo_result and fo_result.get('confidence', 0) >= 0.6:
-                logger.debug(f"[FOLLOW_OPT] {fo_result['tactic']}({fo_result['confidence']:.0%}): {fo_result['reasoning']}")
-                return {"action": "PLAY", "cardIndex": fo_result['card_index'],
-                        "reasoning": f"FollowOpt/{fo_result['tactic']}: {fo_result['reasoning']}"}
-        except Exception as e:
-            logger.debug(f"Follow optimizer skipped: {e}")
-
-        if is_partner_winning:
-            safe_feeds = []
-            overtaking_feeds = []
-
-            for idx in follows:
-                c = ctx.hand[idx]
-                if ctx._compare_ranks(c.rank, winning_card.rank, 'SUN'):
-                    overtaking_feeds.append(idx)
-                else:
-                    safe_feeds.append(idx)
-
-            if safe_feeds:
-                best_idx = self.find_highest_point_card(ctx, safe_feeds, POINT_VALUES_SUN)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Partner winning - Safe Feed"}
-            else:
-                best_idx = self.find_lowest_rank_card(ctx, overtaking_feeds, ORDER_SUN)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Overtaking Partner (Forced)"}
-        else:
-            winners = []
-            for idx in follows:
-                c = ctx.hand[idx]
-                if ctx._compare_ranks(c.rank, winning_card.rank, 'SUN'):
-                    winners.append(idx)
-
-            if winners:
-                if seat == 4:
-                    # 4TH SEAT: Guaranteed win — finesse with lowest winner
-                    best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
-                    return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "4th Seat Finesse"}
-                elif seat == 3:
-                    # 3RD SEAT: Partner already played, one opponent left.
-                    # Play aggressively — use strongest winner to survive the last player
-                    if trick_points >= 10:
-                        # High-value trick — secure it with a strong card
-                        best_idx = self.find_best_winner(ctx, winners, ORDER_SUN)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Securing High-Value Trick"}
-                    else:
-                        best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "3rd Seat: Economy Win"}
-                else:
-                    # 2ND SEAT: Be conservative — partner hasn't played yet.
-                    # Only commit if we have the master (guaranteed win)
-                    master_winners = [i for i in winners if ctx.is_master_card(ctx.hand[i])]
-                    if master_winners:
-                        best_idx = self.find_lowest_rank_card(ctx, master_winners, ORDER_SUN)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Playing Master"}
-                    elif trick_points >= 15:
-                        # High stakes — worth committing
-                        best_idx = self.find_lowest_rank_card(ctx, winners, ORDER_SUN)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: High-Stakes Commit"}
-                    else:
-                        # Low stakes, duck and let partner handle it
-                        best_idx = self.find_lowest_point_card(ctx, follows, POINT_VALUES_SUN)
-                        return {"action": "PLAY", "cardIndex": best_idx, "reasoning": "2nd Seat: Ducking for Partner"}
-            else:
-                # Can't win — POINT PROTECTION
-                best_idx = self.find_lowest_point_card(ctx, follows, POINT_VALUES_SUN)
-                return {"action": "PLAY", "cardIndex": best_idx, "reasoning": f"Seat {seat}: Ducking (Point Protection)"}
-
-    def _check_partner_signals(self, ctx: BotContext):
-        """Scans previous tricks to see if partner sent a signal."""
-        from ai_worker.signals.manager import SignalManager
-        from ai_worker.signals.definitions import SignalType
-
-        tricks = ctx.raw_state.get('currentRoundTricks', [])
-        if not tricks: return None
-
-        partner_pos = self.get_partner_pos(ctx.player_index)
-        signal_mgr = SignalManager()
-
-        last_trick = tricks[-1]
-        cards = last_trick.get('cards', [])
-
-        partner_card = None
-        for c_data in cards:
-            p_idx = c_data.get('playerIndex')
-            my_idx = ctx.player_index
-            partner_idx = (my_idx + 2) % 4
-
-            if p_idx == partner_idx:
-                from game_engine.models.card import Card
-                partner_card = Card(c_data['suit'], c_data['rank'])
-                break
-
-        if not partner_card: return None
-
-        if not cards: return None
-        first_card_data = cards[0]
-        actual_lead_suit = first_card_data['suit']
-
-        if partner_card.suit != actual_lead_suit:
-            winner_idx = last_trick.get('winner')
-            is_tahreeb_context = (winner_idx == ctx.player_index)
-
-            sig_type = signal_mgr.get_signal_for_card(partner_card, is_tahreeb_context)
-
-            discards = ctx.memory.discards.get(partner_pos, [])
-            directional_sig = signal_mgr.analyze_directional_signal(discards, partner_card.suit)
-
-            if directional_sig == SignalType.CONFIRMED_POSITIVE:
-                return {'suit': partner_card.suit, 'type': 'CONFIRMED_POSITIVE'}
-            elif directional_sig == SignalType.CONFIRMED_NEGATIVE:
-                return {'suit': partner_card.suit, 'type': 'CONFIRMED_NEGATIVE'}
-
-            if sig_type == SignalType.URGENT_CALL:
-                return {'suit': partner_card.suit, 'type': 'URGENT_CALL'}
-            elif sig_type == SignalType.ENCOURAGE:
-                return {'suit': partner_card.suit, 'type': 'ENCOURAGE'}
-            elif sig_type == SignalType.NEGATIVE_DISCARD:
-                discard_suit = partner_card.suit
-                colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
-                my_color = colors.get(discard_suit)
-
-                target_suits = []
-                for s, color in colors.items():
-                    if color == my_color and s != discard_suit:
-                        target_suits.append(s)
-
-                return {'suits': target_suits, 'type': 'PREFER_SAME_COLOR', 'negated': discard_suit}
-            elif sig_type == SignalType.PREFER_OPPOSITE_COLOR:
-                discard_suit = partner_card.suit
-                colors = {'♥': 'RED', '♦': 'RED', '♠': 'BLACK', '♣': 'BLACK'}
-                my_color = colors.get(discard_suit)
-
-                target_suits = []
-                for s, color in colors.items():
-                    if color != my_color:
-                        target_suits.append(s)
-
-                return {'suits': target_suits, 'type': 'PREFER_OPPOSITE'}
-
-        return None

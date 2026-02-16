@@ -16,10 +16,44 @@ from ai_worker.strategies.components.score_pressure import (
 from ai_worker.strategies.components.trick_projection import project_tricks
 from ai_worker.strategies.components.hand_shape import evaluate_shape
 from ai_worker.strategies.components.bid_analysis import analyze_opponent_bids, evaluate_gablak
+from ai_worker.strategies.components.pro_data import (
+    get_pro_bid_frequency, get_pro_win_rate, get_position_multiplier,
+    SCORE_BID_ADJUSTMENT, PRO_PASS_RATE,
+)
 from ai_worker.strategies.difficulty import get_bid_noise
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _classify_score_state(us: int, them: int) -> str:
+    """Map match score to pro_data score-state key."""
+    diff = us - them
+    if abs(diff) <= 15:
+        return "tied"
+    if diff > 30:
+        return "far_ahead"
+    if diff > 0:
+        return "slightly_ahead"
+    if diff < -30:
+        return "far_behind"
+    return "slightly_behind"
+
+
+def _count_high_cards_hokum(hand, trump_suit: str, floor_card=None) -> tuple[int, int]:
+    """Count trumps and high cards (J,9,A in trump + side Aces) for pro lookup."""
+    effective = list(hand)
+    if floor_card and floor_card.suit == trump_suit:
+        effective.append(floor_card)
+
+    trump_count = sum(1 for c in effective if c.suit == trump_suit)
+    high_cards = 0
+    for c in effective:
+        if c.suit == trump_suit and c.rank in ('J', '9', 'A'):
+            high_cards += 1
+        elif c.suit != trump_suit and c.rank == 'A':
+            high_cards += 1
+    return trump_count, high_cards
 
 class BiddingStrategy:
     def get_decision(self, ctx: BotContext):
@@ -142,19 +176,43 @@ class BiddingStrategy:
         # Base Thresholds (tuned for new scoring system)
         base_sun = 22
         base_hokum = 18
-        
+
         # Apply Personality Bias
         sun_threshold = base_sun - ctx.personality.sun_bias
         hokum_threshold = base_hokum - ctx.personality.hokum_bias
-        
-        # ── DEALER-POSITION TACTICAL AWARENESS ──
-        # Offensive position (first player or partner is first) = lower threshold
-        if ctx.is_offensive:
-            sun_threshold -= 2  # Leading first = advantage in Sun
-            hokum_threshold -= 2  # Leading first = advantage in Hokum
-        else:
-            sun_threshold += 1  # Defensive = need slightly stronger hand
-            hokum_threshold += 1
+
+        # ── EMPIRICAL POSITION MULTIPLIER (from 109 pro games) ──
+        # Pros: Pos 1 bids 9.9%, Pos 4 (dealer) bids 26.7% — 2.7x advantage.
+        # We map bidding position to a threshold adjustment:
+        #   Pos 1 (first, conservative): raise threshold
+        #   Pos 4 (dealer, last to speak): lower threshold significantly
+        try:
+            # Determine bidding position (1-4, relative to dealer)
+            bid_position = ((ctx.player_index - ctx.dealer_index) % 4) or 4
+            pos_mult = get_position_multiplier(bid_position)
+            # Convert multiplier to threshold adjustment:
+            # mult=0.85 (pos 1) → +3 (raise threshold → conservative)
+            # mult=1.40 (pos 4) → -8 (lower threshold → aggressive)
+            pos_adj = int((1.0 - pos_mult) * 20)
+            sun_threshold += pos_adj
+            hokum_threshold += pos_adj
+            logger.debug(f"[BIDDING] Position {bid_position}: mult={pos_mult} → adj={pos_adj:+d}")
+        except Exception:
+            pass  # Fall through with no position adjustment
+
+        # ── EMPIRICAL SCORE-STATE ADJUSTMENT (from 109 pro games) ──
+        # Pros adjust bidding frequency based on match score:
+        #   tied → most aggressive (+3%), far_ahead → most conservative (-3%)
+        try:
+            score_state = _classify_score_state(ctx.match_score_us, ctx.match_score_them)
+            score_adj_raw = SCORE_BID_ADJUSTMENT.get(score_state, 0.0)
+            # Scale empirical adjustment (±0.03 range) to threshold units (±2)
+            score_adj = int(score_adj_raw * -60)  # +0.03 → -1.8 (lower threshold)
+            sun_threshold += score_adj
+            hokum_threshold += score_adj
+            logger.debug(f"[BIDDING] Score state '{score_state}': adj={score_adj:+d}")
+        except Exception:
+            pass
 
         # ── SCORE-AWARE RISK MANAGEMENT (via score_pressure module) ──
         pressure = get_score_pressure(ctx.match_score_us, ctx.match_score_them)
@@ -242,6 +300,40 @@ class BiddingStrategy:
                        if current_bid.get('type') == 'SUN':
                             hokum_threshold -= 8
         
+        # 6c. EMPIRICAL PRO BID FREQUENCY VALIDATION
+        # Cross-reference our hand shape against what pros actually bid
+        # from 10,698 human bids in 109 games. If pros almost never bid
+        # this hand shape, apply a penalty. If they always bid it, apply a boost.
+        try:
+            if best_suit:
+                tc, hc = _count_high_cards_hokum(ctx.hand, best_suit,
+                                                  ctx.floor_card if ctx.bidding_round == 1 else None)
+                pro_freq = get_pro_bid_frequency(tc, hc)
+                pro_wr = get_pro_win_rate(tc, hc, 'HOKUM')
+
+                if pro_freq >= 0.60:
+                    best_hokum_score += 4  # Pros bid this shape 60%+ → strong shape
+                    logger.debug(f"[PRO] Hokum {tc}t_{hc}h: freq={pro_freq:.0%} WR={pro_wr:.0%} → +4")
+                elif pro_freq >= 0.30:
+                    best_hokum_score += 2  # Pros bid 30-60% → decent shape
+                    logger.debug(f"[PRO] Hokum {tc}t_{hc}h: freq={pro_freq:.0%} WR={pro_wr:.0%} → +2")
+                elif pro_freq <= 0.01 and pro_freq > 0:
+                    best_hokum_score -= 3  # Pros almost never bid this → danger
+                    logger.debug(f"[PRO] Hokum {tc}t_{hc}h: freq={pro_freq:.0%} → -3 (pros avoid)")
+                elif pro_freq == 0:
+                    best_hokum_score -= 5  # Pros NEVER bid this shape
+                    logger.debug(f"[PRO] Hokum {tc}t_{hc}h: freq=0% → -5 (never bid by pros)")
+
+                # Win rate validation: if pros have low win rate, penalize
+                if pro_wr < 0.65 and pro_freq > 0:
+                    best_hokum_score -= 2
+                    logger.debug(f"[PRO] Low win rate {pro_wr:.0%} → -2")
+                elif pro_wr >= 0.85:
+                    best_hokum_score += 2
+                    logger.debug(f"[PRO] High win rate {pro_wr:.0%} → +2")
+        except Exception as e:
+            logger.debug(f"Pro bid frequency check skipped: {e}")
+
         # 7. Final Decision — Sun > Hokum priority
         # Trick projection as bid safety gate: require minimum expected tricks
         # to avoid bidding on hands with high HCP but no trick-taking shape

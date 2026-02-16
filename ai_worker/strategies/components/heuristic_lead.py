@@ -1,10 +1,21 @@
 """Heuristic fallback lead scoring for when lead_selector confidence is insufficient.
 
 Pure-function module extracted from HokumStrategy and SunStrategy for testability.
+
+Empirical calibration from 109 professional games (32,449 plays):
+- Lead rank preferences vary by trick number (early vs late game)
+- Trick 1: A (40.2%), J (18.0%), K (9.1%) — pros lead Aces first
+- Trick 7+: K (17.2%), 10 (16.5%), A (16.0%) — late game = run winners
+- Bidder prefers: A > 10 > J > K > 9 > Q > 8 > 7
+- Defender prefers: A > K > 10 > J > Q > 9 > 8 > 7
 """
 from __future__ import annotations
 import logging
 from game_engine.models.constants import ORDER_SUN
+from ai_worker.strategies.components.pro_data import (
+    get_lead_weight, HOKUM_TRUMP_LEAD_PCT,
+    BIDDER_LEAD_RANK_ORDER, DEFENDER_LEAD_RANK_ORDER,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +25,7 @@ def score_hokum_lead(ctx, trump: str, should_open_trump: bool,
     """Heuristic fallback scoring for Hokum lead card selection.
 
     Iterates hand, scores each card based on master status, rank, void danger,
-    suit length, trump timing, and card counting. Picks highest-scoring card.
+    suit length, trump timing, card counting, and empirical pro lead preferences.
 
     @param ctx: BotContext with hand, is_master_card, is_player_void, memory, etc.
     @param trump: The trump suit string.
@@ -27,10 +38,19 @@ def score_hokum_lead(ctx, trump: str, should_open_trump: bool,
     max_score = -100
     my_team = ctx.team
 
+    # Determine trick number for empirical lead rank preferences
+    tricks_played = len(ctx.raw_state.get('currentRoundTricks', []))
+    trick_number = tricks_played + 1  # 1-indexed
+
     for i, c in enumerate(ctx.hand):
         score = 0
         is_trump = (c.suit == trump)
         is_master = ctx.is_master_card(c)
+
+        # ── EMPIRICAL LEAD RANK PREFERENCE (from 109 pro games) ──
+        # Weight each card by how often pros lead this rank at this trick
+        pro_weight = get_lead_weight(trick_number, c.rank)
+        score += int(pro_weight * 30)  # Scale: 0.40 → +12, 0.05 → +1
 
         # VOID AVOIDANCE: Check if opponents are void in this suit
         is_danger = False
@@ -127,7 +147,7 @@ def score_sun_lead(ctx) -> dict:
     """Heuristic fallback scoring for Sun lead card selection.
 
     Iterates hand, scores each card based on master status, rank, void danger,
-    suit length, and card counting. Picks highest-scoring card.
+    suit length, card counting, and empirical pro lead preferences.
 
     @param ctx: BotContext with hand, is_master_card, is_player_void, memory, team, etc.
     @returns Play decision dict with 'action', 'cardIndex', 'reasoning'.
@@ -135,9 +155,17 @@ def score_sun_lead(ctx) -> dict:
     best_card_idx = 0
     max_score = -100
 
+    # Determine trick number for empirical lead rank preferences
+    tricks_played = len(ctx.raw_state.get('currentRoundTricks', []))
+    trick_number = tricks_played + 1  # 1-indexed
+
     for i, c in enumerate(ctx.hand):
         score = 0
         is_master = ctx.is_master_card(c)
+
+        # ── EMPIRICAL LEAD RANK PREFERENCE (from 109 pro games) ──
+        pro_weight = get_lead_weight(trick_number, c.rank)
+        score += int(pro_weight * 30)  # Scale: 0.40 → +12, 0.05 → +1
 
         if is_master:
             score += 100
