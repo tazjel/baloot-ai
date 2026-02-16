@@ -10,7 +10,7 @@
 | Frontend files | **103** (.tsx: 55, .ts: 48) |
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **100%** (1043/1043) — 0 failures ✅ |
+| Last Pass Rate | **100%** (1147/1147) — 0 failures ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
 | Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
@@ -129,6 +129,13 @@
 > - 8,107 tricks across 1,095 rounds, 0 divergences, 100% point consistency
 > - Trump determination: explicit suit bids > fc (first card) suit, NOT ts field
 > - 48 new tests (17 parser + 31 extractor) = 1043 total (502 main + 541 GBaloot)
+
+### Archive Rules Validation & Strategy Insights ✅
+> Completed 2026-02-16. Full scoring + bidding validation across 109 archives:
+> - archive_scoring_validator.py: GP conversion (floor/5 SUN, asymmetric/10 HOKUM), khasara, kaboot (100%), radda doubling, gahwa, baloot immunity — 87.5% GP agreement, 98.8% card abnat, 99.1% cumulative
+> - archive_bidding_validator.py: 12,291 bid events, mode distribution (HOKUM 53%, SUN 34%, Ashkal 13%), R1/R2 phase analysis, doubling chains (4.1%), bidder position stats
+> - strategy_insights_from_archives.md: Actionable AI recommendations (SUN khasara 28.5% vs HOKUM 15.9%, kaboot 13.8% SUN viable pursuit, position 1 advantage 29%)
+> - 104 new tests (46 scoring + 58 bidding) = 1147 total (502 main + 645 GBaloot)
 
 ---
 
