@@ -10,9 +10,9 @@
 | Frontend files | **103** (.tsx: 55, .ts: 48) |
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **98.9%** (516/522) — 6 failures ⚠️ |
+| Last Pass Rate | **100%** (995/995) — 0 failures ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-14 |
+| Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
 | `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
 | TODO/FIXME/HACK | **2** (ai_worker only) |
@@ -111,6 +111,15 @@
 > - G8: Match analytics + 7th Analytics tab (20 tests)
 > - G9: Report exporter + download buttons (18 tests)
 > - Final: 413 GBaloot + 502 main = 915 total tests, 0 failures
+
+### GBaloot Phase 3 — Autopilot Live Testing ✅
+> Completed 2026-02-16. End-to-end live pipeline validated:
+> - StateBuilder: SFS2X events → BotAgent game_state, _resolve_command() for live routing
+> - GBoard: JS injection actuator (SFS2X ExtensionRequest for card play/bid)
+> - GBoard Recon: 10 JS probes, Blob-safe WS interceptor v4 (FileReader, no binaryType change)
+> - Decoder: fixed keepalive 0x3F + JoinRoom two-pass identity bugs
+> - Live session captured: 1339 events, 12 min, 100% decode rate, 634 game_states
+> - 80 StateBuilder tests + 9 decoder tests = 995 total (502 main + 493 GBaloot)
 
 ---
 
