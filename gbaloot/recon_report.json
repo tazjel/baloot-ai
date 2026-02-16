@@ -1,0 +1,70 @@
+{
+  "session": "live_test_2026-02-16",
+  "platform": "kammelna.com/baloot/",
+  "username": "abobani6",
+
+  "architecture": {
+    "game_engine": "Unity WebGL 3.5.1 (canvas #unity-canvas in #game-container, 3840x1641)",
+    "networking": "SFS2X (binary protocol over WSS, inside Unity WASM — NOT exposed as window.SFS2X)",
+    "sfs_server": "baloot1.kammelna.com/websocket",
+    "chat": "Strophe XMPP (non-game)",
+    "notifications": "SignalR 5.0.17 via globalSignalRConnection (WebSocket transport)",
+    "unity_instance": "local-scoped (no window.unityInstance), createUnityInstance available"
+  },
+
+  "key_findings": {
+    "sfs2x_not_global": "SFS2X JS API is NOT on window — bundled inside Unity WASM build",
+    "sfs_client_not_global": "No SmartFox client instance found on window globals",
+    "binary_type": "blob (Unity expects Blob — changing to arraybuffer BREAKS the game)",
+    "ws_connection": "Established to baloot1.kammelna.com/websocket (WSS)",
+    "protocol_confirmed": "Standard SFS2X binary: 0x80 header, SFSObject/SFSArray types",
+    "decoder_works": "Python SFS2XDecoder successfully decodes live messages (100%)"
+  },
+
+  "live_data_fields": {
+    "game_state_command": {
+      "c": "game_state (in fields.p.c)",
+      "a": "13 (ExtensionResponse)",
+      "gm": "string: 'hokom' (NOT int)",
+      "ss": "[score0, score1, score2, score3] — 4-element array",
+      "pcsCount": "[cards0, cards1, cards2, cards3]",
+      "pcs": "bitmask (int64) — hand cards encoded",
+      "gStg": "1=BIDDING, 2=PLAYING",
+      "last_action": "{action: 'a_bid'|'a_card_played', bt: 'wala'|'sun'|suit, ap: seat}",
+      "played_cards": "[-1,-1,-1,-1] = no cards, else card indices",
+      "dealer": "0-indexed seat",
+      "fc": "floor card index (32 = 8♣)",
+      "ait": "action timeout seconds (60)",
+      "fps": "face points per player (signed int32)",
+      "dp": "declarations per player (SFSArray of arrays)",
+      "prcs": "SFSArray[4] — process/action arrays per player",
+      "sw": "boolean — switch?",
+      "wdt": "double — weight/timeout?",
+      "gp": "game points",
+      "rb": "round number",
+      "hc": "boolean — ?",
+      "r": "room ID (int)"
+    }
+  },
+
+  "interceptor_strategy": {
+    "v4_constructor": "Patches window.WebSocket constructor for NEW connections",
+    "v2_existing": "Patches WebSocket.prototype.send + addEventListener for EXISTING connections",
+    "blob_safe": "Uses FileReader.readAsArrayBuffer to clone Blob data — original Blob passes to Unity untouched",
+    "capture_limit": "2000 bytes per message (sufficient for all game events)"
+  },
+
+  "scripts_loaded": [
+    "signalr.min.js (unpkg.com/@microsoft/signalr@5.0.17)",
+    "54f0612a2c105683257efc57d20ed063.loader.js (Unity loader)",
+    "57ad27e55f301a913a45179b680f9553.framework.js.br (Unity framework, brotli-compressed)"
+  ],
+
+  "state_builder_validation": {
+    "command_resolution": "sfs_cmd:1:13 → fields.p.c → 'game_state' ✓",
+    "phase_detection": "gStg=1 → BIDDING ✓",
+    "score_parsing": "ss=[2,6,6,6] → remapped ✓",
+    "hand_parsing": "fc=32 → 8♣ ✓, pcs bitmask → 5 cards ✓",
+    "bid_history": "last_action.action='a_bid', bt='wala' → PASS ✓"
+  }
+}

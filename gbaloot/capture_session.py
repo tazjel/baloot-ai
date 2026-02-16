@@ -87,6 +87,17 @@ def parse_args():
         default=WS_COLLECT_INTERVAL,
         help=f"Seconds between WS message collections (default: {WS_COLLECT_INTERVAL})"
     )
+    parser.add_argument(
+        "--autopilot",
+        action="store_true",
+        help="Enable autopilot mode (bot plays for you)"
+    )
+    parser.add_argument(
+        "--username",
+        type=str,
+        default=None,
+        help="Your Kammelna username (required for --autopilot seat detection)"
+    )
     return parser.parse_args()
 
 
@@ -344,6 +355,12 @@ def main():
     # Validate label format
     label = args.label.replace(" ", "_").replace("-", "_").lower()
 
+    # Validate autopilot args
+    if args.autopilot and not args.username:
+        print("❌ --autopilot requires --username (your Kammelna username)")
+        sys.exit(1)
+
+    autopilot_label = '✅ Enabled' if args.autopilot else '❌ Disabled'
     print(f"""
 ╔══════════════════════════════════════════════════════════╗
 ║  🎮  GBaloot Capture Session                            ║
@@ -353,6 +370,7 @@ def main():
 ║  Screenshots:  {'❌ Disabled' if args.no_screenshots else '✅ Enabled':<40s} ║
 ║  SS Interval:  {str(args.screenshot_interval) + 's':<40s} ║
 ║  Auto-Pipeline:{'❌ Disabled' if args.no_pipeline else '✅ Enabled':<40s} ║
+║  Autopilot:    {autopilot_label:<40s} ║
 ╚══════════════════════════════════════════════════════════╝
 """)
 
@@ -391,9 +409,11 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=args.headless)
+        browser = p.chromium.launch(
+            headless=args.headless,
+            channel="chrome",  # Use real installed Chrome (native zoom)
+        )
         context = browser.new_context(
-            viewport={"width": 1280, "height": 800},
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         )
         page = context.new_page()
@@ -420,7 +440,25 @@ def main():
                 screenshot_count += 1
                 print(f"📸 Initial screenshot saved", flush=True)
 
-        print(f"\n🎮 CAPTURE ACTIVE — Play your games! Press Ctrl+C to stop.\n")
+        # ── Autopilot mode ─────────────────────────────────────
+        autopilot = None
+        if args.autopilot:
+            from gbaloot.autopilot import AutopilotSession
+            print(f"🤖 AUTOPILOT MODE — Bot will play as '{args.username}'")
+            print(f"   Kill switch: create gbaloot/.pause to pause\n")
+            autopilot = AutopilotSession(page, username=args.username)
+            # Don't call autopilot.start() — it would block.
+            # Instead, we integrate into the capture loop below.
+            # Inject interceptor & run recon
+            try:
+                autopilot.gboard.initialize_sync()
+            except Exception as e:
+                print(f"   ⚠️  GBoard recon: {e}")
+
+        if autopilot:
+            print(f"\n🎮 AUTOPILOT ACTIVE — Bot is playing! Press Ctrl+C to stop.\n")
+        else:
+            print(f"\n🎮 CAPTURE ACTIVE — Play your games! Press Ctrl+C to stop.\n")
 
         # ── Main capture loop (R3: KeyboardInterrupt as primary) ──
         try:
@@ -431,6 +469,22 @@ def main():
                 if now - last_collect >= args.collect_interval:
                     new_msgs = capturer.collect_from_page(page)
                     last_collect = now
+
+                    # Feed messages to autopilot (if active)
+                    if autopilot and new_msgs > 0:
+                        recent = capturer.all_ws[-new_msgs:]
+                        for msg in recent:
+                            try:
+                                autopilot._process_message(msg)
+                            except Exception:
+                                pass
+                        # Check if it's our turn
+                        if (autopilot.state_builder.is_my_turn()
+                                and autopilot.gboard.is_ready):
+                            try:
+                                autopilot._act()
+                            except Exception as e:
+                                print(f"\n  [!] Autopilot action error: {e}")
 
                     # Check for game events that should trigger screenshots
                     if new_msgs > 0 and not args.no_screenshots:

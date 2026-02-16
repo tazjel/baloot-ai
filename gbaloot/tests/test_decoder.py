@@ -273,6 +273,93 @@ class TestCompression:
         assert was_compressed is True
         assert result == payload
 
+    def test_raw_deflate_compression(self):
+        """0xA0 frame with raw deflate (wbits=-15) — no zlib header."""
+        payload = b"\x12\x00\x01" + _utf_str("raw") + struct.pack("B", TYPE_NULL)
+        # Compress with raw deflate (no zlib header/checksum)
+        compressor = zlib.compressobj(level=6, wbits=-15)
+        compressed = compressor.compress(payload)
+        compressed += compressor.flush()
+        framed = b"\xA0" + struct.pack(">H", len(compressed)) + compressed
+        result, was_compressed = try_decompress(framed)
+        assert was_compressed is True
+        assert result == payload
+
+    def test_0xa0_invalid_payload_returns_original(self):
+        """0xA0 frame with garbled data should fall through gracefully."""
+        framed = b"\xA0\x00\x05\x01\x02\x03\x04\x05"
+        result, was_compressed = try_decompress(framed)
+        assert result == framed
+        assert was_compressed is False
+
+    def test_short_0xa0_frame(self):
+        """0xA0 with < 4 bytes — not treated as compressed."""
+        data = b"\xA0\x00"
+        result, compressed = try_decompress(data)
+        assert result == data
+        assert compressed is False
+
+
+# ── Keepalive Frame ───────────────────────────────────────────────────
+
+class TestKeepalive:
+
+    def test_keepalive_frame_decoded(self):
+        """0x3F byte is a keepalive/ping frame."""
+        dec = SFS2XDecoder(b"\x3F")
+        result = dec.decode()
+        assert result["fields"]["_keepalive"] is True
+        assert result["errors"] == []
+
+    def test_keepalive_in_decode_message(self):
+        """decode_message handles keepalive frames from hex."""
+        hex_str = "3F"
+        result = decode_message(hex_str)
+        assert result["fields"]["_keepalive"] is True
+
+    def test_keepalive_no_extra_parsing(self):
+        """Keepalive frame should stop parsing immediately."""
+        # 0x3F + garbage — shouldn't fail
+        dec = SFS2XDecoder(b"\x3F\xFF\xFF\xFF")
+        result = dec.decode()
+        assert result["fields"]["_keepalive"] is True
+        # bytes_consumed should be 1 (just the header byte)
+        assert result["bytes_consumed"] == 1
+
+
+# ── decode_message integration ───────────────────────────────────────
+
+class TestDecodeMessage:
+
+    def test_standard_message(self):
+        body = _sfs_object(("val", TYPE_INT, struct.pack(">i", 42)))
+        msg = _build_sfs_message(body)
+        hex_str = " ".join(f"{b:02x}" for b in msg)
+        result = decode_message(hex_str)
+        assert result["fields"]["val"] == 42
+        assert result["was_compressed"] is False
+
+    def test_compressed_message_with_0x80_header(self):
+        """Compressed data that, when decompressed, starts with 0x80 frame."""
+        body = _sfs_object(("x", TYPE_INT, struct.pack(">i", 7)))
+        inner_msg = _build_sfs_message(body)  # 0x80 + size + body
+        compressed = zlib.compress(inner_msg)
+        framed = b"\xA0" + struct.pack(">H", len(compressed)) + compressed
+        hex_str = " ".join(f"{b:02x}" for b in framed)
+        result = decode_message(hex_str)
+        assert result["was_compressed"] is True
+        assert result["fields"]["x"] == 7
+
+    def test_compressed_message_raw_body(self):
+        """Compressed data that decompresses to raw body (no 0x80 header)."""
+        body = _sfs_object(("y", TYPE_INT, struct.pack(">i", 99)))
+        compressed = zlib.compress(body)  # No 0x80 wrapper
+        framed = b"\xA0" + struct.pack(">H", len(compressed)) + compressed
+        hex_str = " ".join(f"{b:02x}" for b in framed)
+        result = decode_message(hex_str)
+        assert result["was_compressed"] is True
+        assert result["fields"]["y"] == 99
+
 
 # ── decode_card ──────────────────────────────────────────────────────
 

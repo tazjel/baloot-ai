@@ -269,11 +269,21 @@ class SFS2XDecoder:
         """Decode a full SFS2X binary message."""
         result = {}
         if not raw_body:
-            if self.remaining < 4:
+            if self.remaining < 1:
                 raise DecodeError(f"Message too short: {self.remaining} bytes")
             header = self._read_uint8()
+            if header == 0x3F:
+                # Keepalive/ping frame — no payload to parse
+                return {
+                    "fields": {"_keepalive": True},
+                    "errors": [],
+                    "bytes_consumed": self.pos,
+                    "bytes_total": len(self.data),
+                }
             if header != 0x80:
                 raise DecodeError(f"Expected 0x80 header, got 0x{header:02x}")
+            if self.remaining < 2:
+                raise DecodeError(f"Message too short after header: {self.remaining} bytes")
             _body_size = self._read_uint16_be()
 
         try:
@@ -322,12 +332,34 @@ def decode_card(code: str) -> str:
 
 
 def try_decompress(data: bytes) -> tuple[bytes, bool]:
-    """Decompress 0xa0-framed data if present."""
+    """Decompress 0xa0-framed data if present.
+
+    0xA0 frame format:
+      byte 0:    0xA0 (compressed marker)
+      bytes 1-2: body length (16-bit BE)
+      bytes 3+:  zlib-compressed SFS2X message body
+
+    After decompression, the result may:
+      (a) Start with 0x80 header → full SFS2X frame (decompress stripped the 0xA0 wrapper)
+      (b) Start with type byte (0x12) → raw body (no frame header)
+    """
     if len(data) > 3 and data[0] == 0xA0:
         try:
-            return zlib.decompress(data[3:]), True
+            decompressed = zlib.decompress(data[3:])
+            return decompressed, True
         except zlib.error:
-            pass
+            # Try with wbits=-15 (raw deflate, no header)
+            try:
+                decompressed = zlib.decompress(data[3:], -15)
+                return decompressed, True
+            except zlib.error:
+                pass
+            # Try decompressing from byte 1 (skip only 0xA0, not the length)
+            try:
+                decompressed = zlib.decompress(data[1:])
+                return decompressed, True
+            except zlib.error:
+                pass
     return data, False
 
 
@@ -335,9 +367,20 @@ def decode_message(hex_string: str) -> dict:
     """Decode a single binary WebSocket message from hex representation."""
     raw, truncated = hex_to_bytes(hex_string)
     raw, was_compressed = try_decompress(raw)
+
+    # After decompression, check if the result starts with 0x80 header
+    # (some implementations wrap a full SFS2X frame inside the compressed body)
+    raw_body = False
+    if was_compressed and len(raw) > 0:
+        if raw[0] == 0x80:
+            raw_body = False  # Has standard header, parse normally
+        else:
+            raw_body = True   # Raw body, skip header check
+
     decoder = SFS2XDecoder(raw)
-    result = decoder.decode(raw_body=was_compressed)
+    result = decoder.decode(raw_body=raw_body)
     result["truncated"] = truncated
+    result["was_compressed"] = was_compressed
     return result
 
 
