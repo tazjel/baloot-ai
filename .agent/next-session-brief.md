@@ -11,6 +11,7 @@
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
 | Last Pass Rate | **100%** (1154/1154) — 502 main + 652 GBaloot ✅ |
+| Data Mining | **5/5 missions** — 15 training files in `gbaloot/data/training/` |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
 | Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
@@ -150,6 +151,22 @@
 > - Post-session auto-pipeline (decode → extract → benchmark on exit)
 > - `tools/screenshot_diff.py`: SSIM-based visual comparison utility
 > - Enhanced `capturer.py` with `classify_event()` and `GAME_EVENT_KEYWORDS`
+
+### Engine Reverse-Engineering (6 Missions) ✅
+> Completed 2026-02-16. Full engine protocol decoded from 109 archive games:
+> - Event state machine, move labeling, AI benchmark framework
+> - Declaration extraction, trick resolution (100%), scoring pipeline (100%)
+> - `gbaloot/data/move_labels.json` — human vs bot move classification
+
+### Empirical Data Mining (5 Missions) ✅
+> Completed 2026-02-17. Mined 109 pro games into AI training datasets:
+> - M1 Bidding: 10,698 human bids → threshold matrix (trump×high_cards grid)
+> - M2 Card Play: 32,449 human plays → legal move context + 2,728 endgame positions
+> - M3 Doubling: 142 events → Kelly Criterion analysis (f*=0.23 optimal)
+> - M4 Signals: 8,094 leads + 9,104 discards → 2 actionable signals (shortest-suit 78.5%, highest-in-suit 66.3%)
+> - M5 Outcomes: 1,095 rounds → P(win) lookup tables by trump/high_cards/mode
+> - All outputs in `gbaloot/data/training/` (15 files: JSON databases + analysis reports)
+> - Scripts in `scripts/data_mining/` (5 miners)
 
 ---
 
