@@ -10,9 +10,9 @@
 | Frontend files | **106** (.tsx/.ts) |
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **98.9%** (516/522) — 6 failures ⚠️ |
+| Last Pass Rate | **100%** (1154/1154) — 502 main + 652 GBaloot ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-14 |
+| Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
 | `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
 | TODO/FIXME/HACK | **2** (ai_worker: `memory.py`, `mcts/utils.py`) |
@@ -127,6 +127,20 @@
 > - archive_bidding_validator.py: 12,291 bid events, mode distribution
 > - strategy_insights_from_archives.md: Actionable AI recommendations
 > - 104 new tests = 1147 total (502 main + 645 GBaloot)
+
+### Scoring Formula Refinement — 100% Accuracy ✅
+> Completed 2026-02-16. Refined GP formulas to 100% agreement:
+> - SUN GP: floor-to-even formula (q + 1 if q%2==1 and r>0)
+> - HOKUM GP: pair-based rounding with sum=16 constraint
+> - Khasara: bidder_gp < opp_gp, tie breaks by raw totals / doubler
+> - Multiplier: derived from bid events, not em/m field
+
+### Bidding Phase Documentation ✅
+> Completed 2026-02-16. Comprehensive bidding rules extracted and documented:
+> - scripts/tools/extract_bidding_patterns.py: 12,291 bid events analyzed
+> - KAMMELNA_SCHEMA.md: +380 lines of bidding phase documentation
+> - 12/12 verification rules passed: dealer rotation, ts mapping, ashkal, kawesh
+> - Corrected ts field mapping (1=Hearts, 2=Clubs, 3=Diamonds, None=Spades, 4=placeholder)
 
 ### GBaloot Capture Session v2 — Workflow Improvements ✅
 > Completed 2026-02-16. Built 5 improvements to the capture pipeline:
