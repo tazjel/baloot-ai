@@ -1,35 +1,32 @@
 # Next Session Missions — Detailed Task Plans
 
-> **Generated**: 2026-02-16 | **Scan Results Below**
+> **Generated**: 2026-02-17 | **Scan Results Below**
 
 ## 📊 Codebase Health Dashboard
 
 | Metric | Value |
 |--------|-------|
-| Backend source files | **155** (game_engine: 46, ai_worker: 69, server: 40) |
+| Backend source files | **160** (game_engine: 46, ai_worker: 74, server: 40) |
 | Frontend files | **106** (.tsx/.ts) |
 | Test files | **86** |
-| Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
-| Last Pass Rate | **100%** (1154/1154) — 502 main + 652 GBaloot ✅ |
-| Data Mining | **5/5 missions** — 15 training files in `gbaloot/data/training/` ✅ |
-| Pro Data Wiring | **5/5 modules** — bidding, discard, doubling, score, lead ✅ |
+| Test / Source Ratio | **0.54** (target: 0.70) ⚠️ |
+| Last Pass Rate | **98.9%** (516/522) — 6 failing ⚠️ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-16 |
+| Last Test Run | 2026-02-14 (3 days stale) |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
 | `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
-| TODO/FIXME/HACK | **2** (ai_worker: `memory.py`, `mcts/utils.py`) |
+| TODO/FIXME/HACK | **3** (`memory.py`, `scout.py`, `verify_time_lord.py`) |
 
 ### Backend Hotspots (>15 KB)
 | File | Size | Status |
 |------|------|--------|
-| `ai_worker/strategies/components/hokum.py` | ~13 KB | ✅ Decomposed (was 32.8 KB) |
-| `ai_worker/strategies/components/sun.py` | ~11 KB | ✅ Decomposed (was 29.1 KB) |
+| `ai_worker/strategies/bidding.py` | 23.7 KB | 🔴 Critical (grew +2.7 KB from pro_data wiring) |
 | `game_engine/logic/qayd_engine.py` | 21.4 KB | 🟡 Large |
 | `game_engine/logic/game.py` | 20.4 KB | 🟡 Large |
-| `ai_worker/strategies/bidding.py` | ~21 KB | 🟡 Large (grew with pro_data wiring) |
 | `ai_worker/bot_context.py` | 17.2 KB | 🟡 Large |
 | `game_engine/logic/trick_manager.py` | 16.7 KB | 🟡 Unchanged |
 | `ai_worker/mcts/fast_game.py` | 16.2 KB | 🟡 Unchanged |
+| `ai_worker/strategies/components/hokum.py` | 15.8 KB | 🟡 Partially decomposed (was 32.8 KB) |
 
 ### Frontend Hotspots (>10 KB)
 | File | Size | Status |
@@ -41,9 +38,9 @@
 | `services/AccountingEngine.ts` | 15.9 KB | 🟡 Large |
 | `components/MatchReviewModal.tsx` | 15.6 KB | 🟡 Large |
 | `components/Table.tsx` | 14.8 KB | 🟡 Large |
-| `services/hintService.ts` | 10.7 KB | 🟡 New |
-| `components/classic/ClassicArena.tsx` | 11.1 KB | 🟡 New |
 | `hooks/useRoundManager.ts` | 11.8 KB | 🟡 Unchanged |
+| `components/classic/ClassicArena.tsx` | 11.1 KB | 🟡 New |
+| `services/hintService.ts` | 10.7 KB | 🟡 New |
 
 ---
 
@@ -98,163 +95,233 @@
 > Completed 2026-02-15. Dual-engine comparison: 96.8% trick agreement.
 
 ### GBaloot Phase 2 (G5-G9) ✅
-> Completed 2026-02-16. Full pipeline overhaul:
-> - G5: Reconstructor rewrite (SFS2X protocol, 43 tests)
-> - G6: Session manifest + health classification (27 tests)
-> - G7: Test Fortress Phase 2 + event types (74 tests)
-> - G8: Match analytics + 7th Analytics tab (20 tests)
-> - G9: Report exporter + download buttons (18 tests)
-> - Final: 413 GBaloot + 502 main = 915 total tests, 0 failures
+> Completed 2026-02-16. Full pipeline overhaul: 413 GBaloot + 502 main = 915 total tests.
 
 ### GBaloot Phase 3 — Autopilot Live Testing ✅
-> Completed 2026-02-16. End-to-end live pipeline validated:
-> - StateBuilder: SFS2X events → BotAgent game_state, _resolve_command() for live routing
-> - GBoard: JS injection actuator (SFS2X ExtensionRequest for card play/bid)
-> - GBoard Recon: 10 JS probes, Blob-safe WS interceptor v4 (FileReader, no binaryType change)
-> - Decoder: fixed keepalive 0x3F + JoinRoom two-pass identity bugs
-> - Live session captured: 1339 events, 12 min, 100% decode rate, 634 game_states
-> - 80 StateBuilder tests + 9 decoder tests = 995 total (502 main + 493 GBaloot)
+> Completed 2026-02-16. Live session: 1339 events, 100% decode rate, 634 game_states.
 
 ### Mobile Archive Parser & Benchmark ✅
-> Completed 2026-02-16. 109 mobile archives parsed, 100% engine agreement:
-> - archive_parser.py: JSON loading, validation, bidding resolution (gm=3 ashkal = SUN)
-> - archive_trick_extractor.py: Engine-computed trick winners (e=6 p field is NOT winner)
-> - run_archive_benchmark.py: Full benchmark runner with scorecard output
-> - 8,107 tricks across 1,095 rounds, 0 divergences, 100% point consistency
-> - 48 new tests (17 parser + 31 extractor) = 1043 total (502 main + 541 GBaloot)
+> Completed 2026-02-16. 109 archives, 8,107 tricks, 100% engine agreement.
 
 ### Archive Rules Validation & Strategy Insights ✅
-> Completed 2026-02-16. Full scoring + bidding validation across 109 archives:
-> - archive_scoring_validator.py: GP conversion, khasara, kaboot (100%), radda doubling
-> - archive_bidding_validator.py: 12,291 bid events, mode distribution
-> - strategy_insights_from_archives.md: Actionable AI recommendations
-> - 104 new tests = 1147 total (502 main + 645 GBaloot)
+> Completed 2026-02-16. Full scoring + bidding validation across 109 archives.
 
 ### Scoring Formula Refinement — 100% Accuracy ✅
-> Completed 2026-02-16. Refined GP formulas to 100% agreement:
-> - SUN GP: floor-to-even formula (q + 1 if q%2==1 and r>0)
-> - HOKUM GP: pair-based rounding with sum=16 constraint
-> - Khasara: bidder_gp < opp_gp, tie breaks by raw totals / doubler
-> - Multiplier: derived from bid events, not em/m field
+> Completed 2026-02-16. GP formulas refined to 100% agreement.
 
 ### Bidding Phase Documentation ✅
-> Completed 2026-02-16. Comprehensive bidding rules extracted and documented:
-> - scripts/tools/extract_bidding_patterns.py: 12,291 bid events analyzed
-> - KAMMELNA_SCHEMA.md: +380 lines of bidding phase documentation
-> - 12/12 verification rules passed: dealer rotation, ts mapping, ashkal, kawesh
-> - Corrected ts field mapping (1=Hearts, 2=Clubs, 3=Diamonds, None=Spades, 4=placeholder)
+> Completed 2026-02-16. 12,291 bid events documented in KAMMELNA_SCHEMA.md.
 
 ### GBaloot Capture Session v2 — Workflow Improvements ✅
-> Completed 2026-02-16. Built 5 improvements to the capture pipeline:
-> - `capture_session.py`: Single-command CLI launcher with WS + screenshot capture
-> - Event-triggered screenshots (bid, card played, trick won, round over)
-> - Session labeling convention (`hokum_aggressive_01`, `sun_defensive_02`)
-> - Post-session auto-pipeline (decode → extract → benchmark on exit)
-> - `tools/screenshot_diff.py`: SSIM-based visual comparison utility
-> - Enhanced `capturer.py` with `classify_event()` and `GAME_EVENT_KEYWORDS`
+> Completed 2026-02-16. 5 capture pipeline improvements.
 
 ### Engine Reverse-Engineering (6 Missions) ✅
-> Completed 2026-02-16. Full engine protocol decoded from 109 archive games:
-> - Event state machine, move labeling, AI benchmark framework
-> - Declaration extraction, trick resolution (100%), scoring pipeline (100%)
-> - `gbaloot/data/move_labels.json` — human vs bot move classification
+> Completed 2026-02-16. Full protocol decoded from 109 archive games.
 
 ### Empirical Data Mining (5 Missions) ✅
-> Completed 2026-02-17. Mined 109 pro games into AI training datasets:
-> - M1 Bidding: 10,698 human bids → threshold matrix (trump×high_cards grid)
-> - M2 Card Play: 32,449 human plays → legal move context + 2,728 endgame positions
-> - M3 Doubling: 142 events → Kelly Criterion analysis (f*=0.23 optimal)
-> - M4 Signals: 8,094 leads + 9,104 discards → 2 actionable signals (shortest-suit 78.5%, highest-in-suit 66.3%)
-> - M5 Outcomes: 1,095 rounds → P(win) lookup tables by trump/high_cards/mode
-> - All outputs in `gbaloot/data/training/` (15 files: JSON databases + analysis reports)
-> - Scripts in `scripts/data_mining/` (5 miners)
+> Completed 2026-02-17. 109 pro games mined into 15 training files.
+
+### Mission 9: "The Strategist" — Wire Empirical Data into Bot AI ✅
+> Completed 2026-02-17. Pro data wired into 5 consumer modules.
 
 ---
 
 ## 🎯 Active Missions
 
-## Mission 23: "The Surgeon II" — AI Strategy File Decomposition (Backend ✅, Frontend pending)
-> Backend completed 2026-02-17. Frontend hotspots still pending.
+## Mission 25: "The Release" — GitHub Release Preparation 🆕
+> Effort estimate (~2 hours) | Priority: ① — Blocking release
 
-### Backend ✅ Completed
-- [x] **hokum.py** (627→301 lines, -52%) → `hokum_defense.py` (156 lines) + `hokum_follow.py` (177 lines)
-- [x] **sun.py** (607→257 lines, -58%) → `sun_defense.py` (222 lines) + `sun_follow.py` (149 lines)
+Prepare the codebase for public GitHub release. Kammelna reference removal started but needs verification.
 
-### Frontend Remaining
+### Tasks
+- [ ] **Verify kammelna removal** — grep for any remaining "kammelna" references
+  - [ ] Check Python, TypeScript, markdown, and config files
+  - [ ] Ensure `classic` and `mobile_export` replacements are consistent
+- [ ] **Fix 6 failing tests** — investigate and fix failures from Feb 14 run
+  - [ ] Run `python -m pytest tests/ -x --tb=short` to identify failures
+- [ ] **Clean untracked files** — `.claude/task_game_theory.md` and other artifacts
+- [ ] **Update README** — ensure it reflects current project state for public view
+- [ ] **LICENSE check** — confirm license file exists and is appropriate
+
+### Key Files
+| File | Change |
+|------|--------|
+| Various | Remove remaining kammelna references |
+| `README.md` | Update for public release |
+| `.gitignore` | Ensure .claude/ artifacts are excluded |
+
+### Verification
+```powershell
+git grep -i "kammelna" -- ":(exclude)node_modules" ":(exclude).git"
+python -m pytest tests/ --tb=short -q
+```
+
+### 🤖 Claude MAX Task (copy-paste ready)
+```
+Read README.md, CLAUDE.md, and .gitignore.
+1. Audit the repo for public release readiness:
+   - Check for hardcoded secrets, API keys, or personal paths
+   - Verify .gitignore covers all sensitive directories
+   - Ensure README has proper setup instructions
+2. Fix any issues found
+3. Run tests to verify nothing breaks
+```
+
+---
+
+## Mission 23: "The Surgeon II" — God-File Decomposition (Frontend Remaining)
+> Effort estimate (~2 hours) | Priority: ② — Structural hygiene
+
+Backend ✅ complete. Frontend 3 critical hotspots remain.
+
+### Tasks
+- [ ] **Decompose `SettingsModal.tsx` (19.8 KB)** — extract theme/audio/game into sub-components
+  - [ ] `SettingsThemeTab.tsx`, `SettingsAudioTab.tsx`, `SettingsGameTab.tsx`
 - [ ] **Decompose `SoundManager.ts` (18.8 KB)** — extract sound definitions from player logic
-- [ ] **Decompose `SettingsModal.tsx` (19.8 KB)** — extract theme/audio/game sections into sub-components
+  - [ ] `SoundRegistry.ts` (definitions) + `SoundPlayer.ts` (playback logic)
 - [ ] **Decompose `ActionBar.tsx` (17.2 KB)** — separate bidding/playing action modes
+  - [ ] `BiddingActions.tsx` + `PlayingActions.tsx`
+
+### Key Files
+| File | Change |
+|------|--------|
+| `components/SettingsModal.tsx` | Split → 3 tab components |
+| `services/SoundManager.ts` | Split → registry + player |
+| `components/ActionBar.tsx` | Split → bidding + playing |
+
+### Verification
+```powershell
+npm run build  # No TS errors
+python -m pytest tests/ --tb=short -q  # No backend regressions
+```
+
+### 🤖 Claude MAX Task (copy-paste ready)
+```
+Read frontend/src/components/SettingsModal.tsx completely.
+Read frontend/src/services/SoundManager.ts completely.
+Read frontend/src/components/ActionBar.tsx completely.
+
+For each file:
+1. Identify logical sub-sections that can be extracted
+2. Create new component files for each section
+3. Update the original file to import and compose the new components
+4. Ensure all props and state are properly threaded through
+5. Run `npm run build` to verify no TypeScript errors
+```
+
+---
+
+## Mission 26: "The Scalpel II" — Backend Hotspot Decomposition 🆕
+> Effort estimate (~3 hours) | Priority: ③ — Structural refactoring
+
+`bidding.py` grew to 23.7 KB after pro_data wiring — now the largest AI file. Two other engine files remain above 20 KB.
+
+### Tasks
+- [ ] **Decompose `bidding.py` (23.7 KB)** — extract pro_data evaluation logic
+  - [ ] `components/bid_evaluator.py` — hand strength + pro threshold logic
+  - [ ] `components/bid_position.py` — position-based multipliers + score-state
+  - [ ] Keep `bidding.py` as thin orchestrator (~10 KB target)
+- [ ] **Decompose `qayd_engine.py` (21.4 KB)** — split state machine from penalty logic
+  - [ ] Already has `qayd_penalties.py` and `qayd_state_machine.py` — verify they're used
+- [ ] **Decompose `game.py` (20.4 KB)** — audit what can be delegated to managers
+  - [ ] Check if `game_lifecycle.py`, `state_bridge.py` already handle enough
+
+### Key Files
+| File | Change |
+|------|--------|
+| `ai_worker/strategies/bidding.py` | Split → orchestrator + 2 components |
+| `game_engine/logic/qayd_engine.py` | Verify decomposition is complete |
+| `game_engine/logic/game.py` | Audit delegations to managers |
+
+### Verification
+```powershell
+python -m pytest tests/bidding/ tests/game_logic/ --tb=short -q
+```
+
+### 🤖 Claude MAX Task (copy-paste ready)
+```
+Read ai_worker/strategies/bidding.py completely.
+Read ai_worker/strategies/components/bid_analysis.py and bid_reader.py.
+Read ai_worker/strategies/components/base.py for the component pattern.
+
+1. Identify which sections of bidding.py can be extracted as strategy components
+2. Focus on the pro_data evaluation logic added recently — it's the growth area
+3. Create new component files following the existing pattern in components/
+4. Update bidding.py to import and delegate to the new components
+5. Run tests: python -m pytest tests/bidding/ --tb=short -q
+```
 
 ---
 
 ## Mission 7 Phase 2: "The Shield" — Test Coverage to 70%
-> Effort estimate (~3 hours) | Priority: ② — Coverage gap
+> Effort estimate (~3 hours) | Priority: ④ — Coverage gap
 
-Test ratio is 0.55 (target 0.70), code coverage is 53.9% (target 70%), and 6 tests are currently failing.
+Test ratio is 0.54 (target 0.70), code coverage is 53.9% (target 70%). 6 tests failing.
 
 ### Tasks
-- [ ] **Fix 6 Failing Tests** — investigate and fix the 6 failures (522 total, 516 passed)
-- [ ] **Trick Manager Edge Cases** — Trump overtrump, void suit + forced play
-- [ ] **Qayd Engine Coverage** — State transitions, penalty edge cases
+- [ ] **Fix 6 Failing Tests** — investigate and fix (522 total, 516 passed)
 - [ ] **Server Tests** — `bot_orchestrator.py`, `room_manager.py`, `socket_handler.py`
 - [ ] **AI Worker Tests** — `strategies/playing.py`, `sherlock.py`
+- [ ] **Trick Manager Edge Cases** — trump overtrump, void suit + forced play
+- [ ] **Qayd Engine Coverage** — state transitions, penalty edge cases
 - [ ] **Integration** — expand `verify_game_flow.py` for Sawa + multi-round
 
 ### Key Files
 | File | Change |
 |------|--------|
+| `tests/server/test_orchestrator.py` | New: bot lifecycle |
 | `tests/game_logic/test_trick_manager_unit.py` | New: trick edge cases |
 | `tests/qayd/test_qayd_engine_unit.py` | New: state machine paths |
-| `tests/server/test_orchestrator.py` | New: bot lifecycle |
 
 ### Verification
 ```powershell
-python -m pytest tests/ --co -q  # verify count ≥88 files
 python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-report=term-missing
+```
+
+### 🤖 Claude MAX Task (copy-paste ready)
+```
+Read game_engine/logic/trick_manager.py completely.
+Read game_engine/logic/qayd_engine.py completely.
+Read server/bot_orchestrator.py completely.
+Read the test files in tests/game_logic/ and tests/qayd/ for patterns.
+
+1. First, run existing tests to identify the 6 failures: python -m pytest tests/ -x --tb=short
+2. Fix the failures
+3. Then generate new test files for untested modules:
+   - tests/server/test_orchestrator.py (bot lifecycle)
+   - tests/game_logic/test_trick_manager_unit.py (edge cases)
+4. Target: 70%+ code coverage on game_engine and server packages
+5. Run full coverage report to verify
 ```
 
 ---
 
 ## Mission 24: "The Observer" — GBaloot Live Capture & Benchmark Sprint
-> Effort estimate (~2 hours) | Priority: ③ — Empirical validation
-
-Run live capture sessions and benchmark against the engine. The new `capture_session.py` CLI is ready.
+> Effort estimate (~2 hours) | Priority: ⑤ — Empirical validation
 
 ### Tasks
 - [ ] **Capture 3+ Hokum sessions** — `python gbaloot/capture_session.py --label hokum_study_01`
 - [ ] **Capture 3+ Sun sessions** — same CLI, different labels
-- [ ] **Run full benchmark** — process captures through decode → extract → compare
+- [ ] **Run full benchmark** — decode → extract → compare
 - [ ] **Analyze divergences** — document any engine disagreements
-- [ ] **Screenshot diff analysis** — `python gbaloot/tools/screenshot_diff.py --session <label>`
 - [ ] **Update benchmark scorecard** — aim for ≥99% trick agreement
-
-### Key Files
-| File | Change |
-|------|--------|
-| `gbaloot/capture_session.py` | Launch point |
-| `gbaloot/tools/screenshot_diff.py` | Post-capture analysis |
-| `gbaloot/core/comparator.py` | Engine comparison |
 
 ### Verification
 - At least 6 capture sessions with WS data
-- Screenshot coverage of key game moments
 - Divergence count documented
 
 ---
 
 ## Mission 8: "The Polish" — Frontend UX Sprint
-> Effort estimate (~3 hours) | Priority: ④ — User experience
+> Effort estimate (~3 hours) | Priority: ⑥ — User experience
 
 ### Tasks
 - [ ] **Card Play Animations** — animate cards from hand → table, trick-win sweep
-  - [ ] Create `useCardAnimation.ts` hook
 - [ ] **Mobile Responsive** — audit at 375px and 768px
-  - [ ] Fix card sizing, avatar positions, HUD overflow
-- [ ] **Frontend Decomposition** — split remaining hotspots:
+- [ ] **Remaining Frontend Decomposition**:
   - [ ] `AccountingEngine.ts` (15.9 KB) → extract transaction vs. balance
   - [ ] `MatchReviewModal.tsx` (15.6 KB) → extract round detail panels
   - [ ] `Table.tsx` (14.8 KB) → extract card layout
-  - [ ] `DisputeModal.tsx` (14.0 KB) → move logic to dispute/ subfolder
 
 ### Verification
 - Playwright screenshots at 375px and 768px viewports
@@ -262,45 +329,13 @@ Run live capture sessions and benchmark against the engine. The new `capture_ses
 
 ---
 
-## Mission 9: "The Strategist" — Wire Empirical Data into Bot AI ✅
-> Completed 2026-02-17. Wired 109 pro games into 5 consumer modules:
-> - `pro_data.py`: Central module — 23 bidding thresholds, 18 P(win) entries, 8 trick lead tables
-> - `bidding.py`: Position multiplier (0.85x-1.40x), score-state adjustment, pro bid frequency cross-check
-> - `score_pressure.py`: P(win) lookup, empirical doubling rates, far-behind gamble heuristic
-> - `discard_logic.py`: Shortest-suit preference (78.5%), rank-weighted discard scoring
-> - `doubling_engine.py`: Kelly Criterion validation (×2 is -EV!), score-state thresholds
-> - `heuristic_lead.py`: Trick-dependent lead rank preferences (A→K shift by trick#)
-
-### Remaining Bot AI Tasks (for future sessions)
-- [ ] **Partner Signaling** — lead strong suits to signal; track partner patterns
-- [ ] **Sawa Timing** — claim only when certain
-- [ ] **Address TODOs** — `memory.py` probabilistic memory, `mcts/utils.py` precise counting
-
----
-
 ## Mission 17: "The Teacher" — Interactive Tutorial & Learning Mode
-> Effort estimate (~4 hours) | Priority: ⑥ — User onboarding
+> Effort estimate (~4 hours) | Priority: ⑦ — User onboarding
 
 ### Tasks
 - [ ] **Tutorial System** — 7-lesson step-by-step guide
 - [ ] **Hint System** — bid/play hints from bot AI
 - [ ] **Practice Mode** — undo/redo, card reveal
-
-### Key Files
-| File | Change |
-|------|--------|
-| `frontend/src/components/Tutorial.tsx` | New |
-| `frontend/src/hooks/useHintSystem.ts` | New |
-
----
-
-## Mission 19: "The Historian" — Match Replay & Statistics
-> Effort estimate (~3 hours) | Priority: ⑦ — Engagement
-
-### Tasks
-- [ ] **Visual Replay** — playback controls, speed adjustment
-- [ ] **Player Stats Dashboard** — win rate, favorite bids, trick accuracy
-- [ ] **Achievements System** — milestones and badges
 
 ---
 
@@ -311,12 +346,38 @@ Run live capture sessions and benchmark against the engine. The new `capture_ses
 - [ ] **Probabilistic Memory** (Mind's Eye) — Bayesian card tracking
 - [ ] **Score-Aware Engine** — dynamic risk/reward by score state
 - [ ] **Endplay/Squeeze Detection** — advanced card play techniques
-- [ ] **Self-Play Harness** — automated evaluation pipeline
+- [ ] **Partner Signaling** — lead strong suits to signal; track partner patterns
+- [ ] **Sawa Timing** — claim only when certain
+
+### 🤖 Claude MAX Task (copy-paste ready)
+```
+You are an expert Baloot player. Read these files:
+- ai_worker/strategies/components/sun.py
+- ai_worker/strategies/components/hokum.py
+- ai_worker/strategies/components/cooperative_play.py
+- ai_worker/signals/manager.py
+- ai_worker/memory.py
+
+1. Analyze the current partner signaling system
+2. Design a Bayesian card tracking module that replaces the TODO in memory.py
+3. Implement score-aware risk adjustment (conservative when ahead, aggressive when behind)
+4. Write tests proving the improvement in decision quality
+```
+
+---
+
+## Mission 19: "The Historian" — Match Replay & Statistics
+> Effort estimate (~3 hours) | Priority: ⑨ — Engagement
+
+### Tasks
+- [ ] **Visual Replay** — playback controls, speed adjustment
+- [ ] **Player Stats Dashboard** — win rate, favorite bids, trick accuracy
+- [ ] **Achievements System** — milestones and badges
 
 ---
 
 ## Mission 20: "The Arena" — Multiplayer & Social Features
-> Effort estimate (~5 hours) | Priority: ⑨ — Social
+> Effort estimate (~5 hours) | Priority: ⑩ — Social
 
 ### Tasks
 - [ ] **Room Browser** — lobby with room list, filters
@@ -327,7 +388,7 @@ Run live capture sessions and benchmark against the engine. The new `capture_ses
 ---
 
 ## Mission 22: "The Stage" — Production-Ready Game Experience
-> Effort estimate (~5 hours) | Priority: ⑩ — Production
+> Effort estimate (~5 hours) | Priority: ⑪ — Production
 
 ### Tasks
 - [ ] **Arabic-First Localization** — RTL support, i18n
@@ -341,13 +402,23 @@ Run live capture sessions and benchmark against the engine. The new `capture_ses
 
 | Mission | Impact | Effort | Risk | Order |
 |---------|--------|--------|------|-------|
-| **23. Surgeon II** | 🟡 Partial | 🟢 Low | 🟢 Low | ① Frontend decomp remaining |
-| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Test Coverage |
-| **24. The Observer** | 🔴 High | 🟢 Low | 🟢 Low | ③ Live Benchmark |
-| **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ④ UX Sprint |
-| **9. The Strategist** | ✅ Done | — | — | ✅ Pro data wired |
-| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑥ Tutorial |
-| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑦ Replay/Stats |
+| **25. The Release** | 🔴 High | 🟢 Low | 🟢 Low | ① GitHub release prep |
+| **23. Surgeon II** | 🟡 Medium | 🟢 Low | 🟢 Low | ② Frontend decomp |
+| **26. Scalpel II** | 🟡 Medium | 🟡 Medium | 🟢 Low | ③ Backend decomp |
+| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ④ Test coverage |
+| **24. The Observer** | 🔴 High | 🟢 Low | 🟢 Low | ⑤ Live benchmark |
+| **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ⑥ UX Sprint |
+| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑦ Tutorial |
 | **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑧ Advanced AI |
-| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑨ Multiplayer |
-| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑩ Production |
+| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑨ Replay/Stats |
+| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑩ Multiplayer |
+| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑪ Production |
+
+## 🤖 Claude MAX Recommended Delegation
+
+| Mission | Category | Why Claude |
+|---------|----------|------------|
+| **23. Surgeon II** (Frontend) | 🔴 Multi-File Refactor | 3 files → 8 files, component extraction |
+| **26. Scalpel II** (bidding.py) | 🔴 Multi-File Refactor | Pattern-following decomposition |
+| **7.2 The Shield** (Tests) | 🔵 Test Architecture | Bulk test generation, edge cases |
+| **21. Brain Surgeon** | 🟢 Game-Theory Strategy | Claude can DESIGN the optimal approach |
