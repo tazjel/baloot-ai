@@ -31,7 +31,18 @@
       "Bash(select-object -ExpandProperty Count)",
       "Bash(find:*)",
       "Bash(git push:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(dir:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && grep -c \"\"def \"\" {}')",
+      "Bash(for dir in ai_worker/models ai_worker/data ai_worker/benchmarks game_engine/utils server/content server/static gbaloot/data gbaloot/data/captures gbaloot/data/sessions gbaloot/data/tasks gbaloot/tools/)",
+      "Bash(do)",
+      "Bash(if [ -d \"$dir\" ])",
+      "Bash(then)",
+      "Bash(if [ ! -f \"$dir/__init__.py\" ])",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(xargs:*)"
     ]
   }
 }
