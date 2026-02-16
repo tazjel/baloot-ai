@@ -6,7 +6,8 @@ from pathlib import Path
 
 from gbaloot.tools.archive_scoring_validator import (
     card_gp_sun,
-    card_gp_hokum,
+    card_gp_hokum_pair,
+    _hokum_gp_individual,
     project_gp_sun,
     project_gp_hokum,
     validate_round,
@@ -34,11 +35,11 @@ class TestCardGpSun:
         assert card_gp_sun(0) == 0
         assert card_gp_sun(130) == 26
 
-    def test_truncation(self):
-        """Floor division truncates toward zero."""
-        assert card_gp_sun(51) == 10
-        assert card_gp_sun(54) == 10
-        assert card_gp_sun(59) == 11
+    def test_floor_to_even(self):
+        """Floor-to-even: odd quotient with remainder rounds up."""
+        assert card_gp_sun(51) == 10  # 51÷5 → q=10 (even), r=1 → 10
+        assert card_gp_sun(54) == 10  # 54÷5 → q=10 (even), r=4 → 10
+        assert card_gp_sun(59) == 12  # 59÷5 → q=11 (odd), r=4 → 12
 
     def test_common_values(self):
         """Common card abnat values in SUN."""
@@ -47,65 +48,104 @@ class TestCardGpSun:
         assert card_gp_sun(130) == 26  # 120 + 10 last trick
 
     def test_boundary_values(self):
-        assert card_gp_sun(1) == 0
-        assert card_gp_sun(4) == 0
-        assert card_gp_sun(5) == 1
-        assert card_gp_sun(9) == 1
-        assert card_gp_sun(10) == 2
+        """Test boundary values with floor-to-even."""
+        assert card_gp_sun(1) == 0   # 0.2 → q=0 (even), r=1 → 0
+        assert card_gp_sun(4) == 0   # 0.8 → q=0 (even), r=4 → 0
+        assert card_gp_sun(5) == 1   # 1.0 → q=1 (odd), r=0 → 1
+        assert card_gp_sun(9) == 2   # 1.8 → q=1 (odd), r=4 → 2
+        assert card_gp_sun(10) == 2  # 2.0 → q=2 (even), r=0 → 2
 
 
 class TestCardGpHokum:
-    """HOKUM card GP: floor(card_abnat / 10), >0.5 rounds up."""
+    """HOKUM card GP: pair-based rounding with sum constraint."""
 
-    def test_exact_multiple(self):
-        assert card_gp_hokum(100) == 10
-        assert card_gp_hokum(0) == 0
-        assert card_gp_hokum(160) == 16
+    def test_exact_multiple_pair(self):
+        """When both sides sum to exactly 16 before adjustment."""
+        g1, g2 = card_gp_hokum_pair(100, 56)
+        assert g1 == 10  # 100÷10 = 10.0 → 10
+        assert g2 == 6   # 56÷10 = 5.6 → 6 (r=6 > 5)
+        assert g1 + g2 == 16
+
+    def test_symmetric_split(self):
+        """Equal split should give 8-8."""
+        g1, g2 = card_gp_hokum_pair(76, 76)
+        assert g1 == 8
+        assert g2 == 8
 
     def test_asymmetric_rounding(self):
-        """0.5 exactly rounds DOWN, >0.5 rounds UP."""
-        assert card_gp_hokum(15) == 1   # 1.5 → 1 (rounds down at 0.5)
-        assert card_gp_hokum(16) == 2   # 1.6 → 2 (rounds up at >0.5)
-        assert card_gp_hokum(25) == 2   # 2.5 → 2
-        assert card_gp_hokum(26) == 3   # 2.6 → 3
+        """Individual rounding: 0.5 rounds DOWN, >0.5 rounds UP."""
+        # Test individual helper
+        assert _hokum_gp_individual(15) == 1   # 1.5 → 1 (rounds down at 0.5)
+        assert _hokum_gp_individual(16) == 2   # 1.6 → 2 (rounds up at >0.5)
+        assert _hokum_gp_individual(25) == 2   # 2.5 → 2
+        assert _hokum_gp_individual(26) == 3   # 2.6 → 3
 
-    def test_common_values(self):
-        assert card_gp_hokum(76) == 8   # 7.6 → 8
-        assert card_gp_hokum(152) == 15  # 15.2 → 15
-        assert card_gp_hokum(162) == 16  # 16.2 → 16
+    def test_sum_constraint(self):
+        """Pair must sum to 16."""
+        g1, g2 = card_gp_hokum_pair(100, 52)
+        assert g1 + g2 == 16
+        g1, g2 = card_gp_hokum_pair(76, 76)
+        assert g1 + g2 == 16
+        g1, g2 = card_gp_hokum_pair(110, 42)
+        assert g1 + g2 == 16
 
 
 class TestProjectGpSun:
-    """SUN project GP: floor(project_abnat * 2 / 10)."""
+    """SUN project GP: (val * 2) // 10, except 400 → flat 40."""
 
     def test_sira_20(self):
         """sira declaration = 20 abnat → 4 GP."""
-        assert project_gp_sun(20) == 4
+        assert project_gp_sun([{"n": "sira", "val": "20"}]) == 4
 
     def test_50_declaration(self):
         """50 declaration → 10 GP."""
-        assert project_gp_sun(50) == 10
+        assert project_gp_sun([{"n": "50", "val": "50"}]) == 10
 
     def test_100_declaration(self):
         """100 declaration → 20 GP."""
-        assert project_gp_sun(100) == 20
+        assert project_gp_sun([{"n": "100", "val": "100"}]) == 20
+
+    def test_400_declaration(self):
+        """400 declaration → flat 40 GP."""
+        assert project_gp_sun([{"n": "400", "val": "400"}]) == 40
 
     def test_zero(self):
-        assert project_gp_sun(0) == 0
+        assert project_gp_sun([]) == 0
+
+    def test_baloot_ignored(self):
+        """Baloot declarations are ignored in project GP."""
+        assert project_gp_sun([{"n": "baloot", "val": "0"}]) == 0
+
+    def test_multiple_declarations(self):
+        """Multiple declarations sum together."""
+        decls = [{"n": "sira", "val": "20"}, {"n": "50", "val": "50"}]
+        assert project_gp_sun(decls) == 14  # 4 + 10
 
 
 class TestProjectGpHokum:
-    """HOKUM project GP: floor(project_abnat / 10)."""
+    """HOKUM project GP: val // 10."""
 
     def test_sira_20(self):
         """sira declaration = 20 abnat → 2 GP."""
-        assert project_gp_hokum(20) == 2
+        assert project_gp_hokum([{"n": "sira", "val": "20"}]) == 2
 
     def test_50_declaration(self):
-        assert project_gp_hokum(50) == 5
+        assert project_gp_hokum([{"n": "50", "val": "50"}]) == 5
+
+    def test_100_declaration(self):
+        assert project_gp_hokum([{"n": "100", "val": "100"}]) == 10
 
     def test_zero(self):
-        assert project_gp_hokum(0) == 0
+        assert project_gp_hokum([]) == 0
+
+    def test_baloot_ignored(self):
+        """Baloot declarations are ignored in project GP."""
+        assert project_gp_hokum([{"n": "baloot", "val": "0"}]) == 0
+
+    def test_multiple_declarations(self):
+        """Multiple declarations sum together."""
+        decls = [{"n": "sira", "val": "20"}, {"n": "50", "val": "50"}]
+        assert project_gp_hokum(decls) == 7  # 2 + 5
 
 
 # ── Round Validation ─────────────────────────────────────────────────
@@ -116,10 +156,10 @@ class TestValidateRound:
 
     def test_waraq_returns_none(self):
         """Waraq (no result) returns None."""
-        assert validate_round(None, "test.json", 0) is None
+        assert validate_round(None, [], "test.json", 0) is None
 
     def test_no_mode_returns_none(self):
-        assert validate_round({"m": 0}, "test.json", 0) is None
+        assert validate_round({"m": 0}, [], "test.json", 0) is None
 
     def test_basic_sun_round(self):
         """Simple SUN round with known values."""
@@ -129,7 +169,7 @@ class TestValidateRound:
             "r1": [], "r2": [],
             "s1": 18, "s2": 8,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         assert rv.game_mode == "SUN"
         assert rv.e_sum == 120
@@ -143,7 +183,7 @@ class TestValidateRound:
             "r1": [], "r2": [],
             "s1": 11, "s2": 5,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         assert rv.game_mode == "HOKUM"
         assert rv.e_sum == 152
@@ -157,7 +197,7 @@ class TestValidateRound:
             "r1": [{"n": "sira", "val": "20"}], "r2": [],
             "s1": 48, "s2": 0,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         assert rv.is_kaboot_archive is True
         # base 44 + project_gp_sun(20) = 44 + 4 = 48
@@ -172,7 +212,7 @@ class TestValidateRound:
             "r1": [], "r2": [{"n": "baloot", "val": "0"}],
             "s1": 0, "s2": 27,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         # base 25 + baloot 2 = 27
         assert rv.s2_computed == 27
@@ -181,16 +221,19 @@ class TestValidateRound:
     def test_khasara_bidder_loses(self):
         """Khasara: bidder GP <= opponent → all to opponent."""
         # SUN, bidder=team1, e1=40 e2=80, lmw=2
-        # ca1=40, ca2=90 → cg1=8, cg2=18 (total=26, no tiebreak)
+        # p1=40 (e1 + 0 decl), p2=90 (e2 + 10 last trick)
+        # card_p1=40, card_p2=90 (p minus declarations, includes last trick bonus)
+        # card_gp_sun(40) → q=8,r=0 → 8
+        # card_gp_sun(90) → q=18,r=0 → 18
         # g1=8, g2=18. Bidder (team1) has 8 < 18 → khasara
-        # pot = 26, team1=0, team2=26
+        # pot = 26, all to team2
         result = {
             "m": 1, "b": 1, "w": 2, "lmw": 2, "em": 1,
             "e1": 40, "e2": 80, "p1": 40, "p2": 90,
             "r1": [], "r2": [],
             "s1": 0, "s2": 26,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         assert rv.is_khasara is True
         assert rv.s1_computed == 0
@@ -209,7 +252,9 @@ class TestValidateRound:
             "r1": [], "r2": [],
             "s1": 32, "s2": 0,
         }
-        rv = validate_round(result, "test.json", 0, has_rd=True)
+        # Include HOKUM doubling event
+        events = [{"e": 2, "b": "hokomclose", "p": 1}]
+        rv = validate_round(result, events, "test.json", 0)
         assert rv is not None
         assert rv.is_rd is True
         assert rv.s1_computed == 32
@@ -217,14 +262,16 @@ class TestValidateRound:
         assert rv.gp_ok is True
 
     def test_gahwa_flat_152(self):
-        """Gahwa (em >= 4) gives flat 152 to winner."""
+        """Gahwa (qahwa bid event) gives flat 152 to winner."""
         result = {
             "m": 2, "b": 1, "w": 1, "lmw": 1, "em": 4,
             "e1": 100, "e2": 52, "p1": 110, "p2": 52,
             "r1": [], "r2": [],
             "s1": 152, "s2": 0,
         }
-        rv = validate_round(result, "test.json", 0)
+        # Add qahwa bid event
+        events = [{"e": 2, "b": "qahwa", "p": 1}]
+        rv = validate_round(result, events, "test.json", 0)
         assert rv is not None
         assert rv.s1_computed == 152
         assert rv.s2_computed == 0
@@ -232,20 +279,22 @@ class TestValidateRound:
 
     def test_baloot_immune_to_doubling(self):
         """Baloot GP is added AFTER em multiplier."""
-        # HOKUM, b=1, w=1, em=2
-        # ca1=110, ca2=52 → cg1=11, cg2=5
-        # g1=11, g2=5. No khasara. em=2: g1=22, g2=10.
-        # Baloot for team1: +2. g1=24, g2=10.
+        # HOKUM, b=1, w=1, em=2 (hokomclose doubling)
+        # ca1=100, ca2=52 → cg1=10, cg2=6 (pair constrained to 16)
+        # g1=10, g2=6. No khasara. em=2: winner takes all*2 → g1=32, g2=0
+        # Baloot for team1: +2. g1=34, g2=0.
         result = {
             "m": 2, "b": 1, "w": 1, "lmw": 1, "em": 2,
             "e1": 100, "e2": 52, "p1": 110, "p2": 52,
             "r1": [{"n": "baloot", "val": "0"}], "r2": [],
-            "s1": 24, "s2": 10,
+            "s1": 34, "s2": 0,
         }
-        rv = validate_round(result, "test.json", 0)
+        # Add hokomclose doubling event
+        events = [{"e": 2, "b": "hokomclose", "p": 1}]
+        rv = validate_round(result, events, "test.json", 0)
         assert rv is not None
-        assert rv.s1_computed == 24
-        assert rv.s2_computed == 10
+        assert rv.s1_computed == 34
+        assert rv.s2_computed == 0
         assert rv.gp_ok is True
 
     def test_declarations_string_values(self):
@@ -254,13 +303,16 @@ class TestValidateRound:
             "m": 1, "b": 1, "w": 1, "lmw": 1, "em": 1,
             "e1": 80, "e2": 40, "p1": 100, "p2": 40,
             "r1": [{"n": "sira", "val": "20"}], "r2": [],
-            "s1": 22, "s2": 8,
+            "s1": 20, "s2": 8,
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
-        # ca1=90, ca2=40 → cg1=18, cg2=8 (total=26)
-        # pg1=project_gp_sun(20)=4, g1=18+4=22, g2=8
-        assert rv.s1_computed == 22
+        # ca1=80 (p1-decl1: 100-20), ca2=40
+        # card_gp_sun(80) → q=16,r=0 → 16
+        # card_gp_sun(40) → q=8,r=0 → 8
+        # pg1=project_gp_sun([{n:sira,val:20}])=(20*2)//10=4
+        # g1=16+4=20, g2=8
+        assert rv.s1_computed == 20
         assert rv.s2_computed == 8
         assert rv.gp_ok is True
 
@@ -271,7 +323,7 @@ class TestValidateRound:
             "e1": 60, "e2": 60, "p1": 70, "p2": 60,
             "r1": [], "r2": [],
         }
-        rv = validate_round(result, "test.json", 0)
+        rv = validate_round(result, [], "test.json", 0)
         assert rv is not None
         assert rv.game_mode == "SUN"
 
