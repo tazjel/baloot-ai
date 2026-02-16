@@ -11,7 +11,8 @@
 | Test files | **86** |
 | Test / Source Ratio | **0.55** (target: 0.70) ⚠️ |
 | Last Pass Rate | **100%** (1154/1154) — 502 main + 652 GBaloot ✅ |
-| Data Mining | **5/5 missions** — 15 training files in `gbaloot/data/training/` |
+| Data Mining | **5/5 missions** — 15 training files in `gbaloot/data/training/` ✅ |
+| Pro Data Wiring | **5/5 modules** — bidding, discard, doubling, score, lead ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
 | Last Test Run | 2026-02-16 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
@@ -21,11 +22,11 @@
 ### Backend Hotspots (>15 KB)
 | File | Size | Status |
 |------|------|--------|
-| `ai_worker/strategies/components/hokum.py` | 32.8 KB | 🔴 Critical |
-| `ai_worker/strategies/components/sun.py` | 29.1 KB | 🔴 Critical |
+| `ai_worker/strategies/components/hokum.py` | ~13 KB | ✅ Decomposed (was 32.8 KB) |
+| `ai_worker/strategies/components/sun.py` | ~11 KB | ✅ Decomposed (was 29.1 KB) |
 | `game_engine/logic/qayd_engine.py` | 21.4 KB | 🟡 Large |
 | `game_engine/logic/game.py` | 20.4 KB | 🟡 Large |
-| `ai_worker/strategies/bidding.py` | 19.2 KB | 🟡 Large |
+| `ai_worker/strategies/bidding.py` | ~21 KB | 🟡 Large (grew with pro_data wiring) |
 | `ai_worker/bot_context.py` | 17.2 KB | 🟡 Large |
 | `game_engine/logic/trick_manager.py` | 16.7 KB | 🟡 Unchanged |
 | `ai_worker/mcts/fast_game.py` | 16.2 KB | 🟡 Unchanged |
@@ -172,37 +173,17 @@
 
 ## 🎯 Active Missions
 
-## Mission 23: "The Surgeon II" — AI Strategy File Decomposition
-> Effort estimate (~2 hours) | Priority: ① — Low-risk hygiene
+## Mission 23: "The Surgeon II" — AI Strategy File Decomposition (Backend ✅, Frontend pending)
+> Backend completed 2026-02-17. Frontend hotspots still pending.
 
-`hokum.py` = 32.8 KB and `sun.py` = 29.1 KB are the largest files in the codebase. Frontend hotspots `SettingsModal.tsx` (19.8 KB) and `ActionBar.tsx` (17.2 KB) also need splitting.
+### Backend ✅ Completed
+- [x] **hokum.py** (627→301 lines, -52%) → `hokum_defense.py` (156 lines) + `hokum_follow.py` (177 lines)
+- [x] **sun.py** (607→257 lines, -58%) → `sun_defense.py` (222 lines) + `sun_follow.py` (149 lines)
 
-### Tasks
-- [ ] **Decompose `hokum.py` (32.8 KB)** — extract trump management, defensive play, and partner coordination
-  - [ ] Create `ai_worker/strategies/components/hokum_defense.py`
-  - [ ] Create `ai_worker/strategies/components/hokum_trumping.py`
-  - [ ] Reduce `hokum.py` to <15 KB orchestrator
-- [ ] **Decompose `sun.py` (29.1 KB)** — extract suit management and cooperative logic
-  - [ ] Create `ai_worker/strategies/components/sun_defense.py`
-  - [ ] Create `ai_worker/strategies/components/sun_leading.py`
-  - [ ] Reduce `sun.py` to <15 KB orchestrator
+### Frontend Remaining
 - [ ] **Decompose `SoundManager.ts` (18.8 KB)** — extract sound definitions from player logic
 - [ ] **Decompose `SettingsModal.tsx` (19.8 KB)** — extract theme/audio/game sections into sub-components
 - [ ] **Decompose `ActionBar.tsx` (17.2 KB)** — separate bidding/playing action modes
-
-### Key Files
-| File | Change |
-|------|--------|
-| `ai_worker/strategies/components/hokum.py` | Split into 3 files |
-| `ai_worker/strategies/components/sun.py` | Split into 3 files |
-| `frontend/src/services/SoundManager.ts` | Split definitions |
-| `frontend/src/components/SettingsModal.tsx` | Extract sections |
-| `frontend/src/components/ActionBar.tsx` | Extract modes |
-
-### Verification
-- All 522+ tests pass
-- No new `as any` or `console.log` leaks
-- All hotspot files <15 KB (backend) / <12 KB (frontend)
 
 ---
 
@@ -281,27 +262,19 @@ Run live capture sessions and benchmark against the engine. The new `capture_ses
 
 ---
 
-## Mission 9: "The Strategist" — Smarter Bot AI
-> Effort estimate (~3 hours) | Priority: ⑤ — Bot intelligence
+## Mission 9: "The Strategist" — Wire Empirical Data into Bot AI ✅
+> Completed 2026-02-17. Wired 109 pro games into 5 consumer modules:
+> - `pro_data.py`: Central module — 23 bidding thresholds, 18 P(win) entries, 8 trick lead tables
+> - `bidding.py`: Position multiplier (0.85x-1.40x), score-state adjustment, pro bid frequency cross-check
+> - `score_pressure.py`: P(win) lookup, empirical doubling rates, far-behind gamble heuristic
+> - `discard_logic.py`: Shortest-suit preference (78.5%), rank-weighted discard scoring
+> - `doubling_engine.py`: Kelly Criterion validation (×2 is -EV!), score-state thresholds
+> - `heuristic_lead.py`: Trick-dependent lead rank preferences (A→K shift by trick#)
 
-### Tasks
+### Remaining Bot AI Tasks (for future sessions)
 - [ ] **Partner Signaling** — lead strong suits to signal; track partner patterns
-- [ ] **Defensive Play** — cut trumps early vs opponent contracts
-- [ ] **Score-Aware Decisions** — aggression near game-end
 - [ ] **Sawa Timing** — claim only when certain
 - [ ] **Address TODOs** — `memory.py` probabilistic memory, `mcts/utils.py` precise counting
-
-### Key Files
-| File | Change |
-|------|--------|
-| `ai_worker/strategies/components/hokum.py` | Defensive heuristics |
-| `ai_worker/strategies/components/sun.py` | Partner signaling |
-| `ai_worker/memory.py` | Probabilistic memory TODO |
-
-### Verification
-```powershell
-python -m pytest tests/bot/ -v
-```
 
 ---
 
@@ -368,11 +341,11 @@ python -m pytest tests/bot/ -v
 
 | Mission | Impact | Effort | Risk | Order |
 |---------|--------|--------|------|-------|
-| **23. Surgeon II** | 🔴 High | 🟢 Low | 🟢 Low | ① Decomposition |
+| **23. Surgeon II** | 🟡 Partial | 🟢 Low | 🟢 Low | ① Frontend decomp remaining |
 | **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ② Test Coverage |
 | **24. The Observer** | 🔴 High | 🟢 Low | 🟢 Low | ③ Live Benchmark |
 | **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ④ UX Sprint |
-| **9. The Strategist** | 🟡 Medium | 🟡 Medium | 🟡 Medium | ⑤ Bot AI |
+| **9. The Strategist** | ✅ Done | — | — | ✅ Pro data wired |
 | **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑥ Tutorial |
 | **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑦ Replay/Stats |
 | **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑧ Advanced AI |
