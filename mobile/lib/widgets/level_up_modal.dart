@@ -50,7 +50,7 @@ class _LevelUpModalState extends State<LevelUpModal> {
             border: Border.all(color: AppColors.goldPrimary, width: 3),
             boxShadow: [
               BoxShadow(
-                color: AppColors.goldPrimary.withOpacity(0.5),
+                color: AppColors.goldPrimary.withAlpha(128),
                 blurRadius: 30,
                 spreadRadius: 5,
               ),

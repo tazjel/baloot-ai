@@ -38,7 +38,7 @@ class SawaModal extends ConsumerWidget {
             border: Border.all(color: AppColors.goldPrimary, width: 2),
             boxShadow: [
               BoxShadow(
-                color: AppColors.goldPrimary.withOpacity(0.3),
+                color: AppColors.goldPrimary.withAlpha(76),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),

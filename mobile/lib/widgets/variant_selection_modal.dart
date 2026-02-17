@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/colors.dart';
-import '../models/enums.dart';
 
 class VariantSelectionModal extends ConsumerWidget {
   final Function(String type, {String? suit}) onSelect;
@@ -108,7 +107,7 @@ class VariantSelectionModal extends ConsumerWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: isCancel ? Colors.transparent : color.withOpacity(0.5), width: 2),
+            border: Border.all(color: isCancel ? Colors.transparent : color.withAlpha(128), width: 2),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(

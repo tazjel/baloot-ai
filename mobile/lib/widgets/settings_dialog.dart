@@ -11,7 +11,6 @@ class SettingsDialog extends StatefulWidget {
 class _SettingsDialogState extends State<SettingsDialog> {
   late SoundService _sound;
   late bool _isMuted;
-  late double _volMaster; // Not strictly in service but can toggle mute
   final Map<String, double> _volumes = {};
 
   @override

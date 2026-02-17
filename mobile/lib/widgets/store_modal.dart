@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/colors.dart';
-import '../state/providers.dart';
 
 class StoreModal extends ConsumerStatefulWidget {
   const StoreModal({super.key});

@@ -57,9 +57,9 @@ class MatchReviewModal extends ConsumerWidget {
                     Container(
                       margin: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: AppColors.tableGreen.withOpacity(0.5),
+                        color: AppColors.tableGreen.withAlpha(128),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.goldPrimary.withOpacity(0.3), width: 2),
+                        border: Border.all(color: AppColors.goldPrimary.withAlpha(76), width: 2),
                       ),
                     ),
 

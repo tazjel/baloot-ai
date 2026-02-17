@@ -40,7 +40,7 @@ class _DisputeModalState extends ConsumerState<DisputeModal> {
             border: Border.all(color: AppColors.error, width: 2),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.5),
+                color: Colors.black.withAlpha(128),
                 blurRadius: 20,
                 spreadRadius: 5,
               ),
