@@ -3,6 +3,12 @@
 Determines the optimal card to play when following suit (seats 2, 3, 4
 in a trick).  Implements an 8-tactic priority cascade covering winning,
 dodging, trumping, and shedding scenarios for both SUN and HOKUM modes.
+
+Thresholds calibrated against 12,693 pro follow plays (109 games):
+- Feed partner: 41.4% high cards (seat 4: 51.8%)
+- Conserve vs opponent: 23.0% high (seat 4: 19.3%)
+- Second-hand-low: 42.7% early tricks
+- Trump-in when void: only 26.8% (pros save trumps)
 """
 from __future__ import annotations
 
@@ -130,20 +136,25 @@ def optimize_follow(
         highest_idx = max(same_suit, key=lambda i: _rank_index(hand[i].rank, mode))
 
         # — Partner winning → FEED_PARTNER or DODGE —
+        # Pro data: 41.4% feed high (A/10/K); seat 4 feeds 51.8%
         if partner_winning:
             # Tier 1: Feed A (11pts) or 10 (10pts) — massive point dump
+            # Pro data: 30.0% feed A or 10 specifically (N=1706)
             big_feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 10]
             if big_feedable:
                 idx = max(big_feedable, key=lambda i: _card_points(hand[i].rank, mode))
                 c = hand[idx]
-                return _result(idx, "FEED_PARTNER", 0.85,
+                # Seat 4 feeds more aggressively (pro: 51.8% vs 39.1%)
+                conf = 0.88 if seat == 4 else 0.82
+                return _result(idx, "FEED_PARTNER", conf,
                                f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) to partner")
             # Tier 2: Feed K (4pts) or Q (3pts) — smaller but still valuable
             mid_feedable = [i for i in same_suit if _card_points(hand[i].rank, mode) >= 3]
             if mid_feedable and trick_points >= 5:
                 idx = max(mid_feedable, key=lambda i: _card_points(hand[i].rank, mode))
                 c = hand[idx]
-                return _result(idx, "FEED_PARTNER", 0.75,
+                conf = 0.78 if seat == 4 else 0.70
+                return _result(idx, "FEED_PARTNER", conf,
                                f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) to partner's trick")
             # Tier 3: Just play lowest — dodge
             c = hand[lowest_idx]
@@ -151,6 +162,7 @@ def optimize_follow(
                            f"Partner winning — play lowest {c.rank}{c.suit}")
 
         # ── SECOND-HAND-LOW DISCIPLINE ──
+        # Pro data: seat 2 plays lowest 42.7% early, 36.6% overall (N=4188)
         # Seat 2: Play low unless master or high-value trick — let partner handle it
         if seat == 2 and beaters:
             masters = [i for i in beaters if _rank_index(hand[i].rank, mode) >= 7]  # Top rank = master-level
@@ -163,7 +175,9 @@ def optimize_follow(
             if trick_points < 10:
                 # Low-value trick — play low, let partner handle from seat 4
                 c = hand[lowest_idx]
-                return _result(lowest_idx, "SECOND_HAND_LOW", 0.7,
+                # Pro data: stronger discipline in early tricks (42.7% vs 36.6%)
+                conf = 0.75 if tricks_remaining >= 6 else 0.65
+                return _result(lowest_idx, "SECOND_HAND_LOW", conf,
                                f"2nd seat low: save strength, play {c.rank}{c.suit}")
 
         # — Can we beat the current winner? —
@@ -177,9 +191,11 @@ def optimize_follow(
                                f"{c.rank}{c.suit} beats {w_rank}; {trick_points}pts on table")
 
             # DESPERATION: seat 4, opponent winning medium-value pot (10-14 pts)
+            # Pro data: seat 4 aggression increases late-game (17.5%→23.8%)
             if seat == 4 and trick_points >= 10:
                 c = hand[cheapest_beater]
-                return _result(cheapest_beater, "DESPERATION", 0.75,
+                conf = 0.78 if tricks_remaining <= 3 else 0.72
+                return _result(cheapest_beater, "DESPERATION", conf,
                                f"Seat 4, must win {trick_points}pt trick with {c.rank}{c.suit}")
 
             # WIN_CHEAP: seat 4 = guaranteed win for low-value tricks (<10 pts)
@@ -204,14 +220,16 @@ def optimize_follow(
     non_trump = [i for i in off_suit if not trump_suit or hand[i].suit != trump_suit]
 
     # Partner winning → FEED_OFFSUIT or DODGE (don't waste trump)
+    # Pro data: 39.2% discard high (A/10/K) when partner winning (N=2082)
     if partner_winning:
         discard = non_trump if non_trump else off_suit
         # Feed high-point off-suit cards to partner (A, 10, K, Q)
-        feedable_off = [i for i in discard if _card_points(hand[i].rank, mode) >= 3]
-        if feedable_off and trick_points >= 5:
+        feedable_off = [i for i in discard if _card_points(hand[i].rank, mode) >= 4]
+        if feedable_off:
             idx = max(feedable_off, key=lambda i: _card_points(hand[i].rank, mode))
             c = hand[idx]
-            return _result(idx, "FEED_OFFSUIT", 0.78,
+            conf = 0.82 if seat == 4 else 0.75
+            return _result(idx, "FEED_OFFSUIT", conf,
                            f"Feed {c.rank}{c.suit} ({_card_points(c.rank, mode)}pts) off-suit to partner")
         idx = min(discard, key=lambda i: _card_points(hand[i].rank, mode))
         c = hand[idx]
@@ -219,6 +237,7 @@ def optimize_follow(
                        f"Partner winning, void — discard {c.rank}{c.suit}")
 
     # HOKUM: trump logic
+    # Pro data: only 26.8% trump when void (N=3284) — pros conserve trumps
     if mode == "HOKUM" and trump_cards:
         # Opponent already trumped? → TRUMP_OVER
         if winner_is_trump:
@@ -230,19 +249,27 @@ def optimize_follow(
                 return _result(idx, "TRUMP_OVER", 0.7,
                                f"Over-trump {w_rank} with {c.rank}{c.suit}")
 
-        # Worth trumping? (opponent winning + meaningful points)
-        if not partner_winning and trick_points >= 10:
+        # Worth trumping? Pro data: raise threshold — only trump for high-value tricks
+        # Pros trump only 26.8% of void plays, so require >= 15 pts (was 10)
+        if not partner_winning and trick_points >= 15:
             idx = min(trump_cards, key=lambda i: _rank_index(hand[i].rank, mode))
             c = hand[idx]
-            return _result(idx, "TRUMP_IN", 0.75,
+            return _result(idx, "TRUMP_IN", 0.78,
                            f"Ruff with {c.rank}{c.suit} for {trick_points}pt trick")
 
-        # Low-value trick — save trump
-        if trick_points < 10 and non_trump:
+        # Medium-value trick: only trump from seat 4 (guaranteed last play)
+        if not partner_winning and trick_points >= 10 and seat == 4:
+            idx = min(trump_cards, key=lambda i: _rank_index(hand[i].rank, mode))
+            c = hand[idx]
+            return _result(idx, "TRUMP_IN", 0.65,
+                           f"Seat 4 ruff {c.rank}{c.suit} for {trick_points}pt trick")
+
+        # Below threshold — save trump, discard instead
+        if non_trump:
             idx = min(non_trump, key=lambda i: _card_points(hand[i].rank, mode))
             c = hand[idx]
             return _result(idx, "SHED_SAFE", 0.6,
-                           f"Low trick ({trick_points}pts) — save trump, shed {c.rank}{c.suit}")
+                           f"Save trump ({trick_points}pts) — shed {c.rank}{c.suit}")
 
     # SHED_SAFE: discard lowest-value card, prefer creating voids
     discard_pool = non_trump if non_trump else off_suit

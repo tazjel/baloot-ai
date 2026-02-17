@@ -180,6 +180,49 @@ KABOOT_RATE_HOKUM: float = 0.093  # 9.3% of HOKUM rounds
 PRO_PASS_RATE: float = 0.854      # 85.4% of all decisions are PASS
 
 
+# ═══════════════════════════════════════════════════════════════════
+#  FOLLOW-PLAY PATTERNS (from mine_card_play_data.py)
+#  Empirical follow-suit behavior from 12,693 follow plays with choice
+# ═══════════════════════════════════════════════════════════════════
+
+# When partner is winning the trick, pros play high cards (A/10/K) at these rates:
+FEED_PARTNER_RATE: float = 0.414          # Overall (N=3878)
+FEED_PARTNER_SEAT3: float = 0.391         # Seat 3 (N=3165)
+FEED_PARTNER_SEAT4: float = 0.518         # Seat 4: most aggressive feeding (N=713)
+FEED_ACE_TEN_SAME_SUIT: float = 0.300     # Feed A or 10 specifically, same suit (N=1706)
+
+# When opponent is winning, pros conserve — much lower high-card rate:
+CONSERVE_OPP_RATE: float = 0.230          # Overall high card rate (N=8815)
+CONSERVE_OPP_SEAT2: float = 0.245         # Seat 2 (N=4188)
+CONSERVE_OPP_SEAT4: float = 0.193         # Seat 4: most conservative (N=3439)
+DUMP_LOW_OPP_RATE: float = 0.378          # Play 7/8 when opponent winning (N=8815)
+DUMP_LOW_OPP_SEAT4: float = 0.400         # Seat 4 dumps low 40% (N=3439)
+
+# Second-hand-low discipline (seat 2)
+SECOND_HAND_LOW_RATE: float = 0.366       # Overall play-lowest (N=4188)
+SECOND_HAND_LOW_EARLY: float = 0.427      # Tricks 1-2: stronger discipline (N=1315)
+
+# Trump-in when void (HOKUM only)
+TRUMP_IN_VOID_RATE: float = 0.268         # Only 26.8% trump when void (N=3284)
+# Consistent across phases: early 27.1%, mid 27.2%, late 25.8%
+
+# Seat 4 aggression when opponent winning — increases in late game
+SEAT4_AGGRESSION_EARLY: float = 0.175     # Tricks 1-3 (N=1688)
+SEAT4_AGGRESSION_MID: float = 0.199       # Tricks 4-5 (N=1191)
+SEAT4_AGGRESSION_LATE: float = 0.238      # Tricks 6-8 (N=560)
+
+# Discard behavior when void, by who's winning
+DISCARD_HIGH_PARTNER_WINNING: float = 0.392  # Feed high to partner (N=2082)
+DISCARD_LOW_OPPONENT_WINNING: float = 0.648  # Dump low vs opponent (N=4088)
+
+# Partner-winning vs opponent-winning high-card swing by position
+# Seat 4 shows the biggest swing: 51.8% feed vs 19.3% conserve = 32.5pp
+POSITION_FEED_CONSERVE_SWING: dict[int, float] = {
+    3: 0.107,   # 39.1% - 28.4% = 10.7pp swing
+    4: 0.325,   # 51.8% - 19.3% = 32.5pp swing (strongest signal)
+}
+
+
 def get_pro_bid_frequency(trump_count: int, high_cards: int) -> float:
     """Return pro bid frequency for given hand shape. 0.0 if not in lookup."""
     key = f"{trump_count}t_{high_cards}h"

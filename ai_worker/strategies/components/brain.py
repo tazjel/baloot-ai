@@ -96,20 +96,25 @@ def consult_brain(
                              f"{hand[best].suit}"))
 
     # ── 2. Point Density ────────────────────────────────────────
+    # Pro data: seat 4 aggression 17.5% early → 23.8% late (N=3439)
+    # Pros conserve at 19.3% vs opponents — tight threshold needed
     if table_cards:
         consulted.append("point_density")
         pts = sum(pv.get(tc.get("rank", ""), 0) for tc in table_cards)
-        if pts >= 26:  # CRITICAL
-            best = max(range(len(hand)), key=lambda i: order.index(hand[i].rank))
+        pool = list(range(len(hand)))
+        if pts >= 26:  # CRITICAL — must fight for this trick
+            best = max(pool, key=lambda i: order.index(hand[i].rank))
             opinions.append(("point_density", best, 0.85,
                              f"CRITICAL {pts}pts→play {hand[best].rank}{hand[best].suit}"))
-        elif pts >= 16 and not partner_winning:  # HIGH
-            best = max(range(len(hand)), key=lambda i: order.index(hand[i].rank))
-            opinions.append(("point_density", best, 0.7,
+        elif pts >= 18 and not partner_winning:  # HIGH (raised from 16→18)
+            best = max(pool, key=lambda i: order.index(hand[i].rank))
+            # Late-game boost: pros get more aggressive in tricks 6-8
+            conf = 0.72 if tricks_played >= 5 else 0.65
+            opinions.append(("point_density", best, conf,
                              f"HIGH {pts}pts→fight with {hand[best].rank}{hand[best].suit}"))
-        elif partner_winning and pts < 16:
-            # Partner has it, play low
-            low = min(range(len(hand)), key=lambda i: pv.get(hand[i].rank, 0))
+        elif partner_winning and pts < 18:
+            # Partner has it, play low — pro data: conserve (23% high overall)
+            low = min(pool, key=lambda i: pv.get(hand[i].rank, 0))
             opinions.append(("point_density", low, 0.6,
                              f"partner winning {pts}pts→shed {hand[low].rank}{hand[low].suit}"))
 
