@@ -6,6 +6,11 @@
 *.key
 .mcp.json
 
+# Internal reports & task files
+.test_report.json
+.claude/task_*.md
+follow_play_analysis_report.md
+
 # Ephemeral artifacts
 diagnostics/
 logs/

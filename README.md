@@ -1,10 +1,11 @@
 # Baloot AI & Game Engine ♠️
 
 ![Project Status](https://img.shields.io/badge/Status-Active-success)
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![React](https://img.shields.io/badge/React-18-blue)
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![React](https://img.shields.io/badge/React-19-blue)
 ![Redis](https://img.shields.io/badge/Redis-Enabled-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Tests](https://img.shields.io/badge/Tests-535_passing-brightgreen)
 
 A high-performance, multiplayer **Baloot** game engine featuring an advanced AI opponent ("The Brain"). This project combines traditional game rules with modern AI techniques (Reinforcement Learning & LLMs) to create a challenging and robust gaming experience.
 
@@ -25,9 +26,9 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Python 3.10+**
+- **Python 3.11+**
 - **Node.js 18+**
-- **Docker Desktop** (for Redis)
+- **Docker Desktop** (for Redis, optional — set `OFFLINE_MODE=true` to play without it)
 
 ### Installation
 
@@ -68,13 +69,13 @@ A high-performance, multiplayer **Baloot** game engine featuring an advanced AI 
 
 ## 📂 Project Structure
 
-- **`server/`**: Core backend application (Game logic, Socket handlers, Controllers).
-- **`game_engine/`**: Reusable game logic engine.
-- **`frontend/`**: React-based user interface.
-- **`ai_worker/`**: AI Strategy and decision making.
-- **`scripts/`**: Development and testing utilities.
-- **`docs/`**: In-depth documentation, status reports, and project history.
-- **`logs/`**: Application and testing logs.
+- **`game_engine/`**: Pure Python game state machine (Pydantic models, trick resolution, scoring).
+- **`ai_worker/`**: AI strategy layer — 31 modular strategy components, brain cascade, empirical thresholds from 109 pro games.
+- **`server/`**: FastAPI/WebSocket backend (room management, auth, real-time multiplayer).
+- **`frontend/`**: React 19 + TypeScript UI (Vite, Framer Motion animations).
+- **`tests/`**: 535+ tests covering game logic, AI strategies, and scoring validation.
+- **`docs/`**: Architecture, rules, and contributing guides.
+- **`scripts/`**: Development, data mining, and testing utilities.
 
 ## 📚 Documentation
 

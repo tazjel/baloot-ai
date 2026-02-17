@@ -1,8 +1,8 @@
 import requests
 import os
 
-# Path to the user's uploaded image (absolute path from metadata)
-IMAGE_PATH = r"C:/Users/MiEXCITE/.gemini/antigravity/brain/4ddca2fa-5f9f-4928-8efb-e5f9e2e7ef89/uploaded_image_1768685881050.png"
+# Path to the test screenshot — set via env var or provide a local path
+IMAGE_PATH = os.environ.get("TEST_SCREENSHOT_PATH", "test_screenshot.png")
 URL = "http://127.0.0.1:3005/react-py4web/analyze_screenshot"
 
 def test_analyze():
