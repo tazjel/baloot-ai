@@ -124,9 +124,30 @@
 ### Mission 9: "The Strategist" — Wire Empirical Data into Bot AI ✅
 > Completed 2026-02-17. Pro data wired into 5 consumer modules.
 
+### Mission 23 (Backend): God-File Decomposition ✅
+> Completed 2026-02-17. hokum.py -52%, sun.py -58%.
+
+### Mission 27: "The Accountant" — Scoring Engine Accuracy Overhaul ✅
+> Completed 2026-02-17. Kammelna-validated formulas (100% on 1,095 rounds).
+> SUN floor-to-even, HOKUM pair-based sum=16, khasara tie-break. +13 parametric tests.
+
+### Mission 29: "The Reader" — Pro Follow-Play Pattern Mining ✅
+> Completed 2026-02-17. 12,693 follow plays → 15 empirical constants.
+> Calibrated follow_optimizer (trump threshold 10→15, seat-aware feed, second-hand-low).
+> Calibrated brain (HIGH threshold 16→18, late-game boost). +17 tests.
+
 ---
 
 ## 🎯 Active Missions
+
+### Mission 28: "The Oracle" — Endgame Solver Activation (Delegated to Jules)
+> Fix hand reconstruction resilience, extend solver to 4 cards, validate against 2,728 pro endgame positions.
+
+### Mission 30: "The Telepath" — Partner & Opponent Discard Signal Reading (Delegated to Jules)
+> Add discard suit interpretation to partner_read.py and opponent_model.py. Shortest-suit discard in cooperative_play.py.
+
+### Mission 31: "The Conservator" — Trump Timing & Singleton Detection (Delegated to Antigravity)
+> Add trick-indexed trump lead probability, wire into trump_manager, singleton detection in opponent_model.
 
 ## Mission 25: "The Release" — GitHub Release Preparation 🆕
 > Effort estimate (~2 hours) | Priority: ① — Blocking release
