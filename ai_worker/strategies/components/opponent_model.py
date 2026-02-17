@@ -9,6 +9,8 @@ from collections import defaultdict
 
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
 from ai_worker.strategies.constants import ALL_SUITS, PTS_SUN, PTS_HOKUM
+from ai_worker.strategies.components.pro_data import DISCARD_LOW_OPPONENT_WINNING
+
 _HIGH = {"A", "10", "K"}
 _LOW = {"7", "8"}
 _PTS = {"SUN": PTS_SUN, "HOKUM": PTS_HOKUM}
@@ -43,6 +45,9 @@ def model_opponents(
     high_trump: dict[str, bool] = {p: False for p in opps}
     agg_plays: dict[str, int] = {p: 0 for p in opps}
     total_plays: dict[str, int] = {p: 0 for p in opps}
+
+    # Track discards for pattern recognition
+    discards: dict[str, list[tuple[str, str]]] = {p: [] for p in opps} # list of (rank, suit)
 
     # --- Bid inference ---
     for entry in bid_history or []:
@@ -80,12 +85,20 @@ def model_opponents(
             if suit != led_suit and led_suit:
                 voids[player].add(led_suit)
                 strength[player][led_suit] = -5.0
-                # Trumped?
-                if suit == trump_suit:
+
+                # Check if it's a ruff or a discard
+                is_ruff = (mode == "HOKUM" and suit == trump_suit)
+
+                if is_ruff:
                     trump_count[player] += 1
                     if rank in ("J", "9"):
                         high_trump[player] = True
                     agg_plays[player] += 1
+                else:
+                    # It is a discard (off-suit play)
+                    if suit: # Ensure suit is valid
+                        discards[player].append((rank, suit))
+                        strength[player][suit] -= 1.0
 
             # Suit strength from plays
             if is_leader:
@@ -113,13 +126,35 @@ def model_opponents(
         style = "AGGRESSIVE" if style_ratio > 0.6 else ("PASSIVE" if style_ratio < 0.4 else "UNKNOWN")
         tc = trump_count[p] if mode == "HOKUM" else 0
         danger = min(1.0, tc * 0.15 + strong_count * 0.1 + style_ratio * 0.2)
+
+        # Analyze discards
+        likely_short = set()
+        signals = set()
+        extra_notes = []
+
+        low_discard_counts = defaultdict(int)
+
+        for r, s in discards[p]:
+            if r in _LOW:
+                low_discard_counts[s] += 1
+            if r in _HIGH:
+                signals.add("desperate")
+                extra_notes.append("desperation_discard")
+
+        for s, count in low_discard_counts.items():
+            if count >= 1: # "Repeated" or just low discard implies short
+                 likely_short.add(s)
+
         profiles[p] = {
             "void_suits": sorted(voids[p]),
+            "likely_short_suits": sorted(list(likely_short)), # New field
             "estimated_trumps": tc,
             "has_high_trumps": high_trump[p],
             "strength_by_suit": dict(strength[p]),
             "play_style": style,
             "danger_level": round(danger, 2),
+            "signals": sorted(list(signals)), # New field
+            "notes": extra_notes, # Internal use for description
         }
 
     # --- Safe / avoid suits ---
@@ -143,6 +178,8 @@ def model_opponents(
         if pr["has_high_trumps"]:
             parts.append("has high trump")
         parts.append(pr["play_style"].lower())
+        if pr["signals"]:
+            parts.append(f"signals: {','.join(pr['signals'])}")
         notes.append(f"{p}: {', '.join(parts)}")
 
     return {

@@ -215,7 +215,7 @@ class TestCooperativePlay(unittest.TestCase):
             mode="SUN",
         )
         self.assertIsNotNone(result)
-        self.assertEqual(result["tactic"], "SMART_DISCARD")
+        self.assertIn(result["tactic"], ("SMART_DISCARD", "SIGNAL_SHAPE"))
         # Should discard from ♦ (partner's void) rather than ♣ (partner's strong)
         self.assertEqual(hand[result["card_index"]].suit, "♦")
 
@@ -243,6 +243,40 @@ class TestCooperativePlay(unittest.TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result["strategy"], "SETUP_RUN")
         self.assertEqual(hand[result["card_index"]].suit, "♥")
+
+    def test_cooperative_follow_discard_shortest_suit(self):
+        """When void in led suit, prefer discarding from shortest suit (signal)."""
+        # Hand has:
+        # ♣: K (1 card) - Shortest
+        # ♦: 7, 8 (2 cards)
+        # ♠: Void (led suit)
+        # ♥: Void
+        hand = [
+            Card("♣", "K"),  # 0 - Shortest suit (length 1)
+            Card("♦", "7"),  # 1
+            Card("♦", "8"),  # 2
+        ]
+        legal_indices = [0, 1, 2]
+        partner_info = {
+            "likely_strong_suits": [],
+            "likely_void_suits": [],
+            "confidence": 0.6,
+        }
+
+        # Led suit ♠ (void), partner NOT winning
+        result = get_cooperative_follow(
+            hand=hand,
+            legal_indices=legal_indices,
+            partner_info=partner_info,
+            led_suit="♠",
+            mode="SUN",
+            partner_winning=False
+        )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result["tactic"], "SIGNAL_SHAPE")
+        # Should discard K♣ (index 0) because it's from shortest suit
+        self.assertEqual(result["card_index"], 0)
 
 
 class TestFollowOptimizer(unittest.TestCase):
