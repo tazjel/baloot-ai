@@ -1,379 +1,165 @@
-# Next Session Missions — Detailed Task Plans
+# Next Session Brief — Flutter Mobile Migration
 
-> **Generated**: 2026-02-17 | **Scan Results Below**
+> **Updated**: 2026-02-18 | **Focus**: M-F4 → M-F5 → M-F6 → M-F7
 
-## 📊 Codebase Health Dashboard
+## Current Status: M-F4 Core Widgets (In Progress)
 
-| Metric | Value |
-|--------|-------|
-| Backend source files | **160** (game_engine: 46, ai_worker: 74, server: 40) |
-| Frontend files | **106** (.tsx/.ts) |
-| Test files | **86** |
-| Test / Source Ratio | **0.54** (target: 0.70) ⚠️ |
-| Last Pass Rate | **100%** (550/550) ✅ |
-| Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-17 |
-| TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
-| `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
-| TODO/FIXME/HACK | **3** (`memory.py`, `scout.py`, `verify_time_lord.py`) |
+### Completed Phases
+| Phase | Status | Commit | Tests |
+|-------|--------|--------|-------|
+| M-F1: Foundation & Core Models | ✅ Complete | `0dc4425` | 30 |
+| M-F2: Services Layer | ✅ Complete | `6d1cf8f` | 40 |
+| M-F3: State Management | ✅ Complete | `f3f2a69` | 102 |
+| M-F4: Core Widgets (Phase 1) | ✅ Complete | `01a283f` | 102 |
 
-### Backend Hotspots (>15 KB)
-| File | Size | Status |
-|------|------|--------|
-| `ai_worker/strategies/bidding.py` | ~17 KB | 🟢 Decomposed (M26: 4 focused methods) |
-| `game_engine/logic/qayd_engine.py` | 21.4 KB | 🟡 Large |
-| `game_engine/logic/game.py` | 20.4 KB | 🟡 Large |
-| `ai_worker/bot_context.py` | 17.2 KB | 🟡 Large |
-| `game_engine/logic/trick_manager.py` | 16.7 KB | 🟡 Unchanged |
-| `ai_worker/mcts/fast_game.py` | 16.2 KB | 🟡 Unchanged |
-| `ai_worker/strategies/components/hokum.py` | 15.8 KB | 🟡 Partially decomposed (was 32.8 KB) |
+### M-F4 Phase 1 Delivery (Done)
+Built 11 widget/screen files (+2,673 lines), all 102 tests passing:
 
-### Frontend Hotspots (>10 KB)
-| File | Size | Status |
-|------|------|--------|
-| `components/SettingsModal.tsx` | 19.8 KB | 🔴 Critical |
-| `services/SoundManager.ts` | 18.8 KB | 🔴 Critical |
-| `services/AccountingEngine.test.ts` | 18.2 KB | 🟡 Test file |
-| `components/ActionBar.tsx` | 17.2 KB | 🔴 Critical |
-| `services/AccountingEngine.ts` | 15.9 KB | 🟡 Large |
-| `components/MatchReviewModal.tsx` | 15.6 KB | 🟡 Large |
-| `components/Table.tsx` | 14.8 KB | 🟡 Large |
-| `hooks/useRoundManager.ts` | 11.8 KB | 🟡 Unchanged |
-| `components/classic/ClassicArena.tsx` | 11.1 KB | 🟡 New |
-| `services/hintService.ts` | 10.7 KB | 🟡 New |
+**Claude MAX built (9 new widgets):**
+- `CardWidget` — Card face/back with selection, trump glow, hint highlight
+- `PlayerAvatarWidget` — Avatar, turn halo, timer ring, dealer badge, speech bubble
+- `GameArena` — Center play area, felt gradient, floor card, cross-formation table cards
+- `HandFanWidget` — Card fan at bottom, tap-select, double-tap-play, legal move filtering
+- `ActionDock` — 4-mode dock: bidding/playing/doubling/waiting + AnimatedSwitcher
+- `TableHudWidget` — Score pills, contract badge, doubling level
+- `VictoryModal` — Win/lose with scores, rematch/home
+- `RoundResultsModal` — Scoring breakdown table
+- `ConnectionBanner` — Disconnected/reconnecting bar
+
+**Rewritten screens (2):**
+- `GameScreen` — Full 7-layer Stack architecture
+- `LobbyScreen` — Settings card with difficulty, timer, strict mode
 
 ---
 
-## ✅ Completed Missions
+## M-F4 Phase 2: Remaining Widgets (Delegate to Jules + Gemini)
 
-### Mission 1: "The Architect" — State Consolidation Refactor ✅
-> Merged via PR #9 on 2026-02-12
+### For Jules (Simple Widgets — ~15 files)
+| Widget | Port From | Estimated Lines |
+|--------|-----------|-----------------|
+| `SuitIconWidget` | Suit display | 50 |
+| `ScoreBadgeWidget` | Animated score counter | 80 |
+| `ContractIndicator` | Standalone contract badge | 60 |
+| `TurnTimerWidget` | Circular countdown | 100 |
+| `GlassPanelWidget` | Backdrop blur container | 50 |
+| `GameToastWidget` | Toast notification display | 80 |
+| `SpeechBubbleWidget` | Bot speech fade anim | 70 |
+| `HintOverlayWidget` | AI hint card highlight | 100 |
+| `HeartbeatLayer` | Tension pulse overlay | 80 |
+| `ProjectRevealWidget` | Project declaration display | 100 |
+| `EmoteMenuWidget` | Emoji grid dock | 120 |
+| `ScoreSheetWidget` | Round-by-round score table | 150 |
+| `ErrorBoundary` | ErrorWidget.builder wrapper | 40 |
 
-### Mission 3: "The Fixer" — Obsolete Test Cleanup ✅
-> Completed 2026-02-12. Removed 52 obsolete tests.
-
-### Mission 5: "The Cleaner" — Code Hygiene Sprint ✅
-> Completed 2026-02-12. 0 TS errors, 0 dead code.
-
-### Mission 6: "The Surgeon" — Backend God-File Decomposition ✅
-> Completed 2026-02-13 via Jules PR. Core files reduced.
-
-### Mission 7 Phase 1: Test Coverage Sprint ✅
-> Completed 2026-02-13. +184 tests (10 files), suite: 493 passing.
-
-### Mission 10: "The Scalpel" — AI Worker God-File Decomposition ✅
-> Completed 2026-02-15. Extracted 4 new modules.
-
-### Mission 11: "The Guardian" — Fix Latent Bugs ✅
-> Completed 2026-02-14. +21 tests, 5 bugs fixed.
-
-### Mission 12 (Original): "The Dashboard" — Test Manager Intelligence Center ✅
-> Completed 2026-02-13. Built Dashboard Test Manager.
-
-### Mission 12 (Redux): "Frontend Stability" — Fix Memory Leaks & Crashes ✅
-> Completed 2026-02-14. Fixed 9 hooks with memory leaks.
-
-### Mission 6 (Redux): "Test Fortress" — Expand Test Coverage ✅
-> Completed 2026-02-14. +109 new tests (353→462).
-
-### Mission 13: "The Contract" — Frontend Feature Gaps + Accessibility ✅
-> Completed 2026-02-14. ARIA accessibility, Arabic labels, Kaboot banner.
-
-### Mission 14: "The Fortress" — Server Security Hardening ✅
-> Completed 2026-02-14. XSS, rate limiting, JWT, CORS.
-
-### Mission 15: "The Consolidator" — Constants + Brain Wiring ✅
-> Completed 2026-02-14. Shared `constants.py`, brain cascade wiring.
-
-### Mission 16: "The Mind" — Bot Personality & Difficulty System ✅
-> Completed 2026-02-14. 4 profiles, 4 difficulty levels, +40 tests.
-
-### Mission 18: "The Showman" — Game Feel & Polish ✅
-> Completed 2026-02-14. Sounds, dark mode, trump glow, animations.
-
-### GBaloot Benchmark Lab ✅
-> Completed 2026-02-15. Dual-engine comparison: 96.8% trick agreement.
-
-### GBaloot Phase 2 (G5-G9) ✅
-> Completed 2026-02-16. Full pipeline overhaul: 413 GBaloot + 502 main = 915 total tests.
-
-### GBaloot Phase 3 — Autopilot Live Testing ✅
-> Completed 2026-02-16. Live session: 1339 events, 100% decode rate, 634 game_states.
-
-### Mobile Archive Parser & Benchmark ✅
-> Completed 2026-02-16. 109 archives, 8,107 tricks, 100% engine agreement.
-
-### Archive Rules Validation & Strategy Insights ✅
-> Completed 2026-02-16. Full scoring + bidding validation across 109 archives.
-
-### Scoring Formula Refinement — 100% Accuracy ✅
-> Completed 2026-02-16. GP formulas refined to 100% agreement.
-
-### Bidding Phase Documentation ✅
-> Completed 2026-02-16. 12,291 bid events documented in KAMMELNA_SCHEMA.md.
-
-### GBaloot Capture Session v2 — Workflow Improvements ✅
-> Completed 2026-02-16. 5 capture pipeline improvements.
-
-### Engine Reverse-Engineering (6 Missions) ✅
-> Completed 2026-02-16. Full protocol decoded from 109 archive games.
-
-### Empirical Data Mining (5 Missions) ✅
-> Completed 2026-02-17. 109 pro games mined into 15 training files.
-
-### Mission 9: "The Strategist" — Wire Empirical Data into Bot AI ✅
-> Completed 2026-02-17. Pro data wired into 5 consumer modules.
-
-### Mission 23 (Backend): God-File Decomposition ✅
-> Completed 2026-02-17. hokum.py -52%, sun.py -58%.
-
-### Mission 27: "The Accountant" — Scoring Engine Accuracy Overhaul ✅
-> Completed 2026-02-17. Kammelna-validated formulas (100% on 1,095 rounds).
-> SUN floor-to-even, HOKUM pair-based sum=16, khasara tie-break. +13 parametric tests.
-
-### Mission 29: "The Reader" — Pro Follow-Play Pattern Mining ✅
-> Completed 2026-02-17. 12,693 follow plays → 15 empirical constants.
-> Calibrated follow_optimizer (trump threshold 10→15, seat-aware feed, second-hand-low).
-> Calibrated brain (HIGH threshold 16→18, late-game boost). +17 tests.
+### For Gemini/Antigravity (Modals & Screens — ~8 files)
+| Widget/Screen | Port From | Estimated Lines |
+|---------------|-----------|-----------------|
+| `MultiplayerScreen` | Room create/join, player list | 250 |
+| `MatchReviewModal` | Trick-by-trick replay | 300 |
+| `DisputeModal` (Qayd) | Multi-step wizard | 350 |
+| `StoreModal` | Card backs + table skins grid | 200 |
+| `LevelUpModal` | Level up notification | 100 |
+| `ProjectSelectionModal` | Project picker | 120 |
+| `SawaModal` | Sawa claim/response | 150 |
+| `VariantSelectionModal` | R2 suit picker | 120 |
 
 ---
 
-### Mission 25: "The Release" — GitHub Release Preparation ✅
-> Completed 2026-02-17. Secret scan clean, hardcoded path fixed, README/gitignore updated.
+## M-F5: Animations (Next for Claude MAX)
 
-### Mission 26: "The Scalpel II" — Backend Hotspot Decomposition ✅
-> Completed 2026-02-17. bidding.py get_decision() decomposed into 4 focused methods.
-> 332-line monolith → clean orchestrator + _evaluate_hand_scores, _compute_thresholds,
-> _apply_pro_frequency_validation, _make_final_decision.
-
-### Mission 31: "The Conservator" — Trump Timing & Singleton Detection ✅
-> Completed 2026-02-17. Pro trump conservation curve (43%→15.5%) wired into trump_manager.
-> Singleton detection (10/A leads) in opponent_model. Discard signal reading in both
-> opponent_model and partner_read. 15 new tests, 550 total passing.
-
-## 🎯 Active Missions
-
-### Mission 28: "The Oracle" — Endgame Solver Activation (Delegated to Jules)
-> Fix hand reconstruction resilience, extend solver to 4 cards, validate against 2,728 pro endgame positions.
-
-### Mission 30: "The Telepath" — Partner & Opponent Discard Signal Reading (Delegated to Jules)
-> Add discard suit interpretation to partner_read.py and opponent_model.py. Shortest-suit discard in cooperative_play.py.
+### Priority Animations
+| Animation | Approach | Priority |
+|-----------|----------|----------|
+| Card deal stagger | Staggered `SlideTransition` from deck to hand | P1 |
+| Card play trajectory | `CurvedAnimation` bezier path hand→table | P1 |
+| Trick sweep | `SlideTransition` 4 cards → winner corner | P1 |
+| Hand fan hover lift | `AnimatedContainer` y-offset on selection | P2 |
+| Trump reveal 3D flip | `Transform.rotateY` + glow | P2 |
+| Turn indicator pulse | `RepeatAnimation` scale pulse | P3 |
+| Toast fade | `FadeTransition` auto-dismiss | P3 |
 
 ---
 
-## Mission 23: "The Surgeon II" — God-File Decomposition (Frontend Remaining)
-> Effort estimate (~2 hours) | Priority: ② — Structural hygiene
+## Key Architecture Notes
 
-Backend ✅ complete. Frontend 3 critical hotspots remain.
+### Type Patterns (Critical for new code)
+```dart
+// GameMode enum, NOT String
+sortHand(cards, GameMode.hokum);
 
-### Tasks
-- [ ] **Decompose `SettingsModal.tsx` (19.8 KB)** — extract theme/audio/game into sub-components
-  - [ ] `SettingsThemeTab.tsx`, `SettingsAudioTab.tsx`, `SettingsGameTab.tsx`
-- [ ] **Decompose `SoundManager.ts` (18.8 KB)** — extract sound definitions from player logic
-  - [ ] `SoundRegistry.ts` (definitions) + `SoundPlayer.ts` (playback logic)
-- [ ] **Decompose `ActionBar.tsx` (17.2 KB)** — separate bidding/playing action modes
-  - [ ] `BiddingActions.tsx` + `PlayingActions.tsx`
+// Suit? for trump, NOT String?
+isValidMove(card: c, hand: h, tableCards: tc, mode: m, trumpSuit: s, isLocked: false);
 
-### Key Files
-| File | Change |
-|------|--------|
-| `components/SettingsModal.tsx` | Split → 3 tab components |
-| `services/SoundManager.ts` | Split → registry + player |
-| `components/ActionBar.tsx` | Split → bidding + playing |
+// AccountingEngine takes DoublingLevel enum
+AccountingEngine.calculateRoundResult(
+  usRaw: 80, themRaw: 82, usProjects: 20, themProjects: 0,
+  bidType: 'SUN', doublingLevel: DoublingLevel.normal, bidderTeam: 'us',
+);
+```
 
-### Verification
+### Provider Hierarchy
+```
+gameStateProvider (master AppGameState)
+  ├── gameSocketProvider (socket → state updates)
+  ├── biddingLogicProvider (PASS/SUN/HOKUM/ASHKAL)
+  ├── playingLogicProvider (card play + doubling)
+  ├── roundManagerProvider (round lifecycle)
+  ├── actionDispatcherProvider (facade)
+  ├── gameRulesProvider (computed: legalCardIndices, canDouble, isMyTurn)
+  ├── audioNotifierProvider
+  ├── botSpeechProvider
+  ├── toastProvider
+  ├── connectionStatusProvider
+  ├── emoteProvider
+  ├── shopProvider
+  ├── tensionProvider
+  └── hintProvider
+```
+
+### SocketService API (what exists vs what doesn't)
+```dart
+// EXISTS:
+SocketService.instance.onConnectionStatus((status, attempt) {...});
+SocketService.instance.onBotSpeak((text, speakerIdx) {...});
+SocketService.instance.onGameUpdate((data) {...});
+
+// DOES NOT EXIST YET (stubbed):
+// onEmote, sendEmote, requestHint
+```
+
+---
+
+## Test Command
 ```powershell
-npm run build  # No TS errors
-python -m pytest tests/ --tb=short -q  # No backend regressions
+cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" test
 ```
 
-### 🤖 Claude MAX Task (copy-paste ready)
+## File Counts
+| Category | Files | Lines |
+|----------|-------|-------|
+| Models | 10 | ~1,200 |
+| Utils | 7 | ~800 |
+| Services | 5 | ~1,500 |
+| State (Notifiers) | 17 | ~2,800 |
+| Widgets | 14 | ~3,200 |
+| Screens | 3 | ~600 |
+| Tests | 8 | ~1,500 |
+| **Total** | **64** | **~11,600** |
+
+## Git Status
 ```
-Read frontend/src/components/SettingsModal.tsx completely.
-Read frontend/src/services/SoundManager.ts completely.
-Read frontend/src/components/ActionBar.tsx completely.
-
-For each file:
-1. Identify logical sub-sections that can be extracted
-2. Create new component files for each section
-3. Update the original file to import and compose the new components
-4. Ensure all props and state are properly threaded through
-5. Run `npm run build` to verify no TypeScript errors
-```
-
----
-
-## Mission 26: "The Scalpel II" — Backend Hotspot Decomposition ✅
-> Completed 2026-02-17. bidding.py decomposed via internal method extraction.
-
----
-
-## Mission 7 Phase 2: "The Shield" — Test Coverage to 70%
-> Effort estimate (~3 hours) | Priority: ④ — Coverage gap
-
-Test ratio is 0.54 (target 0.70), code coverage is 53.9% (target 70%). 6 tests failing.
-
-### Tasks
-- [ ] **Fix 6 Failing Tests** — investigate and fix (522 total, 516 passed)
-- [ ] **Server Tests** — `bot_orchestrator.py`, `room_manager.py`, `socket_handler.py`
-- [ ] **AI Worker Tests** — `strategies/playing.py`, `sherlock.py`
-- [ ] **Trick Manager Edge Cases** — trump overtrump, void suit + forced play
-- [ ] **Qayd Engine Coverage** — state transitions, penalty edge cases
-- [ ] **Integration** — expand `verify_game_flow.py` for Sawa + multi-round
-
-### Key Files
-| File | Change |
-|------|--------|
-| `tests/server/test_orchestrator.py` | New: bot lifecycle |
-| `tests/game_logic/test_trick_manager_unit.py` | New: trick edge cases |
-| `tests/qayd/test_qayd_engine_unit.py` | New: state machine paths |
-
-### Verification
-```powershell
-python -m pytest tests/ --cov=game_engine --cov=server --cov=ai_worker --cov-report=term-missing
+main (ahead of origin by 4 commits):
+  01a283f feat(M-F4): Core widgets & screens — GameScreen Stack, ActionDock, HandFan, HUD
+  f3f2a69 feat(M-F3): State management — 17 Riverpod notifiers, 102 tests passing
+  6d1cf8f feat(M-F2): Services layer — SocketService, AccountingEngine, state rotation, audio
+  0dc4425 feat(M-F1): Flutter mobile app foundation — models, utils, theme, router
 ```
 
-### 🤖 Claude MAX Task (copy-paste ready)
-```
-Read game_engine/logic/trick_manager.py completely.
-Read game_engine/logic/qayd_engine.py completely.
-Read server/bot_orchestrator.py completely.
-Read the test files in tests/game_logic/ and tests/qayd/ for patterns.
+## Jules Status
+- Session `9756301129946369522` FAILED (unknown error) — all 8 notifiers built manually
+- No active Jules sessions
 
-1. First, run existing tests to identify the 6 failures: python -m pytest tests/ -x --tb=short
-2. Fix the failures
-3. Then generate new test files for untested modules:
-   - tests/server/test_orchestrator.py (bot lifecycle)
-   - tests/game_logic/test_trick_manager_unit.py (edge cases)
-4. Target: 70%+ code coverage on game_engine and server packages
-5. Run full coverage report to verify
-```
-
----
-
-## Mission 24: "The Observer" — GBaloot Live Capture & Benchmark Sprint
-> Effort estimate (~2 hours) | Priority: ⑤ — Empirical validation
-
-### Tasks
-- [ ] **Capture 3+ Hokum sessions** — `python gbaloot/capture_session.py --label hokum_study_01`
-- [ ] **Capture 3+ Sun sessions** — same CLI, different labels
-- [ ] **Run full benchmark** — decode → extract → compare
-- [ ] **Analyze divergences** — document any engine disagreements
-- [ ] **Update benchmark scorecard** — aim for ≥99% trick agreement
-
-### Verification
-- At least 6 capture sessions with WS data
-- Divergence count documented
-
----
-
-## Mission 8: "The Polish" — Frontend UX Sprint
-> Effort estimate (~3 hours) | Priority: ⑥ — User experience
-
-### Tasks
-- [ ] **Card Play Animations** — animate cards from hand → table, trick-win sweep
-- [ ] **Mobile Responsive** — audit at 375px and 768px
-- [ ] **Remaining Frontend Decomposition**:
-  - [ ] `AccountingEngine.ts` (15.9 KB) → extract transaction vs. balance
-  - [ ] `MatchReviewModal.tsx` (15.6 KB) → extract round detail panels
-  - [ ] `Table.tsx` (14.8 KB) → extract card layout
-
-### Verification
-- Playwright screenshots at 375px and 768px viewports
-- No regressions in existing tests
-
----
-
-## Mission 17: "The Teacher" — Interactive Tutorial & Learning Mode
-> Effort estimate (~4 hours) | Priority: ⑦ — User onboarding
-
-### Tasks
-- [ ] **Tutorial System** — 7-lesson step-by-step guide
-- [ ] **Hint System** — bid/play hints from bot AI
-- [ ] **Practice Mode** — undo/redo, card reveal
-
----
-
-## Mission 21: "The Brain Surgeon" — Advanced AI Intelligence
-> Effort estimate (~4 hours) | Priority: ⑧ — Advanced AI
-
-### Tasks
-- [ ] **Probabilistic Memory** (Mind's Eye) — Bayesian card tracking
-- [ ] **Score-Aware Engine** — dynamic risk/reward by score state
-- [ ] **Endplay/Squeeze Detection** — advanced card play techniques
-- [ ] **Partner Signaling** — lead strong suits to signal; track partner patterns
-- [ ] **Sawa Timing** — claim only when certain
-
-### 🤖 Claude MAX Task (copy-paste ready)
-```
-You are an expert Baloot player. Read these files:
-- ai_worker/strategies/components/sun.py
-- ai_worker/strategies/components/hokum.py
-- ai_worker/strategies/components/cooperative_play.py
-- ai_worker/signals/manager.py
-- ai_worker/memory.py
-
-1. Analyze the current partner signaling system
-2. Design a Bayesian card tracking module that replaces the TODO in memory.py
-3. Implement score-aware risk adjustment (conservative when ahead, aggressive when behind)
-4. Write tests proving the improvement in decision quality
-```
-
----
-
-## Mission 19: "The Historian" — Match Replay & Statistics
-> Effort estimate (~3 hours) | Priority: ⑨ — Engagement
-
-### Tasks
-- [ ] **Visual Replay** — playback controls, speed adjustment
-- [ ] **Player Stats Dashboard** — win rate, favorite bids, trick accuracy
-- [ ] **Achievements System** — milestones and badges
-
----
-
-## Mission 20: "The Arena" — Multiplayer & Social Features
-> Effort estimate (~5 hours) | Priority: ⑩ — Social
-
-### Tasks
-- [ ] **Room Browser** — lobby with room list, filters
-- [ ] **Quick Match** — matchmaking system
-- [ ] **Reconnection** — handle dropped connections gracefully
-- [ ] **Spectator Mode** — watch live games
-
----
-
-## Mission 22: "The Stage" — Production-Ready Game Experience
-> Effort estimate (~5 hours) | Priority: ⑪ — Production
-
-### Tasks
-- [ ] **Arabic-First Localization** — RTL support, i18n
-- [ ] **PWA/Offline Support** — service worker, offline play
-- [ ] **Docker & CI/CD** — Dockerfiles, GitHub Actions pipeline
-- [ ] **Code Splitting** — lazy load routes and heavy components
-
----
-
-## 📊 Priority Matrix
-
-| Mission | Impact | Effort | Risk | Order |
-|---------|--------|--------|------|-------|
-| **25. The Release** | 🔴 High | 🟢 Low | 🟢 Low | ① GitHub release prep |
-| **23. Surgeon II** | 🟡 Medium | 🟢 Low | 🟢 Low | ② Frontend decomp |
-| **26. Scalpel II** | 🟡 Medium | 🟡 Medium | 🟢 Low | ③ Backend decomp |
-| **7.2 The Shield** | 🔴 High | 🟡 Medium | 🟢 Low | ④ Test coverage |
-| **24. The Observer** | 🔴 High | 🟢 Low | 🟢 Low | ⑤ Live benchmark |
-| **8. The Polish** | 🔴 High | 🟡 Medium | 🟢 Low | ⑥ UX Sprint |
-| **17. The Teacher** | 🔴 High | 🔴 High | 🟡 Medium | ⑦ Tutorial |
-| **21. Brain Surgeon** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑧ Advanced AI |
-| **19. The Historian** | 🟡 Medium | 🟡 Medium | 🟢 Low | ⑨ Replay/Stats |
-| **20. The Arena** | 🟡 Medium | 🔴 High | 🔴 High | ⑩ Multiplayer |
-| **22. The Stage** | 🟡 Medium | 🔴 High | 🟡 Medium | ⑪ Production |
-
-## 🤖 Claude MAX Recommended Delegation
-
-| Mission | Category | Why Claude |
-|---------|----------|------------|
-| **23. Surgeon II** (Frontend) | 🔴 Multi-File Refactor | 3 files → 8 files, component extraction |
-| **26. Scalpel II** (bidding.py) | 🔴 Multi-File Refactor | Pattern-following decomposition |
-| **7.2 The Shield** (Tests) | 🔵 Test Architecture | Bulk test generation, edge cases |
-| **21. Brain Surgeon** | 🟢 Game-Theory Strategy | Claude can DESIGN the optimal approach |
+## Backend Tests (Unchanged)
+- 550 tests passing (`python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`)
+- 652 GBaloot tests passing

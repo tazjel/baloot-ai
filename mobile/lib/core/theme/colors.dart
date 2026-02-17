@@ -54,4 +54,14 @@ class AppColors {
   static const Color textDark = Color(0xFF1C1917);
   static const Color textLight = Color(0xFFFAFAF9);
   static const Color textMuted = Color(0xFF78716C);
+  static const Color textGold = goldPrimary;
+
+  // Semantic Aliases (used by modal/screen widgets)
+  static const Color backgroundDark = darkBg;
+  static const Color backgroundBlack = Color(0xFF000000);
+  static const Color surfaceDark = darkSurface;
+  static const Color surfaceLight = darkCard;
+  static const Color cardSurface = darkCard;
+  static const Color secondarySurface = Color(0xFF3D3835);
+  static const Color primaryWithOpacity = Color(0x26D4AF37); // goldPrimary @ 15%
 }
