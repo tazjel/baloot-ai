@@ -1,6 +1,6 @@
 """Mission 1: Professional Bidding Database.
 
-Extracts every bidding decision from 109 professional Kammelna games
+Extracts every bidding decision from 109 professional mobile app games
 with full hand metrics, context, and outcomes.
 
 Produces:
@@ -548,7 +548,7 @@ def generate_report(records: list[dict], thresholds: dict) -> str:
         "- **Passes**: {} ({:.1f}%)".format(
             len(passes),
             len(passes) / len(human_records) * 100 if human_records else 0),
-        "- **Games**: 109 professional Kammelna sessions",
+        "- **Games**: 109 professional mobile app sessions",
         "- **BOT moves excluded**: Yes (from move_labels.json)",
         "",
     ]

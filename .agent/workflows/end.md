@@ -13,7 +13,14 @@ Safely wrap up work, handling potential concurrent changes from other agents (e.
    git status -uno
    ```
 
-2. **Stage and Commit (Local Savepoint)**
+2. **Finalize Documentation**
+   // turbo
+   Update `task.md`, `walkthrough.md`, and generate `next-session-brief.md`.
+   ```powershell
+   # Manual step: Ensure artifacts are up to date
+   ```
+
+3. **Stage and Commit (Local Savepoint)**
    - Review changes first.
    // turbo
    ```powershell

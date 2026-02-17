@@ -1,6 +1,6 @@
 """Mission 1: Event State Machine Extraction.
 
-Parses all 109 Kammelna archive games and maps the complete game engine FSM —
+Parses all 109 mobile archive games and maps the complete game engine FSM —
 every legal event transition, mandatory sequences, conditional branches, and frequencies.
 
 Output: gbaloot/data/training/event_state_machine.json

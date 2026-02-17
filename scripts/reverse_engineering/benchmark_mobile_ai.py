@@ -1,11 +1,11 @@
-"""Mission 3: Kammelna AI Benchmarking.
+"""Mission 3: Mobile App AI Benchmarking.
 
-Evaluates how strong Kammelna's autoplay/bot AI actually is by analyzing
+Evaluates how strong the mobile app's autoplay/bot AI actually is by analyzing
 BOT-labeled moves from Mission 2 with full game context.
 
 Prerequisites: Mission 2 output (move_labels.json)
 
-Output: gbaloot/data/training/kammelna_ai_benchmark.json
+Output: gbaloot/data/training/mobile_ai_benchmark.json
 """
 from __future__ import annotations
 
@@ -276,9 +276,9 @@ def document_bot_strategy(labels: dict) -> dict:
 
 
 def main():
-    """Run Mission 3: Kammelna AI Benchmarking."""
+    """Run Mission 3: Mobile App AI Benchmarking."""
     print("=" * 60)
-    print("Mission 3: Kammelna AI Benchmarking")
+    print("Mission 3: Mobile App AI Benchmarking")
     print("=" * 60)
 
     # Load data
@@ -339,7 +339,7 @@ def main():
     }
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = OUTPUT_DIR / "kammelna_ai_benchmark.json"
+    output_path = OUTPUT_DIR / "mobile_ai_benchmark.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
     print(f"\n✅ Output saved to {output_path}")

@@ -1,4 +1,7 @@
-{
+Native Flutter — Full rewrite{
+  "userRules": [
+    "Do NOT use Claude MCP tools (any tool starting with mcp_claude_) unless the user explicitly asks you to. Use the built-in tools (grep_search, find_by_name, view_file, run_command, etc.) instead."
+  ],
   "mcpServers": {
     "playwright": {
       "command": "npx",

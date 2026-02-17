@@ -117,5 +117,5 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
 
 ## Team Workflow
 You (Claude MAX) handle complex multi-file refactors, system-level architecture, game-theory strategy design, and full-pipeline integration (module + wiring + tests).
-Gemini (Antigravity) orchestrates, scans gaps, runs tests, and manages the browser/dashboard.
+Gemini (Antigravity) orchestrates, scans gaps, runs tests, manages the browser/dashboard, and **performs deep Flutter analysis via MCP**.
 Jules handles parallel simple module generation from specs.

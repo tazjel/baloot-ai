@@ -1,5 +1,5 @@
 """
-Extract and analyze bidding patterns from Kammelna mobile archives.
+Extract and analyze bidding patterns from mobile game archives.
 
 Analyzes all bidding events (e=2) to answer key questions about:
 1. Bidding order and dealer rotation
@@ -25,7 +25,7 @@ from pathlib import Path
 
 
 # ─── Config ───────────────────────────────────────────────────────────
-DEFAULT_ARCHIVE = "gbaloot/data/sync/2026-02-16/kammelna_export/savedGames"
+DEFAULT_ARCHIVE = "gbaloot/data/sync/2026-02-16/mobile_export/savedGames"
 
 # Bid type classifications
 ROUND1_BIDS = {"pass", "hokom", "sun", "ashkal"}
