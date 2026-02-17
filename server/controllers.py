@@ -64,8 +64,10 @@ def bind(app):
     from server.routes.brain import bind_brain
     from server.routes.puzzles import bind_puzzles
     from server.routes.qayd import bind_qayd
+    from server.routes.shop import bind_shop
 
     bind_auth(safe_mount)
+    bind_shop(safe_mount)
     bind_brain(safe_mount)
     bind_puzzles(safe_mount)
     bind_qayd(safe_mount)

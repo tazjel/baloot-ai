@@ -43,7 +43,15 @@ def user():
     elif points >= 1400: tier = "Gold"
     elif points >= 1200: tier = "Silver"
 
-    return {"user": request.user, "leaguePoints": points, "tier": tier}
+    return {
+        "user": request.user,
+        "leaguePoints": points,
+        "tier": tier,
+        "coins": user_record.coins or 0,
+        "ownedItems": user_record.owned_items or [],
+        "equippedItems": user_record.equipped_items or {},
+        "isVip": user_record.is_vip or False
+    }
 
 
 @action('signup', method=['POST', 'OPTIONS'])
@@ -66,7 +74,11 @@ def signup():
 
     user_id = db.app_user.insert(
         first_name=first_name, last_name=last_name,
-        email=email, password=hashed_password
+        email=email, password=hashed_password,
+        coins=1000,
+        owned_items=['card_default', 'table_default'],
+        equipped_items={'card': 'card_default', 'table': 'table_default'},
+        is_vip=False
     )
 
     response.status = 201
