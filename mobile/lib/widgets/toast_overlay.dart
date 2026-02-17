@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../animations/ui_animations.dart';
 import '../state/ui/toast_notifier.dart';
 
 class ToastOverlay extends ConsumerWidget {
@@ -17,12 +18,15 @@ class ToastOverlay extends ConsumerWidget {
       right: 20,
       child: Column(
         children: toasts.map((toast) {
-          return Dismissible(
-            key: Key(toast.id),
-            onDismissed: (_) {
-              ref.read(toastProvider.notifier).remove(toast.id);
-            },
-            child: Container(
+          return AnimatedToastEntry(
+            key: Key('anim-${toast.id}'),
+            onDismiss: () => ref.read(toastProvider.notifier).remove(toast.id),
+            child: Dismissible(
+              key: Key(toast.id),
+              onDismissed: (_) {
+                ref.read(toastProvider.notifier).remove(toast.id);
+              },
+              child: Container(
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -53,6 +57,7 @@ class ToastOverlay extends ConsumerWidget {
                 ],
               ),
             ),
+          ),
           );
         }).toList(),
       ),

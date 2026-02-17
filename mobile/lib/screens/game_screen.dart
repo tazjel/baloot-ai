@@ -21,6 +21,8 @@ import '../state/providers.dart';
 import '../widgets/action_dock.dart';
 import '../widgets/game_arena.dart';
 import '../widgets/hand_fan_widget.dart';
+import '../widgets/heartbeat_layer.dart';
+import '../widgets/hint_overlay_widget.dart';
 import '../widgets/player_avatar_widget.dart';
 import '../widgets/settings_dialog.dart';
 import '../widgets/table_hud_widget.dart';
@@ -164,6 +166,8 @@ class GameScreen extends ConsumerWidget {
                   ),
 
                   // === Layer 6: Overlays ===
+                  const HeartbeatLayer(),
+                  const HintOverlayWidget(),
                   const ToastOverlay(),
 
                   // === Back button ===

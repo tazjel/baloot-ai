@@ -13,7 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/theme/colors.dart';
+import '../animations/card_animations.dart';
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../state/game_rules_provider.dart';
@@ -35,6 +35,12 @@ class _HandFanWidgetState extends ConsumerState<HandFanWidget> {
   /// Index of currently selected card (-1 = none).
   int _selectedIndex = -1;
 
+  /// Track previous hand count to detect new deal.
+  int _prevHandCount = 0;
+
+  /// Whether to play deal animation on current hand.
+  bool _needsDealAnimation = false;
+
   @override
   Widget build(BuildContext context) {
     final appState = ref.watch(gameStateProvider);
@@ -48,8 +54,15 @@ class _HandFanWidgetState extends ConsumerState<HandFanWidget> {
 
     // Don't show if no cards or waiting phase
     if (hand.isEmpty || gameState.phase == GamePhase.waiting) {
+      _prevHandCount = 0;
       return const SizedBox.shrink();
     }
+
+    // Detect new deal: hand jumped from 0 to full (8 cards)
+    if (hand.length >= 7 && _prevHandCount == 0) {
+      _needsDealAnimation = true;
+    }
+    _prevHandCount = hand.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -98,25 +111,42 @@ class _HandFanWidgetState extends ConsumerState<HandFanWidget> {
               // Lift selected card
               final yOffset = isSelected ? -18.0 : 0.0;
 
+              Widget cardChild = Opacity(
+                opacity: isOtherCard ? 0.5 : 1.0,
+                child: CardWidget(
+                  card: card,
+                  width: cardWidth,
+                  isSelected: isSelected,
+                  isPlayable: isLegal,
+                  isTrump: isTrump,
+                  onTap: isLegal
+                      ? () => _onCardTap(i, card)
+                      : null,
+                ),
+              );
+
+              // Wrap with deal animation on new deal
+              if (_needsDealAnimation) {
+                cardChild = AnimatedCardDeal(
+                  staggerIndex: i,
+                  onComplete: i == cardCount - 1
+                      ? () {
+                          if (mounted) {
+                            setState(() => _needsDealAnimation = false);
+                          }
+                        }
+                      : null,
+                  child: cardChild,
+                );
+              }
+
               return Positioned(
                 left: xPos,
                 bottom: 4 + yOffset,
                 child: Transform.rotate(
                   angle: angle,
                   alignment: Alignment.bottomCenter,
-                  child: Opacity(
-                    opacity: isOtherCard ? 0.5 : 1.0,
-                    child: CardWidget(
-                      card: card,
-                      width: cardWidth,
-                      isSelected: isSelected,
-                      isPlayable: isLegal,
-                      isTrump: isTrump,
-                      onTap: isLegal
-                          ? () => _onCardTap(i, card)
-                          : null,
-                    ),
-                  ),
+                  child: cardChild,
                 ),
               );
             }),

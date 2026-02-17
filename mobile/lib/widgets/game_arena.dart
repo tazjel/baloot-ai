@@ -11,10 +11,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../animations/card_animations.dart';
 import '../core/theme/colors.dart';
 import '../models/card_model.dart';
 import '../models/enums.dart';
-import '../models/game_state.dart';
 import '../state/providers.dart';
 import 'card_widget.dart';
 import 'player_avatar_widget.dart';
@@ -152,23 +152,25 @@ class GameArena extends ConsumerWidget {
                   ),
                 ),
 
-              // Floor card (during bidding)
+              // Floor card (during bidding) — animated 3D flip reveal
               if (floorCard != null && gameState.phase == GamePhase.bidding)
                 Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.goldPrimary.withOpacity(0.4),
-                          blurRadius: 16,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: CardWidget(
-                      card: floorCard,
-                      width: cardW,
+                  child: AnimatedFloorReveal(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.goldPrimary.withOpacity(0.4),
+                            blurRadius: 16,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: CardWidget(
+                        card: floorCard,
+                        width: cardW,
+                      ),
                     ),
                   ),
                 ),
@@ -216,9 +218,14 @@ class GameArena extends ConsumerWidget {
       return Positioned(
         left: dx,
         top: dy,
-        child: CardWidget(
-          card: tc.card,
-          width: cardW,
+        child: AnimatedCardPlay(
+          fromPosition: tc.playedBy,
+          child: AnimatedThump(
+            child: CardWidget(
+              card: tc.card,
+              width: cardW,
+            ),
+          ),
         ),
       );
     }).toList();

@@ -13,8 +13,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../animations/ui_animations.dart';
 import '../core/theme/colors.dart';
-import '../models/enums.dart';
 import '../models/player.dart';
 import '../state/audio/bot_speech_notifier.dart';
 
@@ -55,15 +55,19 @@ class PlayerAvatarWidget extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Speech bubble
+        // Speech bubble — animated fade in/out
         if (isSpeaking && speechState.currentText != null)
-          _SpeechBubble(
-            text: speechState.currentText!,
-            scale: scale,
+          AnimatedSpeechBubble(
+            child: _SpeechBubble(
+              text: speechState.currentText!,
+              scale: scale,
+            ),
           ),
 
-        // Avatar circle + turn indicator
-        Stack(
+        // Avatar circle + turn indicator (pulsing when active)
+        _maybePulse(
+          isCurrentTurn,
+          Stack(
           alignment: Alignment.center,
           children: [
             // Turn halo
@@ -156,6 +160,7 @@ class PlayerAvatarWidget extends ConsumerWidget {
               ),
           ],
         ),
+        ),
 
         SizedBox(height: 3 * scale),
 
@@ -220,6 +225,14 @@ class PlayerAvatarWidget extends ConsumerWidget {
       Color(0xFFF59E0B), // Amber (opponent)
     ];
     return colors[idx % colors.length];
+  }
+
+  /// Wraps child with pulse animation when it's this player's turn.
+  Widget _maybePulse(bool isActive, Widget child) {
+    if (isActive) {
+      return TurnIndicatorPulse(child: child);
+    }
+    return child;
   }
 
   Color _actionColor(String action) {
