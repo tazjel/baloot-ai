@@ -22,7 +22,6 @@ import '../widgets/action_dock.dart';
 import '../widgets/game_arena.dart';
 import '../widgets/hand_fan_widget.dart';
 import '../widgets/player_avatar_widget.dart';
-import '../widgets/settings_dialog.dart';
 import '../widgets/table_hud_widget.dart';
 import '../widgets/toast_overlay.dart';
 
@@ -199,7 +198,17 @@ class GameScreen extends ConsumerWidget {
   void _showSettings(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => const SettingsDialog(),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        title: const Text('الإعدادات', style: TextStyle(color: AppColors.textLight)),
+        content: const Text('إعدادات اللعبة (قريباً)', style: TextStyle(color: AppColors.textMuted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إغلاق', style: TextStyle(color: AppColors.goldPrimary)),
+          ),
+        ],
+      ),
     );
   }
 
