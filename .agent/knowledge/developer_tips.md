@@ -76,6 +76,12 @@
 - **Package Availability**: Before adding MCP servers to `mcp_config.json`, verify the npm package exists. `@modelcontextprotocol/server-git` does NOT exist (404).
 - **Working Servers**: `stitch` (URL-based) and `filesystem` work reliably. Remove problematic servers to avoid blocking all MCP tools.
 
+## Flutter & Dart MCP Integration (Session 2026-02-18)
+- **Static Analysis**: The `dart` MCP server is now active. Use `mcp_dart_analyze_files` for deep code analysis instead of regex grepping.
+- **Widget Inspection**: Use `mcp_dart_get_widget_tree` to fetch the runtime UI hierarchy when the app is running (requires `connect_dart_tooling_daemon`).
+- **Auto-Fixes**: `mcp_dart_dart_fix` / `dart fix --apply` is the preferred way to resolve bulk lint errors.
+
+
 ## Launch Logic & Agent Efficiency (Session 2026-02-02)
 - **Headless Mode Pattern**: When launching servers for verification, ALWAYS use `-Headless` (if available) or redirect stdout/stderr to files. Capturing 200MB of log output in the agent's context window destroys token budget.
 - **The "Missing Static" Crash**: Python servers (bottle/py4web) serving `index.html` must handle the *absence* of the build directory gracefully. Use `os.path.isfile()` checks and return 404 instead of crashing with `FileNotFoundError` or `ValueError: I/O operation on closed file`.

@@ -1,8 +1,8 @@
 # Next Session Brief — Flutter Mobile Migration
 
-> **Updated**: 2026-02-18 | **Focus**: M-F4 → M-F5 → M-F6 → M-F7
+> **Updated**: 2026-02-18 | **Focus**: M-F5 complete → M-F6 (Qayd) → M-F7 (Testing)
 
-## Current Status: M-F4 Core Widgets (In Progress)
+## Current Status: M-F5 Animations (Complete)
 
 ### Completed Phases
 | Phase | Status | Commit | Tests |
@@ -10,73 +10,70 @@
 | M-F1: Foundation & Core Models | ✅ Complete | `0dc4425` | 30 |
 | M-F2: Services Layer | ✅ Complete | `6d1cf8f` | 40 |
 | M-F3: State Management | ✅ Complete | `f3f2a69` | 102 |
-| M-F4: Core Widgets (Phase 1) | ✅ Complete | `01a283f` | 102 |
+| M-F4 Phase 1: Core Widgets (Claude) | ✅ Complete | `01a283f` | 102 |
+| M-F4 Phase 2b: Modals & Screens (Antigravity) | ✅ Complete | `1450280` | 102 |
+| M-F4 Phase 2a: Simple Widgets (Jules) | ✅ Complete | `a5e5d0d` | 102 |
+| M-F5: Animation System | ✅ Complete | `04bd9f7` | 102 |
+| M-F5: Animation Wiring | ✅ Complete | `93545aa` | 102 |
 
-### M-F4 Phase 1 Delivery (Done)
-Built 11 widget/screen files (+2,673 lines), all 102 tests passing:
+### M-F5 Delivery Summary
+**Animation files created (3):**
+- `spring_curves.dart` — 6 SpringDescription configs (Framer Motion), 4 CSS cubic-bezier curves, 12 duration constants
+- `card_animations.dart` — AnimatedCardDeal, AnimatedCardPlay, AnimatedTrickSweep, AnimatedThump, AnimatedFloorReveal
+- `ui_animations.dart` — AnimatedToastEntry, AnimatedSpeechBubble, HintPulseEffect, TrumpShimmerEffect, TurnIndicatorPulse, AnimatedScoreFlash, AnimatedKabootBurst
 
-**Claude MAX built (9 new widgets):**
-- `CardWidget` — Card face/back with selection, trump glow, hint highlight
-- `PlayerAvatarWidget` — Avatar, turn halo, timer ring, dealer badge, speech bubble
-- `GameArena` — Center play area, felt gradient, floor card, cross-formation table cards
-- `HandFanWidget` — Card fan at bottom, tap-select, double-tap-play, legal move filtering
-- `ActionDock` — 4-mode dock: bidding/playing/doubling/waiting + AnimatedSwitcher
-- `TableHudWidget` — Score pills, contract badge, doubling level
-- `VictoryModal` — Win/lose with scores, rematch/home
-- `RoundResultsModal` — Scoring breakdown table
-- `ConnectionBanner` — Disconnected/reconnecting bar
+**Wiring completed (5 files modified):**
+- `GameArena` — table cards: AnimatedCardPlay + AnimatedThump; floor card: AnimatedFloorReveal
+- `HandFanWidget` — cards: AnimatedCardDeal (staggered) on new deal detection
+- `ToastOverlay` — toasts: AnimatedToastEntry (slide-in + auto-hide)
+- `PlayerAvatarWidget` — avatar: TurnIndicatorPulse; speech: AnimatedSpeechBubble
+- `GameScreen` — added HeartbeatLayer + HintOverlayWidget overlays
 
-**Rewritten screens (2):**
-- `GameScreen` — Full 7-layer Stack architecture
-- `LobbyScreen` — Settings card with difficulty, timer, strict mode
-
----
-
-## M-F4 Phase 2: Remaining Widgets (Delegate to Jules + Gemini)
-
-### For Jules (Simple Widgets — ~15 files)
-| Widget | Port From | Estimated Lines |
-|--------|-----------|-----------------|
-| `SuitIconWidget` | Suit display | 50 |
-| `ScoreBadgeWidget` | Animated score counter | 80 |
-| `ContractIndicator` | Standalone contract badge | 60 |
-| `TurnTimerWidget` | Circular countdown | 100 |
-| `GlassPanelWidget` | Backdrop blur container | 50 |
-| `GameToastWidget` | Toast notification display | 80 |
-| `SpeechBubbleWidget` | Bot speech fade anim | 70 |
-| `HintOverlayWidget` | AI hint card highlight | 100 |
-| `HeartbeatLayer` | Tension pulse overlay | 80 |
-| `ProjectRevealWidget` | Project declaration display | 100 |
-| `EmoteMenuWidget` | Emoji grid dock | 120 |
-| `ScoreSheetWidget` | Round-by-round score table | 150 |
-| `ErrorBoundary` | ErrorWidget.builder wrapper | 40 |
-
-### For Gemini/Antigravity (Modals & Screens — ~8 files)
-| Widget/Screen | Port From | Estimated Lines |
-|---------------|-----------|-----------------|
-| `MultiplayerScreen` | Room create/join, player list | 250 |
-| `MatchReviewModal` | Trick-by-trick replay | 300 |
-| `DisputeModal` (Qayd) | Multi-step wizard | 350 |
-| `StoreModal` | Card backs + table skins grid | 200 |
-| `LevelUpModal` | Level up notification | 100 |
-| `ProjectSelectionModal` | Project picker | 120 |
-| `SawaModal` | Sawa claim/response | 150 |
-| `VariantSelectionModal` | R2 suit picker | 120 |
+**All M-F4 widgets delivered:**
+- Claude MAX: 9 core widgets + 2 screens
+- Antigravity: 10 modals/screens (match_review, dispute, store, sawa, variant_selection, settings_dialog, replay_controls, level_up, project_selection, multiplayer)
+- Jules: 13 simple widgets (suit_icon, score_badge, contract_indicator, turn_timer, glass_panel, game_toast, speech_bubble, hint_overlay, heartbeat_layer, project_reveal, emote_menu, score_sheet, error_boundary)
 
 ---
 
-## M-F5: Animations (Next for Claude MAX)
+## Next: M-F6 Qayd Dispute System & Edge Cases
 
-### Priority Animations
-| Animation | Approach | Priority |
-|-----------|----------|----------|
-| Card deal stagger | Staggered `SlideTransition` from deck to hand | P1 |
-| Card play trajectory | `CurvedAnimation` bezier path hand→table | P1 |
-| Trick sweep | `SlideTransition` 4 cards → winner corner | P1 |
-| Hand fan hover lift | `AnimatedContainer` y-offset on selection | P2 |
-| Trump reveal 3D flip | `Transform.rotateY` + glow | P2 |
-| Turn indicator pulse | `RepeatAnimation` scale pulse | P3 |
-| Toast fade | `FadeTransition` auto-dismiss | P3 |
+### For Claude MAX
+| Task | Details |
+|------|---------|
+| QaydOverlay | Dispute wizard container with 6-state machine |
+| QaydCardSelector | Trick browser + card picker for crime/proof |
+| Sawa flow | Claim → opponent responses → resolve/penalty |
+| Akka declaration | HOKUM-only, leading-only validation |
+
+### For Jules (Module Generation)
+| Task | Details |
+|------|---------|
+| QaydMainMenu | Violation type selection grid |
+| QaydVerdictPanel | Result display with penalty summary |
+| QaydFooter | Confirm/cancel action buttons |
+| Project conflicts | Multi-player project resolution logic |
+| Fast-forward mode | Speed up to 150ms bot turns |
+| Baloot declaration | K+Q of trump, immune to multipliers |
+| Error boundaries | ErrorWidget.builder for graceful degradation |
+
+### Edge Cases Checklist
+- [ ] Sawa: claim → 3s timer → opponents can challenge → resolve
+- [ ] Akka: only in HOKUM, only when leading, requires K+Q of trump
+- [ ] Kawesh: pre-bid worthless hand redeal
+- [ ] Waraq/Gash: 3 passes + dealer waraq → redeal with dealer rotation
+- [ ] Project conflicts: 4 players declare simultaneously → resolve
+- [ ] Doubling: NORMAL → DOUBLE → TRIPLE → QUADRUPLE → GAHWA
+- [ ] Qayd 6-step: IDLE → MENU → VIOLATION → CRIME_CARD → PROOF_CARD → VERDICT
+- [ ] Fast-forward: toggle button speeds bot actions to 150ms
+- [ ] Baloot GP: always 2, immune to all multipliers, added last
+
+---
+
+## MCP & Tooling
+- **Dart MCP server** configured in `.mcp.json` with Flutter SDK path
+- Provides: error analysis, symbol resolution, package search, testing, formatting
+- Available on next Claude Code session restart
 
 ---
 
@@ -90,11 +87,9 @@ sortHand(cards, GameMode.hokum);
 // Suit? for trump, NOT String?
 isValidMove(card: c, hand: h, tableCards: tc, mode: m, trumpSuit: s, isLocked: false);
 
-// AccountingEngine takes DoublingLevel enum
-AccountingEngine.calculateRoundResult(
-  usRaw: 80, themRaw: 82, usProjects: 20, themProjects: 0,
-  bidType: 'SUN', doublingLevel: DoublingLevel.normal, bidderTeam: 'us',
-);
+// gameStateProvider returns AppGameState, NOT GameState
+final appState = ref.watch(gameStateProvider);
+final gameState = appState.gameState; // Access GameState
 ```
 
 ### Provider Hierarchy
@@ -116,17 +111,6 @@ gameStateProvider (master AppGameState)
   └── hintProvider
 ```
 
-### SocketService API (what exists vs what doesn't)
-```dart
-// EXISTS:
-SocketService.instance.onConnectionStatus((status, attempt) {...});
-SocketService.instance.onBotSpeak((text, speakerIdx) {...});
-SocketService.instance.onGameUpdate((data) {...});
-
-// DOES NOT EXIST YET (stubbed):
-// onEmote, sendEmote, requestHint
-```
-
 ---
 
 ## Test Command
@@ -142,22 +126,26 @@ cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
 | Utils | 7 | ~800 |
 | Services | 5 | ~1,500 |
 | State (Notifiers) | 17 | ~2,800 |
-| Widgets | 14 | ~3,200 |
+| Widgets | 37 | ~6,100 |
 | Screens | 3 | ~600 |
+| Animations | 3 | ~1,100 |
 | Tests | 8 | ~1,500 |
-| **Total** | **64** | **~11,600** |
+| **Total** | **90** | **~15,600** |
 
-## Git Status
+## Git Log (Recent)
 ```
-main (ahead of origin by 4 commits):
-  01a283f feat(M-F4): Core widgets & screens — GameScreen Stack, ActionDock, HandFan, HUD
-  f3f2a69 feat(M-F3): State management — 17 Riverpod notifiers, 102 tests passing
-  6d1cf8f feat(M-F2): Services layer — SocketService, AccountingEngine, state rotation, audio
-  0dc4425 feat(M-F1): Flutter mobile app foundation — models, utils, theme, router
+93545aa feat(M-F5): Wire animations into game widgets
+04bd9f7 feat(M-F5): Animation system — spring curves, card animations, UI effects
+a5e5d0d feat(M-F4): Jules widgets + warning fixes — 13 new widgets
+1450280 feat(M-F4): Phase 2b modals & screens — 10 new widgets
+01a283f feat(M-F4): Core widgets & screens — GameScreen Stack, ActionDock, HandFan, HUD
+f3f2a69 feat(M-F3): State management — 17 Riverpod notifiers, 102 tests passing
+6d1cf8f feat(M-F2): Services layer — SocketService, AccountingEngine
+0dc4425 feat(M-F1): Flutter mobile app foundation — models, utils, theme, router
 ```
 
 ## Jules Status
-- Session `9756301129946369522` FAILED (unknown error) — all 8 notifiers built manually
+- Session `18051886396563218460` COMPLETED — 13 widgets integrated into main
 - No active Jules sessions
 
 ## Backend Tests (Unchanged)

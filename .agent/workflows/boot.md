@@ -43,6 +43,13 @@ Read **both** in parallel — they are independent:
 - ❌ Don't read `current_state.md`, project handbook, or `CODEBASE_MAP.md`.
 - ❌ Don't list dirs, run servers, build, or auto-run `/check-health`.
 
+## 5. Mobile Environment Check
+// turbo
+Check Flutter status briefly:
+```bash
+flutter doctor --version
+```
+
 ## 5. Session Brief
 
 Output this to the user — **under 15 lines**:
