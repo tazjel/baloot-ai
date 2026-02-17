@@ -133,9 +133,8 @@ class TestEndgameSolver(unittest.TestCase):
         self.assertGreater(result["expected_points"], 0)
 
     def test_empty_hand(self):
-        """Empty hand -> currently raises ValueError (min on empty sequence).
-        This documents the existing behavior. A future fix could add an
-        early-return guard for empty hands."""
+        """Empty hand -> currently returns a safe fallback.
+        This behavior changed from raising ValueError to returning index 0."""
         my_hand = []
         known_hands = {
             "Right": [],
@@ -143,18 +142,16 @@ class TestEndgameSolver(unittest.TestCase):
             "Left":  [],
         }
 
-        # The solver does not currently guard against empty hands.
-        # It hits min(range(0), ...) which raises ValueError.
-        # We document this as known behavior for future hardening.
-        with self.assertRaises(ValueError):
-            solve_endgame(
-                my_hand=my_hand,
-                known_hands=known_hands,
-                my_position="Bottom",
-                leader_position="Bottom",
-                mode="SUN",
-                trump_suit=None,
-            )
+        result = solve_endgame(
+            my_hand=my_hand,
+            known_hands=known_hands,
+            my_position="Bottom",
+            leader_position="Bottom",
+            mode="SUN",
+            trump_suit=None,
+        )
+        self.assertEqual(result["cardIndex"], 0)
+        self.assertEqual(result["expected_points"], 0)
 
     def test_resolve_trick_sun_highest_wins(self):
         """resolve_trick: highest card in led suit wins in SUN mode."""
@@ -233,6 +230,63 @@ class TestEndgameSolver(unittest.TestCase):
         self.assertIn("cardIndex", result)
         self.assertIn(result["cardIndex"], [0, 1])
         self.assertIn("Minimax", result["reasoning"])
+
+    def test_4card_perfect_info(self):
+        """Test 4-card endgame with perfect information."""
+        # Simple scenario: Bottom has all Aces in SUN. Should win everything.
+        my_hand = [Card("♠", "A"), Card("♥", "A"), Card("♦", "A"), Card("♣", "A")]
+        known_hands = {
+            "Right": [Card("♠", "7"), Card("♥", "7"), Card("♦", "7"), Card("♣", "7")],
+            "Top":   [Card("♠", "8"), Card("♥", "8"), Card("♦", "8"), Card("♣", "8")],
+            "Left":  [Card("♠", "9"), Card("♥", "9"), Card("♦", "9"), Card("♣", "9")],
+        }
+
+        result = solve_endgame(
+            my_hand=my_hand,
+            known_hands=known_hands,
+            my_position="Bottom",
+            leader_position="Bottom",
+            mode="SUN",
+            trump_suit=None,
+        )
+        self.assertIn("Minimax", result["reasoning"])
+        # Should pick one of the Aces (any index 0-3 is equally good, max score)
+        self.assertIn(result["cardIndex"], [0, 1, 2, 3])
+        self.assertGreater(result["expected_points"], 0)
+
+    def test_monte_carlo_resilience(self):
+        """Test Monte Carlo sampling when hands are unknown."""
+        import random
+        random.seed(42) # Ensure determinism for test
+
+        # Bottom has Ace of Spades (winner) and 7 of Hearts (loser).
+        # Unseen cards: K of Spades (threat) and other low cards.
+        # Voids: Right is void in Spades.
+
+        my_hand = [Card("♠", "A"), Card("♥", "7")]
+        unseen_cards = [
+            Card("♠", "K"), Card("♣", "7"), Card("♦", "7"),
+            Card("♦", "8"), Card("♣", "8"), Card("♣", "9")
+        ]
+        voids = {"Right": {"♠"}}
+
+        # known_hands is empty -> imperfect info
+        result = solve_endgame(
+            my_hand=my_hand,
+            known_hands={},
+            my_position="Bottom",
+            leader_position="Bottom",
+            mode="SUN",
+            trump_suit=None,
+            unseen_cards=unseen_cards,
+            voids=voids
+        )
+
+        self.assertIn("Monte Carlo", result["reasoning"])
+        # Leading A♠ guarantees winning the trick.
+        # Leading 7♥ gives initiative to opponents.
+        # A♠ is index 0.
+        self.assertEqual(result["cardIndex"], 0)
 
 
 if __name__ == "__main__":

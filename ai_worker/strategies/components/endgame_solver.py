@@ -1,10 +1,13 @@
-"""Endgame solver for Baloot AI (≤3 cards per player).
+"""Endgame solver for Baloot AI (≤4 cards per player).
 
-With so few cards remaining the game tree is tiny (≤12 plies), making
-exhaustive minimax with alpha-beta pruning both feasible and provably
-optimal.  Called when each player holds 1–3 cards.
+With few cards remaining, the game tree is small enough for exhaustive minimax
+search with alpha-beta pruning. When opponent hands are uncertain, uses Monte
+Carlo sampling to find the robust best move.
 """
 from __future__ import annotations
+
+import random
+from collections import Counter, defaultdict
 
 POSITIONS = ["Bottom", "Right", "Top", "Left"]
 TEAMS = {"Bottom": 0, "Top": 0, "Right": 1, "Left": 1}
@@ -60,6 +63,12 @@ def _mm(hands, cur, trick, scores, mode, trump, my_team, a, b, forced) -> int:
     if not hand and not trick:
         return scores[my_team] - scores[1 - my_team]
     if not hand:
+        # Recursion Guard: If trick is partial but nobody has cards, stop.
+        if all(not h for h in hands.values()):
+            # This is an invalid state (running out of cards mid-trick)
+            # Just return current score diff to avoid infinite loop
+            return scores[my_team] - scores[1 - my_team]
+
         return (_finish(hands, trick, scores, mode, trump, my_team, a, b, forced)
                 if len(trick) == 4
                 else _mm(hands, _nxt(cur), trick, scores, mode, trump, my_team, a, b, forced))
@@ -72,6 +81,7 @@ def _mm(hands, cur, trick, scores, mode, trump, my_team, a, b, forced) -> int:
 
     maximizing = TEAMS[cur] == my_team
     best = -9999 if maximizing else 9999
+
     for i in indices:
         card = hand[i]
         nh = {p: ([c for j, c in enumerate(h) if j != i] if p == cur else list(h))
@@ -89,34 +99,220 @@ def _mm(hands, cur, trick, scores, mode, trump, my_team, a, b, forced) -> int:
     return best
 
 
-def solve_endgame(
-    my_hand: list, known_hands: dict[str, list], my_position: str,
-    leader_position: str, mode: str, trump_suit: str | None = None,
-) -> dict:
-    """Find the optimal play via exhaustive minimax search.
+def _generate_distributions(
+    unseen_cards: list,
+    hand_counts: dict[str, int],
+    voids: dict[str, set[str]],
+    count: int = 10
+) -> list[dict[str, list]]:
+    """Generate random valid deal scenarios consistent with voids."""
+    distributions = []
+    attempts = 0
+    max_attempts = count * 10
 
-    Returns ``{'cardIndex': int, 'expected_points': int, 'reasoning': str}``.
-    Falls back to lowest-value heuristic when opponent hands are unknown.
+    players = [p for p in POSITIONS if hand_counts.get(p, 0) > 0]
+    total_needed = sum(hand_counts[p] for p in players)
+
+    if len(unseen_cards) < total_needed:
+        return []
+
+    while len(distributions) < count and attempts < max_attempts:
+        attempts += 1
+        pool = list(unseen_cards)
+        random.shuffle(pool)
+
+        hands = {}
+        valid = True
+        current_idx = 0
+
+        for p in players:
+            needed = hand_counts[p]
+            segment = pool[current_idx : current_idx + needed]
+            current_idx += needed
+
+            # Check void constraints
+            if any(c.suit in voids.get(p, set()) for c in segment):
+                valid = False
+                break
+            hands[p] = segment
+
+        if valid:
+            distributions.append(hands)
+
+    return distributions
+
+
+def solve_endgame(
+    my_hand: list,
+    known_hands: dict[str, list],
+    my_position: str,
+    leader_position: str,
+    mode: str,
+    trump_suit: str | None = None,
+    unseen_cards: list | None = None,
+    voids: dict[str, set[str]] | None = None,
+    current_trick: list[tuple[str, object]] | None = None,
+) -> dict:
+    """Find the optimal play via exhaustive minimax or Monte Carlo search.
+
+    Args:
+        my_hand: List of cards in bot's hand.
+        known_hands: partial or complete dict of opponent hands.
+        my_position: 'Bottom', 'Right', 'Top', or 'Left'.
+        leader_position: Who leads the current trick.
+        mode: 'SUN' or 'HOKUM'.
+        trump_suit: Trump suit (if HOKUM).
+        unseen_cards: List of cards not in my hand and not played (optional).
+        voids: Dict of player_pos -> set of void suits (optional).
+        current_trick: Cards already played in the current trick (optional).
+
+    Returns:
+        dict with keys 'cardIndex', 'expected_points', 'reasoning'.
     """
     my_team = TEAMS[my_position]
-    hands: dict[str, list] = {my_position: list(my_hand)}
+    current_trick = current_trick or []
+
+    if not my_hand:
+        return {"cardIndex": 0, "expected_points": 0, "reasoning": "Empty hand"}
+
+    # 1. Check if we have perfect information
+    is_perfect_info = True
+    hands = {my_position: list(my_hand)}
+
     for p in POSITIONS:
         if p != my_position:
+            if p not in known_hands or not known_hands[p]:
+                # If hand is supposed to be empty (e.g. they played all cards), that's fine
+                # But we don't know expected length easily here without trick count context
+                # Assuming caller provides non-empty known_hands if they have cards.
+                # If they have 0 cards and known_hands[p] is [], that's perfect info.
+                # But here we assume if passed known_hands is empty/missing, it's imperfect.
+                if unseen_cards: # If we have unseen cards, likely imperfect
+                     is_perfect_info = False
+                     # Don't break here, we need to populate hands for check below?
+                     # No, if is_perfect_info is False, we might skip to MC.
+                     # But let's let it finish to be consistent
             hands[p] = list(known_hands.get(p, []))
-    # Graceful fallback for incomplete information
-    if any(len(hands[p]) == 0 for p in POSITIONS if p != my_position):
-        idx = min(range(len(my_hand)), key=lambda i: _pts(my_hand[i].rank, mode))
-        return {"cardIndex": idx, "expected_points": 0,
-                "reasoning": "Incomplete info — heuristic lowest-value discard"}
-    # Evaluate each legal card by forcing our choice inside full minimax
+
+    # Determine start player for minimax
+    if current_trick:
+        start_player = _nxt(current_trick[-1][0])
+    else:
+        start_player = leader_position
+
+    # 2. Perfect Information Search
+    # Double check hand sizes match target_len
+    target_len = len(my_hand)
+    if is_perfect_info:
+        for p in POSITIONS:
+             if p == my_position: continue
+
+             # If player already played in current trick, their hand should be target_len - 1?
+             # No, if I have target_len cards.
+             # If P played, P has target_len-1.
+             # But current_trick is considered separate.
+             # hands dict should contain REMAINING cards.
+
+             trick_players = {t[0] for t in current_trick}
+             expected = target_len if p not in trick_players else target_len - 1
+
+             if len(hands[p]) != expected:
+                  # If mismatch, assume imperfect info
+                  is_perfect_info = False
+                  break
+
+    if is_perfect_info:
+        best_idx, best_val = _find_best_move(
+            my_hand, hands, start_player, current_trick, mode, trump_suit, my_team, my_position
+        )
+        return {
+            "cardIndex": best_idx,
+            "expected_points": best_val,
+            "reasoning": f"Minimax depth-{len(my_hand) * 4}: diff={best_val:+d}"
+        }
+
+    # 3. Monte Carlo Search (if imperfect info)
+    if unseen_cards and voids:
+        hand_counts = {}
+        trick_players = {t[0] for t in current_trick}
+
+        for p in POSITIONS:
+            if p == my_position:
+                continue
+
+            # Count logic
+            if p in trick_players:
+                count = len(my_hand) - 1
+            else:
+                count = len(my_hand)
+
+            if count > 0:
+                hand_counts[p] = count
+
+        distributions = _generate_distributions(unseen_cards, hand_counts, voids, count=10)
+
+        if distributions:
+            vote_counts = Counter()
+            score_sums = defaultdict(int)
+
+            for dist in distributions:
+                dist[my_position] = list(my_hand)
+                idx, val = _find_best_move(
+                    my_hand, dist, start_player, current_trick, mode, trump_suit, my_team, my_position
+                )
+                vote_counts[idx] += 1
+                score_sums[idx] += val
+
+            best_idx = vote_counts.most_common(1)[0][0]
+            avg_val = score_sums[best_idx] / len(distributions)
+
+            return {
+                "cardIndex": best_idx,
+                "expected_points": int(avg_val),
+                "reasoning": f"Monte Carlo ({len(distributions)} samples): best_idx={best_idx}"
+            }
+
+    # 4. Fallback Heuristic
+    if not my_hand:
+         # Empty hand? Should not happen.
+         return {"cardIndex": 0, "expected_points": 0, "reasoning": "Empty hand"}
+
+    idx = min(range(len(my_hand)), key=lambda i: _pts(my_hand[i].rank, mode))
+    return {
+        "cardIndex": idx,
+        "expected_points": 0,
+        "reasoning": "Incomplete info — heuristic lowest-value discard"
+    }
+
+
+def _find_best_move(
+    my_hand, hands, start_player, current_trick, mode, trump_suit, my_team, my_position
+) -> tuple[int, int]:
+    """Run minimax for a specific hand configuration."""
+
+    cur = my_position
+    led = current_trick[0][1].suit if current_trick else None
+
+    # Determine legal indices
+    indices = _legal(my_hand, led)
+
     best_idx, best_val = 0, -9999
-    led = None  # we may or may not be leading; _legal handles both
-    for i in _legal(my_hand, led):
-        forced = (my_position, i)
-        val = _mm(hands, leader_position, [], [0, 0], mode, trump_suit,
-                  my_team, -9999, 9999, forced)
+
+    for i in indices:
+        card = my_hand[i]
+
+        nh = {p: ([c for j, c in enumerate(h) if j != i] if p == cur else list(h))
+              for p, h in hands.items()}
+
+        nt = current_trick + [(cur, card)]
+
+        # If trick is full (4 cards), finish it
+        if len(nt) == 4:
+            val = _finish(nh, nt, [0, 0], mode, trump_suit, my_team, -9999, 9999, forced=None)
+        else:
+            val = _mm(nh, _nxt(cur), nt, [0, 0], mode, trump_suit, my_team, -9999, 9999, forced=None)
+
         if val > best_val:
             best_val, best_idx = val, i
-    n = len(my_hand)
-    return {"cardIndex": best_idx, "expected_points": best_val,
-            "reasoning": f"Minimax depth-{n * 4}: diff={best_val:+d}"}
+
+    return best_idx, best_val
