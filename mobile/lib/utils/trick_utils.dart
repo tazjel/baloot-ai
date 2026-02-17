@@ -1,12 +1,27 @@
 /// trickUtils.dart — Trick resolution and move validation.
 ///
 /// Port of frontend/src/utils/trickUtils.ts
+///
+/// Core trick-play logic used by the game state manager:
+/// - [getTrickWinner]: Determines which card wins a completed trick.
+/// - [isValidMove]: Validates whether a card play is legal under Baloot rules.
+/// - [getInvalidMoveReason]: Returns Arabic/English explanation for illegal plays
+///   (used in Qayd dispute system).
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import 'scoring_utils.dart';
 
-/// Determine the winner of a trick.
-/// Returns the index (0-3) of the winning card in [tableCards].
+/// Determines the winner of a trick from [tableCards].
+///
+/// Returns the 0-based index of the winning card in the [tableCards] list.
+/// Returns -1 if the list is empty.
+///
+/// Winner logic:
+/// - Only cards matching the lead suit OR trump suit (in HOKUM) compete.
+/// - Off-suit, non-trump cards have strength -1 (can never win).
+/// - The card with the highest [getCardStrength] wins.
+/// - In HOKUM, any trump card beats any non-trump card because trump
+///   strength is offset by +100.
 int getTrickWinner(
   List<TableCard> tableCards,
   GameMode mode,
@@ -38,7 +53,16 @@ int getTrickWinner(
   return winnerIndex;
 }
 
-/// Check if a card is a valid move.
+/// Validates whether playing [card] from [hand] is legal given [tableCards].
+///
+/// Baloot move validation rules:
+/// 1. **Empty hand**: Always invalid.
+/// 2. **Strict mode off**: Always valid (used in some tests).
+/// 3. **Leading** (table empty): Any card is valid, EXCEPT in HOKUM when
+///    the game is locked (doubled) — cannot lead trump if holding non-trump.
+/// 4. **Following**: Must follow the lead suit if you have it in hand.
+/// 5. **Void of lead suit in HOKUM**: Must play trump if you have any.
+/// 6. **Void of both lead and trump**: Any card is valid (discard).
 bool isValidMove({
   required CardModel card,
   required List<CardModel> hand,
@@ -78,7 +102,14 @@ bool isValidMove({
   return true;
 }
 
-/// Explain why a move is invalid (for Qayd disputes).
+/// Returns a human-readable reason why playing [card] is invalid, or null
+/// if the move is legal.
+///
+/// Used by the Qayd dispute system to explain violations to players.
+/// Messages include Arabic terms (Renounce, Cut) matching the UI.
+///
+/// Checks the same rules as [isValidMove] but returns descriptive strings
+/// instead of a boolean.
 String? getInvalidMoveReason({
   required CardModel card,
   required List<CardModel> hand,

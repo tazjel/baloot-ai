@@ -1,18 +1,38 @@
 /// projectUtils.dart — Project detection, comparison, and conflict resolution.
 ///
 /// Port of frontend/src/utils/projectUtils.ts
+///
+/// Projects (مشاريع) are bonus declarations at the start of a round:
+/// - **Sira** (سرا): 3 consecutive cards of the same suit (20 pts).
+/// - **Fifty** (خمسين): 4 consecutive cards of the same suit (50 pts).
+/// - **Hundred** (مية): 5+ consecutive OR 4-of-a-kind (K/Q/J/10) (100 pts).
+/// - **Four Hundred** (أربعمية): 4 Aces (400 pts — SUN only, 200 in HOKUM).
+/// - **Baloot** (بلوت): K+Q of trump suit (2 GP, immune to multipliers).
+///
+/// When both teams have projects, the team with the highest single project
+/// wins ALL non-baloot projects. Baloot is always kept regardless.
 import '../models/card_model.dart';
 import '../models/declared_project.dart';
 import '../models/enums.dart';
 import '../core/constants.dart';
 
-/// Get project score value
+/// Returns the raw point value of a [ProjectType] in the given [mode].
+///
+/// SUN values: sira=20, fifty=50, hundred=100, fourHundred=400.
+/// HOKUM values: sira=20, fifty=50, hundred=100, fourHundred=200.
+/// Baloot always returns 0 here (its 2 GP bonus is applied separately).
 int getProjectScoreValue(ProjectType type, GameMode mode) {
   final modeKey = mode == GameMode.sun ? 'SUN' : 'HOKUM';
   return projectScores[modeKey]?[type] ?? 0;
 }
 
-/// Compare two projects. Returns positive if p1 > p2.
+/// Compares two projects for conflict resolution ordering.
+///
+/// Returns a positive integer if [p1] beats [p2], negative if [p2] wins,
+/// and 0 if they are equal. Comparison is first by point value, then by
+/// the highest rank in the project (using [sequenceOrder]).
+///
+/// Used to determine which team wins all projects when both declare.
 int compareProjects(DeclaredProject p1, DeclaredProject p2, [GameMode mode = GameMode.hokum]) {
   final val1 = getProjectScoreValue(p1.type, mode);
   final val2 = getProjectScoreValue(p2.type, mode);
@@ -23,7 +43,17 @@ int compareProjects(DeclaredProject p1, DeclaredProject p2, [GameMode mode = Gam
   return r2 - r1;
 }
 
-/// Detect all projects in a hand.
+/// Detects all declarable projects in a player's [hand].
+///
+/// Scans for:
+/// 1. **Four Hundred**: All 4 Aces.
+/// 2. **Hundred (4-of-a-kind)**: 4 Kings, 4 Queens, 4 Jacks, or 4 Tens.
+/// 3. **Sequences**: Groups cards by suit, sorts by [sequenceOrder], and
+///    finds runs of 3+ consecutive ranks → Sira (3), Fifty (4), Hundred (5+).
+/// 4. **Baloot**: K+Q of [trumpSuit] (HOKUM only).
+///
+/// Returns a list of all detected [DeclaredProject]s. Does NOT resolve
+/// conflicts between teams — use [resolveProjectConflicts] for that.
 List<DeclaredProject> detectProjects(
   List<CardModel> hand,
   PlayerPosition playerPos, [
@@ -121,7 +151,18 @@ void _processSequence(
   }
 }
 
-/// Resolve project conflicts between teams.
+/// Resolves project conflicts when both teams declare projects.
+///
+/// Baloot rules: When both teams have projects, the team with the single
+/// highest-valued project wins ALL non-baloot projects from both teams.
+/// Baloot declarations (K+Q of trump) are immune and always kept.
+///
+/// [declarations] maps player position strings to their declared projects.
+/// Teams: bottom+top vs right+left.
+///
+/// Returns a new map where losing team's non-baloot projects are removed.
+/// If both teams' best projects are exactly equal, no projects are awarded
+/// to either team (tie = both lose non-baloot).
 Map<String, List<DeclaredProject>> resolveProjectConflicts(
   Map<String, List<DeclaredProject>> declarations,
   GameMode mode,
