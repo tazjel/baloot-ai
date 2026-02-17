@@ -16,6 +16,7 @@ save for critical ruff), and NEUTRAL (enemy trumps exhausted).
 from __future__ import annotations
 
 from ai_worker.strategies.constants import ORDER_HOKUM, ALL_SUITS
+from ai_worker.strategies.components.pro_data import TRUMP_IN_BY_TRICK
 
 
 def manage_trumps(
@@ -121,12 +122,18 @@ def manage_trumps(
         return _result("DRAW", True, safe_sides, ruff_targets, notes,
                        phase=phase, side_winner_suits=side_winner_suits)
 
-    if (has_j or has_9) and my_trumps >= 3 and enemy_trumps_estimate >= 2:
-        # Single top honor + length: draw once to thin the field
-        phase = "PARTIAL_DRAW"
-        notes.append(f"{'J' if has_j else '9'} + {my_trumps}t→partial draw (thin field)")
-        return _result("DRAW", True, safe_sides, ruff_targets, notes,
-                       phase=phase, side_winner_suits=side_winner_suits)
+    # Single top honor + length: draw once to thin the field
+    # Pro data: trump-in rate drops from 43% (trick 1) to 15.5% (trick 8)
+    # Late game (trick 5+): require extra trump length before drawing
+    pro_trump_rate = TRUMP_IN_BY_TRICK.get(tricks_played + 1, 0.20)
+    late_game = tricks_played >= 4
+    if (has_j or has_9) and enemy_trumps_estimate >= 2:
+        min_trumps = 4 if late_game else 3
+        if my_trumps >= min_trumps:
+            phase = "PARTIAL_DRAW"
+            notes.append(f"{'J' if has_j else '9'} + {my_trumps}t→partial draw (pro rate: {pro_trump_rate:.0%})")
+            return _result("DRAW", True, safe_sides, ruff_targets, notes,
+                           phase=phase, side_winner_suits=side_winner_suits)
 
     # --- PHASE 2: CASH_SIDES ---
     # After partial draw (enemy trumps reduced), cash side-suit winners

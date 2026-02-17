@@ -223,6 +223,32 @@ POSITION_FEED_CONSERVE_SWING: dict[int, float] = {
 }
 
 
+# ═══════════════════════════════════════════════════════════════════
+#  TRUMP TIMING (from mine_card_play_data.py / void play analysis)
+#  Trick-indexed trump-in rate — pros conserve trumps in late game.
+#  Source: 6,857 void situations across 109 pro games.
+# ═══════════════════════════════════════════════════════════════════
+
+TRUMP_IN_BY_TRICK: dict[int, float] = {
+    1: 0.430,   # 200/465 — most aggressive (early trump draw)
+    2: 0.314,   # 259/825 — sharp drop after trick 1
+    3: 0.258,   # 194/751 — settling into conservation
+    4: 0.233,   # 192/825 — baseline
+    5: 0.239,   # 208/872 — slight bump (mid-game positional)
+    6: 0.199,   # 194/975 — conservation ramps up
+    7: 0.224,   # 222/989 — late-game exceptions
+    8: 0.155,   # 179/1155 — deep conservation, save trump for last
+}
+
+# Singleton lead rank patterns — ranks disproportionately led from length-1 suits
+# When a player leads from a suit they have only 1 card in:
+SINGLETON_LEAD_RANKS: dict[str, float] = {
+    "10": 0.152,   # 15.2% of singleton leads — high point, wants partner ruff return
+    "A":  0.145,   # 14.5% — cash the Ace then void
+    "K":  0.098,   # 9.8% — moderate
+}
+
+
 def get_pro_bid_frequency(trump_count: int, high_cards: int) -> float:
     """Return pro bid frequency for given hand shape. 0.0 if not in lookup."""
     key = f"{trump_count}t_{high_cards}h"

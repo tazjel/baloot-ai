@@ -61,6 +61,11 @@ def model_opponents(
             for s in ALL_SUITS:
                 strength[player][s] -= 0.3
 
+    # Track first lead per suit per opponent (for singleton detection)
+    first_lead_suit: dict[str, dict[str, str | None]] = {
+        p: {s: None for s in ALL_SUITS} for p in opps
+    }
+
     # --- Trick analysis ---
     for trick in trick_history or []:
         cards = trick.get("cards", [])
@@ -87,6 +92,13 @@ def model_opponents(
                         high_trump[player] = True
                     agg_plays[player] += 1
 
+                # Discard signal: opponent chose to discard from suit
+                # 78.5% reliable that discarded suit is their shortest
+                strength[player][suit] -= 1.5
+                if rank in _HIGH:
+                    # High-card discard = exhausting this suit
+                    strength[player][suit] -= 1.0
+
             # Suit strength from plays
             if is_leader:
                 if rank in _HIGH:
@@ -94,6 +106,9 @@ def model_opponents(
                     agg_plays[player] += 1
                 elif rank in _LOW:
                     strength[player][suit] -= 0.5
+                # Track first lead in each suit (for singleton detection)
+                if first_lead_suit[player][suit] is None:
+                    first_lead_suit[player][suit] = rank
             else:
                 if rank in _HIGH and suit == led_suit:
                     strength[player][suit] += 1.0
@@ -113,6 +128,12 @@ def model_opponents(
         style = "AGGRESSIVE" if style_ratio > 0.6 else ("PASSIVE" if style_ratio < 0.4 else "UNKNOWN")
         tc = trump_count[p] if mode == "HOKUM" else 0
         danger = min(1.0, tc * 0.15 + strong_count * 0.1 + style_ratio * 0.2)
+        # Singleton detection: first lead of 10 or A in non-trump suit
+        singleton_suspects = []
+        for s, first_rank in first_lead_suit[p].items():
+            if first_rank in ("10", "A") and s != trump_suit:
+                singleton_suspects.append(s)
+
         profiles[p] = {
             "void_suits": sorted(voids[p]),
             "estimated_trumps": tc,
@@ -120,6 +141,7 @@ def model_opponents(
             "strength_by_suit": dict(strength[p]),
             "play_style": style,
             "danger_level": round(danger, 2),
+            "singleton_suspects": singleton_suspects,
         }
 
     # --- Safe / avoid suits ---
