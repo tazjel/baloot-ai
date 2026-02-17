@@ -378,14 +378,15 @@ class TestProjectsPlusTricks(_ScoringIntegrationBase):
 class TestZeroZeroTie(_ScoringIntegrationBase):
     """Tests for tiebreak resolution when both teams have equal raw points."""
 
-    def test_zero_zero_tie(self):
-        """Both teams equal raw points -> tiebreak: bidder team wins the tie.
+    def test_last_trick_bonus_pair_rounding(self):
+        """Last trick bonus gives them +10, but pair rounding equalizes GP.
 
-        When game points are exactly equal after rounding, the bidder
-        team is awarded the win in the tiebreak.
+        In HOKUM: us=76 them=86. Individual: 8+9=17.
+        Equal remainders (6 vs 6), reduce larger raw (them) → 8+8 tie.
+        GP tie → bidder ('us') wins the tiebreak.
         """
-        # Equal distribution: each team gets same raw points
-        # 4 tricks each with equal points
+        # 4 tricks each at 19 pts, last trick (Right) gets +10 bonus
+        # us=4*19=76, them=4*19+10=86
         self._add_interleaved_tricks([
             ('Bottom', 19), ('Right', 19),
             ('Bottom', 19), ('Right', 19),
@@ -405,9 +406,11 @@ class TestZeroZeroTie(_ScoringIntegrationBase):
             'us'  # bidder team
         )
 
-        # With equal raw points the tiebreak goes to bidder
+        # Pair rounding equalizes GP to 8+8 tie, bidder wins tiebreak
+        self.assertEqual(gp_result['game_points']['us'], 8)
+        self.assertEqual(gp_result['game_points']['them'], 8)
         self.assertEqual(gp_result['winner'], 'us',
-                         "Tiebreak should go to bidder team ('us')")
+                         "GP tied at 8-8, bidder wins tiebreak")
 
     def test_tiebreak_bidder_them(self):
         """When bidder is 'them' and points are equal, them should win tiebreak."""
@@ -496,12 +499,12 @@ class TestLastTrickBonus(_ScoringIntegrationBase):
 class TestRoundingRules(_ScoringIntegrationBase):
     """Additional tests for SUN vs HOKUM rounding edge cases."""
 
-    def test_sun_rounding_half_up(self):
-        """SUN: 0.5 decimal rounds UP (>= 0.5)."""
+    def test_sun_floor_to_even(self):
+        """SUN: floor-to-even rounding (Kammelna validated)."""
         se = self.game.scoring_engine
-        # 33 * 2 / 10 = 6.6 -> 7
-        self.assertEqual(se._calculate_score_for_team(33, 'SUN'), 7)
-        # 25 * 2 / 10 = 5.0 -> 5
+        # 33 → divmod(33,5)=(6,3) → q=6 (even), r>0 → stays 6
+        self.assertEqual(se._calculate_score_for_team(33, 'SUN'), 6)
+        # 25 → divmod(25,5)=(5,0) → r=0 → 5
         self.assertEqual(se._calculate_score_for_team(25, 'SUN'), 5)
 
     def test_hokum_rounding_half_down(self):

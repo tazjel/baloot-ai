@@ -4,6 +4,7 @@
 .env.*.local
 *.pem
 *.key
+.mcp.json
 
 # Ephemeral artifacts
 diagnostics/

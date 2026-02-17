@@ -225,10 +225,11 @@ class TestGameLogic(unittest.TestCase):
         
         game.end_round()
         
-        # Us (Bidder) had 65. Loss.
-        # Opponent (Them) gets All 26 points.
-        self.assertEqual(game.match_scores['them'], 26)
-        self.assertEqual(game.match_scores['us'], 0)
+        # Us (Bidder) had 65, Them had 65. GP tie + equal raw.
+        # Kammelna rule: equal raw on tie → split (no khasara).
+        # SUN GP: sun_card_gp(65) = divmod(65,5) = (13,0) → 13 each.
+        self.assertEqual(game.match_scores['us'], 13)
+        self.assertEqual(game.match_scores['them'], 13)
 
     def test_four_aces_sun_vs_hokum(self):
         # 4 Aces in SUN -> FOUR_HUNDRED (200 Abnat = 40 pts)

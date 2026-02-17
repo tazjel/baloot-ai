@@ -63,43 +63,68 @@ class TestCardAbnat(_ScoringTestBase):
 
 
 class TestScoreCalculation(_ScoringTestBase):
-    """Tests for _calculate_score_for_team — rounding logic."""
+    """Tests for rounding — validated against Kammelna formulas.
+
+    SUN: floor-to-even → divmod(abnat, 5); q + (1 if q%2==1 and r>0)
+    HOKUM: individual → divmod(abnat, 10); q + (1 if r>5)
+    """
 
     def test_hokum_rounding_down(self):
-        """In Hokum, val/10 with decimal <= 0.5 should round down."""
+        """HOKUM: remainder <= 5 rounds down."""
         se = self.game.scoring_engine
-        # 65 / 10 = 6.5 → in Hokum, 0.5 rounds DOWN (> not >=)
         self.assertEqual(se._calculate_score_for_team(65, 'HOKUM'), 6)
 
     def test_hokum_rounding_up(self):
-        """In Hokum, val/10 with decimal > 0.5 should round up."""
+        """HOKUM: remainder > 5 rounds up."""
         se = self.game.scoring_engine
-        # 66 / 10 = 6.6 → rounds UP to 7
         self.assertEqual(se._calculate_score_for_team(66, 'HOKUM'), 7)
 
-    def test_sun_doubling(self):
-        """In Sun, raw value is doubled before dividing by 10."""
+    def test_sun_exact_multiple(self):
+        """SUN: exact multiple of 5 → quotient directly."""
         se = self.game.scoring_engine
-        self.game.game_mode = 'SUN'
-        # 65 * 2 / 10 = 13.0 → 13
+        # 65: divmod(65,5) = (13,0) → 13
         self.assertEqual(se._calculate_score_for_team(65, 'SUN'), 13)
 
-    def test_sun_rounding_up(self):
-        """In Sun, decimal >= 0.5 rounds UP."""
+    def test_sun_floor_to_even_even_quotient(self):
+        """SUN: even quotient with remainder → stays (no round up)."""
         se = self.game.scoring_engine
-        # 33 * 2 / 10 = 6.6 → 7
-        self.assertEqual(se._calculate_score_for_team(33, 'SUN'), 7)
+        # 33: divmod(33,5) = (6,3) → q=6 (even), r>0 but even → 6
+        self.assertEqual(se._calculate_score_for_team(33, 'SUN'), 6)
+
+    def test_sun_floor_to_even_odd_quotient(self):
+        """SUN: odd quotient with remainder → rounds up."""
+        se = self.game.scoring_engine
+        # 28: divmod(28,5) = (5,3) → q=5 (odd), r>0 → 5+1=6
+        self.assertEqual(se._calculate_score_for_team(28, 'SUN'), 6)
+
+    def test_sun_total_always_26(self):
+        """SUN floor-to-even always sums to 26 when inputs sum to 130."""
+        from game_engine.logic.scoring_engine import ScoringEngine
+        for us in range(0, 131):
+            them = 130 - us
+            total = ScoringEngine.sun_card_gp(us) + ScoringEngine.sun_card_gp(them)
+            self.assertEqual(total, 26, f"SUN: {us}+{them}=130 but GP sums to {total}")
 
 
 class TestTiebreak(_ScoringTestBase):
-    """Tests for calculate_game_points_with_tiebreak."""
+    """Tests for calculate_game_points_with_tiebreak — Kammelna pair rounding."""
 
-    def test_total_equals_16_hokum(self):
-        """In Hokum, total game points should sum to 16."""
+    def test_total_equals_16_hokum_valid_split(self):
+        """HOKUM: pair-based rounding sums to 16 for valid 162-total."""
         se = self.game.scoring_engine
-        result = se.calculate_game_points_with_tiebreak(65, 65, 10, 10, 'us')
+        # 86 card + 10 ardh = 96, 66 card + 0 ardh = 66 → total 162
+        result = se.calculate_game_points_with_tiebreak(86, 66, 10, 0, 'us')
         total = result['game_points']['us'] + result['game_points']['them']
         self.assertEqual(total, 16)
+
+    def test_hokum_pair_sum_constraint(self):
+        """HOKUM pair-based rounding always sums to 16 for valid raw=162."""
+        from game_engine.logic.scoring_engine import ScoringEngine
+        for us in range(0, 163):
+            them = 162 - us
+            gp_us, gp_them = ScoringEngine.hokum_pair_gp(us, them)
+            self.assertEqual(gp_us + gp_them, 16,
+                             f"HOKUM: {us}+{them}=162 but GP sums to {gp_us + gp_them}")
 
     def test_tiebreak_winner_with_unequal_raw(self):
         """Team with more raw points wins."""
@@ -107,20 +132,12 @@ class TestTiebreak(_ScoringTestBase):
         result = se.calculate_game_points_with_tiebreak(80, 50, 10, 10, 'us')
         self.assertEqual(result['winner'], 'us')
 
-    def test_tiebreak_equal_raw_bidder_wins(self):
+    def test_tiebreak_equal_gp_bidder_wins(self):
         """When game points are exactly tied, bidder_team wins."""
         se = self.game.scoring_engine
-        result = se.calculate_game_points_with_tiebreak(65, 65, 10, 10, 'us')
-        # With equal raw, rounding may differ, but winner field should be set
-        self.assertIn(result['winner'], ['us', 'them'])
-
-    def test_deficit_added_to_opponent_of_bidder(self):
-        """If total < target (16), difference goes to opponent of bidder."""
-        se = self.game.scoring_engine
-        # Force low totals that round down
-        result = se.calculate_game_points_with_tiebreak(60, 60, 0, 0, 'us')
-        total = result['game_points']['us'] + result['game_points']['them']
-        self.assertEqual(total, 16, "Tiebreak should ensure total = 16 in HOKUM")
+        # 71+10=81, 71+10=81 → both round to 8 → tie → bidder wins
+        result = se.calculate_game_points_with_tiebreak(71, 71, 10, 10, 'us')
+        self.assertEqual(result['winner'], 'us')
 
 
 class TestKaboot(_ScoringTestBase):
@@ -185,34 +202,37 @@ class TestDoublingMultiplier(_ScoringTestBase):
 
 
 class TestGPOverflow(_ScoringTestBase):
-    """Tests for GP tiebreak overflow fix (11.1a) — total_gp > target_total."""
+    """Tests for GP pair-based rounding — Kammelna validated formulas."""
 
-    def test_overflow_subtracted_from_non_bidder(self):
-        """When rounding produces GP > target, excess is removed from non-bidder."""
-        se = self.game.scoring_engine
-        # Craft values where both round UP, producing total > 16
-        # e.g. us=86, them=76 raw+ardh → us=9, them=8 → 17 > 16
-        # bidder_team='us' → subtract excess from 'them'
-        result = se.calculate_game_points_with_tiebreak(76, 66, 10, 10, 'us')
-        total = result['game_points']['us'] + result['game_points']['them']
-        self.assertEqual(total, 16, "Total GP must equal 16 in HOKUM even when rounding overflows")
+    def test_hokum_pair_handles_sum_17(self):
+        """HOKUM: when individual rounding sums to 17, reduce larger remainder."""
+        from game_engine.logic.scoring_engine import ScoringEngine
+        # 86+76=162: individual → 9+8=17, raw_a%10=6 > raw_b%10=6 → reduce a
+        gp_a, gp_b = ScoringEngine.hokum_pair_gp(86, 76)
+        self.assertEqual(gp_a + gp_b, 16)
 
-    def test_overflow_does_not_go_negative(self):
-        """Excess subtraction should never produce negative GP."""
-        se = self.game.scoring_engine
-        # Extreme case: one team has almost all points
-        result = se.calculate_game_points_with_tiebreak(140, 0, 10, 0, 'them')
-        self.assertGreaterEqual(result['game_points']['us'], 0)
-        self.assertGreaterEqual(result['game_points']['them'], 0)
-        total = result['game_points']['us'] + result['game_points']['them']
-        self.assertEqual(total, 16)
+    def test_hokum_pair_handles_sum_15(self):
+        """HOKUM: when individual rounding sums to 15, increase larger remainder."""
+        from game_engine.logic.scoring_engine import ScoringEngine
+        # 85+77=162: individual → 8+7=15, raw_a%10=5 > raw_b%10=7 → increase b
+        gp_a, gp_b = ScoringEngine.hokum_pair_gp(85, 77)
+        self.assertEqual(gp_a + gp_b, 16)
 
-    def test_sun_overflow_target_26(self):
-        """In Sun mode, total should be 26."""
+    def test_extreme_hokum_split(self):
+        """HOKUM: extreme split should still produce valid GP."""
+        from game_engine.logic.scoring_engine import ScoringEngine
+        gp_a, gp_b = ScoringEngine.hokum_pair_gp(150, 12)
+        self.assertGreaterEqual(gp_a, 0)
+        self.assertGreaterEqual(gp_b, 0)
+        self.assertEqual(gp_a + gp_b, 16)
+
+    def test_sun_total_26_with_valid_split(self):
+        """SUN: total GP should be 26 for valid 130-total raw."""
         self.game.game_mode = 'SUN'
         self.game.bid = {'bidder': 'Bottom', 'type': 'SUN', 'suit': None}
         se = self.game.scoring_engine
-        result = se.calculate_game_points_with_tiebreak(68, 62, 10, 10, 'us')
+        # 58 card + 10 ardh = 68, 52 card + 10 ardh = 62 → total 130
+        result = se.calculate_game_points_with_tiebreak(58, 52, 10, 10, 'us')
         total = result['game_points']['us'] + result['game_points']['them']
         self.assertEqual(total, 26, "Total GP must equal 26 in SUN")
 

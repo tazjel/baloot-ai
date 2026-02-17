@@ -113,14 +113,14 @@ class TestScoringHokumRounding(_GameTestBase):
 class TestScoringSunRounding(_GameTestBase):
     """Lock SUN rounding rule: .5+ rounds UP."""
 
-    def test_sun_half_rounds_up(self):
-        """SUN: 0.5 decimal should round up (>= 0.5 rule)."""
+    def test_sun_floor_to_even(self):
+        """SUN: floor-to-even rounding — even quotient stays down."""
         from game_engine.logic.scoring_engine import ScoringEngine
         se = ScoringEngine(self.game)
         self.game.game_mode = 'SUN'
-        # raw=63 → (63*2)/10=12.6 → decimal=0.6 → >=0.5 → 13
+        # raw=63 → divmod(63,5)=(12,3) → q=12 (even), r>0 → stays 12
         result = se._calculate_score_for_team(63, 'SUN')
-        self.assertEqual(result, 13, "SUN: 63 raw → 12.6 → should round UP to 13")
+        self.assertEqual(result, 12, "SUN: 63 raw → q=12 (even) → stays 12")
 
     def test_sun_quarter_rounds_down(self):
         """SUN: 0.2 decimal should round down."""
