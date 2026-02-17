@@ -7,3 +7,4 @@ export 'round_result.dart';
 export 'declared_project.dart';
 export 'game_settings.dart';
 export 'game_state.dart';
+export 'hint_result.dart';
