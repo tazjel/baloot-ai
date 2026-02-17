@@ -10,9 +10,9 @@
 | Frontend files | **106** (.tsx/.ts) |
 | Test files | **86** |
 | Test / Source Ratio | **0.54** (target: 0.70) ⚠️ |
-| Last Pass Rate | **98.9%** (516/522) — 6 failing ⚠️ |
+| Last Pass Rate | **100%** (550/550) ✅ |
 | Last Code Coverage | **53.9%** (target: 70%) ⚠️ |
-| Last Test Run | 2026-02-14 (3 days stale) |
+| Last Test Run | 2026-02-17 |
 | TypeScript `as any` | **1** ✅ (benign, `config.ts`) |
 | `console.log` leaks | **0** ✅ (only in `devLogger.ts`) |
 | TODO/FIXME/HACK | **3** (`memory.py`, `scout.py`, `verify_time_lord.py`) |
@@ -20,7 +20,7 @@
 ### Backend Hotspots (>15 KB)
 | File | Size | Status |
 |------|------|--------|
-| `ai_worker/strategies/bidding.py` | 23.7 KB | 🔴 Critical (grew +2.7 KB from pro_data wiring) |
+| `ai_worker/strategies/bidding.py` | ~17 KB | 🟢 Decomposed (M26: 4 focused methods) |
 | `game_engine/logic/qayd_engine.py` | 21.4 KB | 🟡 Large |
 | `game_engine/logic/game.py` | 20.4 KB | 🟡 Large |
 | `ai_worker/bot_context.py` | 17.2 KB | 🟡 Large |
@@ -138,6 +138,19 @@
 
 ---
 
+### Mission 25: "The Release" — GitHub Release Preparation ✅
+> Completed 2026-02-17. Secret scan clean, hardcoded path fixed, README/gitignore updated.
+
+### Mission 26: "The Scalpel II" — Backend Hotspot Decomposition ✅
+> Completed 2026-02-17. bidding.py get_decision() decomposed into 4 focused methods.
+> 332-line monolith → clean orchestrator + _evaluate_hand_scores, _compute_thresholds,
+> _apply_pro_frequency_validation, _make_final_decision.
+
+### Mission 31: "The Conservator" — Trump Timing & Singleton Detection ✅
+> Completed 2026-02-17. Pro trump conservation curve (43%→15.5%) wired into trump_manager.
+> Singleton detection (10/A leads) in opponent_model. Discard signal reading in both
+> opponent_model and partner_read. 15 new tests, 550 total passing.
+
 ## 🎯 Active Missions
 
 ### Mission 28: "The Oracle" — Endgame Solver Activation (Delegated to Jules)
@@ -145,48 +158,6 @@
 
 ### Mission 30: "The Telepath" — Partner & Opponent Discard Signal Reading (Delegated to Jules)
 > Add discard suit interpretation to partner_read.py and opponent_model.py. Shortest-suit discard in cooperative_play.py.
-
-### Mission 31: "The Conservator" — Trump Timing & Singleton Detection (Delegated to Antigravity)
-> Add trick-indexed trump lead probability, wire into trump_manager, singleton detection in opponent_model.
-
-## Mission 25: "The Release" — GitHub Release Preparation 🆕
-> Effort estimate (~2 hours) | Priority: ① — Blocking release
-
-Prepare the codebase for public GitHub release. Kammelna reference removal started but needs verification.
-
-### Tasks
-- [ ] **Verify kammelna removal** — grep for any remaining "kammelna" references
-  - [ ] Check Python, TypeScript, markdown, and config files
-  - [ ] Ensure `classic` and `mobile_export` replacements are consistent
-- [ ] **Fix 6 failing tests** — investigate and fix failures from Feb 14 run
-  - [ ] Run `python -m pytest tests/ -x --tb=short` to identify failures
-- [ ] **Clean untracked files** — `.claude/task_game_theory.md` and other artifacts
-- [ ] **Update README** — ensure it reflects current project state for public view
-- [ ] **LICENSE check** — confirm license file exists and is appropriate
-
-### Key Files
-| File | Change |
-|------|--------|
-| Various | Remove remaining kammelna references |
-| `README.md` | Update for public release |
-| `.gitignore` | Ensure .claude/ artifacts are excluded |
-
-### Verification
-```powershell
-git grep -i "kammelna" -- ":(exclude)node_modules" ":(exclude).git"
-python -m pytest tests/ --tb=short -q
-```
-
-### 🤖 Claude MAX Task (copy-paste ready)
-```
-Read README.md, CLAUDE.md, and .gitignore.
-1. Audit the repo for public release readiness:
-   - Check for hardcoded secrets, API keys, or personal paths
-   - Verify .gitignore covers all sensitive directories
-   - Ensure README has proper setup instructions
-2. Fix any issues found
-3. Run tests to verify nothing breaks
-```
 
 ---
 
@@ -232,45 +203,8 @@ For each file:
 
 ---
 
-## Mission 26: "The Scalpel II" — Backend Hotspot Decomposition 🆕
-> Effort estimate (~3 hours) | Priority: ③ — Structural refactoring
-
-`bidding.py` grew to 23.7 KB after pro_data wiring — now the largest AI file. Two other engine files remain above 20 KB.
-
-### Tasks
-- [ ] **Decompose `bidding.py` (23.7 KB)** — extract pro_data evaluation logic
-  - [ ] `components/bid_evaluator.py` — hand strength + pro threshold logic
-  - [ ] `components/bid_position.py` — position-based multipliers + score-state
-  - [ ] Keep `bidding.py` as thin orchestrator (~10 KB target)
-- [ ] **Decompose `qayd_engine.py` (21.4 KB)** — split state machine from penalty logic
-  - [ ] Already has `qayd_penalties.py` and `qayd_state_machine.py` — verify they're used
-- [ ] **Decompose `game.py` (20.4 KB)** — audit what can be delegated to managers
-  - [ ] Check if `game_lifecycle.py`, `state_bridge.py` already handle enough
-
-### Key Files
-| File | Change |
-|------|--------|
-| `ai_worker/strategies/bidding.py` | Split → orchestrator + 2 components |
-| `game_engine/logic/qayd_engine.py` | Verify decomposition is complete |
-| `game_engine/logic/game.py` | Audit delegations to managers |
-
-### Verification
-```powershell
-python -m pytest tests/bidding/ tests/game_logic/ --tb=short -q
-```
-
-### 🤖 Claude MAX Task (copy-paste ready)
-```
-Read ai_worker/strategies/bidding.py completely.
-Read ai_worker/strategies/components/bid_analysis.py and bid_reader.py.
-Read ai_worker/strategies/components/base.py for the component pattern.
-
-1. Identify which sections of bidding.py can be extracted as strategy components
-2. Focus on the pro_data evaluation logic added recently — it's the growth area
-3. Create new component files following the existing pattern in components/
-4. Update bidding.py to import and delegate to the new components
-5. Run tests: python -m pytest tests/bidding/ --tb=short -q
-```
+## Mission 26: "The Scalpel II" — Backend Hotspot Decomposition ✅
+> Completed 2026-02-17. bidding.py decomposed via internal method extraction.
 
 ---
 
