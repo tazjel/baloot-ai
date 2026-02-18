@@ -3,11 +3,15 @@ Authentication routes: signup, signin, user profile, token_required decorator.
 """
 import bcrypt
 import logging
+import re
 from py4web import action, request, response, abort
 from server.common import db
 import server.auth_utils as auth_utils
 
 logger = logging.getLogger(__name__)
+
+# Basic email regex (anchored)
+EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 
 
 def token_required(f):
@@ -55,6 +59,18 @@ def signup():
     password = data.get('password')
     email = data.get('email')
 
+    if not email or not password or not first_name or not last_name:
+        response.status = 400
+        return {"error": "All fields are required"}
+
+    if not EMAIL_REGEX.match(email):
+        response.status = 400
+        return {"error": "Invalid email format"}
+
+    if len(password) < 8:
+        response.status = 400
+        return {"error": "Password must be at least 8 characters long"}
+
     logger.info(f"{email} is signing up!")
 
     existing_user = db(db.app_user.email == email).select().first()
@@ -62,7 +78,9 @@ def signup():
         response.status = 409
         return {"error": "User already exists"}
 
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    # Hash password (returns bytes), verify it's not empty, then decode to string for storage
+    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    hashed_password = hashed_bytes.decode('utf-8')
 
     user_id = db.app_user.insert(
         first_name=first_name, last_name=last_name,
@@ -95,7 +113,10 @@ def signin():
         response.status = 404
         return {"error": "User not found"}
 
-    if bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+    # Ensure stored password is encoded to bytes for checkpw
+    stored_password_bytes = user.password.encode('utf-8') if isinstance(user.password, str) else user.password
+
+    if bcrypt.checkpw(password.encode('utf-8'), stored_password_bytes):
         token = auth_utils.generate_token(user.id, user.email, user.first_name, user.last_name)
         response.status = 200
         return {"email": user.email, "firstName": user.first_name, "lastName": user.last_name, "token": token}
