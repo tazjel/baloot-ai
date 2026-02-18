@@ -42,37 +42,51 @@ class TableHudWidget extends ConsumerWidget {
           width: 0.5,
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Us score
-          _ScorePill(
-            label: 'نحن',
-            matchScore: gameState.matchScores.us,
-            roundScore: gameState.teamScores.us,
-            color: AppColors.info,
+          Row(
+            children: [
+              // Us score
+              _ScorePill(
+                label: 'نحن',
+                matchScore: gameState.matchScores.us,
+                roundScore: gameState.teamScores.us,
+                color: AppColors.info,
+              ),
+
+              const Spacer(),
+
+              // Contract indicator (center)
+              _ContractBadge(
+                gameMode: gameState.gameMode,
+                trumpSuit: gameState.trumpSuit,
+                doublingLevel: gameState.doublingLevel,
+                roundNumber: gameState.roundHistory.length + 1,
+                phase: phase,
+              ),
+
+              const Spacer(),
+
+              // Them score
+              _ScorePill(
+                label: 'هم',
+                matchScore: gameState.matchScores.them,
+                roundScore: gameState.teamScores.them,
+                color: AppColors.error,
+                isRight: true,
+              ),
+            ],
           ),
-
-          const Spacer(),
-
-          // Contract indicator (center)
-          _ContractBadge(
-            gameMode: gameState.gameMode,
-            trumpSuit: gameState.trumpSuit,
-            doublingLevel: gameState.doublingLevel,
-            roundNumber: gameState.roundHistory.length + 1,
-            phase: phase,
-          ),
-
-          const Spacer(),
-
-          // Them score
-          _ScorePill(
-            label: 'هم',
-            matchScore: gameState.matchScores.them,
-            roundScore: gameState.teamScores.them,
-            color: AppColors.error,
-            isRight: true,
-          ),
+          // Match progress bar
+          if (gameState.matchScores.us > 0 || gameState.matchScores.them > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: _MatchProgressBar(
+                usScore: gameState.matchScores.us,
+                themScore: gameState.matchScores.them,
+              ),
+            ),
         ],
       ),
     );
@@ -263,5 +277,70 @@ class _ContractBadge extends StatelessWidget {
       default:
         return '';
     }
+  }
+}
+
+// =============================================================================
+// Match Progress Bar
+// =============================================================================
+
+class _MatchProgressBar extends StatelessWidget {
+  final int usScore;
+  final int themScore;
+
+  const _MatchProgressBar({
+    required this.usScore,
+    required this.themScore,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const target = 152.0;
+    final usPct = (usScore / target).clamp(0.0, 1.0);
+    final themPct = (themScore / target).clamp(0.0, 1.0);
+
+    return SizedBox(
+      height: 4,
+      child: Row(
+        children: [
+          // Us progress (left → center)
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FractionallySizedBox(
+                widthFactor: usPct,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.info,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Center divider
+          Container(
+            width: 2,
+            height: 4,
+            color: Colors.white.withOpacity(0.3),
+          ),
+          // Them progress (right → center)
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: themPct,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.error,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
