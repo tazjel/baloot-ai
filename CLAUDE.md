@@ -122,14 +122,6 @@ Baloot AI is a full-stack Saudi trick-taking card game with AI bots.
 - `brain_client.py` — Brain service client
 - `mind_client.py` — Mind service client
 
-### Bot Context (`ai_worker/bot_context.py`)
-The `BotContext` dataclass provides all game state to strategies:
-- `hand`, `legal_indices`, `my_seat`, `partner_seat`
-- `mode` ("SUN"/"HOKUM"), `trump_suit`, `trump_caller`
-- `trick_history`, `current_trick`, `table_cards`
-- `round_number`, `team_scores`, `bid_history`
-- `memory` — CardMemory with Bayesian suit probabilities
-- `is_partner_winning()`, `is_master_card()`, `is_player_void()`
 
 ### Card Objects (`game_engine/models/card.py`)
 Cards have `.rank` (str: "7"-"A") and `.suit` (str: "♠","♥","♦","♣")
@@ -187,7 +179,7 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
   - Current baseline: **~550 tests passing**
 - **Flutter tests** in `mobile/test/`
   - Run: `cd mobile && flutter test`
-  - Current baseline: **~130 tests passing**
+  - Current baseline: **~138 tests passing**
 
 ## What NOT to Do
 - Don't modify `game.py` core state machine without explicit approval
@@ -200,17 +192,15 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
 ## Team Workflow
 - **Claude MAX**: Complex multi-file refactors, system-level architecture, game-theory strategy design, full-pipeline integration (module + wiring + tests)
 - **Antigravity (Gemini)**: Orchestration, gap scanning, test running, browser/dashboard management, deep Flutter analysis via MCP, documentation
-- **Jules**: Parallel simple module generation from specs
+- **Jules**: Isolated file creation from specs (tests, services, ports). **Always include "create a PR" in prompt text + `autoPr: true`.** See `/jules` workflow for prompt rules and session management.
 
 ## Inter-Agent Coordination
 
 ### Status Board: `.agent/knowledge/agent_status.md`
-- **Always check this file** when starting a session — it contains the latest status from all agents.
+- **Check this file** when starting a session for latest status from all agents.
 - **Update your section** when you start or complete work.
-- **Add tasks** to the "Task Queue" section to assign work to Antigravity.
 
-### Communication Protocol
-1. Claude assigns tasks via the status board or `.claude/` task files
-2. Antigravity reports completion in the status board with details
-3. The user triggers handoffs between agents
-4. File locks in `.agent/knowledge/file_locks.md` prevent conflicts
+### Task Delegation
+- Claude assigns tasks to Antigravity via `.agent/knowledge/tasks.md`
+- Jules tasks use the `/jules` workflow (see above)
+- The user triggers handoffs between agents
