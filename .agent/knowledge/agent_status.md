@@ -2,60 +2,37 @@
 > Shared status between Antigravity (Gemini), Claude MAX, and Jules.
 > Each agent updates their section when completing tasks or requesting work.
 
-## Last Updated: 2026-02-18T23:38+03:00
+## Last Updated: 2026-02-18T23:46+03:00
 
 ---
 
 ## Antigravity (Gemini) — Status: ✅ ALL TASKS COMPLETE
 
-### 🔴 Priority 1: flutter analyze + flutter test ✅
-- `flutter analyze` → **0 severity-2 warnings** (cleaned 13 files of unused imports/elements)
-- `flutter test` → **138/138 tests pass**
-- Fixed syntax error in `game_over_dialog.dart` (missing closing paren for Material widget)
+### Latest: M-F19 Verification ✅
+- `flutter analyze` → **0 errors** (137 info-level only)
+- `flutter test` → **138/138 pass**
+- M-F19 changes (timer fixes, error handler, font cleanup) verified clean
 
-### 🟡 Priority 2: Jules Configuration Fix ✅
-**Root cause found:** Jules CAN push branches and create PRs.
-- Session M-F12 (`767214469817076241`) successfully created **PR #22** on GitHub
-- Sessions M-F17 and M-F18 failed because their prompts lacked explicit PR instructions
-- `autoPr: true` API flag alone is NOT sufficient — prompt must also say "create a PR"
-- Created `/jules` workflow (`.agent/workflows/jules.md`) with prompt rules and best practices
-- Updated `CLAUDE.md` Team Workflow section with Jules usage instructions
-- Probe session (`14176823191623782465`) with `autoPr: true` still running
-
-### 🟢 Priority 3-5: Visual QA ✅
-**23/23 tasks completed** via code review:
-
-| Task | Result |
-|------|--------|
-| 19: Game Over dialog | ✅ Trophy/skull, scores, round history, play-again/lobby buttons |
-| 20: Round transition | ✅ Round#, score columns, winner trophy |
-| 21: Match progress bar | ✅ Blue/red bars targeting 152 |
-| 22: Lobby stats | ✅ Games/won/% chips + streak fire |
-| 23: Theme toggle | ✅ ThemeModeNotifier persists to SharedPreferences |
-| 24: Settings persistence | ✅ Full SharedPreferences layer |
-| 25: Name persistence | ✅ savePlayerName/loadPlayerName |
-| 28-30: Profile | ✅ Avatar, name+edit, tier badges, stats, win rate ring, match history, empty state |
-| 31-34: Recent features | ✅ Splash, welcome dialog, about screen, tips of the day |
-| 35-38: Polish | ✅ Win streak, accessibility semantics, app name "بلوت AI", confetti |
-| 40-42: Config | ✅ App icon (gold spade), Tajawal font, portrait lock |
-
-### Bonus
-- Added `flutter_driver` dev dependency + `test_driver/main.dart` entrypoint
-- Cleaned up stale content from `CLAUDE.md`
+### Store Assets Created ✅
+- `mobile/store/listing_ar.md` — Arabic title, descriptions, keywords
+- `mobile/store/privacy_policy.md` — Local-only data privacy policy
+- `mobile/store/release_signing.md` — Android keystore + iOS signing guide
 
 **Awaiting**: Next task assignment from Claude or user.
 
 ---
 
-## Claude MAX — Status: ✅ M-F19 Complete, Ready for M-F20
+## Claude MAX — Status: ✅ M-F20 In Progress
 
 ### Completed This Session
 - **M-F17**: Offline font bundling (Tajawal TTFs, removed google_fonts) — `4aaad8d`
 - **M-F19 Round 1**: Memory leak fix, ErrorBoundary init, font cleanup — `d7af95f`
 - **M-F19 Round 2**: Timer leaks, null safety, mounted checks — `7801a50`
+- **M-F20**: Internet permission, release signing config, .gitignore — `e84615d`
 
-### Current
-- All polish done. Only **M-F20: Store Submission** remains (~45 min)
+### Jules Sessions (with PR instructions this time!)
+- Widget tests: `10744328001566808027` — IN_PROGRESS
+- Store assets: `9102467196684113667` — IN_PROGRESS
 
 ---
 
