@@ -23,18 +23,19 @@
 | M-F10: Theme Persistence + Dark Mode | `8512d9e` | Claude |
 | M-F11: Profile Screen + Match History | `55b5e62`→`cecb414` | Claude |
 
+| M-F12: Release Prep + Polish | `bea0fd8`→`4863013` | Claude |
+
 ### 🔄 IN PROGRESS
 | Task | Owner | Status |
 |------|-------|--------|
-| M-F9 Tests (4 files) | **Jules** | IN_PROGRESS `12215972826236814654` |
+| M-F12 Tests (4 files) | **Jules** | IN_PROGRESS `767214469817076241` (auto-PR) |
 | Visual QA (tasks 10-30) | **Antigravity** | Assigned |
-| M-F12: Release Prep + Polish | **Claude** | Building |
 
 ### 📋 UPCOMING
 | Mission | Description | Owner | Priority |
 |---------|-------------|-------|----------|
-| **M-F12: Release Prep** | App icons, splash, error handling polish | Claude | 🟡 Medium |
 | **M-F13: Accessibility** | Screen reader, semantic labels, contrast | Claude | 🟢 Low |
+| **M-F14: App Store Prep** | App icons, splash config, build config | Claude | 🟢 Low |
 
 ---
 
@@ -67,6 +68,19 @@
 - **Profile history list**: Last 10 matches with win/loss, scores, difficulty, time-ago
 - **Game screen wiring**: Records full MatchSummary on game over
 
+### M-F12: Release Prep + Polish (`bea0fd8` → `4863013`)
+- **Splash screen** (`splash_screen.dart`): Animated gold shimmer, auto-navigate to lobby
+- **About screen** (`about_screen.dart`): Features, tech stack, game rules, credits in Arabic
+- **Sound persistence**: Volume/mute settings saved to SharedPreferences
+- **Profile polish**: Editable player name, reset stats confirmation, streak cards
+- **Page transitions**: Fade (splash/lobby), slide (sub-screens), scale+fade (game), slide-up (about)
+- **Welcome dialog**: 3-page first-launch tutorial with page dots and navigation
+- **First-launch tracking**: SharedPreferences flag, shown once on first lobby visit
+- **Win streak tracking**: Current streak + best streak in persistence, lobby + profile display
+- **Gameplay tips**: 15 Baloot strategy tips (Arabic) in rotating TipOfTheDay card
+- **dart fix cleanup**: library; directives, unused import removal (63 files)
+- **Router**: 7 routes with custom transitions
+
 ---
 
 ## Active Delegations
@@ -74,9 +88,10 @@
 ### Antigravity — Tasks 6-22
 See `~/.gemini/antigravity/brain/ff471dec.../task.md.resolved`
 
-### Jules — M-F9 Tests (`12215972826236814654`)
-- Writing 4 test files: game_over_dialog_test, settings_persistence_test, room_code_card_test, round_transition_overlay_test
-- Status: IN_PROGRESS — check with `jules_get_status`
+### Jules — M-F12 Tests (`767214469817076241`)
+- Writing 4 test files: welcome_dialog_test, about_screen_test, settings_persistence_test, room_code_card_test
+- Auto-PR enabled — will create PR when done
+- Previous session `12215972826236814654` completed but no PR (no branch pushed)
 
 ---
 
@@ -98,6 +113,12 @@ See `~/.gemini/antigravity/brain/ff471dec.../task.md.resolved`
 
 ## Git Log (Recent)
 ```
+4863013 feat(M-F12): Gameplay tips, haptic feedback on profile
+e30298c feat(M-F12): Win streak tracking in lobby and profile
+2974f92 feat(M-F12): Page transitions, welcome dialog, first-launch tutorial
+d303ac5 docs: update session brief, tasks, agent status for M-F12
+d639c7c style: dart fix --apply lint cleanup
+bea0fd8 feat(M-F12): Splash screen, about screen, sound persistence, profile polish
 cecb414 feat(M-F11): Match history persistence + profile history list
 55b5e62 feat(M-F11): Profile screen + RTL toast fix
 7cd5ba9 feat(M-F9): Match progress bar in table HUD
