@@ -1,5 +1,5 @@
 name: baloot_ai
-description: "Baloot AI — Saudi trick-taking card game with AI bots"
+description: "بلوت AI — لعبة البلوت السعودية مع بوتات ذكاء اصطناعي. العب محلياً أو أونلاين مع أصدقائك."
 publish_to: 'none'
 version: 1.0.0+1
 

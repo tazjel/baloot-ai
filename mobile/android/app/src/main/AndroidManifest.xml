@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="baloot_ai"
+        android:label="بلوت AI"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
