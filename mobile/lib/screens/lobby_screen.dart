@@ -48,18 +48,23 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   }
 
   Future<void> _loadSavedData() async {
-    final settings = await SettingsPersistence.loadSettings();
-    final stats = await SettingsPersistence.loadStats();
-    if (mounted) {
-      setState(() {
-        _difficulty = settings.botDifficulty ?? BotDifficulty.hard;
-        _timerDuration = settings.turnDuration;
-        _strictMode = settings.strictMode;
-        _gamesPlayed = stats.played;
-        _gamesWon = stats.won;
-        _winStreak = stats.streak;
-        _loaded = true;
-      });
+    try {
+      final settings = await SettingsPersistence.loadSettings();
+      final stats = await SettingsPersistence.loadStats();
+      if (mounted) {
+        setState(() {
+          _difficulty = settings.botDifficulty ?? BotDifficulty.hard;
+          _timerDuration = settings.turnDuration;
+          _strictMode = settings.strictMode;
+          _gamesPlayed = stats.played;
+          _gamesWon = stats.won;
+          _winStreak = stats.streak;
+          _loaded = true;
+        });
+      }
+    } catch (_) {
+      // Gracefully handle corrupted preferences — use defaults.
+      if (mounted) setState(() => _loaded = true);
     }
   }
 

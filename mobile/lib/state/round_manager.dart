@@ -313,6 +313,7 @@ class RoundManager extends StateNotifier<void> {
     _roundTransitionTimer?.cancel();
     _roundTransitionTimer = Timer(const Duration(milliseconds: 1500), () {
       _roundTransitionTimer = null;
+      if (!mounted) return;
       startNewRound(
         nextDealerIndex: (prev.dealerIndex + 1) % 4,
         matchScores: TeamScores(us: globalUs, them: globalThem),

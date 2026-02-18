@@ -17,9 +17,10 @@ class SawaModal extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
+    if (gameState.players.isEmpty) return const SizedBox.shrink();
     final claimer = gameState.players.firstWhere(
       (p) => p.position == sawaState.claimer,
-      orElse: () => gameState.players[0] // Fallback
+      orElse: () => gameState.players[0],
     );
 
     final isMeClaimer = sawaState.claimer == PlayerPosition.bottom;

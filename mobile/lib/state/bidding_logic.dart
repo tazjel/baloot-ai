@@ -79,6 +79,7 @@ class BiddingLogicNotifier extends StateNotifier<void> {
         _redealTimer?.cancel();
         _redealTimer = Timer(const Duration(milliseconds: 1500), () {
           _redealTimer = null;
+          if (!mounted) return;
           _ref.read(roundManagerProvider.notifier).startNewRound(
                 nextDealerIndex: dealerIdx, // Kawesh = same dealer
                 matchScores: scores,
@@ -121,6 +122,7 @@ class BiddingLogicNotifier extends StateNotifier<void> {
             final scores = prev.matchScores;
             _redealTimer = Timer(const Duration(milliseconds: 1500), () {
               _redealTimer = null;
+              if (!mounted) return;
               _ref.read(roundManagerProvider.notifier).startNewRound(
                     nextDealerIndex: (dealerIdx + 1) % 4,
                     matchScores: scores,

@@ -33,10 +33,12 @@ class ToastMessage {
 }
 
 class ToastNotifier extends StateNotifier<List<ToastMessage>> {
+  final Map<String, Timer> _timers = {};
+
   ToastNotifier() : super([]);
 
   void show(String message, {ToastType type = ToastType.info, Duration? duration}) {
-    final id = DateTime.now().microsecondsSinceEpoch.toString(); // Simple ID
+    final id = DateTime.now().microsecondsSinceEpoch.toString();
     final toast = ToastMessage(
       id: id,
       message: message,
@@ -46,23 +48,40 @@ class ToastNotifier extends StateNotifier<List<ToastMessage>> {
 
     // Limit to 3 toasts, removing oldest
     if (state.length >= 3) {
+      final removed = state.first;
+      _timers.remove(removed.id)?.cancel();
       state = [...state.sublist(1), toast];
     } else {
       state = [...state, toast];
     }
 
-    // Auto dismiss
-    Timer(toast.duration, () {
-      remove(id);
+    // Auto dismiss — tracked for cleanup
+    _timers[id] = Timer(toast.duration, () {
+      _timers.remove(id);
+      if (mounted) remove(id);
     });
   }
 
   void remove(String id) {
+    _timers.remove(id)?.cancel();
     state = state.where((t) => t.id != id).toList();
   }
 
   void clear() {
+    for (final timer in _timers.values) {
+      timer.cancel();
+    }
+    _timers.clear();
     state = [];
+  }
+
+  @override
+  void dispose() {
+    for (final timer in _timers.values) {
+      timer.cancel();
+    }
+    _timers.clear();
+    super.dispose();
   }
 }
 
