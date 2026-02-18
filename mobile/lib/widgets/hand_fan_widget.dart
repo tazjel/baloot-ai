@@ -11,6 +11,7 @@
 /// - Trump suit glow
 /// - AI hint highlight
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../animations/card_animations.dart';
@@ -159,9 +160,11 @@ class _HandFanWidgetState extends ConsumerState<HandFanWidget> {
   void _onCardTap(int index, CardModel card) {
     if (_selectedIndex == index) {
       // Second tap on selected card → play it
+      HapticFeedback.mediumImpact();
       _playCard(index);
     } else {
       // First tap → select
+      HapticFeedback.selectionClick();
       setState(() => _selectedIndex = index);
     }
   }

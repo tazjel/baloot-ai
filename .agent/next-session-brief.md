@@ -16,42 +16,52 @@
 | M-F5: Animations (system + wiring) | `93545aa` | Claude |
 | M-F6: Qayd Core (6-step wizard) | `d9502ca` | Claude |
 | M-F6: Edge Cases (Akka, Kawesh, Baloot, FF) | `de60048` | Claude |
+| M-F7: Integration Tests | `b9d497f` | Jules + Antigravity |
+| M-F8: Online Multiplayer | `294a1fd` | Claude |
+| M-F9: Game Over + Persistence + Polish | `b65d9f3` | Claude |
 
-### 🔄 IN PROGRESS
+### 🔄 IN PROGRESS (Current Commit)
 | Task | Owner | Status |
 |------|-------|--------|
-| M-F7: Integration Tests (4 test files) | **Jules** `15951593649281280163` | Writing tests |
-| Flutter analyze + fix warnings | **Antigravity** | Delegated |
-| Flutter test baseline verification | **Antigravity** | Delegated |
+| Haptic feedback + player name persistence | **Claude** | Building |
+| Visual QA (tasks 6-22) | **Antigravity** | Assigned |
 
-### 📋 UPCOMING — Claude MAX picks next
+### 📋 UPCOMING
 | Mission | Description | Owner | Priority |
 |---------|-------------|-------|----------|
-| **M-F8: Online Multiplayer** | WebSocket integration, room join/create, state sync | Claude | 🔴 High |
-| **M-F9: Polish & UX** | Animations tuning, haptics, sound polish, RTL fixes | Claude + Antigravity | 🟡 Medium |
-| **M-F10: Settings & Persistence** | SharedPreferences, game settings persistence, theme | Claude | 🟡 Medium |
+| **M-F10: Theme Persistence** | Theme mode save/load, dark mode toggle | Claude | 🟡 Medium |
 | **M-F11: Leaderboard & Profile** | User profile screen, match history, league display | Jules (modules) | 🟢 Low |
 | **M-F12: Release Prep** | App icons, splash, store listing, build config | Antigravity | 🟢 Low |
 
 ---
 
+## What's Been Built (This Session)
+
+### M-F8: Online Multiplayer (`294a1fd`)
+- Socket notifier: AKKA, KAWESH, DOUBLE action routing
+- Multiplayer screen: auto-navigate on game start, clipboard room code, server-assigned playerIndex
+- Connection banner: integrated in game + multiplayer screens
+
+### M-F9: Game Over + Persistence (`b65d9f3`)
+- **Game over dialog** (`game_over_dialog.dart`): Full-screen overlay at 152 GP with scores, round history, play-again/lobby buttons
+- **Settings persistence** (`settings_persistence.dart`): SharedPreferences for difficulty, timer, strict mode + match stats (W/L)
+- **Room code card** (`room_code_card.dart`): Reusable widget with animated copy feedback
+- **Lobby stats**: Games played / won / win% chips under title
+- **Action dock fix**: Type-cast for Kawesh eligibility
+
+### Current (Uncommitted)
+- Haptic feedback: card select/play, bid buttons, small buttons, action buttons
+- Player name persistence: load/save in multiplayer screen
+
+---
+
 ## Active Delegations
 
-### Jules — Session `15951593649281280163`
-**Task**: M-F7 Integration Tests
-**Files being created**:
-- `mobile/test/utils/akka_utils_test.dart` — 17 tests (Akka, Kawesh, Baloot, scanHand)
-- `mobile/test/state/baloot_detection_test.dart` — 5 tests (provider transitions)
-- `mobile/test/state/bidding_kawesh_test.dart` — 3 tests (KAWESH action)
-- `mobile/test/state/fast_forward_test.dart` — 3 tests (toggle)
-**When done**: Antigravity pulls PR, runs `flutter test`, fixes any failures
+### Antigravity — Tasks 6-22
+See `~/.gemini/antigravity/brain/ff471dec.../task.md.resolved`
 
-### Antigravity — Ongoing
-**Tasks**:
-1. `flutter analyze` on commit `de60048` — fix any warnings
-2. `flutter test` — verify 102 baseline still passes
-3. When Jules PR arrives → review, merge, run full test suite
-4. Report final test count back
+### Jules — All Sessions Complete
+No active sessions. Available for next task.
 
 ---
 
@@ -73,18 +83,18 @@
 
 ## Git Log (Recent)
 ```
+b65d9f3 feat(M-F9): Game over dialog, settings persistence, room code widget
+294a1fd feat(M-F8): Online multiplayer polish — socket actions, auto-navigate, connection banner
+b9d497f test(M-F7): Integration tests — Akka, Kawesh, Baloot, Fast-Forward
 de60048 feat(M-F6): Edge cases — Akka, Kawesh, Baloot detection, fast-forward
-d9502ca feat(M-F6): Qayd dispute system — 6-step wizard + ActionDock edge cases
-93545aa feat(M-F5): Wire animations into game widgets
-04bd9f7 feat(M-F5): Animation system — spring curves, card animations, UI effects
 ```
 
 ## Commands
 ```powershell
 # Jules CLI (installed globally)
-jules remote list --repo              # List repos
-jules new --repo tazjel/baloot-ai "task description"  # New task
-jules remote pull --session <ID>      # Pull results
+jules remote list --repo
+jules new --repo tazjel/baloot-ai "task description"
+jules remote pull --session <ID>
 
 # Flutter (Antigravity runs these)
 cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"

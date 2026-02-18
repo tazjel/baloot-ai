@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/colors.dart';
 import '../models/enums.dart';
+import '../services/settings_persistence.dart';
 import '../state/providers.dart';
 import '../models/player.dart';
 import '../widgets/connection_banner.dart';
@@ -21,7 +22,25 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
   bool _isJoining = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedName();
+  }
+
+  Future<void> _loadSavedName() async {
+    final name = await SettingsPersistence.loadPlayerName();
+    if (name != null && name.isNotEmpty && mounted) {
+      _nameController.text = name;
+    }
+  }
+
+  @override
   void dispose() {
+    // Save player name on leave
+    final name = _nameController.text.trim();
+    if (name.isNotEmpty) {
+      SettingsPersistence.savePlayerName(name);
+    }
     _nameController.dispose();
     _roomCodeController.dispose();
     super.dispose();

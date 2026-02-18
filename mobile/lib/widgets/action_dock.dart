@@ -10,6 +10,7 @@
 ///
 /// All buttons are Arabic-labeled with appropriate colors and icons.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/colors.dart';
@@ -157,6 +158,7 @@ class _BiddingDock extends ConsumerWidget {
   }
 
   void _bid(WidgetRef ref, String action) {
+    HapticFeedback.lightImpact();
     ref.read(actionDispatcherProvider.notifier).handlePlayerAction(action);
   }
 }
@@ -529,7 +531,10 @@ class _SmallButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
           borderRadius: BorderRadius.circular(10),
           child: Container(
             padding: const EdgeInsets.all(8),
@@ -562,7 +567,10 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton.icon(
-      onPressed: onTap,
+      onPressed: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
       icon: Icon(icon, size: 18),
       label: Text(label),
       style: ElevatedButton.styleFrom(
