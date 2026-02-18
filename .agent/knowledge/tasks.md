@@ -1,60 +1,80 @@
-# Active Task Distribution — 2026-02-18 (Updated v2)
+# Active Task Distribution — 2026-02-18 (Updated v3)
 
-> **M-F8**: ✅ | **M-F9**: ✅ | **M-F11**: ✅ | **QA 6-8**: ✅ Antigravity done | **QA 10+**: 🔲 Antigravity next
-
----
-
-## Claude MAX — Building M-F12
-
-### ✅ Completed This Session
-- M-F8: Online multiplayer (`294a1fd`)
-- M-F9: Game over, persistence, haptics, theme, overlays (`b65d9f3` → `7cd5ba9`)
-- M-F11: Profile screen + match history (`55b5e62` → `cecb414`)
-- RTL toast fix (from Antigravity QA finding)
-
-### 🔄 Current: M-F12 Release Prep + Polish
+> **M-F1→14**: ✅ All Done | **M-F15**: 🔄 Claude | **M-F17**: 🔄 Jules | **M-F18**: 🔄 Jules | **QA**: 🔲 Antigravity
 
 ---
 
-## Jules — New Tasks Assigned
+## Claude MAX — Building M-F15 + M-F16
+
+### ✅ Completed (All Sessions)
+- M-F1→M-F12: Full Flutter app (99 lib files, 17 test files)
+- M-F13: Accessibility (Semantics on all interactive/live widgets, confetti overlay)
+- M-F14: App store naming (Android/iOS/pubspec standardized to بلوت AI)
+- Jules test cherry-picks (welcome_dialog, about, persistence, room_code)
+
+### 🔄 Current: M-F15 App Icons + M-F16 Build Config
+
+---
+
+## Jules — Active Sessions
 
 | Task | Status | Session ID |
 |------|--------|------------|
 | M-F7 Tests | ✅ Done | `15951593649281280163` |
 | Room Code Widget | ✅ Done | `14347506078552313448` |
-| **M-F9 Tests** | 🔄 Assigned | _(new session)_ |
+| M-F12 Tests (4 files) | ✅ Done | `767214469817076241` (cherry-picked) |
+| **M-F17: Offline Font** | 🔄 Running | `15723797855726962685` |
+| **M-F18: A11y Tests** | 🔄 Running | `3685688760499618959` |
 
-**M-F9 Tests spec**: Game over dialog, settings persistence, theme toggle, round transition, progress bar
+⚠️ **Jules cherry-pick rule**: Jules modifies/deletes files it shouldn't. ALWAYS:
+1. `git fetch --all`
+2. `git diff --stat main..origin/jules-<id>-<hash>` to see what changed
+3. `git checkout origin/jules-<branch> -- <specific files>` only for new test/font files
+4. NEVER merge the full branch
 
 ---
 
-## Antigravity — Next Tasks
+## Antigravity — QA Tasks (M-F9 → M-F14)
 
-> **IMPORTANT**: Tasks 6-8 are DONE (good work!). Now do these:
+> **Pull latest first**: `git pull origin main`
+> Then run analyze + test, then visual QA
 
-### Priority 1: Analyze + Test (must do first)
+### Priority 1: Analyze + Test
 | # | Task | Command |
 |---|------|---------|
 | 10 | `flutter analyze` | `cd mobile && flutter analyze` |
 | 11 | `flutter test` | `cd mobile && flutter test` — expect 130+ pass |
 
-### Priority 2: Visual QA (after analyze passes)
-
-**Pull latest first**: `git pull origin main`
-
+### Priority 2: Visual QA — Game Features
 | # | Task | What to check |
 |---|------|---------------|
-| 19 | Game Over dialog | Play solo vs bots, let match reach 152 GP. Verify full-screen overlay with scores + round history |
-| 20 | Round transition overlay | After each round ends, verify brief score summary popup |
-| 21 | Match progress bar | Look at top HUD — blue/red bars should grow toward 152 |
-| 22 | Lobby stats | After finishing 1+ games, return to lobby — verify games/won/% chips |
-| 23 | Theme toggle | Lobby: tap moon/sun icon top-left. Settings dialog: dark mode switch |
-| 24 | Settings persistence | Change difficulty to Easy, close app, reopen — should still be Easy |
-| 25 | Name persistence | In multiplayer, enter a name, leave, come back — name should be pre-filled |
-| 28 | Profile screen | Navigate to /profile from lobby — verify avatar, name, tier badge, stats cards, win rate ring |
-| 29 | Match history | After 2+ games, check profile — last 10 matches with win/loss, scores, time ago |
-| 30 | Profile empty state | Clear app data, open profile — verify "لم تلعب أي مباراة بعد" message |
-| 27 | Final full test run | `flutter test` — all pass |
+| 19 | Game Over dialog | Play vs bots to 152 GP. Full-screen overlay with scores + round history + confetti on win |
+| 20 | Round transition | After round ends, brief score summary popup appears |
+| 21 | Match progress bar | Top HUD — blue/red bars growing toward 152 |
+| 22 | Lobby stats | After 1+ games, return to lobby — games/won/% chips + streak fire |
+
+### Priority 3: Visual QA — Polish Features
+| # | Task | What to check |
+|---|------|---------------|
+| 23 | Theme toggle | Lobby moon/sun icon top-left, settings dialog dark mode switch |
+| 24 | Settings persistence | Change difficulty to Easy, reopen — still Easy |
+| 25 | Name persistence | Enter name in multiplayer, leave and return — pre-filled |
+| 28 | Profile screen | Navigate /profile — avatar, name, tier badge, stats, win rate ring |
+| 29 | Match history | After 2+ games, profile shows last 10 matches |
+| 30 | Profile empty state | Clear data → "لم تلعب أي مباراة بعد" |
+
+### Priority 4: Visual QA — New Features (M-F12→M-F14)
+| # | Task | What to check |
+|---|------|---------------|
+| 31 | Splash screen | App launch → gold shimmer animation → auto-navigate to lobby |
+| 32 | Welcome dialog | First launch → 3-page tutorial, page dots, next/previous buttons |
+| 33 | About screen | Lobby → "حول التطبيق" → all sections, footer "صُنع بـ ❤️ في السعودية" |
+| 34 | Tips of the day | Lobby → rotating tip card between multiplayer and about buttons |
+| 35 | Win streak | Win 2+ games → fire icon in lobby stats + streak in profile |
+| 36 | Accessibility | Enable TalkBack/VoiceOver → cards announce rank+suit, buttons have labels |
+| 37 | App name | Settings → About phone → App name shows "بلوت AI" (not baloot_ai) |
+| 38 | Confetti | Win a match → gold confetti particles fall over game over dialog |
+| 39 | Final full test | `flutter analyze && flutter test` — all clean |
 
 ### Commands
 ```powershell
