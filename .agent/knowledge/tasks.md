@@ -1,17 +1,18 @@
-# Active Task Distribution — 2026-02-18 (Updated)
+# Active Task Distribution — 2026-02-18 (Updated v2)
 
-> **M-F8**: ✅ | **M-F9**: ✅ | **QA 6-8**: ✅ Antigravity done | **QA 10+**: 🔲 Antigravity next
+> **M-F8**: ✅ | **M-F9**: ✅ | **M-F11**: ✅ | **QA 6-8**: ✅ Antigravity done | **QA 10+**: 🔲 Antigravity next
 
 ---
 
-## Claude MAX — Building M-F10
+## Claude MAX — Building M-F12
 
 ### ✅ Completed This Session
 - M-F8: Online multiplayer (`294a1fd`)
 - M-F9: Game over, persistence, haptics, theme, overlays (`b65d9f3` → `7cd5ba9`)
+- M-F11: Profile screen + match history (`55b5e62` → `cecb414`)
 - RTL toast fix (from Antigravity QA finding)
 
-### 🔄 Current: M-F10 + Workflow Enhancement
+### 🔄 Current: M-F12 Release Prep + Polish
 
 ---
 
@@ -50,6 +51,9 @@
 | 23 | Theme toggle | Lobby: tap moon/sun icon top-left. Settings dialog: dark mode switch |
 | 24 | Settings persistence | Change difficulty to Easy, close app, reopen — should still be Easy |
 | 25 | Name persistence | In multiplayer, enter a name, leave, come back — name should be pre-filled |
+| 28 | Profile screen | Navigate to /profile from lobby — verify avatar, name, tier badge, stats cards, win rate ring |
+| 29 | Match history | After 2+ games, check profile — last 10 matches with win/loss, scores, time ago |
+| 30 | Profile empty state | Clear app data, open profile — verify "لم تلعب أي مباراة بعد" message |
 | 27 | Final full test run | `flutter test` — all pass |
 
 ### Commands
