@@ -30,6 +30,7 @@ import '../widgets/player_avatar_widget.dart';
 import '../widgets/sawa_modal.dart';
 import '../widgets/settings_dialog.dart';
 import '../widgets/table_hud_widget.dart';
+import '../widgets/connection_banner.dart';
 import '../widgets/toast_overlay.dart';
 
 /// Main game board screen.
@@ -191,6 +192,14 @@ class GameScreen extends ConsumerWidget {
                   // === Layer 7: Modal overlays (Qayd + Sawa) ===
                   const Positioned.fill(child: SawaModal()),
                   const Positioned.fill(child: DisputeModal()),
+
+                  // === Layer 8: Connection banner (top) ===
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ConnectionBanner(),
+                  ),
 
                   // === Back button ===
                   Positioned(

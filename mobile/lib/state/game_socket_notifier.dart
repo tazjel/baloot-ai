@@ -117,8 +117,11 @@ class GameSocketNotifier extends StateNotifier<SocketState> {
 
     _socketService.joinRoom(roomId, playerName, (res) {
       if (res['success'] == true) {
-        state = state.copyWith(roomId: roomId, myIndex: myIndex);
-        dev.log('Joined Room: $roomId as player $myIndex', name: 'SOCKET_NOTIFIER');
+        // Server may assign playerIndex; use it if available, else fallback
+        final serverIndex = res['playerIndex'] as int?;
+        final actualIndex = serverIndex ?? (myIndex >= 0 ? myIndex : 0);
+        state = state.copyWith(roomId: roomId, myIndex: actualIndex);
+        dev.log('Joined Room: $roomId as player $actualIndex', name: 'SOCKET_NOTIFIER');
 
         // Subscribe to game events
         _subscribeToGameEvents();
@@ -220,8 +223,11 @@ class GameSocketNotifier extends StateNotifier<SocketState> {
     } else if (action == 'UPDATE_SETTINGS') {
       _socketService.sendAction(roomId, 'UPDATE_SETTINGS', actionPayload, handleResponse);
     } else if (action == 'DOUBLE') {
-      dev.log('Doubling not fully implemented in backend yet', name: 'SOCKET_NOTIFIER');
-      state = state.copyWith(isSendingAction: false);
+      _socketService.sendAction(roomId, 'DOUBLE', {}, handleResponse);
+    } else if (action == 'AKKA') {
+      _socketService.sendAction(roomId, 'AKKA', actionPayload, handleResponse);
+    } else if (action == 'KAWESH') {
+      _socketService.sendAction(roomId, 'KAWESH', {}, handleResponse);
     } else {
       dev.log('Unhandled action: $action', name: 'SOCKET_NOTIFIER');
       state = state.copyWith(isSendingAction: false);

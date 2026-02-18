@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/colors.dart';
+import '../models/enums.dart';
 import '../state/providers.dart';
 import '../models/player.dart';
+import '../widgets/connection_banner.dart';
 
 class MultiplayerScreen extends ConsumerStatefulWidget {
   const MultiplayerScreen({super.key});
@@ -32,29 +35,18 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
       return;
     }
 
-    // Connect first if not connected (handled by provider usually, but good to ensure)
     ref.read(gameSocketProvider.notifier).ensureConnected();
-
-    // Create room logic would go here
-    // But createRoom doesn't take player name in the current API?
-    // public API: createRoom({required onSuccess, onError}) 
-    // It seems createRoom doesn't set player name, joinRoom does.
-    // So flow is: Create Room -> Get ID -> Join Room with ID + Name.
-    
     setState(() => _isJoining = true);
-    
+
     final socketNotifier = ref.read(gameSocketProvider.notifier);
-    
+
     socketNotifier.createRoom(
       onSuccess: (roomId) {
-        // Auto-join the created room
+        // Creator is always seat 0
         socketNotifier.joinGame(
-          roomId: roomId, 
-          playerName: _nameController.text, 
-          myIndex: 0, // Creator usually 0? Server assigns index usually? 
-          // Wait, joinGame takes myIndex. 
-          // Usually server assigns index, but here we might need to know it?
-          // Let's assume 0 for creator.
+          roomId: roomId,
+          playerName: _nameController.text,
+          myIndex: 0,
           onSuccess: () {
             if (mounted) setState(() => _isJoining = false);
           },
@@ -65,7 +57,7 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
                 SnackBar(content: Text('فشل الانضمام: $err')),
               );
             }
-          }
+          },
         );
       },
       onError: (err) {
@@ -75,7 +67,7 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
             SnackBar(content: Text('فشل إنشاء الغرفة: $err')),
           );
         }
-      }
+      },
     );
   }
 
@@ -88,20 +80,14 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
     }
 
     setState(() => _isJoining = true);
-    // Join as index 1? We don't know our index yet. 
-    // The current joinGame API requires myIndex. This is a bit leaky.
-    // We'll pass -1 or handle it? 
-    // Ideally socket response gives us our index. 
-    // Checking GameSocketNotifier again...
-    // verify: void joinGame({required roomId, required playerName, required myIndex...})
-    // It seems strictly required. This might be a limitation of the port.
-    // We will assume server assigns and we might need to guess or update later.
-    // For now pass 1 as a placeholder?
-    
+
+    // Server assigns seat index in the join response.
+    // We pass -1 as placeholder; the notifier updates myIndex
+    // from the server response's playerIndex field.
     ref.read(gameSocketProvider.notifier).joinGame(
-      roomId: _roomCodeController.text,
-      playerName: _nameController.text, 
-      myIndex: 1, // Placeholder
+      roomId: _roomCodeController.text.trim().toUpperCase(),
+      playerName: _nameController.text.trim(),
+      myIndex: -1, // Server will assign via response
       onSuccess: () {
         if (mounted) setState(() => _isJoining = false);
       },
@@ -112,7 +98,7 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
             SnackBar(content: Text('فشل الانضمام: $err')),
           );
         }
-      }
+      },
     );
   }
 
@@ -125,6 +111,15 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
     final socketState = ref.watch(gameSocketProvider);
     final gameState = ref.watch(gameStateProvider);
     final inRoom = socketState.roomId != null;
+    final players = gameState.gameState.players;
+
+    // Auto-navigate to game when phase transitions to bidding/playing
+    ref.listen(gameStateProvider, (prev, next) {
+      final phase = next.gameState.phase;
+      if (phase == GamePhase.bidding || phase == GamePhase.playing) {
+        if (mounted) context.go('/game');
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -132,27 +127,40 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-             if (inRoom) {
-               ref.read(gameSocketProvider.notifier).leaveRoom();
-             }
-             context.go('/lobby');
+            if (inRoom) {
+              ref.read(gameSocketProvider.notifier).leaveRoom();
+            }
+            context.go('/lobby');
           },
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.backgroundDark, AppColors.backgroundBlack],
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppColors.backgroundDark, AppColors.backgroundBlack],
+              ),
+            ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: inRoom
+                    ? _buildRoomLobby(socketState.roomId!, players)
+                    : _buildJoinForm(),
+              ),
+            ),
           ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: inRoom ? _buildRoomLobby(socketState.roomId!, gameState.gameState.players) : _buildJoinForm(),
+          // Connection status banner
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ConnectionBanner(),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -231,13 +239,44 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: AppColors.primaryWithOpacity,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.goldPrimary),
           ),
-          child: SelectableText(roomId, style: const TextStyle(fontSize: 32, letterSpacing: 4, fontFamily: 'monospace', fontWeight: FontWeight.bold, color: AppColors.goldPrimary)),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SelectableText(
+                roomId,
+                style: const TextStyle(
+                  fontSize: 32,
+                  letterSpacing: 4,
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.goldPrimary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.copy_rounded, color: AppColors.goldPrimary),
+                tooltip: 'نسخ الرمز',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: roomId));
+                  HapticFeedback.lightImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('تم نسخ رمز الغرفة ✓'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         const Text('شارك الرمز مع أصدقائك', style: TextStyle(color: AppColors.textMuted)),
+        const SizedBox(height: 4),
+        const Text('انسخ الرمز وأرسله لصديقك', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
         
         const SizedBox(height: 48),
 

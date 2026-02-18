@@ -1,56 +1,53 @@
-# M-F6: Qayd Dispute System & Edge Cases — Task Distribution
+# Active Task Distribution — 2026-02-18
 
-> **Phase**: M-F6 | **Started**: 2026-02-18
+> **M-F7**: ✅ Tests pass (130/130) | **M-F8**: 🔄 Claude building | **Protocol**: multi-agent.md active
 
-## Team Assignments
+---
 
-### Claude MAX (Lead)
+## Claude MAX — M-F8: Online Multiplayer
 | Task | Status | Details |
 |------|--------|---------|
-| DisputeModal orchestrator rewrite | In Progress | Full 6-step wizard matching React DisputeModal.tsx |
-| qayd_types.dart | Done | Shared types, enums, constants |
-| qayd_main_menu.dart | Done | 3-button menu + waiting state |
-| qayd_card_selector.dart | In Progress | Trick browser + card picker |
-| qayd_verdict_panel.dart | Pending | Verdict display + evidence cards |
-| qayd_footer.dart | Pending | Timer + reporter + back button |
-| GameScreen wiring | Pending | Wire DisputeModal + SawaModal into Stack |
-| ActionDock edge cases | Pending | Sawa claim, Qayd trigger, Akka buttons |
-| Sawa claim flow | Pending | Button in PlayingDock + SawaModal improvements |
-| Akka declaration | Pending | HOKUM-only, leading-only button |
-| Fast-forward toggle | Pending | Speed up bot turns to 150ms |
+| WebSocket service rewrite | 🔄 In Progress | Socket.IO client, connect/disconnect, reconnect |
+| Room management | ⏳ Next | Create/join/leave room, room state sync |
+| State sync layer | ⏳ Next | Server→client state rotation + merge |
+| Reconnection handler | ⏳ Next | Auto-reconnect with state recovery |
 
-### Jules (Module Generation)
+---
+
+## Jules — Waiting for Next Task
 | Task | Status | Session ID | Details |
 |------|--------|------------|---------|
-| Qayd sub-widgets (4 files) | Delegated | `14611954312806542087` | qayd_types, main_menu, card_selector, verdict_panel, footer |
+| M-F7 Tests | ✅ Done | `15951593649281280163` | 4 files, 28 tests, merged |
+| M-F8: Connection Status Widget | ⏳ Assigned below | — | New widget file |
 
-### Antigravity/Gemini (UI Polish)
-| Task | Status | Details |
-|------|--------|---------|
-| Visual QA — Qayd wizard | Pending | Verify all 6 steps look correct |
-| Animation polish | Pending | Step transitions, verdict reveal |
-| RTL layout verification | Pending | Arabic text alignment in all Qayd widgets |
+---
 
-## Edge Cases Checklist
-- [ ] Qayd 6-step: IDLE → MAIN_MENU → VIOLATION_SELECT → SELECT_CARD_1 → SELECT_CARD_2 → RESULT
-- [ ] Sawa: claim button → modal → opponents respond → resolve
-- [ ] Akka: only in HOKUM, only when leading, requires specific card conditions
-- [ ] Kawesh: pre-bid worthless hand → redeal (canDeclareKawesh already in akka_utils.dart)
-- [ ] Waraq/Gash: 3 passes + dealer waraq → redeal with dealer rotation
-- [ ] Doubling: NORMAL → DOUBLE → TRIPLE → QUADRUPLE → GAHWA
-- [ ] Fast-forward: toggle speeds bot actions to 150ms
-- [ ] Baloot GP: always 2, immune to all multipliers, added last
+## Antigravity — Tasks 6-9 (Visual QA + Housekeeping)
 
-## Socket Actions
+| # | Task | Status | Details |
+|---|------|--------|---------|
+| 6 | Visual QA — Qayd wizard | 🔲 Do Now | Launch app, trigger Qayd (⚖ button), walk through all 6 steps. Verify: menu renders 3 options, card selector shows trick browser, verdict panel shows penalty, footer has timer circle |
+| 7 | Visual QA — Edge buttons | 🔲 Do Now | Verify in PlayingDock: Akka (⭐ medal icon, HOKUM+leading only), Fast-forward (⏩/⏸ toggle). In BiddingDock: Kawesh (🔄 refresh icon, only when hand has no court cards) |
+| 8 | RTL verification | 🔲 Do Now | Check Arabic text alignment in: Qayd menu labels, verdict messages, toast "بلوت! لديك الملك والملكة", Kawesh "كوش" button, system messages |
+| 9 | Update MEMORY.md | 🔲 Do Now | Set Flutter tests to **130 passing**. Add M-F7 to completed missions. Add Jules CLI info: `npm i -g @google/jules`, owner=`tazjel` |
+
+### Antigravity Commands
+```powershell
+# Visual QA — launch app
+cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" run -d chrome
+
+# Verify tests still green
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" test
 ```
-QAYD_TRIGGER          → Start dispute
-QAYD_MENU_SELECT      → {option: 'REVEAL_CARDS'|'WRONG_SAWA'|'WRONG_AKKA'}
-QAYD_VIOLATION_SELECT → {violation_type: 'REVOKE'|...}
-QAYD_SELECT_CRIME     → {suit, rank, trick_idx, card_idx, played_by}
-QAYD_SELECT_PROOF     → {suit, rank, trick_idx, card_idx, played_by}
-QAYD_CONFIRM          → Acknowledge verdict
-QAYD_CANCEL           → Abort at any step
-SAWA_CLAIM            → Claim tie
-SAWA_RESPONSE         → {response: 'ACCEPTED'|'REFUSED'}
-AKKA                  → Declare boss card
-```
+
+### Success Criteria
+- All 6 Qayd wizard steps visually correct
+- Akka/Kawesh/FF buttons appear at correct times
+- Arabic text reads right-to-left, no clipping
+- MEMORY.md updated with 130 test count + M-F7 completion
+
+---
+
+## File Locks
+None active. See `.agent/knowledge/file_locks.md`.
