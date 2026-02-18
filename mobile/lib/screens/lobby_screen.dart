@@ -17,6 +17,7 @@ import '../core/theme/colors.dart';
 import '../models/enums.dart';
 import '../services/settings_persistence.dart';
 import '../state/providers.dart';
+import '../widgets/tip_of_the_day.dart';
 import '../widgets/welcome_dialog.dart';
 
 /// Pre-game lobby screen with settings and start button.
@@ -280,6 +281,11 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // === Tip of the Day ===
+                const TipOfTheDay(),
 
                 const SizedBox(height: 12),
 

@@ -7,6 +7,7 @@
 /// - League tier display
 library;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -449,6 +450,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _editName() {
+    HapticFeedback.selectionClick();
     final controller = TextEditingController(text: _playerName);
     showDialog(
       context: context,
