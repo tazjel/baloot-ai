@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import '../core/theme/colors.dart';
 import '../models/game_state.dart';
 import '../models/round_result.dart';
+import 'confetti_overlay.dart';
 
 /// Full-screen dialog shown when a match reaches 152 GP.
 ///
@@ -38,7 +39,9 @@ class GameOverDialog extends StatelessWidget {
     // Haptic on show
     HapticFeedback.heavyImpact();
 
-    return Material(
+    return Stack(
+      children: [
+        Material(
       color: Colors.black.withOpacity(0.85),
       child: SafeArea(
         child: Center(
@@ -138,6 +141,8 @@ class GameOverDialog extends StatelessWidget {
           ),
         ),
       ),
+        if (weWon) const ConfettiOverlay(),
+      ],
     );
   }
 
