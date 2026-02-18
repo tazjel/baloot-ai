@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/colors.dart';
+import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../state/game_rules_provider.dart';
 import '../state/providers.dart';
@@ -151,8 +152,8 @@ class _BiddingDock extends ConsumerWidget {
     final appState = ref.watch(gameStateProvider);
     final hand = appState.gameState.players.isNotEmpty
         ? appState.gameState.players[0].hand
-        : [];
-    return hand.isNotEmpty && canDeclareKawesh(hand);
+        : <CardModel>[];
+    return hand.isNotEmpty && canDeclareKawesh(hand.cast<CardModel>());
   }
 
   void _bid(WidgetRef ref, String action) {

@@ -119,3 +119,16 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
 You (Claude MAX) handle complex multi-file refactors, system-level architecture, game-theory strategy design, and full-pipeline integration (module + wiring + tests).
 Gemini (Antigravity) orchestrates, scans gaps, runs tests, manages the browser/dashboard, and **performs deep Flutter analysis via MCP**.
 Jules handles parallel simple module generation from specs.
+
+## Inter-Agent Coordination
+
+### Status Board: `.agent/knowledge/agent_status.md`
+- **Always check this file** when starting a session — it contains the latest status from all agents.
+- **Update your section** when you start or complete work.
+- **Add tasks** to the "Task Queue" section to assign work to Antigravity.
+
+### Communication Protocol
+1. Claude assigns tasks via the status board or `.claude/` task files
+2. Antigravity reports completion in the status board with details
+3. The user triggers handoffs between agents
+4. File locks in `.agent/knowledge/file_locks.md` prevent conflicts

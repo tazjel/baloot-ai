@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/colors.dart';
 import '../models/enums.dart';
+import '../services/settings_persistence.dart';
 import '../state/providers.dart';
 
 /// Pre-game lobby screen with settings and start button.
@@ -27,6 +28,30 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   BotDifficulty _difficulty = BotDifficulty.hard;
   double _timerDuration = 15.0;
   bool _strictMode = true;
+  bool _loaded = false;
+  int _gamesPlayed = 0;
+  int _gamesWon = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedData();
+  }
+
+  Future<void> _loadSavedData() async {
+    final settings = await SettingsPersistence.loadSettings();
+    final stats = await SettingsPersistence.loadStats();
+    if (mounted) {
+      setState(() {
+        _difficulty = settings.botDifficulty ?? BotDifficulty.hard;
+        _timerDuration = settings.turnDuration;
+        _strictMode = settings.strictMode;
+        _gamesPlayed = stats.played;
+        _gamesWon = stats.won;
+        _loaded = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +90,37 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                         color: AppColors.textMuted,
                       ),
                 ),
+
+                // === Stats Row ===
+                if (_loaded && _gamesPlayed > 0) ...[
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _StatChip(
+                        icon: Icons.sports_esports_rounded,
+                        label: '$_gamesPlayed',
+                        sublabel: 'مباراة',
+                      ),
+                      const SizedBox(width: 16),
+                      _StatChip(
+                        icon: Icons.emoji_events_rounded,
+                        label: '$_gamesWon',
+                        sublabel: 'فوز',
+                        color: AppColors.goldPrimary,
+                      ),
+                      const SizedBox(width: 16),
+                      _StatChip(
+                        icon: Icons.percent_rounded,
+                        label: _gamesPlayed > 0
+                            ? '${((_gamesWon / _gamesPlayed) * 100).round()}%'
+                            : '—',
+                        sublabel: 'نسبة الفوز',
+                        color: AppColors.success,
+                      ),
+                    ],
+                  ),
+                ],
 
                 const SizedBox(height: 40),
 
@@ -215,6 +271,13 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   }
 
   void _startGame(BuildContext context) {
+    // Persist settings for next session
+    SettingsPersistence.saveLobbySettings(
+      difficulty: _difficulty,
+      timerDuration: _timerDuration,
+      strictMode: _strictMode,
+    );
+
     // Apply settings
     ref.read(gameStateProvider.notifier).mergeSettings(
           botDifficulty: _difficulty,
@@ -337,5 +400,50 @@ class _DifficultySelector extends StatelessWidget {
       case BotDifficulty.khalid:
         return AppColors.goldPrimary;
     }
+  }
+}
+
+// =============================================================================
+// Stats Chip
+// =============================================================================
+
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String sublabel;
+  final Color? color;
+
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.sublabel,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.textMuted;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: c, size: 18),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: c,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          sublabel,
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
   }
 }

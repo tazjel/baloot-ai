@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme/colors.dart';
@@ -7,6 +6,7 @@ import '../models/enums.dart';
 import '../state/providers.dart';
 import '../models/player.dart';
 import '../widgets/connection_banner.dart';
+import '../widgets/room_code_card.dart';
 
 class MultiplayerScreen extends ConsumerStatefulWidget {
   const MultiplayerScreen({super.key});
@@ -234,49 +234,8 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
     return Column(
       children: [
         const Text('غرفة الانتظار', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.primaryWithOpacity,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.goldPrimary),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SelectableText(
-                roomId,
-                style: const TextStyle(
-                  fontSize: 32,
-                  letterSpacing: 4,
-                  fontFamily: 'monospace',
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.goldPrimary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.copy_rounded, color: AppColors.goldPrimary),
-                tooltip: 'نسخ الرمز',
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: roomId));
-                  HapticFeedback.lightImpact();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('تم نسخ رمز الغرفة ✓'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text('شارك الرمز مع أصدقائك', style: TextStyle(color: AppColors.textMuted)),
-        const SizedBox(height: 4),
-        const Text('انسخ الرمز وأرسله لصديقك', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+        const SizedBox(height: 16),
+        RoomCodeCard(roomCode: roomId),
         
         const SizedBox(height: 48),
 

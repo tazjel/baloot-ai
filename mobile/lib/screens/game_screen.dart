@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/colors.dart';
 import '../models/enums.dart';
+import '../services/settings_persistence.dart';
 import '../state/audio/audio_notifier.dart';
 import '../state/providers.dart';
 import '../state/ui/baloot_detection_provider.dart';
@@ -23,6 +24,7 @@ import '../state/ui/toast_notifier.dart';
 import '../widgets/action_dock.dart';
 import '../widgets/dispute_modal.dart';
 import '../widgets/game_arena.dart';
+import '../widgets/game_over_dialog.dart';
 import '../widgets/hand_fan_widget.dart';
 import '../widgets/heartbeat_layer.dart';
 import '../widgets/hint_overlay_widget.dart';
@@ -200,6 +202,30 @@ class GameScreen extends ConsumerWidget {
                     right: 0,
                     child: ConnectionBanner(),
                   ),
+
+                  // === Layer 9: Game Over overlay ===
+                  if (phase == GamePhase.gameOver)
+                    Positioned.fill(
+                      child: GameOverDialog(
+                        matchScores: gameState.matchScores,
+                        roundHistory: gameState.roundHistory,
+                        onPlayAgain: () {
+                          SettingsPersistence.recordMatchResult(
+                            won: gameState.matchScores.us >= 152,
+                          );
+                          ref.read(gameStateProvider.notifier).reset();
+                          ref.read(actionDispatcherProvider.notifier)
+                              .handlePlayerAction('START_GAME');
+                        },
+                        onReturnToLobby: () {
+                          SettingsPersistence.recordMatchResult(
+                            won: gameState.matchScores.us >= 152,
+                          );
+                          ref.read(gameStateProvider.notifier).reset();
+                          context.go('/lobby');
+                        },
+                      ),
+                    ),
 
                   // === Back button ===
                   Positioned(
