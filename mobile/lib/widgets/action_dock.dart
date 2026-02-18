@@ -168,6 +168,24 @@ class _PlayingDock extends ConsumerWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // Qayd (dispute) button
+            _SmallButton(
+              icon: Icons.shield_outlined,
+              tooltip: 'قيد',
+              onTap: () => ref
+                  .read(actionDispatcherProvider.notifier)
+                  .handlePlayerAction('QAYD_TRIGGER'),
+            ),
+            const SizedBox(width: 8),
+            // Sawa (tie claim) button
+            _SmallButton(
+              icon: Icons.handshake_outlined,
+              tooltip: 'سوا',
+              onTap: () => ref
+                  .read(actionDispatcherProvider.notifier)
+                  .handlePlayerAction('SAWA_CLAIM'),
+            ),
+            const SizedBox(width: 12),
             // Double button
             if (canDouble) ...[
               _ActionButton(
@@ -178,7 +196,7 @@ class _PlayingDock extends ConsumerWidget {
                     .read(actionDispatcherProvider.notifier)
                     .handlePlayerAction('DOUBLE'),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
             ],
             // Info: current mode indicator
             Container(
@@ -423,6 +441,41 @@ class _BidButton extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SmallButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _SmallButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+            ),
+            child: Icon(icon, color: Colors.white70, size: 18),
           ),
         ),
       ),
