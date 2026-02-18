@@ -34,7 +34,7 @@ class ScoreBadgeWidget extends StatelessWidget {
               fontSize: fontSize,
               fontWeight: FontWeight.bold,
               color: color,
-              fontFamily: 'Roboto', // Or standard font
+              fontFamily: 'Tajawal',
             ),
           );
         },

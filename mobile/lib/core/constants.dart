@@ -92,11 +92,4 @@ const tableSkins = [
   VisualAsset('table_midnight', 'Midnight', 'css', '#0f172a'),
 ];
 
-/// API configuration
-class ApiConfig {
-  static const String defaultUrl = 'http://localhost:3005';
-
-  static String get baseUrl {
-    return const String.fromEnvironment('API_URL', defaultValue: defaultUrl);
-  }
-}
+// API configuration is in services/api_config.dart (single source of truth).

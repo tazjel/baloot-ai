@@ -34,7 +34,7 @@ class ErrorBoundaryWidget extends StatelessWidget {
                 color: AppColors.textLight,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                fontFamily: 'Cairo', // Assuming Arabic font, or default
+                fontFamily: 'Tajawal',
               ),
               textDirection: TextDirection.rtl,
             ),

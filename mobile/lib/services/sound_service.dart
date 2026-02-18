@@ -76,9 +76,8 @@ class SoundService {
       });
 
       await player.play(AssetSource('sounds/$assetName.mp3'), volume: vol);
-    } catch (e) {
-      // Fail silently in production, or log in debug
-      // print('Error playing sound $assetName: $e');
+    } catch (_) {
+      // Fail silently — audio errors should not affect gameplay.
     }
   }
 
