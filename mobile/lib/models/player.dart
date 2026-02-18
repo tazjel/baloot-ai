@@ -1,6 +1,7 @@
 /// Player — A game participant (human or bot).
 ///
 /// Port of frontend/src/types.ts Player interface.
+library;
 import 'card_model.dart';
 import 'enums.dart';
 

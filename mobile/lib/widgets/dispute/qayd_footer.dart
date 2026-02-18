@@ -4,6 +4,7 @@
 ///
 /// Shows a back button, reporter badge, and circular countdown timer.
 /// Hidden on the RESULT step.
+library;
 import 'package:flutter/material.dart';
 
 import '../../models/enums.dart';

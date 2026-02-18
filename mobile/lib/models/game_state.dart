@@ -1,6 +1,7 @@
 /// GameState — Complete game state model.
 ///
 /// Port of frontend/src/types.ts GameState interface.
+library;
 import 'bid.dart';
 import 'card_model.dart';
 import 'declared_project.dart';

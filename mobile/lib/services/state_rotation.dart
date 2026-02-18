@@ -22,6 +22,7 @@
 ///
 /// This function is validated against 10 test vectors to ensure 100% parity
 /// with the TypeScript implementation.
+library;
 import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/card_model.dart';

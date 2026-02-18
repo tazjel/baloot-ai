@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:baloot_ai/state/action_dispatcher.dart';
 import 'package:baloot_ai/state/providers.dart';
 
 void main() {

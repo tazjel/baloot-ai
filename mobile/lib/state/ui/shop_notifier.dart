@@ -8,6 +8,7 @@
 /// ## Item Types
 /// - Card backs: visual card back designs
 /// - Table skins: table felt textures/colors
+library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

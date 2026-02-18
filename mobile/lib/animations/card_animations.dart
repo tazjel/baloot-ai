@@ -12,6 +12,7 @@
 /// ## Usage
 /// Wrap a [CardWidget] with [AnimatedCardDeal] or [AnimatedCardPlay]
 /// to apply the animation. The parent widget controls when to trigger.
+library;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';

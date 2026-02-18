@@ -1,6 +1,7 @@
 /// Baloot AI — Theme configuration.
 ///
 /// Light + Dark themes with Tajawal Arabic font.
+library;
 import 'package:flutter/material.dart';
 import 'colors.dart';
 

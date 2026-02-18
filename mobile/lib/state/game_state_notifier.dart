@@ -20,12 +20,12 @@
 ///   ├── RoundManager          — completeTrick → updateState()
 ///   └── ActionDispatcher      — routes to above based on phase
 /// ```
+library;
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/bid.dart';
-import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../models/game_settings.dart';
 import '../models/game_state.dart';

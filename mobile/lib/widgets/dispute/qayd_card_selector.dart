@@ -4,6 +4,7 @@
 ///
 /// Displays all tricks from the current round in a scrollable list.
 /// Cards can be tapped to select as crime (pink ring) or proof (green ring).
+library;
 import 'package:flutter/material.dart';
 
 import '../../models/card_model.dart';

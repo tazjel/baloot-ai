@@ -1,10 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:baloot_ai/state/game_state_notifier.dart';
 import 'package:baloot_ai/state/providers.dart';
 import 'package:baloot_ai/models/enums.dart';
-import 'package:baloot_ai/models/game_state.dart';
 import 'package:baloot_ai/models/game_settings.dart';
 
 void main() {

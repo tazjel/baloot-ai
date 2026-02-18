@@ -7,6 +7,7 @@
 /// - [isValidMove]: Validates whether a card play is legal under Baloot rules.
 /// - [getInvalidMoveReason]: Returns Arabic/English explanation for illegal plays
 ///   (used in Qayd dispute system).
+library;
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import 'scoring_utils.dart';

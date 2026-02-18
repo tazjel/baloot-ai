@@ -4,6 +4,7 @@
 /// - Large monospace room code text
 /// - Copy-to-clipboard button with visual feedback
 /// - Arabic instruction text
+library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';

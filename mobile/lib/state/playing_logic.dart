@@ -14,14 +14,13 @@
 ///
 /// ## Doubling Escalation
 /// NORMAL → DOUBLE → TRIPLE → QUADRUPLE → GAHWA
+library;
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/card_model.dart';
 import '../models/enums.dart';
-import '../models/game_state.dart';
-import '../models/player.dart';
 import 'providers.dart';
 
 /// Handles card play and doubling actions.

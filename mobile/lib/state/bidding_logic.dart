@@ -18,6 +18,7 @@
 /// - Hands sorted by mode
 /// - Projects detected for all players
 /// - Phase transitions to Playing
+library;
 import 'dart:async';
 import 'dart:developer' as dev;
 
@@ -26,8 +27,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/card_model.dart';
 import '../models/declared_project.dart';
 import '../models/enums.dart';
-import '../models/game_state.dart';
-import '../models/player.dart';
 import '../models/bid.dart';
 import '../utils/project_utils.dart';
 import '../utils/sort_utils.dart';

@@ -10,6 +10,7 @@
 /// - Action text (bid announcement)
 /// - Speech bubble (bot dialogue)
 /// - Score display
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

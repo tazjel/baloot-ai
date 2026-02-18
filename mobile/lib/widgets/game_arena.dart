@@ -8,6 +8,7 @@
 /// - Floor card during dealing
 /// - Played cards in cross formation
 /// - Waiting state with "Add Bot" button
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

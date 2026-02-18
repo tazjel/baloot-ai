@@ -8,6 +8,7 @@
 ///
 /// **Kawesh** (كويش): A pre-bid declaration that a hand contains NO court
 /// cards (no A, K, Q, J, or 10), entitling the player to a redeal.
+library;
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../core/constants.dart';

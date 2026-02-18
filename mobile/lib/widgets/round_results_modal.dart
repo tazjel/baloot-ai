@@ -9,6 +9,7 @@
 /// - Khasara indicator
 /// - Multiplier applied (doubling level)
 /// - Baloot bonus
+library;
 import 'package:flutter/material.dart';
 
 import '../core/theme/colors.dart';

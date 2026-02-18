@@ -12,7 +12,6 @@ GameState _makeState({
   int dealerIndex = 3,
   List<TableCard>? tableCards,
   Bid? bid,
-  Map<String, List>? declarations,
 }) {
   final players = [
     Player(position: PlayerPosition.bottom, name: 'P0', index: 0),

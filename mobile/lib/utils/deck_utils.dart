@@ -5,6 +5,7 @@
 /// Baloot uses a 32-card deck: 4 suits × 8 ranks (7, 8, 9, 10, J, Q, K, A).
 /// This is the standard French-suited piquet deck used across all Saudi
 /// Baloot variants.
+library;
 import 'dart:math';
 import '../models/card_model.dart';
 import '../models/enums.dart';

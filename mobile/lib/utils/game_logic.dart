@@ -1,6 +1,7 @@
 /// gameLogic.dart — Barrel re-export.
 ///
 /// All game utility functions available from a single import.
+library;
 export 'project_utils.dart';
 export 'scoring_utils.dart';
 export 'trick_utils.dart';

@@ -6,6 +6,7 @@
 /// - Disconnected: red banner with warning
 /// - Reconnecting: amber banner with spinner
 /// - Connected: banner fades away
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

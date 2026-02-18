@@ -12,6 +12,7 @@
 ///
 /// Timer: 60s for human reporter, 2s for bot.
 /// Auto-confirm result after 5s. Auto-cancel if no verdict after 10s.
+library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -37,7 +38,6 @@ class DisputeModal extends ConsumerStatefulWidget {
 class _DisputeModalState extends ConsumerState<DisputeModal> {
   // Local UI state (mirrors server but allows optimistic step transitions)
   QaydStep _step = QaydStep.mainMenu;
-  MainMenuOption? _menuOption;
   ViolationType? _violation;
   CardSelection? _crimeCard;
   CardSelection? _proofCard;
@@ -184,7 +184,6 @@ class _DisputeModalState extends ConsumerState<DisputeModal> {
 
   void _handleMenuSelect(MainMenuOption opt) {
     setState(() {
-      _menuOption = opt;
       _step = QaydStep.violationSelect;
     });
     _sendAction('QAYD_MENU_SELECT', {'option': opt.value});

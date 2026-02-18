@@ -10,6 +10,7 @@
 /// - Grayed out cards that aren't legal moves
 /// - Trump suit glow
 /// - AI hint highlight
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +18,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../animations/card_animations.dart';
 import '../models/card_model.dart';
 import '../models/enums.dart';
-import '../state/game_rules_provider.dart';
 import '../state/providers.dart';
 import 'card_widget.dart';
 

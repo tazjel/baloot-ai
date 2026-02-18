@@ -1,4 +1,5 @@
 /// Bid — Current round bid state.
+library;
 import 'enums.dart';
 
 class Bid {

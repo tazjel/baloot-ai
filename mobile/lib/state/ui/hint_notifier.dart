@@ -10,6 +10,7 @@
 /// 2. Notifier requests hint from server (or computes locally)
 /// 3. Highlighted card index + reasoning text shown
 /// 4. Hint auto-clears after 5 seconds or when card is played
+library;
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

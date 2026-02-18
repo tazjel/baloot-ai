@@ -2,11 +2,11 @@
 ///
 /// Shows a quick score summary when a round ends before the next begins.
 /// Displays the round winner, game points earned, and running match score.
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/colors.dart';
-import '../models/enums.dart';
 import '../state/providers.dart';
 
 /// Overlay that briefly appears between rounds.

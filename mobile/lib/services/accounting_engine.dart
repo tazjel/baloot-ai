@@ -24,6 +24,7 @@
 ///
 /// ## Pipeline
 /// card_gp → project_gp → khasara → multiplier → baloot (last, never multiplied)
+library;
 import '../models/enums.dart';
 
 /// Breakdown of a team's score for one round.

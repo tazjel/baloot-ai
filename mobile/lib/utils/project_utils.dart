@@ -11,6 +11,7 @@
 ///
 /// When both teams have projects, the team with the highest single project
 /// wins ALL non-baloot projects. Baloot is always kept regardless.
+library;
 import '../models/card_model.dart';
 import '../models/declared_project.dart';
 import '../models/enums.dart';

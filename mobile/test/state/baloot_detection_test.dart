@@ -2,14 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:baloot_ai/state/ui/baloot_detection_provider.dart';
 import 'package:baloot_ai/state/providers.dart';
-import 'package:baloot_ai/models/game_state.dart';
 import 'package:baloot_ai/models/enums.dart';
 import 'package:baloot_ai/models/card_model.dart';
-import 'package:baloot_ai/models/player.dart';
 import 'package:baloot_ai/models/bid.dart';
 
 void main() {
-  CardModel _card(Rank rank, Suit suit) => CardModel(id: '${rank.symbol}${suit.symbol}', rank: rank, suit: suit);
+  CardModel card(Rank rank, Suit suit) => CardModel(id: '${rank.symbol}${suit.symbol}', rank: rank, suit: suit);
 
   test('balootDetectionProvider - returns hasBaloot=false during waiting phase', () {
     final container = ProviderContainer();
@@ -31,7 +29,7 @@ void main() {
         phase: GamePhase.playing,
         bid: const Bid(type: GameMode.sun, suit: null, bidder: PlayerPosition.bottom),
         players: [
-           prev.players[0].copyWith(hand: [_card(Rank.king, Suit.hearts), _card(Rank.queen, Suit.hearts)]), // Even with potential baloot cards
+           prev.players[0].copyWith(hand: [card(Rank.king, Suit.hearts), card(Rank.queen, Suit.hearts)]), // Even with potential baloot cards
            ...prev.players.sublist(1),
         ],
       );
@@ -53,9 +51,9 @@ void main() {
         bid: const Bid(type: GameMode.hokum, suit: Suit.hearts, bidder: PlayerPosition.bottom),
         players: [
            prev.players[0].copyWith(hand: [
-             _card(Rank.king, Suit.hearts), 
-             _card(Rank.queen, Suit.hearts),
-             _card(Rank.seven, Suit.spades),
+             card(Rank.king, Suit.hearts), 
+             card(Rank.queen, Suit.hearts),
+             card(Rank.seven, Suit.spades),
            ]),
            ...prev.players.sublist(1),
         ],
@@ -78,8 +76,8 @@ void main() {
         bid: const Bid(type: GameMode.hokum, suit: Suit.hearts, bidder: PlayerPosition.bottom),
         players: [
            prev.players[0].copyWith(hand: [
-             _card(Rank.king, Suit.hearts), 
-             _card(Rank.seven, Suit.hearts), // No Queen
+             card(Rank.king, Suit.hearts), 
+             card(Rank.seven, Suit.hearts), // No Queen
            ]),
            ...prev.players.sublist(1),
         ],

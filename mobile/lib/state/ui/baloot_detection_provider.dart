@@ -6,6 +6,7 @@
 /// Baloot detection only applies in HOKUM mode (SUN has no trump suit).
 /// The UI layer (GameScreen) watches this provider and shows a toast
 /// notification when baloot is first detected.
+library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';

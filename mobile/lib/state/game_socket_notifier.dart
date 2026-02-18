@@ -17,6 +17,7 @@
 /// The server uses absolute seat indices (0–3). This notifier applies
 /// [rotateGameState] before forwarding to [GameStateNotifier], so the local
 /// player is always at index 0 (Bottom position).
+library;
 import 'dart:developer' as dev;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -1,4 +1,5 @@
 /// DeclaredProject — A declared Mashaari or Baloot project.
+library;
 import 'card_model.dart';
 import 'enums.dart';
 

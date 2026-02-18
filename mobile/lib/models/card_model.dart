@@ -1,6 +1,7 @@
 /// CardModel — A single playing card.
 ///
 /// Port of frontend/src/types.ts CardModel interface.
+library;
 import 'enums.dart';
 
 class CardModel {

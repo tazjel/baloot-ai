@@ -1,4 +1,5 @@
 /// GameSettings — All game configuration.
+library;
 import 'enums.dart';
 
 class SoundVolumes {

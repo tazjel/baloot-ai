@@ -1,6 +1,7 @@
 /// Baloot AI — All game enumerations.
 ///
 /// Direct port from frontend/src/types.ts enums.
+library;
 
 // Card Suits — using Unicode symbols matching backend
 enum Suit {

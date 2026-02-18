@@ -74,7 +74,6 @@ class GameToastWidget extends StatelessWidget {
       case ToastType.warning:
         return _ToastConfig(AppColors.warning, Icons.warning_amber_rounded);
       case ToastType.info:
-      default:
         return _ToastConfig(AppColors.info, Icons.info_outline_rounded);
     }
   }

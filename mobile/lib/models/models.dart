@@ -1,4 +1,5 @@
 /// models.dart — Barrel re-export for all models.
+library;
 export 'enums.dart';
 export 'card_model.dart';
 export 'player.dart';

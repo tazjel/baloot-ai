@@ -5,6 +5,7 @@
 /// Baloot hands are displayed grouped by suit with color alternation
 /// (black-red-black-red: ♠♦♣♥) and sorted within each group by natural
 /// sequence order (A high to 7 low).
+library;
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../core/constants.dart';

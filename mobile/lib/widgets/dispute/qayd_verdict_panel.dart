@@ -3,6 +3,7 @@
 /// Port of frontend/src/components/dispute/QaydVerdictPanel.tsx
 ///
 /// Shows the verdict (correct/wrong), evidence cards, penalty, and reason.
+library;
 import 'package:flutter/material.dart';
 
 import '../../core/theme/colors.dart';

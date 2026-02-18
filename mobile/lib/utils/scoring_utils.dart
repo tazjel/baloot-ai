@@ -7,6 +7,7 @@
 /// - [calculateFinalScore]: End-of-round GP (game point) calculation with
 ///   multipliers, kaboot, and project bonuses.
 /// - [getCardPointValue]: Raw abnat (point value) of individual cards.
+library;
 import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../core/constants.dart';

@@ -1,13 +1,12 @@
 /// Tests for UI notifiers: ToastNotifier, ReplayNotifier.
 ///
 /// AudioNotifier tests will be added by Gemini when audio_notifier.dart is created.
+library;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:baloot_ai/state/ui/toast_notifier.dart';
 import 'package:baloot_ai/state/ui/replay_notifier.dart';
 import 'package:baloot_ai/models/game_state.dart';
-import 'package:baloot_ai/models/enums.dart';
 
 void main() {
   group('ToastNotifier', () {

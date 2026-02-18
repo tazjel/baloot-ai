@@ -10,6 +10,7 @@
 /// - Late in match (>100 GP) → higher tension
 /// - Active trick (cards on table) → higher tension
 /// - Bidding phase → lower base tension
+library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/enums.dart';

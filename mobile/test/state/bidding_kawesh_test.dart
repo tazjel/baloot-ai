@@ -1,14 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:baloot_ai/state/bidding_logic.dart';
 import 'package:baloot_ai/state/providers.dart';
-import 'package:baloot_ai/models/game_state.dart';
 import 'package:baloot_ai/models/enums.dart';
 import 'package:baloot_ai/models/card_model.dart';
 import 'package:baloot_ai/utils/akka_utils.dart';
 
 void main() {
-  CardModel _card(Rank rank, Suit suit) => CardModel(id: '${rank.symbol}${suit.symbol}', rank: rank, suit: suit);
+  CardModel card(Rank rank, Suit suit) => CardModel(id: '${rank.symbol}${suit.symbol}', rank: rank, suit: suit);
 
   test('KAWESH action returns same state (unchanged phase) but adds message', () {
     final container = ProviderContainer();
@@ -62,18 +60,18 @@ void main() {
   test('canDeclareKawesh integration — hand with no court cards triggers kawesh eligibility', () {
      // Verify canDeclareKawesh logic as "integration" check
      final kaweshHand = [
-        _card(Rank.seven, Suit.spades),
-        _card(Rank.eight, Suit.hearts),
-        _card(Rank.nine, Suit.diamonds),
-        _card(Rank.seven, Suit.clubs),
-        _card(Rank.eight, Suit.spades),
+        card(Rank.seven, Suit.spades),
+        card(Rank.eight, Suit.hearts),
+        card(Rank.nine, Suit.diamonds),
+        card(Rank.seven, Suit.clubs),
+        card(Rank.eight, Suit.spades),
       ];
       
       expect(canDeclareKawesh(kaweshHand), true);
 
       final normalHand = [
-        _card(Rank.ace, Suit.spades),
-        _card(Rank.eight, Suit.hearts),
+        card(Rank.ace, Suit.spades),
+        card(Rank.eight, Suit.hearts),
       ];
       expect(canDeclareKawesh(normalHand), false);
   });

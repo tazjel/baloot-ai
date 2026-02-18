@@ -10,6 +10,7 @@
 /// - Selected state (gold ring + lift)
 /// - Playable hover state
 /// - Trump suit glow effect
+library;
 import 'package:flutter/material.dart';
 
 import '../core/theme/colors.dart';

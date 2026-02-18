@@ -11,6 +11,7 @@
 /// ## Socket Integration
 /// When socket emote events are added to SocketService, the
 /// _subscribeToSocket method will wire them up.
+library;
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

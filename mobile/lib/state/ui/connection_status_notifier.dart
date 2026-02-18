@@ -7,6 +7,7 @@
 ///
 /// Uses [SocketService.onConnectionStatus] to subscribe to
 /// connection state changes.
+library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../services/socket_service.dart' as svc;

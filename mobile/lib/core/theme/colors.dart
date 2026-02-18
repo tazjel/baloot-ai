@@ -1,6 +1,7 @@
 /// Baloot AI — Color palette.
 ///
 /// Premium gold + table green + dark mode colors.
+library;
 import 'package:flutter/material.dart';
 
 class AppColors {

@@ -1,6 +1,7 @@
 /// qayd_types.dart — Shared types and constants for the Qayd dispute system.
 ///
 /// Port of frontend/src/components/dispute/types.ts
+library;
 import 'dart:ui';
 
 import '../../models/card_model.dart';

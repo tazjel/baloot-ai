@@ -22,6 +22,7 @@
 /// - `game_start` → server signals game has started
 /// - `bot_speak` → bot TTS/speech bubble events
 /// - Connection events: connect, disconnect, reconnect_attempt, etc.
+library;
 import 'dart:developer' as dev;
 
 import 'package:socket_io_client/socket_io_client.dart' as io;

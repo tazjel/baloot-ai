@@ -15,6 +15,7 @@
 /// - Ease-out fast: (0.25, 1, 0.5, 1)
 /// - Smooth ease: (0.19, 1, 0.22, 1)
 /// - Extreme bounce: (0.175, 0.885, 0.32, 1.275)
+library;
 import 'package:flutter/physics.dart';
 import 'package:flutter/animation.dart';
 

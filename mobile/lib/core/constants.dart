@@ -1,6 +1,7 @@
 /// Baloot AI — Game constants.
 ///
 /// Port of frontend/src/constants.ts
+library;
 import '../models/enums.dart';
 
 /// Rank order for sequences (A, K, Q, J, 10, 9, 8, 7)

@@ -10,11 +10,10 @@
 ///
 /// These are pure computations from the game state, exposed as
 /// Riverpod providers for efficient reactive access.
+library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/card_model.dart';
 import '../models/enums.dart';
-import '../models/game_state.dart';
 import '../utils/trick_utils.dart';
 import 'providers.dart';
 

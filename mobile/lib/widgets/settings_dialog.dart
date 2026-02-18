@@ -59,7 +59,7 @@ class _SettingsDialogState extends ConsumerState<SettingsDialog> {
                 color: AppColors.goldPrimary,
               ),
               value: isDark,
-              activeColor: AppColors.goldPrimary,
+              activeThumbColor: AppColors.goldPrimary,
               onChanged: (val) {
                 ref.read(themeModeProvider.notifier).setTheme(
                       val ? ThemeMode.dark : ThemeMode.light,

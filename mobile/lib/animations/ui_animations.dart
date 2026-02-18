@@ -10,6 +10,7 @@
 /// - **TrumpShimmer**: Repeating gold glow on trump-suit cards
 /// - **ScoreFlash**: Brief scale + color flash on score change
 /// - **KabootBurst**: Celebration scale burst
+library;
 import 'package:flutter/material.dart';
 
 import '../core/theme/colors.dart';

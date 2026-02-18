@@ -4,6 +4,7 @@
 ///
 /// Shows 3 accusation type buttons when the local player is the reporter,
 /// or a "checking..." message when another player initiated the dispute.
+library;
 import 'package:flutter/material.dart';
 
 import 'qayd_types.dart';

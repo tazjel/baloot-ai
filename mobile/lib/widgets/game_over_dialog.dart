@@ -2,6 +2,7 @@
 ///
 /// Displays final scores, round history summary, and action buttons
 /// (play again / return to lobby).
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
