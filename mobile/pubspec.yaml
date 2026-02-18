@@ -46,6 +46,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_driver:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
   # Code Generation
@@ -56,6 +58,9 @@ dev_dependencies:
 
   # Testing
   mocktail: ^1.0.4
+
+  # App Icon Generation
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
