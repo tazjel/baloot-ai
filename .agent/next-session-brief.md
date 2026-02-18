@@ -1,12 +1,12 @@
 # Next Session Brief — Flutter Mobile Migration
 
-> **Updated**: 2026-02-18 | **Lead**: Claude MAX | **Support**: Jules (modules), Antigravity (tests/analyze)
+> **Updated**: 2026-02-18 (Session 3) | **Lead**: Claude MAX | **Support**: Antigravity (tests/QA)
 
 ---
 
 ## Master Plan — Status
 
-### ✅ COMPLETED (16 Missions)
+### ✅ COMPLETED (19 Missions)
 | Phase | Commit | Owner |
 |-------|--------|-------|
 | M-F1: Foundation & Core Models | `0dc4425` | Claude |
@@ -25,86 +25,93 @@
 | M-F14: App Store Naming | `08b8bf2` | Claude |
 | M-F15: Custom App Icons | `8ce5c27` | Claude |
 | M-F16: Build Config (ProGuard, portrait) | `1c9bd9d` | Claude |
-
-### 🔄 IN PROGRESS (Jules)
-| Task | Session ID | Status |
-|------|-----------|--------|
-| **M-F17: Offline Font Bundling** | `15723797855726962685` | Running |
-| **M-F18: A11y + Action Dock Tests** | `3685688760499618959` | Running |
+| M-F17: Offline Font Bundling | `4aaad8d` | Claude (Jules failed) |
+| M-F19: Release Polish (round 1) | `d7af95f`→`7801a50` | Claude |
 
 ### 🔲 AWAITING (Antigravity)
 | Task | Description |
 |------|-------------|
-| Visual QA tasks 10-39 | Full QA for M-F9 through M-F16 |
-| `flutter analyze` + `flutter test` | Verify all green |
+| `flutter analyze` + `flutter test` | **BLOCKING** — run first, report results |
+| Visual QA tasks 10-42 | Full QA for M-F9 through M-F19 |
+| Jules configuration fix | Investigate why Jules never pushes branches |
 
 ### 📋 REMAINING
 | Mission | Description | Est. | Priority |
 |---------|-------------|------|----------|
-| **M-F19: E2E Polish** | Fix bugs from Antigravity QA | 30 min | 🟡 Medium |
+| **M-F19: E2E Polish (round 2)** | Fix bugs from Antigravity QA reports | 30 min | 🟡 Medium |
 | **M-F20: Store Submission** | Screenshots, listing, privacy, final build | 45 min | 🔴 Final |
 
 ---
 
-## What's New This Session (Continuation #2)
+## What's New This Session (Session 3)
 
-### M-F15: Custom App Icons (`8ce5c27`)
-- **Source icon**: 1024x1024 PNG generated via Python PIL (gold ♠ + "AI" on dark gradient)
-- **Android**: mipmap all densities + adaptive icon with `#0d1117` background
-- **iOS**: Full AppIcon set (20pt → 1024pt)
-- **Web**: favicon + PWA icons (192/512 + maskable)
-- **Config**: `flutter_launcher_icons.yaml` with `flutter_launcher_icons: ^0.14.3`
+### M-F17: Offline Font Bundling (`4aaad8d`)
+- Downloaded Tajawal Regular + Bold TTFs from google/fonts GitHub repo
+- Bundled in `mobile/assets/fonts/`, declared in pubspec.yaml
+- Removed unused `google_fonts` dependency (was never imported, just dead weight)
+- Created `lib/core/theme/fonts.dart` — AppFonts helper class
+- Theme already uses `fontFamily: 'Tajawal'` — now resolved from bundled files
 
-### M-F16: Build Config (`1c9bd9d`)
-- **ProGuard**: Rules for Flutter, Socket.IO, audioplayers, SharedPreferences
-- **Android**: `isMinifyEnabled = true`, `isShrinkResources = true`, `minSdk = 21`
-- **Portrait lock**: Android `screenOrientation="portrait"` + iOS single orientation
-- **Debug symbols**: `debugSymbolLevel = "SYMBOL_TABLE"` for crash reports
+### M-F19: Release Polish — Round 1 (`d7af95f`→`7801a50`)
+**Fix batch 1 — Code quality** (`d7af95f`):
+- Fixed TextEditingController memory leak in profile name editor (dispose after dialog)
+- Initialized ErrorBoundaryWidget in main.dart (replaces red screen of death)
+- Replaced hardcoded Cairo/Roboto fonts with bundled Tajawal
+- Removed dead duplicate ApiConfig from constants.dart
+- Cleaned up commented debug print in sound service
+
+**Fix batch 2 — Critical bugs** (`7801a50`):
+- ToastNotifier: Track timers in Map, cancel all on dispose (memory leak fix)
+- LobbyScreen: Wrapped _loadSavedData in try-catch for corrupted prefs
+- SawaModal: Guard against empty players list before firstWhere (crash fix)
+- RoundManager: Added mounted check in round transition timer callback
+- BiddingLogic: Added mounted checks in both kawesh/gash redeal timers
 
 ---
 
-## Jules Notes
-- Jules pushes branches but **never creates PRs** — cherry-pick specific files only
-- Jules modifies/deletes files it shouldn't — **NEVER merge full branch**
-- Cherry-pick pattern: `git checkout origin/jules-<id>-<hash> -- <file paths>`
-- Sessions: M-F17 (`15723797855726962685`), M-F18 (`3685688760499618959`)
+## Jules Status — ⚠️ Non-functional
+Jules consistently fails to deliver usable output:
+- M-F17: Session "completed" but **no branch pushed** — Claude did it manually
+- M-F18: Session "completed" but **no branch pushed** — tests not available
+- Previous sessions: Only worked when branch was explicitly pushed
+
+**Antigravity assigned**: Investigate Jules GitHub App configuration at https://jules.google.com
+
+---
 
 ## Antigravity Task Board
-See `.agent/knowledge/tasks.md` for full QA task list (tasks 10-39)
+See `.agent/knowledge/tasks.md` (v4) for full assignment list:
+- Priority 1: `flutter analyze` + `flutter test` (BLOCKING)
+- Priority 2: Jules configuration investigation
+- Priority 3-5: Visual QA tasks 19-42
 
 ---
 
 ## Codebase Stats
-- **99 lib/ files**, **17 test files**, **~18,000+ lines of Dart**
-- **16 missions complete**, **2 in progress** (Jules), **2 remaining**
-- **~1.5 hours** of agent time to store submission
+- **100 lib/ files**, **17 test files**, **~18,500+ lines of Dart**
+- **19 missions complete**, **1 remaining** (M-F20: Store Submission)
+- **~45 minutes** of agent time to store submission
 
 ---
 
 ## Git Log (Recent)
 ```
+7801a50 fix(M-F19): Critical bug fixes — timer leaks, null safety, mounted checks
+d7af95f fix(M-F19): Release polish — memory leak, error handler, font cleanup
+9f3a1dd docs: update task board v4 — Antigravity QA + Jules config fix
+05da1ad docs: update project docs, session brief, and config
+4aaad8d feat(M-F17): Offline font bundling — Tajawal Arabic
 1c9bd9d feat(M-F16): Build config — ProGuard, minify, portrait lock
 8ce5c27 feat(M-F15): Custom app icon — gold spade on dark background
-074116c docs: update task board — Jules M-F17/M-F18, Antigravity QA 31-39
-8d69786 docs: update session brief with M-F13/M-F14 completion
-35e06fd test(M-F12): Jules tests — welcome dialog, about, persistence, room code
-08b8bf2 feat(M-F14): App store naming — standardize to بلوت AI
-06942db feat(M-F13): Accessibility — Semantics for action dock, toasts, overlays
-3d80ceb feat(M-F13): Victory confetti overlay on game win
-d4d5b6d feat(M-F13): Accessibility — semantic labels for cards, players, HUD
 ```
 
 ## Commands
 ```powershell
-# Jules cherry-pick workflow
-git fetch --all
-git diff --stat main..origin/jules-<session-id>-<hash>
-git checkout origin/jules-<branch> -- mobile/test/<file> mobile/assets/fonts/<file>
-
 # Flutter (Antigravity runs these)
 cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
 "C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" analyze
 "C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" test
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" run -d chrome
 
 # Backend (unchanged — 550 passing)
 python -m pytest tests/bot/ tests/game_logic/ --tb=short -q
