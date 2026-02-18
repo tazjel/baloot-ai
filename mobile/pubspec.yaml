@@ -35,7 +35,6 @@ dependencies:
   shared_preferences: ^2.5.2
 
   # UI
-  google_fonts: ^6.2.1
   confetti: ^0.8.0
   cupertino_icons: ^1.0.8
 
@@ -68,13 +67,11 @@ flutter:
   assets:
     - assets/sounds/
     - assets/images/
+    - assets/fonts/
 
-  # Fonts loaded via google_fonts package at runtime.
-  # To bundle offline, download Tajawal .ttf files to assets/fonts/
-  # and uncomment the font section below:
-  # fonts:
-  #   - family: Tajawal
-  #     fonts:
-  #       - asset: assets/fonts/Tajawal-Regular.ttf
-  #       - asset: assets/fonts/Tajawal-Bold.ttf
-  #         weight: 700
+  fonts:
+    - family: Tajawal
+      fonts:
+        - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Bold.ttf
+          weight: 700

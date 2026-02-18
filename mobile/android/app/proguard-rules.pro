@@ -22,10 +22,6 @@
 # SharedPreferences
 -keep class io.flutter.plugins.sharedpreferences.** { *; }
 
-# Google Fonts (HTTP requests)
--keep class com.google.** { *; }
--dontwarn com.google.**
-
 # Keep annotations
 -keepattributes *Annotation*
 -keepattributes SourceFile,LineNumberTable
