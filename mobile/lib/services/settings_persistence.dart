@@ -16,6 +16,46 @@ abstract class _Keys {
   static const String playerName = 'baloot_player_name';
   static const String gamesPlayed = 'baloot_games_played';
   static const String gamesWon = 'baloot_games_won';
+  static const String matchHistory = 'baloot_match_history';
+}
+
+/// A lightweight match summary for history display.
+class MatchSummary {
+  final DateTime date;
+  final int usScore;
+  final int themScore;
+  final bool won;
+  final int rounds;
+  final String difficulty;
+
+  const MatchSummary({
+    required this.date,
+    required this.usScore,
+    required this.themScore,
+    required this.won,
+    required this.rounds,
+    required this.difficulty,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'date': date.toIso8601String(),
+        'usScore': usScore,
+        'themScore': themScore,
+        'won': won,
+        'rounds': rounds,
+        'difficulty': difficulty,
+      };
+
+  factory MatchSummary.fromJson(Map<String, dynamic> json) {
+    return MatchSummary(
+      date: DateTime.parse(json['date'] as String),
+      usScore: json['usScore'] as int? ?? 0,
+      themScore: json['themScore'] as int? ?? 0,
+      won: json['won'] as bool? ?? false,
+      rounds: json['rounds'] as int? ?? 0,
+      difficulty: json['difficulty'] as String? ?? 'HARD',
+    );
+  }
 }
 
 /// Persistence layer for game settings and player stats.
@@ -108,6 +148,50 @@ class SettingsPersistence {
       dev.log('Stats: $played played, $wonCount won', name: 'SETTINGS');
     } catch (e) {
       dev.log('Failed to record match result: $e', name: 'SETTINGS');
+    }
+  }
+
+  // =========================================================================
+  // Match History
+  // =========================================================================
+
+  /// Maximum number of matches to keep in history.
+  static const int _maxHistory = 50;
+
+  /// Load match history (most recent first).
+  static Future<List<MatchSummary>> loadMatchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_Keys.matchHistory);
+      if (jsonStr == null) return [];
+
+      final list = jsonDecode(jsonStr) as List<dynamic>;
+      return list
+          .map((e) => MatchSummary.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      dev.log('Failed to load match history: $e', name: 'SETTINGS');
+      return [];
+    }
+  }
+
+  /// Add a match to history (keeps last [_maxHistory] matches).
+  static Future<void> addMatchToHistory(MatchSummary match) async {
+    try {
+      final history = await loadMatchHistory();
+      history.insert(0, match); // Most recent first
+      if (history.length > _maxHistory) {
+        history.removeRange(_maxHistory, history.length);
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _Keys.matchHistory,
+        jsonEncode(history.map((m) => m.toJson()).toList()),
+      );
+      dev.log('Match added to history (${history.length} total)',
+          name: 'SETTINGS');
+    } catch (e) {
+      dev.log('Failed to add match to history: $e', name: 'SETTINGS');
     }
   }
 

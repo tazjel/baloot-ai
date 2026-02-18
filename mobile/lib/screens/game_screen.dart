@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/colors.dart';
 import '../models/enums.dart';
+import '../models/game_state.dart';
 import '../services/settings_persistence.dart';
 import '../state/audio/audio_notifier.dart';
 import '../state/providers.dart';
@@ -212,17 +213,13 @@ class GameScreen extends ConsumerWidget {
                         matchScores: gameState.matchScores,
                         roundHistory: gameState.roundHistory,
                         onPlayAgain: () {
-                          SettingsPersistence.recordMatchResult(
-                            won: gameState.matchScores.us >= 152,
-                          );
+                          _recordMatch(gameState, ref);
                           ref.read(gameStateProvider.notifier).reset();
                           ref.read(actionDispatcherProvider.notifier)
                               .handlePlayerAction('START_GAME');
                         },
                         onReturnToLobby: () {
-                          SettingsPersistence.recordMatchResult(
-                            won: gameState.matchScores.us >= 152,
-                          );
+                          _recordMatch(gameState, ref);
                           ref.read(gameStateProvider.notifier).reset();
                           context.go('/lobby');
                         },
@@ -257,6 +254,19 @@ class GameScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _recordMatch(GameState gameState, WidgetRef ref) {
+    final won = gameState.matchScores.us >= 152;
+    SettingsPersistence.recordMatchResult(won: won);
+    SettingsPersistence.addMatchToHistory(MatchSummary(
+      date: DateTime.now(),
+      usScore: gameState.matchScores.us,
+      themScore: gameState.matchScores.them,
+      won: won,
+      rounds: gameState.roundHistory.length,
+      difficulty: gameState.settings.botDifficulty?.value ?? 'HARD',
+    ));
   }
 
   void _showSettings(BuildContext context) {

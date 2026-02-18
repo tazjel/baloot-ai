@@ -25,6 +25,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _playerName = '';
   int _gamesPlayed = 0;
   int _gamesWon = 0;
+  List<MatchSummary> _matchHistory = [];
   bool _loaded = false;
 
   @override
@@ -36,11 +37,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _loadData() async {
     final name = await SettingsPersistence.loadPlayerName();
     final stats = await SettingsPersistence.loadStats();
+    final history = await SettingsPersistence.loadMatchHistory();
     if (mounted) {
       setState(() {
         _playerName = name ?? 'لاعب';
         _gamesPlayed = stats.played;
         _gamesWon = stats.won;
+        _matchHistory = history;
         _loaded = true;
       });
     }
@@ -209,6 +212,97 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           gamesWon: _gamesWon,
                         ),
 
+                      // Match history
+                      if (_matchHistory.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        const Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            'آخر المباريات',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textGold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._matchHistory.take(10).map((match) {
+                          final timeAgo = _formatTimeAgo(match.date);
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: match.won
+                                  ? AppColors.success.withOpacity(0.08)
+                                  : AppColors.error.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: match.won
+                                    ? AppColors.success.withOpacity(0.2)
+                                    : AppColors.error.withOpacity(0.2),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  match.won
+                                      ? Icons.emoji_events_rounded
+                                      : Icons.close_rounded,
+                                  color: match.won
+                                      ? AppColors.goldPrimary
+                                      : AppColors.error,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        match.won ? 'فوز' : 'خسارة',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: match.won
+                                              ? AppColors.success
+                                              : AppColors.error,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${match.rounds} جولات • ${match.difficulty}',
+                                        style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '${match.usScore} - ${match.themScore}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  timeAgo,
+                                  style: const TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+
                       const SizedBox(height: 24),
 
                       // Empty state or hint
@@ -310,6 +404,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       case LeagueTier.grandmaster:
         return 'جراند ماستر';
     }
+  }
+
+  String _formatTimeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 60) return 'منذ ${diff.inMinutes} د';
+    if (diff.inHours < 24) return 'منذ ${diff.inHours} س';
+    if (diff.inDays < 7) return 'منذ ${diff.inDays} ي';
+    return '${date.day}/${date.month}';
   }
 }
 
