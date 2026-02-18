@@ -22,10 +22,11 @@ git status --short; git log -3 --oneline; git log -1 --format="%ai" -- .agent/kn
 
 ## 2. Load Context (parallel reads)
 
-Read **both** in parallel — they are independent:
+Read **all three** in parallel — they are independent:
 
 1. `.agent/knowledge/developer_tips.md` — Pitfalls & rules.
 2. `.agent/knowledge/handoff.md` — Cross-agent context.
+3. `.agent/knowledge/agent_status.md` — **Inter-agent status board** (pending tasks, completed work).
 
 **Handoff freshness** (from Step 1 date output):
 - **< 48h** → 🟢 Fresh — summarize key points.
@@ -34,9 +35,10 @@ Read **both** in parallel — they are independent:
 
 ## 3. Multi-Agent Awareness
 
+- **Agent Status Board** (from Step 2): Check if Claude or Jules left pending tasks in the Task Queue. Report to user.
 - **Conversation summaries** (already provided): Scan last 24-48h for recurring themes. One-line summary.
-- **Jules**: Only check `mcp_jules_list_sessions` if handoff explicitly mentions pending Jules PRs.
-- **Claude**: Only mention if handoff references active Claude work.
+- **Jules**: Only check `mcp_jules_list_sessions` if status board or handoff mentions pending Jules PRs.
+- **Claude**: Report Claude's last status from the status board.
 
 ## 4. Guardrails
 

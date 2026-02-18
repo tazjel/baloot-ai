@@ -4,22 +4,63 @@
 Baloot AI is a full-stack Saudi trick-taking card game with AI bots.
 - **Backend**: Python 3.11+ (FastAPI/WebSocket server)
 - **Frontend**: React 19/TypeScript (Vite)
+- **Mobile**: Flutter/Dart (full game client with Riverpod state management)
 - **AI Worker**: Celery + Redis for async game analysis
 - **Game Engine**: Pure Python state machine with Pydantic models
 
 ## Architecture
 
 ### Game Engine (`game_engine/`)
-- `game.py` — Main Game class (Pydantic, stateful) — DO NOT modify without approval
-- `logic/scoring_engine.py` — Point calculation (SUN/HOKUM modes)
-- `logic/game_lifecycle.py` — Round/match lifecycle
-- `logic/trick_manager.py` — Trick resolution
-- `logic/qayd_engine.py` — Challenge/dispute state machine
-- `models/` — Card, Deck, Player, RoundState models
-- `models/constants.py` — Canonical game constants (POINT_VALUES, ORDER)
+
+#### Core (`core/`)
+- `models.py` — Pydantic base models (Card, Deck, Player)
+- `state.py` — RoundState, MatchState immutable state objects
+- `rules.py` — Core rule evaluation functions
+- `recorder.py` — Game event timeline recording
+- `graveyard.py` — Played card tracking
+
+#### Logic (`logic/`)
+- `game.py` — Main Game class (Pydantic, stateful) — **DO NOT modify without approval**
+- `scoring_engine.py` — Point calculation (SUN/HOKUM modes)
+- `game_lifecycle.py` — Round/match lifecycle
+- `trick_manager.py` — Trick resolution
+- `trick_resolver.py` — Winner determination
+- `qayd_engine.py` — Challenge/dispute state machine
+- `qayd_state_machine.py` — Qayd FSM transitions
+- `qayd_penalties.py` — Qayd penalty calculation
+- `bidding_engine.py` — Bid processing
+- `contract_handler.py` — Contract enforcement
+- `doubling_handler.py` — Double/redouble logic
+- `player_manager.py` — Seat/team management
+- `project_manager.py` — Mashare3 (projects) management
+- `sawa_manager.py` — Sawa detection and scoring
+- `akka_manager.py` — Akka detection and scoring
+- `baloot_manager.py` — Baloot declaration logic
+- `referee.py` — Rule enforcement & validation
+- `rules_validator.py` — Card legality checks
+- `validation.py` — Input validation layer
+- `state_bridge.py` — State format conversion
+- `timer_manager.py` — Turn timeout handling
+- `autopilot.py` — Auto-play for disconnected players
+- `game_serializer.py` — Redis serialization (pickle-safe)
+- `utils.py` — Shared utility functions
+
+#### Phases (`logic/phases/`)
+- `bidding_phase.py` — Bidding round FSM
+- `playing_phase.py` — Trick-taking FSM
+- `challenge_phase.py` — Qayd challenge FSM
+
+#### Rules (`logic/rules/`)
+- `akka.py` — Akka detection rules
+- `projects.py` — Mashare3 detection rules
+- `sawa.py` — Sawa detection rules
+
+#### Models (`models/`)
+- Card, Deck, Player, RoundState models
+- `constants.py` — Canonical game constants (POINT_VALUES, ORDER)
 
 ### AI Strategy Layer (`ai_worker/strategies/`)
-- `constants.py` — **Shared constants** (ORDER_SUN, ORDER_HOKUM, PTS_SUN, PTS_HOKUM, ALL_SUITS, scoring totals). All strategy modules import from here — NO local constant definitions.
+- `constants.py` — **Shared constants** (ORDER_SUN, ORDER_HOKUM, PTS_SUN, PTS_HOKUM, ALL_SUITS). All strategy modules import from here — NO local constant definitions.
 - `brain.py` — Master orchestrator, `consult_brain()` 7-step priority cascade:
   1. Kaboot Pursuit — sweep override
   2. Point Density — trick value assessment
@@ -31,8 +72,15 @@ Baloot AI is a full-stack Saudi trick-taking card game with AI bots.
   - Dynamic threshold (0.4–0.6) adjusted by trick_review momentum
   - Accepts `opponent_info` and `trick_review_info` from callers
 - `bidding.py` — Bid evaluation (SUN score, HOKUM score, thresholds)
-- `components/` — 26+ modular strategy components:
+- `playing.py` — Play-phase card selection orchestrator
+- `sherlock.py` — Deductive card inference engine
+- `difficulty.py` — AI difficulty levels
+- `neural.py` — Neural network integration layer
+- `components/` — **39 modular strategy components**:
   - `sun.py` / `hokum.py` — Mode-specific play strategies (StrategyComponent classes)
+  - `sun_bidding.py` / `hokum_bidding.py` — Mode-specific bid evaluation
+  - `sun_follow.py` / `hokum_follow.py` — Mode-specific follow logic
+  - `sun_defense.py` / `hokum_defense.py` — Mode-specific defense
   - `lead_selector.py` — 7-strategy cascade (supports Bayesian suit_probs)
   - `follow_optimizer.py` — 8-tactic cascade (supports Bayesian suit_probs)
   - `endgame_solver.py` — Minimax at ≤3 cards
@@ -44,12 +92,35 @@ Baloot AI is a full-stack Saudi trick-taking card game with AI bots.
   - `trick_review.py` — Mid-round momentum/shift → adjusts brain threshold
   - `cooperative_play.py` — Partner-coordinated plays
   - `hand_shape.py` — Distribution-based bid adjustments
-  - `bid_reader.py` — Bid inference for play phase
+  - `bid_reader.py` / `bid_analysis.py` — Bid inference for play phase
   - `galoss_guard.py` — Emergency mode (losing all tricks)
   - `kaboot_pursuit.py` — Sweep (winning all tricks) pursuit
   - `signaling.py` — Card signaling conventions
   - `trick_projection.py` — Trick count estimation
   - `point_density.py` — Point density classification
+  - `doubling_engine.py` — Double decision logic
+  - `score_pressure.py` — Score-aware adjustments
+  - `lead_preparation.py` — Pre-lead analysis
+  - `heuristic_lead.py` — Heuristic fallback leads
+  - `discard_logic.py` — Discard optimization
+  - `void_trumping.py` — Void-to-trump strategy
+  - `personality_filter.py` — Personality-based play filtering
+  - `forensics.py` — Post-trick forensic analysis
+  - `projects.py` — Mashare3-aware play adjustments
+  - `pro_data.py` — Professional play data reference
+
+### AI Subsystems (`ai_worker/`)
+- `bot_context.py` — BotContext dataclass (hand, legal_indices, mode, trick_history, etc.)
+- `agent.py` — High-level agent orchestrator
+- `professor.py` — AI coaching/analysis engine
+- `personality.py` — Bot personality traits
+- `dialogue_system.py` — Bot chat/taunt generation
+- `memory.py` — Short-term card memory
+- `memory_hall.py` — Long-term game memory
+- `cognitive.py` — Cognitive load modeling
+- `llm_client.py` — LLM API integration
+- `brain_client.py` — Brain service client
+- `mind_client.py` — Mind service client
 
 ### Bot Context (`ai_worker/bot_context.py`)
 The `BotContext` dataclass provides all game state to strategies:
@@ -64,6 +135,15 @@ The `BotContext` dataclass provides all game state to strategies:
 Cards have `.rank` (str: "7"-"A") and `.suit` (str: "♠","♥","♦","♣")
 - **SUN rank order**: 7 < 8 < 9 < J < Q < K < 10 < A
 - **HOKUM rank order**: 7 < 8 < Q < K < 10 < A < 9 < J (trump suit)
+
+### Mobile App (`mobile/`)
+Flutter/Dart client with Riverpod state management:
+- `lib/models/` — Card, Player, GameState data models
+- `lib/state/` — Riverpod notifiers and providers (game_state_notifier, action_dispatcher)
+- `lib/screens/` — Game board, lobby, settings screens
+- `lib/widgets/` — Reusable UI components (card widgets, player panels, modals)
+- `lib/services/` — WebSocket, API, storage services
+- `lib/utils/` — Shared utilities and helpers
 
 ## Conventions
 
@@ -102,10 +182,12 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
 - **Always wrap** new module calls in try/except for safety
 
 ### Testing
-- Tests in `tests/bot/` and `tests/game_logic/`
-- Run: `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
-- Current baseline: **332 tests passing** (as of Mission 15)
-- Some integration tests need `game.strictMode = False` to play arbitrary cards
+- **Python tests** in `tests/bot/` and `tests/game_logic/`
+  - Run: `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
+  - Current baseline: **~550 tests passing**
+- **Flutter tests** in `mobile/test/`
+  - Run: `cd mobile && flutter test`
+  - Current baseline: **~130 tests passing**
 
 ## What NOT to Do
 - Don't modify `game.py` core state machine without explicit approval
@@ -116,9 +198,9 @@ def analyze_something(hand, legal_indices, ...) -> dict | None:
 - Don't define constants locally — import from `ai_worker/strategies/constants.py`
 
 ## Team Workflow
-You (Claude MAX) handle complex multi-file refactors, system-level architecture, game-theory strategy design, and full-pipeline integration (module + wiring + tests).
-Gemini (Antigravity) orchestrates, scans gaps, runs tests, manages the browser/dashboard, and **performs deep Flutter analysis via MCP**.
-Jules handles parallel simple module generation from specs.
+- **Claude MAX**: Complex multi-file refactors, system-level architecture, game-theory strategy design, full-pipeline integration (module + wiring + tests)
+- **Antigravity (Gemini)**: Orchestration, gap scanning, test running, browser/dashboard management, deep Flutter analysis via MCP, documentation
+- **Jules**: Parallel simple module generation from specs
 
 ## Inter-Agent Coordination
 

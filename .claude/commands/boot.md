@@ -2,10 +2,12 @@ Session kickstart for Baloot AI. Run these steps in order:
 
 1. Read CLAUDE.md for project rules
 2. Read your memory file at `C:\Users\MiEXCITE\.claude\projects\C--Users-MiEXCITE-Projects-baloot-ai\memory\MEMORY.md`
-3. Read the mission brief at `.agent/next-session-brief.md`
-4. Run the test suite: `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
-5. Check git status for uncommitted changes: `git status --short`
-6. Check for TypeScript errors: `cd frontend && npx tsc --noEmit`
+3. Read the agent status board at `.agent/knowledge/agent_status.md` — check for completed work from Antigravity and any pending task assignments
+4. Read the mission brief at `.agent/next-session-brief.md`
+5. Run the test suite: `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
+6. Check git status for uncommitted changes: `git status --short`
+7. Check for TypeScript errors: `cd frontend && npx tsc --noEmit`
+
 
 Then present a concise status report:
 
@@ -14,6 +16,7 @@ Then present a concise status report:
 | Tests | X passing / Y failing |
 | TypeScript | X errors |
 | Git | clean / N uncommitted changes |
+| Agent Status | Antigravity: [status] / Pending tasks: [count] |
 | Last completed mission | ... |
 | Next mission | ... |
 

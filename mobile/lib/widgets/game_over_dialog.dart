@@ -144,6 +144,7 @@ class GameOverDialog extends StatelessWidget {
           ),
         ),
       ),
+      ),
         if (weWon) const ConfettiOverlay(),
       ],
     ),

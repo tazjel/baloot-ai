@@ -80,7 +80,11 @@
       "Bash(config)",
       "Bash(mcp \")",
       "mcp__jules__jules_list_sessions",
-      "mcp__dart__analyze_files"
+      "mcp__dart__analyze_files",
+      "Bash(\"C:/Users/MiEXCITE/development/flutter/bin/dart.bat\" run flutter_launcher_icons)",
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(xxd:*)"
     ]
   }
 }

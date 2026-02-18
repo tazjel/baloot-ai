@@ -4,9 +4,9 @@
 
 ---
 
-## Master Plan — Remaining Missions
+## Master Plan — Status
 
-### ✅ COMPLETED
+### ✅ COMPLETED (16 Missions)
 | Phase | Commit | Owner |
 |-------|--------|-------|
 | M-F1: Foundation & Core Models | `0dc4425` | Claude |
@@ -14,112 +14,92 @@
 | M-F3: State Management | `f3f2a69` | Claude |
 | M-F4: All Widgets (3 phases) | `a5e5d0d` | Claude + Jules + Antigravity |
 | M-F5: Animations (system + wiring) | `93545aa` | Claude |
-| M-F6: Qayd Core (6-step wizard) | `d9502ca` | Claude |
-| M-F6: Edge Cases (Akka, Kawesh, Baloot, FF) | `de60048` | Claude |
+| M-F6: Qayd Core + Edge Cases | `d9502ca`→`de60048` | Claude |
 | M-F7: Integration Tests | `b9d497f` | Jules + Antigravity |
 | M-F8: Online Multiplayer | `294a1fd` | Claude |
 | M-F9: Game Over + Persistence + Polish | `b65d9f3`→`7cd5ba9` | Claude |
-| M-F9: Haptics + Name Persistence | `60ff198` | Claude |
 | M-F10: Theme Persistence + Dark Mode | `8512d9e` | Claude |
 | M-F11: Profile Screen + Match History | `55b5e62`→`cecb414` | Claude |
-| M-F12: Release Prep + Polish | `bea0fd8`→`4863013` | Claude |
-| M-F12: Tests (4 files) | `35e06fd` | Jules (cherry-picked) |
-| M-F13: Accessibility | `d4d5b6d`→`06942db` | Claude |
-| M-F13: Victory Confetti | `3d80ceb` | Claude |
+| M-F12: Release Prep + Polish + Tests | `bea0fd8`→`35e06fd` | Claude + Jules |
+| M-F13: Accessibility + Confetti | `d4d5b6d`→`06942db` | Claude |
 | M-F14: App Store Naming | `08b8bf2` | Claude |
+| M-F15: Custom App Icons | `8ce5c27` | Claude |
+| M-F16: Build Config (ProGuard, portrait) | `1c9bd9d` | Claude |
 
-### 🔄 IN PROGRESS
-| Task | Owner | Status |
-|------|-------|--------|
-| Visual QA (tasks 10-30) | **Antigravity** | Assigned |
+### 🔄 IN PROGRESS (Jules)
+| Task | Session ID | Status |
+|------|-----------|--------|
+| **M-F17: Offline Font Bundling** | `15723797855726962685` | Running |
+| **M-F18: A11y + Action Dock Tests** | `3685688760499618959` | Running |
 
-### 📋 UPCOMING
-| Mission | Description | Owner | Priority |
-|---------|-------------|-------|----------|
-| **M-F15: App Icons** | Custom app icon artwork (replace Flutter defaults) | Designer/Claude | 🟡 Medium |
-| **M-F16: Build Config** | ProGuard, signing, release mode optimization | Claude | 🟢 Low |
-| **M-F17: Offline Font Bundling** | Bundle Tajawal .ttf for offline Arabic support | Claude | 🟢 Low |
+### 🔲 AWAITING (Antigravity)
+| Task | Description |
+|------|-------------|
+| Visual QA tasks 10-39 | Full QA for M-F9 through M-F16 |
+| `flutter analyze` + `flutter test` | Verify all green |
+
+### 📋 REMAINING
+| Mission | Description | Est. | Priority |
+|---------|-------------|------|----------|
+| **M-F19: E2E Polish** | Fix bugs from Antigravity QA | 30 min | 🟡 Medium |
+| **M-F20: Store Submission** | Screenshots, listing, privacy, final build | 45 min | 🔴 Final |
 
 ---
 
-## What's Been Built (This Session — Continuation)
+## What's New This Session (Continuation #2)
 
-### M-F13: Accessibility (`d4d5b6d` → `06942db`)
-- **Card Semantics**: Arabic rank/suit labels (سبعة سبيت, إكة هاص, etc.) + state info (محددة, حكم, يمكن لعبها)
-- **Player Semantics**: Name, bot status, turn indicator, dealer badge
-- **HUD Semantics**: Score summary label (النتيجة: نحن X - هم Y)
-- **Action dock Semantics**: All 3 button types (_BidButton, _SmallButton, _ActionButton), bidding/doubling/waiting docks
-- **Toast Semantics**: liveRegion for screen reader announcements
-- **Round transition Semantics**: liveRegion with full round result summary
-- **Game over Semantics**: liveRegion with final scores and result text
-- **Victory confetti** (`confetti_overlay.dart`): 50-particle CustomPainter animation on win, layered via Stack
+### M-F15: Custom App Icons (`8ce5c27`)
+- **Source icon**: 1024x1024 PNG generated via Python PIL (gold ♠ + "AI" on dark gradient)
+- **Android**: mipmap all densities + adaptive icon with `#0d1117` background
+- **iOS**: Full AppIcon set (20pt → 1024pt)
+- **Web**: favicon + PWA icons (192/512 + maskable)
+- **Config**: `flutter_launcher_icons.yaml` with `flutter_launcher_icons: ^0.14.3`
 
-### M-F14: App Store Naming (`08b8bf2`)
-- **Android**: label `baloot_ai` → `بلوت AI`
-- **iOS**: CFBundleDisplayName `Baloot Ai` → `بلوت AI`, CFBundleName → `Baloot AI`
-- **pubspec**: Arabic store description
-
-### M-F12: Tests — Jules (`35e06fd`)
-- Cherry-picked 4 test files from Jules session `767214469817076241`
-- `welcome_dialog_test`: 3-page tutorial navigation, dots, buttons
-- `about_screen_test`: all headers, sections, footer
-- `settings_persistence_test`: stats, streaks, name, first launch, reset
-- `room_code_card_test`: display, copy toggle, Arabic labels
+### M-F16: Build Config (`1c9bd9d`)
+- **ProGuard**: Rules for Flutter, Socket.IO, audioplayers, SharedPreferences
+- **Android**: `isMinifyEnabled = true`, `isShrinkResources = true`, `minSdk = 21`
+- **Portrait lock**: Android `screenOrientation="portrait"` + iOS single orientation
+- **Debug symbols**: `debugSymbolLevel = "SYMBOL_TABLE"` for crash reports
 
 ---
 
 ## Jules Notes
-- Jules consistently completes tasks but **fails to create PRs** even with `autoCreatePR: true`
-- Jules pushes branches but no PR — must manually cherry-pick test files
-- Jules also modifies/deletes files it shouldn't — **always cherry-pick individual files, never merge**
-- Branch naming pattern: `jules-<sessionId>-<hash>`
+- Jules pushes branches but **never creates PRs** — cherry-pick specific files only
+- Jules modifies/deletes files it shouldn't — **NEVER merge full branch**
+- Cherry-pick pattern: `git checkout origin/jules-<id>-<hash> -- <file paths>`
+- Sessions: M-F17 (`15723797855726962685`), M-F18 (`3685688760499618959`)
 
-## Active Delegations
-
-### Antigravity — Visual QA Tasks
-- Tasks 10-30: QA for all M-F9 through M-F14 features
-- Run `flutter analyze` and `flutter test` after each batch
+## Antigravity Task Board
+See `.agent/knowledge/tasks.md` for full QA task list (tasks 10-39)
 
 ---
 
-## Team Workflow Rules
-
-| Role | Responsibilities |
-|------|-----------------|
-| **Claude MAX** | Architecture, complex features, multi-file refactors, strategy design, Jules task delegation |
-| **Jules** | Parallel module generation, test file creation, simple self-contained tasks |
-| **Antigravity** | Flutter analyze, test execution, UI polish, visual QA, RTL verification |
-
-### Delegation Protocol
-- Claude writes features → commits → pushes
-- Claude delegates tests to Jules (via `jules new` or MCP)
-- Antigravity runs all analyze/test cycles
-- Claude never runs `flutter analyze` or `flutter test` — always delegates
+## Codebase Stats
+- **99 lib/ files**, **17 test files**, **~18,000+ lines of Dart**
+- **16 missions complete**, **2 in progress** (Jules), **2 remaining**
+- **~1.5 hours** of agent time to store submission
 
 ---
 
 ## Git Log (Recent)
 ```
+1c9bd9d feat(M-F16): Build config — ProGuard, minify, portrait lock
+8ce5c27 feat(M-F15): Custom app icon — gold spade on dark background
+074116c docs: update task board — Jules M-F17/M-F18, Antigravity QA 31-39
+8d69786 docs: update session brief with M-F13/M-F14 completion
 35e06fd test(M-F12): Jules tests — welcome dialog, about, persistence, room code
 08b8bf2 feat(M-F14): App store naming — standardize to بلوت AI
 06942db feat(M-F13): Accessibility — Semantics for action dock, toasts, overlays
 3d80ceb feat(M-F13): Victory confetti overlay on game win
 d4d5b6d feat(M-F13): Accessibility — semantic labels for cards, players, HUD
-ea0b196 docs: update session brief with M-F12 completion
-4863013 feat(M-F12): Gameplay tips, haptic feedback on profile
-e30298c feat(M-F12): Win streak tracking in lobby and profile
-2974f92 feat(M-F12): Page transitions, welcome dialog, first-launch tutorial
-d303ac5 docs: update session brief, tasks, agent status for M-F12
-d639c7c style: dart fix --apply lint cleanup
-bea0fd8 feat(M-F12): Splash screen, about screen, sound persistence, profile polish
 ```
 
 ## Commands
 ```powershell
-# Jules CLI (installed globally)
-jules remote list --repo
-jules new --repo tazjel/baloot-ai "task description"
-jules remote pull --session <ID>
+# Jules cherry-pick workflow
+git fetch --all
+git diff --stat main..origin/jules-<session-id>-<hash>
+git checkout origin/jules-<branch> -- mobile/test/<file> mobile/assets/fonts/<file>
 
 # Flutter (Antigravity runs these)
 cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
