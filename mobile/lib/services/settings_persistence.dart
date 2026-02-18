@@ -18,6 +18,7 @@ abstract class _Keys {
   static const String gamesPlayed = 'baloot_games_played';
   static const String gamesWon = 'baloot_games_won';
   static const String matchHistory = 'baloot_match_history';
+  static const String firstLaunch = 'baloot_first_launch';
 }
 
 /// A lightweight match summary for history display.
@@ -225,5 +226,27 @@ class SettingsPersistence {
       turnDuration: timerDuration,
       strictMode: strictMode,
     ));
+  }
+
+  // =========================================================================
+  // First Launch
+  // =========================================================================
+
+  /// Check if this is the first time the app is launched.
+  static Future<bool> isFirstLaunch() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_Keys.firstLaunch) ?? true;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Mark the first launch as complete.
+  static Future<void> markFirstLaunchComplete() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_Keys.firstLaunch, false);
+    } catch (_) {}
   }
 }

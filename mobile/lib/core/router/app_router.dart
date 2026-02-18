@@ -1,4 +1,4 @@
-/// Baloot AI — Navigation router.
+/// Baloot AI — Navigation router with custom page transitions.
 ///
 /// 7 routes: /, /lobby, /multiplayer, /game, /profile, /about
 library;
@@ -17,32 +17,72 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'splash',
-      builder: (context, state) => const SplashScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const SplashScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
     ),
     GoRoute(
       path: '/lobby',
       name: 'lobby',
-      builder: (context, state) => const LobbyScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const LobbyScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
     ),
     GoRoute(
       path: '/multiplayer',
       name: 'multiplayer',
-      builder: (context, state) => const MultiplayerScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const MultiplayerScreen(),
+        transitionsBuilder: _slideFromRight,
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
     ),
     GoRoute(
       path: '/game',
       name: 'game',
-      builder: (context, state) => const GameScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const GameScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+          );
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(scale: scaleAnimation, child: child),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
     ),
     GoRoute(
       path: '/profile',
       name: 'profile',
-      builder: (context, state) => const ProfileScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const ProfileScreen(),
+        transitionsBuilder: _slideFromRight,
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
     ),
     GoRoute(
       path: '/about',
       name: 'about',
-      builder: (context, state) => const AboutScreen(),
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const AboutScreen(),
+        transitionsBuilder: _slideFromBottom,
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(
@@ -55,3 +95,34 @@ final GoRouter appRouter = GoRouter(
     ),
   ),
 );
+
+/// Slide from right transition (for sub-screens).
+Widget _slideFromRight(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  final offsetAnimation = Tween<Offset>(
+    begin: const Offset(1.0, 0.0),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+  return SlideTransition(position: offsetAnimation, child: child);
+}
+
+/// Slide from bottom transition (for modal-like screens).
+Widget _slideFromBottom(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  final offsetAnimation = Tween<Offset>(
+    begin: const Offset(0.0, 0.3),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+  return FadeTransition(
+    opacity: animation,
+    child: SlideTransition(position: offsetAnimation, child: child),
+  );
+}

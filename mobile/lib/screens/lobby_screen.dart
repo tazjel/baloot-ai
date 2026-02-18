@@ -17,6 +17,7 @@ import '../core/theme/colors.dart';
 import '../models/enums.dart';
 import '../services/settings_persistence.dart';
 import '../state/providers.dart';
+import '../widgets/welcome_dialog.dart';
 
 /// Pre-game lobby screen with settings and start button.
 class LobbyScreen extends ConsumerStatefulWidget {
@@ -38,6 +39,10 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   void initState() {
     super.initState();
     _loadSavedData();
+    // Show welcome dialog on first launch (after frame renders)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showWelcomeIfFirstLaunch(context);
+    });
   }
 
   Future<void> _loadSavedData() async {

@@ -10,6 +10,7 @@
 /// 5. Hand fan (card fan) — bottom
 /// 6. Action dock (bidding/playing controls) — above hand
 /// 7. Overlays (toasts, speech, modals)
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';

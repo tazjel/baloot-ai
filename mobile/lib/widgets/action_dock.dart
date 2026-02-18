@@ -9,6 +9,7 @@
 /// 4. **Waiting**: Empty or "Add Bot" button
 ///
 /// All buttons are Arabic-labeled with appropriate colors and icons.
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,7 +17,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme/colors.dart';
 import '../models/card_model.dart';
 import '../models/enums.dart';
-import '../state/game_rules_provider.dart';
 import '../state/providers.dart';
 import '../utils/akka_utils.dart';
 
