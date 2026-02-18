@@ -78,7 +78,9 @@
       "Bash(\"C:/Users/MiEXCITE/development/flutter/bin/dart.bat\" mcp-server --help)",
       "Bash(claude mcp add:*)",
       "Bash(config)",
-      "Bash(mcp \")"
+      "Bash(mcp \")",
+      "mcp__jules__jules_list_sessions",
+      "mcp__dart__analyze_files"
     ]
   }
 }
