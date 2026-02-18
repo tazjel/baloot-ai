@@ -32,7 +32,10 @@ class TableHudWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Container(
+    return Semantics(
+      label: 'النتيجة: نحن ${gameState.matchScores.us} - هم ${gameState.matchScores.them}'
+          '${gameState.bid.type != GameMode.sun ? '، ${gameState.bid.type == GameMode.hokum ? "حكم" : ""}' : '، صن'}',
+      child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -90,6 +93,7 @@ class TableHudWidget extends ConsumerWidget {
             ),
         ],
       ),
+    ),
     );
   }
 }

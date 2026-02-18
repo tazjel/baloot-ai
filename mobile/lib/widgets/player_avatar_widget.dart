@@ -53,7 +53,12 @@ class PlayerAvatarWidget extends ConsumerWidget {
     final avatarSize = 40.0 * scale;
     final nameSize = 11.0 * scale;
 
-    return Column(
+    return Semantics(
+      label: '${player.name}'
+          '${player.isBot ? '، بوت' : ''}'
+          '${isCurrentTurn ? '، دوره' : ''}'
+          '${player.isDealer ? '، الموزع' : ''}',
+      child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         // Speech bubble — animated fade in/out
@@ -215,6 +220,7 @@ class PlayerAvatarWidget extends ConsumerWidget {
           ),
         ],
       ],
+    ),
     );
   }
 

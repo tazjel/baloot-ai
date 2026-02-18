@@ -66,7 +66,18 @@ class CardWidget extends StatelessWidget {
     final rankStr = card.rank.symbol;
     final fontSize = width * 0.22;
 
-    return GestureDetector(
+    final semanticLabel = isHidden
+        ? 'ورقة مقلوبة'
+        : '${_rankLabel(card.rank)} ${_suitLabel(card.suit)}'
+            '${isSelected ? '، محددة' : ''}'
+            '${isTrump ? '، حكم' : ''}'
+            '${isPlayable ? '، يمكن لعبها' : ''}';
+
+    return Semantics(
+      label: semanticLabel,
+      button: onTap != null,
+      selected: isSelected,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -111,6 +122,7 @@ class CardWidget extends StatelessWidget {
         ),
         child: isHidden ? _buildBack() : _buildFace(suitColor, suitSymbol, rankStr, fontSize),
       ),
+    ),
     );
   }
 
@@ -309,6 +321,42 @@ class CardWidget extends StatelessWidget {
         return AppColors.suitDiamonds;
       case Suit.clubs:
         return AppColors.suitClubs;
+    }
+  }
+
+  /// Arabic rank label for screen readers.
+  String _rankLabel(Rank rank) {
+    switch (rank) {
+      case Rank.seven:
+        return 'سبعة';
+      case Rank.eight:
+        return 'ثمانية';
+      case Rank.nine:
+        return 'تسعة';
+      case Rank.ten:
+        return 'عشرة';
+      case Rank.jack:
+        return 'ولد';
+      case Rank.queen:
+        return 'بنت';
+      case Rank.king:
+        return 'شايب';
+      case Rank.ace:
+        return 'إكة';
+    }
+  }
+
+  /// Arabic suit label for screen readers.
+  String _suitLabel(Suit suit) {
+    switch (suit) {
+      case Suit.spades:
+        return 'سبيت';
+      case Suit.hearts:
+        return 'هاص';
+      case Suit.diamonds:
+        return 'ديمن';
+      case Suit.clubs:
+        return 'كلفس';
     }
   }
 }
