@@ -1,8 +1,8 @@
 # Next Session Brief — Flutter Mobile Migration
 
-> **Updated**: 2026-02-18 | **Focus**: M-F5 complete → M-F6 (Qayd) → M-F7 (Testing)
+> **Updated**: 2026-02-18 | **Focus**: M-F6 in progress → finish edge cases → M-F7 (Testing)
 
-## Current Status: M-F5 Animations (Complete)
+## Current Status: M-F6 Qayd Dispute System (In Progress)
 
 ### Completed Phases
 | Phase | Status | Commit | Tests |
@@ -15,65 +15,46 @@
 | M-F4 Phase 2a: Simple Widgets (Jules) | ✅ Complete | `a5e5d0d` | 102 |
 | M-F5: Animation System | ✅ Complete | `04bd9f7` | 102 |
 | M-F5: Animation Wiring | ✅ Complete | `93545aa` | 102 |
+| M-F6: Qayd Core (6-step wizard) | ✅ Complete | `d9502ca` | 102 |
 
-### M-F5 Delivery Summary
-**Animation files created (3):**
-- `spring_curves.dart` — 6 SpringDescription configs (Framer Motion), 4 CSS cubic-bezier curves, 12 duration constants
-- `card_animations.dart` — AnimatedCardDeal, AnimatedCardPlay, AnimatedTrickSweep, AnimatedThump, AnimatedFloorReveal
-- `ui_animations.dart` — AnimatedToastEntry, AnimatedSpeechBubble, HintPulseEffect, TrumpShimmerEffect, TurnIndicatorPulse, AnimatedScoreFlash, AnimatedKabootBurst
+### M-F6 Delivery So Far
+**New files created (5 dispute sub-widgets):**
+- `dispute/qayd_types.dart` — Enums (MainMenuOption, ViolationType), CardSelection, VerdictData, constants
+- `dispute/qayd_main_menu.dart` — 3-button menu (كشف الأوراق, سوا خاطئ, أكة خاطئة) + waiting state
+- `dispute/qayd_card_selector.dart` — Trick browser with crime (pink) / proof (green) card selection
+- `dispute/qayd_verdict_panel.dart` — Verdict banner, evidence cards, penalty display
+- `dispute/qayd_footer.dart` — Timer circle, reporter badge, back button
 
-**Wiring completed (5 files modified):**
-- `GameArena` — table cards: AnimatedCardPlay + AnimatedThump; floor card: AnimatedFloorReveal
-- `HandFanWidget` — cards: AnimatedCardDeal (staggered) on new deal detection
-- `ToastOverlay` — toasts: AnimatedToastEntry (slide-in + auto-hide)
-- `PlayerAvatarWidget` — avatar: TurnIndicatorPulse; speech: AnimatedSpeechBubble
-- `GameScreen` — added HeartbeatLayer + HintOverlayWidget overlays
+**Rewritten:**
+- `dispute_modal.dart` — Full 6-step orchestrator (227→360 lines), timer management, auto-confirm
 
-**All M-F4 widgets delivered:**
-- Claude MAX: 9 core widgets + 2 screens
-- Antigravity: 10 modals/screens (match_review, dispute, store, sawa, variant_selection, settings_dialog, replay_controls, level_up, project_selection, multiplayer)
-- Jules: 13 simple widgets (suit_icon, score_badge, contract_indicator, turn_timer, glass_panel, game_toast, speech_bubble, hint_overlay, heartbeat_layer, project_reveal, emote_menu, score_sheet, error_boundary)
+**Modified:**
+- `action_dock.dart` — Added Qayd trigger (⚖) + Sawa claim (🤝) buttons to PlayingDock
+- `game_screen.dart` — Wired DisputeModal + SawaModal as Positioned.fill overlay layers
 
 ---
 
-## Next: M-F6 Qayd Dispute System & Edge Cases
+## Remaining M-F6 Work (Next Session)
 
-### For Claude MAX
-| Task | Details |
-|------|---------|
-| QaydOverlay | Dispute wizard container with 6-state machine |
-| QaydCardSelector | Trick browser + card picker for crime/proof |
-| Sawa flow | Claim → opponent responses → resolve/penalty |
-| Akka declaration | HOKUM-only, leading-only validation |
-
-### For Jules (Module Generation)
-| Task | Details |
-|------|---------|
-| QaydMainMenu | Violation type selection grid |
-| QaydVerdictPanel | Result display with penalty summary |
-| QaydFooter | Confirm/cancel action buttons |
-| Project conflicts | Multi-player project resolution logic |
-| Fast-forward mode | Speed up to 150ms bot turns |
-| Baloot declaration | K+Q of trump, immune to multipliers |
-| Error boundaries | ErrorWidget.builder for graceful degradation |
+### Edge Cases Still Needed
+| Task | Status | Details |
+|------|--------|---------|
+| Akka button in ActionDock | Pending | HOKUM-only, leading-only, uses canDeclareAkka() |
+| Kawesh button in BiddingDock | Pending | Pre-bid, uses canDeclareKawesh() |
+| Fast-forward toggle | Pending | Speed up bot turns to 150ms |
+| Baloot declaration UI | Pending | K+Q of trump auto-detect toast |
+| Waraq/redeal handling | Pending | 3 passes + dealer waraq → state reset |
+| Jules widgets review | Pending | Session `14611954312806542087` — check if delivered |
 
 ### Edge Cases Checklist
-- [ ] Sawa: claim → 3s timer → opponents can challenge → resolve
-- [ ] Akka: only in HOKUM, only when leading, requires K+Q of trump
+- [x] Qayd 6-step: IDLE → MENU → VIOLATION → CRIME_CARD → PROOF_CARD → VERDICT
+- [x] Sawa button in PlayingDock
+- [x] Qayd trigger button in PlayingDock
+- [x] DisputeModal + SawaModal wired into GameScreen Stack
+- [ ] Akka: only in HOKUM, only when leading
 - [ ] Kawesh: pre-bid worthless hand redeal
-- [ ] Waraq/Gash: 3 passes + dealer waraq → redeal with dealer rotation
-- [ ] Project conflicts: 4 players declare simultaneously → resolve
-- [ ] Doubling: NORMAL → DOUBLE → TRIPLE → QUADRUPLE → GAHWA
-- [ ] Qayd 6-step: IDLE → MENU → VIOLATION → CRIME_CARD → PROOF_CARD → VERDICT
 - [ ] Fast-forward: toggle button speeds bot actions to 150ms
-- [ ] Baloot GP: always 2, immune to all multipliers, added last
-
----
-
-## MCP & Tooling
-- **Dart MCP server** configured in `.mcp.json` with Flutter SDK path
-- Provides: error analysis, symbol resolution, package search, testing, formatting
-- Available on next Claude Code session restart
+- [ ] Baloot GP: auto-detect K+Q of trump, toast notification
 
 ---
 
@@ -81,34 +62,22 @@
 
 ### Type Patterns (Critical for new code)
 ```dart
-// GameMode enum, NOT String
-sortHand(cards, GameMode.hokum);
-
-// Suit? for trump, NOT String?
-isValidMove(card: c, hand: h, tableCards: tc, mode: m, trumpSuit: s, isLocked: false);
-
 // gameStateProvider returns AppGameState, NOT GameState
 final appState = ref.watch(gameStateProvider);
-final gameState = appState.gameState; // Access GameState
+final gameState = appState.gameState;
+
+// Qayd actions via socket:
+ref.read(gameSocketProvider.notifier).sendAction('QAYD_TRIGGER');
+ref.read(actionDispatcherProvider.notifier).handlePlayerAction('SAWA_CLAIM');
 ```
 
-### Provider Hierarchy
-```
-gameStateProvider (master AppGameState)
-  ├── gameSocketProvider (socket → state updates)
-  ├── biddingLogicProvider (PASS/SUN/HOKUM/ASHKAL)
-  ├── playingLogicProvider (card play + doubling)
-  ├── roundManagerProvider (round lifecycle)
-  ├── actionDispatcherProvider (facade)
-  ├── gameRulesProvider (computed: legalCardIndices, canDouble, isMyTurn)
-  ├── audioNotifierProvider
-  ├── botSpeechProvider
-  ├── toastProvider
-  ├── connectionStatusProvider
-  ├── emoteProvider
-  ├── shopProvider
-  ├── tensionProvider
-  └── hintProvider
+### Dispute Sub-Widget Imports
+```dart
+import 'dispute/qayd_types.dart';       // Enums, CardSelection, VerdictData
+import 'dispute/qayd_main_menu.dart';   // QaydMainMenu
+import 'dispute/qayd_card_selector.dart'; // QaydCardSelector
+import 'dispute/qayd_verdict_panel.dart'; // QaydVerdictPanel
+import 'dispute/qayd_footer.dart';      // QaydFooter
 ```
 
 ---
@@ -126,27 +95,23 @@ cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
 | Utils | 7 | ~800 |
 | Services | 5 | ~1,500 |
 | State (Notifiers) | 17 | ~2,800 |
-| Widgets | 37 | ~6,100 |
-| Screens | 3 | ~600 |
+| Widgets | 42 | ~7,600 |
+| Screens | 3 | ~650 |
 | Animations | 3 | ~1,100 |
 | Tests | 8 | ~1,500 |
-| **Total** | **90** | **~15,600** |
+| **Total** | **95** | **~17,150** |
 
 ## Git Log (Recent)
 ```
+d9502ca feat(M-F6): Qayd dispute system — 6-step wizard + ActionDock edge cases
 93545aa feat(M-F5): Wire animations into game widgets
 04bd9f7 feat(M-F5): Animation system — spring curves, card animations, UI effects
 a5e5d0d feat(M-F4): Jules widgets + warning fixes — 13 new widgets
-1450280 feat(M-F4): Phase 2b modals & screens — 10 new widgets
-01a283f feat(M-F4): Core widgets & screens — GameScreen Stack, ActionDock, HandFan, HUD
-f3f2a69 feat(M-F3): State management — 17 Riverpod notifiers, 102 tests passing
-6d1cf8f feat(M-F2): Services layer — SocketService, AccountingEngine
-0dc4425 feat(M-F1): Flutter mobile app foundation — models, utils, theme, router
 ```
 
 ## Jules Status
-- Session `18051886396563218460` COMPLETED — 13 widgets integrated into main
-- No active Jules sessions
+- Session `14611954312806542087` — M-F6 Qayd Sub-Widgets (delegated, check status)
+- Previous: `18051886396563218460` COMPLETED — 13 widgets integrated
 
 ## Backend Tests (Unchanged)
 - 550 tests passing (`python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`)
