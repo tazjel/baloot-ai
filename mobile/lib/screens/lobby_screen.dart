@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../app.dart';
 import '../core/theme/colors.dart';
 import '../models/enums.dart';
 import '../services/settings_persistence.dart';
@@ -69,13 +70,15 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 48),
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 48),
 
-                // === Title ===
+                    // === Title ===
                 Text(
                   'بلوت AI',
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -264,6 +267,24 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                 const SizedBox(height: 48),
               ],
             ),
+          ),
+
+          // Theme toggle button (top-right)
+          Positioned(
+            top: 8,
+            left: 8,
+            child: IconButton(
+              icon: Icon(
+                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                color: AppColors.goldPrimary,
+              ),
+              tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
+              onPressed: () {
+                ref.read(themeModeProvider.notifier).toggle();
+              },
+            ),
+          ),
+            ],
           ),
         ),
       ),
