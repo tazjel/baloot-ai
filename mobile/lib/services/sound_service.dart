@@ -1,11 +1,16 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SoundService {
   static final SoundService _instance = SoundService._internal();
 
   factory SoundService() => _instance;
 
-  SoundService._internal();
+  SoundService._internal() {
+    _loadFromPrefs();
+  }
+
+  static const String _prefPrefix = 'baloot_sound_';
 
   // Volume categories mirroring frontend/src/services/SoundManager.ts
   final Map<String, double> _volumes = {
@@ -17,8 +22,32 @@ class SoundService {
 
   bool _isMuted = false;
 
+  /// Load saved sound settings from SharedPreferences.
+  Future<void> _loadFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isMuted = prefs.getBool('${_prefPrefix}muted') ?? false;
+      for (final key in _volumes.keys) {
+        final saved = prefs.getDouble('$_prefPrefix$key');
+        if (saved != null) _volumes[key] = saved.clamp(0.0, 1.0);
+      }
+    } catch (_) {}
+  }
+
+  /// Persist current settings to SharedPreferences.
+  Future<void> _saveToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('${_prefPrefix}muted', _isMuted);
+      for (final entry in _volumes.entries) {
+        await prefs.setDouble('$_prefPrefix${entry.key}', entry.value);
+      }
+    } catch (_) {}
+  }
+
   void setMute(bool muted) {
     _isMuted = muted;
+    _saveToPrefs();
   }
 
   bool get isMuted => _isMuted;
@@ -26,6 +55,7 @@ class SoundService {
   void setVolume(String category, double volume) {
     if (_volumes.containsKey(category)) {
       _volumes[category] = volume.clamp(0.0, 1.0);
+      _saveToPrefs();
     }
   }
 

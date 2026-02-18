@@ -5,6 +5,7 @@
 /// - Win/loss stats with visual breakdown
 /// - Recent match history from persistence
 /// - League tier display
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -123,12 +124,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Player name
-                      Text(
-                        _playerName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                      // Player name with edit button
+                      GestureDetector(
+                        onTap: _editName,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _playerName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.edit_rounded,
+                              size: 18,
+                              color: AppColors.goldPrimary.withOpacity(0.7),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -342,6 +357,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ],
                           ),
                         ),
+
+                      // Reset stats button (only shown if stats exist)
+                      if (_gamesPlayed > 0) ...[
+                        const SizedBox(height: 32),
+                        TextButton.icon(
+                          onPressed: _confirmResetStats,
+                          icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                          label: const Text('مسح الإحصائيات'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 )
@@ -351,6 +379,76 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                 ),
         ),
+      ),
+    );
+  }
+
+  void _confirmResetStats() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('مسح الإحصائيات'),
+        content: const Text('هل أنت متأكد من مسح جميع الإحصائيات وسجل المباريات؟ لا يمكن التراجع.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await SettingsPersistence.resetStats();
+              if (mounted) {
+                setState(() {
+                  _gamesPlayed = 0;
+                  _gamesWon = 0;
+                  _matchHistory = [];
+                });
+              }
+            },
+            child: const Text('مسح', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editName() {
+    final controller = TextEditingController(text: _playerName);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تغيير الاسم'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textAlign: TextAlign.right,
+          decoration: const InputDecoration(
+            hintText: 'أدخل اسمك',
+            border: OutlineInputBorder(),
+          ),
+          maxLength: 20,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                setState(() => _playerName = newName);
+                SettingsPersistence.savePlayerName(newName);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text(
+              'حفظ',
+              style: TextStyle(color: AppColors.goldPrimary),
+            ),
+          ),
+        ],
       ),
     );
   }

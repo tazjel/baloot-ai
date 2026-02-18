@@ -7,6 +7,7 @@
 /// - Timer duration (slider)
 /// - Strict mode toggle
 /// - Start game / Multiplayer buttons
+library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -212,7 +213,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                         title: const Text('الوضع الصارم'),
                         subtitle: const Text('يمنع الحركات غير القانونية'),
                         value: _strictMode,
-                        activeColor: AppColors.goldPrimary,
+                        activeThumbColor: AppColors.goldPrimary,
                         contentPadding: EdgeInsets.zero,
                         onChanged: (v) => setState(() => _strictMode = v),
                       ),
@@ -264,7 +265,23 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 12),
+
+                // === About Button ===
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: () => context.go('/about'),
+                    icon: const Icon(Icons.info_outline_rounded, size: 18),
+                    label: const Text('حول التطبيق'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textMuted,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
               ],
             ),
           ),

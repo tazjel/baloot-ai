@@ -2,6 +2,7 @@
 ///
 /// Saves and loads user preferences (difficulty, timer, strict mode, sound,
 /// theme, etc.) so they persist across app restarts.
+library;
 import 'dart:convert';
 import 'dart:developer' as dev;
 
@@ -148,6 +149,19 @@ class SettingsPersistence {
       dev.log('Stats: $played played, $wonCount won', name: 'SETTINGS');
     } catch (e) {
       dev.log('Failed to record match result: $e', name: 'SETTINGS');
+    }
+  }
+
+  /// Reset all stats and match history.
+  static Future<void> resetStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_Keys.gamesPlayed);
+      await prefs.remove(_Keys.gamesWon);
+      await prefs.remove(_Keys.matchHistory);
+      dev.log('Stats and history reset', name: 'SETTINGS');
+    } catch (e) {
+      dev.log('Failed to reset stats: $e', name: 'SETTINGS');
     }
   }
 
