@@ -18,6 +18,8 @@ import '../core/theme/colors.dart';
 import '../models/enums.dart';
 import '../state/audio/audio_notifier.dart';
 import '../state/providers.dart';
+import '../state/ui/baloot_detection_provider.dart';
+import '../state/ui/toast_notifier.dart';
 import '../widgets/action_dock.dart';
 import '../widgets/dispute_modal.dart';
 import '../widgets/game_arena.dart';
@@ -42,6 +44,20 @@ class GameScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Initialize audio notifier (watches game state internally)
     ref.watch(audioNotifierProvider);
+
+    // Baloot detection — show toast when K+Q of trump detected
+    ref.listen<BalootDetectionState>(
+      balootDetectionProvider,
+      (previous, next) {
+        if (next.hasBaloot && !(previous?.hasBaloot ?? false)) {
+          ref.read(toastProvider.notifier).show(
+            'بلوت! لديك الملك والملكة ${next.trumpSuit?.symbol ?? ''}',
+            type: ToastType.baloot,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      },
+    );
 
     final appState = ref.watch(gameStateProvider);
     final gameState = appState.gameState;

@@ -147,3 +147,15 @@ bool canDeclareKawesh(List<CardModel> hand) {
   const courtCards = [Rank.ace, Rank.king, Rank.queen, Rank.jack, Rank.ten];
   return !hand.any((c) => courtCards.contains(c.rank));
 }
+
+/// Checks if [hand] contains both King and Queen of [trumpSuit] (Baloot).
+///
+/// Baloot is a special declaration in HOKUM mode worth 2 GP. It can only
+/// be declared when the player plays either the K or Q of trump.
+/// Returns `true` if both K and Q of trump are present in hand.
+bool hasBalootInHand(List<CardModel> hand, Suit? trumpSuit) {
+  if (trumpSuit == null) return false;
+  final hasKing = hand.any((c) => c.rank == Rank.king && c.suit == trumpSuit);
+  final hasQueen = hand.any((c) => c.rank == Rank.queen && c.suit == trumpSuit);
+  return hasKing && hasQueen;
+}

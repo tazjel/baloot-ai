@@ -70,6 +70,24 @@ class BiddingLogicNotifier extends StateNotifier<void> {
         );
       });
 
+      // Kawesh (worthless hand redeal) — pre-bid: same dealer, post-bid: rotate
+      if (action == 'KAWESH') {
+        gameNotifier.addSystemMessage(
+          '${prev.players[playerIndex].name} أعلن كوش! توزيع جديد...',
+        );
+        final scores = prev.matchScores;
+        final dealerIdx = prev.dealerIndex;
+        _redealTimer?.cancel();
+        _redealTimer = Timer(const Duration(milliseconds: 1500), () {
+          _redealTimer = null;
+          _ref.read(roundManagerProvider.notifier).startNewRound(
+                nextDealerIndex: dealerIdx, // Kawesh = same dealer
+                matchScores: scores,
+              );
+        });
+        return prev;
+      }
+
       // Set action text on bidding player
       final actionText = action == 'PASS'
           ? 'بس'

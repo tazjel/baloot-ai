@@ -2,9 +2,9 @@
 ///
 /// Port of frontend/src/components/ActionBar.tsx
 ///
-/// The action dock switches between 4 modes based on game phase:
-/// 1. **Bidding**: SUN / HOKUM / PASS buttons (+ ASHKAL / THANY in R2)
-/// 2. **Playing**: Double button (when eligible) + Sawa claim
+/// The action dock switches between 5 modes based on game phase:
+/// 1. **Bidding**: SUN / HOKUM / PASS buttons (+ ASHKAL / KAWESH)
+/// 2. **Playing**: Double + Sawa + Qayd + Akka (HOKUM leading) + Fast-forward
 /// 3. **Doubling**: Accept / Refuse double
 /// 4. **Waiting**: Empty or "Add Bot" button
 ///
@@ -16,6 +16,7 @@ import '../core/theme/colors.dart';
 import '../models/enums.dart';
 import '../state/game_rules_provider.dart';
 import '../state/providers.dart';
+import '../utils/akka_utils.dart';
 
 /// Phase-aware action dock at the bottom of the game board.
 ///
@@ -130,12 +131,28 @@ class _BiddingDock extends ConsumerWidget {
                     icon: Icons.auto_awesome,
                     onTap: () => _bid(ref, 'ASHKAL'),
                   ),
+                // KAWESH (worthless hand — no court cards)
+                if (_canKawesh(ref))
+                  _BidButton(
+                    label: 'كوش',
+                    color: Colors.purple,
+                    icon: Icons.refresh_rounded,
+                    onTap: () => _bid(ref, 'KAWESH'),
+                  ),
               ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  bool _canKawesh(WidgetRef ref) {
+    final appState = ref.watch(gameStateProvider);
+    final hand = appState.gameState.players.isNotEmpty
+        ? appState.gameState.players[0].hand
+        : [];
+    return hand.isNotEmpty && canDeclareKawesh(hand);
   }
 
   void _bid(WidgetRef ref, String action) {
@@ -156,6 +173,8 @@ class _PlayingDock extends ConsumerWidget {
     final rules = ref.watch(gameRulesProvider);
     final canDouble = rules.canDouble;
     final doublingLevel = gameState.doublingLevel as DoublingLevel;
+    final isFastForwarding = gameState.isFastForwarding == true;
+    final showAkka = _shouldShowAkka(ref);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -184,6 +203,31 @@ class _PlayingDock extends ConsumerWidget {
               onTap: () => ref
                   .read(actionDispatcherProvider.notifier)
                   .handlePlayerAction('SAWA_CLAIM'),
+            ),
+            const SizedBox(width: 8),
+            // Akka button (HOKUM only, leading only)
+            if (showAkka)
+              _SmallButton(
+                icon: Icons.workspace_premium,
+                tooltip: 'أكة',
+                onTap: () => ref
+                    .read(actionDispatcherProvider.notifier)
+                    .handlePlayerAction('AKKA'),
+              ),
+            if (showAkka) const SizedBox(width: 8),
+            // Fast-forward toggle
+            _SmallButton(
+              icon: isFastForwarding
+                  ? Icons.pause_rounded
+                  : Icons.fast_forward_rounded,
+              tooltip: isFastForwarding ? 'إيقاف' : 'تسريع',
+              onTap: () {
+                if (isFastForwarding) {
+                  ref.read(actionDispatcherProvider.notifier).disableFastForward();
+                } else {
+                  ref.read(actionDispatcherProvider.notifier).enableFastForward();
+                }
+              },
             ),
             const SizedBox(width: 12),
             // Double button
@@ -244,6 +288,24 @@ class _PlayingDock extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  bool _shouldShowAkka(WidgetRef ref) {
+    final appState = ref.watch(gameStateProvider);
+    final gs = appState.gameState;
+    if (gs.gameMode != GameMode.hokum) return false;
+    if (gs.currentTurnIndex != 0) return false;
+    if (gs.tableCards.isNotEmpty) return false;
+    if (gs.players.isEmpty) return false;
+    final hand = gs.players[0].hand;
+    final trumpSuit = gs.bid.suit ?? gs.floorCard?.suit;
+    return scanHandForAkka(
+      hand: hand,
+      tableCards: gs.tableCards,
+      mode: GameMode.hokum,
+      trumpSuit: trumpSuit,
+      currentRoundTricks: gs.currentRoundTricks ?? [],
     );
   }
 
