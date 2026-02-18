@@ -17,35 +17,39 @@ class GameToastWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final config = _getConfig(toast.type);
 
-    return Dismissible(
-      key: Key(toast.id),
-      onDismissed: (_) => onDismiss(),
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.darkSurface.withOpacity(0.95),
-          border: BorderDirectional(start: BorderSide(color: config.color, width: 4)),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(config.icon, color: config.color, size: 20),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                toast.message,
-                style: const TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 14,
+    return Semantics(
+      label: toast.message,
+      liveRegion: true,
+      child: Dismissible(
+        key: Key(toast.id),
+        onDismissed: (_) => onDismiss(),
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.darkSurface.withOpacity(0.95),
+            border: BorderDirectional(start: BorderSide(color: config.color, width: 4)),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(config.icon, color: config.color, size: 20),
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  toast.message,
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

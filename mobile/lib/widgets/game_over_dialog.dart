@@ -39,12 +39,15 @@ class GameOverDialog extends StatelessWidget {
     // Haptic on show
     HapticFeedback.heavyImpact();
 
-    return Stack(
-      children: [
-        Material(
-      color: Colors.black.withOpacity(0.85),
-      child: SafeArea(
-        child: Center(
+    return Semantics(
+      label: '$resultText، النتيجة النهائية: نحن ${matchScores.us} — هم ${matchScores.them}، ${roundHistory.length} جولات',
+      liveRegion: true,
+      child: Stack(
+        children: [
+          Material(
+        color: Colors.black.withOpacity(0.85),
+        child: SafeArea(
+          child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -143,6 +146,7 @@ class GameOverDialog extends StatelessWidget {
       ),
         if (weWon) const ConfettiOverlay(),
       ],
+    ),
     );
   }
 

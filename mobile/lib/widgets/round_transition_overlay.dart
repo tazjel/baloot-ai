@@ -31,10 +31,17 @@ class RoundTransitionOverlay extends ConsumerWidget {
     final themGP = lastRound.them.gamePoints ?? lastRound.them.result;
     final mode = lastRound.gameMode;
 
-    return AnimatedOpacity(
-      opacity: 1.0,
-      duration: const Duration(milliseconds: 300),
-      child: Center(
+    final modeLabel = mode == 'HOKUM' ? 'حكم' : 'صن';
+    final roundNum = lastRound.roundNumber ?? gs.roundHistory.length;
+    final resultLabel = weWon ? 'فوز' : 'خسارة';
+
+    return Semantics(
+      label: 'نتيجة الجولة $roundNum $modeLabel: $resultLabel، نحن +$usGP — هم +$themGP، المجموع ${gs.matchScores.us} - ${gs.matchScores.them}',
+      liveRegion: true,
+      child: AnimatedOpacity(
+        opacity: 1.0,
+        duration: const Duration(milliseconds: 300),
+        child: Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 40),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -125,6 +132,7 @@ class RoundTransitionOverlay extends ConsumerWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
