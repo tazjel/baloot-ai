@@ -22,76 +22,63 @@
 | M-F9: Haptics + Name Persistence | `60ff198` | Claude |
 | M-F10: Theme Persistence + Dark Mode | `8512d9e` | Claude |
 | M-F11: Profile Screen + Match History | `55b5e62`→`cecb414` | Claude |
-
 | M-F12: Release Prep + Polish | `bea0fd8`→`4863013` | Claude |
+| M-F12: Tests (4 files) | `35e06fd` | Jules (cherry-picked) |
+| M-F13: Accessibility | `d4d5b6d`→`06942db` | Claude |
+| M-F13: Victory Confetti | `3d80ceb` | Claude |
+| M-F14: App Store Naming | `08b8bf2` | Claude |
 
 ### 🔄 IN PROGRESS
 | Task | Owner | Status |
 |------|-------|--------|
-| M-F12 Tests (4 files) | **Jules** | IN_PROGRESS `767214469817076241` (auto-PR) |
 | Visual QA (tasks 10-30) | **Antigravity** | Assigned |
 
 ### 📋 UPCOMING
 | Mission | Description | Owner | Priority |
 |---------|-------------|-------|----------|
-| **M-F13: Accessibility** | Screen reader, semantic labels, contrast | Claude | 🟢 Low |
-| **M-F14: App Store Prep** | App icons, splash config, build config | Claude | 🟢 Low |
+| **M-F15: App Icons** | Custom app icon artwork (replace Flutter defaults) | Designer/Claude | 🟡 Medium |
+| **M-F16: Build Config** | ProGuard, signing, release mode optimization | Claude | 🟢 Low |
+| **M-F17: Offline Font Bundling** | Bundle Tajawal .ttf for offline Arabic support | Claude | 🟢 Low |
 
 ---
 
-## What's Been Built (This Session)
+## What's Been Built (This Session — Continuation)
 
-### M-F8: Online Multiplayer (`294a1fd`)
-- Socket notifier: AKKA, KAWESH, DOUBLE action routing
-- Multiplayer screen: auto-navigate on game start, clipboard room code, server-assigned playerIndex
-- Connection banner: integrated in game + multiplayer screens
+### M-F13: Accessibility (`d4d5b6d` → `06942db`)
+- **Card Semantics**: Arabic rank/suit labels (سبعة سبيت, إكة هاص, etc.) + state info (محددة, حكم, يمكن لعبها)
+- **Player Semantics**: Name, bot status, turn indicator, dealer badge
+- **HUD Semantics**: Score summary label (النتيجة: نحن X - هم Y)
+- **Action dock Semantics**: All 3 button types (_BidButton, _SmallButton, _ActionButton), bidding/doubling/waiting docks
+- **Toast Semantics**: liveRegion for screen reader announcements
+- **Round transition Semantics**: liveRegion with full round result summary
+- **Game over Semantics**: liveRegion with final scores and result text
+- **Victory confetti** (`confetti_overlay.dart`): 50-particle CustomPainter animation on win, layered via Stack
 
-### M-F9: Game Over + Persistence + Polish (`b65d9f3` → `7cd5ba9`)
-- **Game over dialog** (`game_over_dialog.dart`): Full-screen overlay at 152 GP with scores, round history, play-again/lobby buttons
-- **Settings persistence** (`settings_persistence.dart`): SharedPreferences for difficulty, timer, strict mode + match stats (W/L)
-- **Room code card** (`room_code_card.dart`): Reusable widget with animated copy feedback
-- **Lobby stats**: Games played / won / win% chips under title
-- **Action dock fix**: Type-cast for Kawesh eligibility
-- **Haptic feedback** (`60ff198`): Card select/play, bid buttons, small buttons, action buttons
-- **Player name persistence** (`60ff198`): Load/save in multiplayer screen
-- **Round transition overlay** (`282eda2`): Brief score summary between rounds
-- **Match progress bar** (`7cd5ba9`): Blue/red bars in table HUD growing toward 152
+### M-F14: App Store Naming (`08b8bf2`)
+- **Android**: label `baloot_ai` → `بلوت AI`
+- **iOS**: CFBundleDisplayName `Baloot Ai` → `بلوت AI`, CFBundleName → `Baloot AI`
+- **pubspec**: Arabic store description
 
-### M-F10: Theme Persistence + Dark Mode (`8512d9e`)
-- **ThemeModeNotifier**: StateNotifier with SharedPreferences persistence
-- **Dark mode toggle**: In settings dialog + lobby screen (moon/sun icon)
-
-### M-F11: Profile Screen + Match History (`55b5e62` → `cecb414`)
-- **Profile screen** (`profile_screen.dart`): Avatar, name, league tier badge (6 tiers, Arabic), stats cards, win rate ring, empty state
-- **RTL toast fix**: `BorderDirectional(start:)` instead of `Border(left:)`
-- **Match history persistence**: MatchSummary model, addMatchToHistory, loadMatchHistory (max 50)
-- **Profile history list**: Last 10 matches with win/loss, scores, difficulty, time-ago
-- **Game screen wiring**: Records full MatchSummary on game over
-
-### M-F12: Release Prep + Polish (`bea0fd8` → `4863013`)
-- **Splash screen** (`splash_screen.dart`): Animated gold shimmer, auto-navigate to lobby
-- **About screen** (`about_screen.dart`): Features, tech stack, game rules, credits in Arabic
-- **Sound persistence**: Volume/mute settings saved to SharedPreferences
-- **Profile polish**: Editable player name, reset stats confirmation, streak cards
-- **Page transitions**: Fade (splash/lobby), slide (sub-screens), scale+fade (game), slide-up (about)
-- **Welcome dialog**: 3-page first-launch tutorial with page dots and navigation
-- **First-launch tracking**: SharedPreferences flag, shown once on first lobby visit
-- **Win streak tracking**: Current streak + best streak in persistence, lobby + profile display
-- **Gameplay tips**: 15 Baloot strategy tips (Arabic) in rotating TipOfTheDay card
-- **dart fix cleanup**: library; directives, unused import removal (63 files)
-- **Router**: 7 routes with custom transitions
+### M-F12: Tests — Jules (`35e06fd`)
+- Cherry-picked 4 test files from Jules session `767214469817076241`
+- `welcome_dialog_test`: 3-page tutorial navigation, dots, buttons
+- `about_screen_test`: all headers, sections, footer
+- `settings_persistence_test`: stats, streaks, name, first launch, reset
+- `room_code_card_test`: display, copy toggle, Arabic labels
 
 ---
+
+## Jules Notes
+- Jules consistently completes tasks but **fails to create PRs** even with `autoCreatePR: true`
+- Jules pushes branches but no PR — must manually cherry-pick test files
+- Jules also modifies/deletes files it shouldn't — **always cherry-pick individual files, never merge**
+- Branch naming pattern: `jules-<sessionId>-<hash>`
 
 ## Active Delegations
 
-### Antigravity — Tasks 6-22
-See `~/.gemini/antigravity/brain/ff471dec.../task.md.resolved`
-
-### Jules — M-F12 Tests (`767214469817076241`)
-- Writing 4 test files: welcome_dialog_test, about_screen_test, settings_persistence_test, room_code_card_test
-- Auto-PR enabled — will create PR when done
-- Previous session `12215972826236814654` completed but no PR (no branch pushed)
+### Antigravity — Visual QA Tasks
+- Tasks 10-30: QA for all M-F9 through M-F14 features
+- Run `flutter analyze` and `flutter test` after each batch
 
 ---
 
@@ -113,20 +100,18 @@ See `~/.gemini/antigravity/brain/ff471dec.../task.md.resolved`
 
 ## Git Log (Recent)
 ```
+35e06fd test(M-F12): Jules tests — welcome dialog, about, persistence, room code
+08b8bf2 feat(M-F14): App store naming — standardize to بلوت AI
+06942db feat(M-F13): Accessibility — Semantics for action dock, toasts, overlays
+3d80ceb feat(M-F13): Victory confetti overlay on game win
+d4d5b6d feat(M-F13): Accessibility — semantic labels for cards, players, HUD
+ea0b196 docs: update session brief with M-F12 completion
 4863013 feat(M-F12): Gameplay tips, haptic feedback on profile
 e30298c feat(M-F12): Win streak tracking in lobby and profile
 2974f92 feat(M-F12): Page transitions, welcome dialog, first-launch tutorial
 d303ac5 docs: update session brief, tasks, agent status for M-F12
 d639c7c style: dart fix --apply lint cleanup
 bea0fd8 feat(M-F12): Splash screen, about screen, sound persistence, profile polish
-cecb414 feat(M-F11): Match history persistence + profile history list
-55b5e62 feat(M-F11): Profile screen + RTL toast fix
-7cd5ba9 feat(M-F9): Match progress bar in table HUD
-282eda2 feat(M-F9): Round transition overlay
-8512d9e feat(M-F9): Theme persistence + dark mode toggle
-60ff198 feat(M-F9): Haptic feedback + player name persistence
-b65d9f3 feat(M-F9): Game over dialog, settings persistence, room code widget
-294a1fd feat(M-F8): Online multiplayer polish
 ```
 
 ## Commands
