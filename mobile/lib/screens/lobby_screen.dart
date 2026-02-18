@@ -269,7 +269,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             ),
           ),
 
-          // Theme toggle button (top-right)
+          // Theme toggle button (top-left)
           Positioned(
             top: 8,
             left: 8,
@@ -282,6 +282,19 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               onPressed: () {
                 ref.read(themeModeProvider.notifier).toggle();
               },
+            ),
+          ),
+          // Profile button (top-right)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(
+                Icons.person_rounded,
+                color: AppColors.goldPrimary,
+              ),
+              tooltip: 'الملف الشخصي',
+              onPressed: () => context.go('/profile'),
             ),
           ),
             ],

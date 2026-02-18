@@ -25,7 +25,7 @@ class GameToastWidget extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: AppColors.darkSurface.withOpacity(0.95),
-          border: Border(left: BorderSide(color: config.color, width: 4)),
+          border: BorderDirectional(start: BorderSide(color: config.color, width: 4)),
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4),

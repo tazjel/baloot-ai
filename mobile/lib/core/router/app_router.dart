@@ -1,11 +1,12 @@
 /// Baloot AI — Navigation router.
 ///
-/// 3 routes: /lobby, /multiplayer, /game
+/// 4 routes: /lobby, /multiplayer, /game, /profile
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../screens/lobby_screen.dart';
 import '../../screens/multiplayer_screen.dart';
 import '../../screens/game_screen.dart';
+import '../../screens/profile_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/lobby',
@@ -24,6 +25,11 @@ final GoRouter appRouter = GoRouter(
       path: '/game',
       name: 'game',
       builder: (context, state) => const GameScreen(),
+    ),
+    GoRoute(
+      path: '/profile',
+      name: 'profile',
+      builder: (context, state) => const ProfileScreen(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

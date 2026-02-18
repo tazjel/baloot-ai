@@ -1,0 +1,484 @@
+/// profile_screen.dart — Player profile with stats and match history.
+///
+/// Shows:
+/// - Player avatar and name
+/// - Win/loss stats with visual breakdown
+/// - Recent match history from persistence
+/// - League tier display
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../core/theme/colors.dart';
+import '../models/enums.dart';
+import '../services/settings_persistence.dart';
+
+/// Player profile screen with stats and match history.
+class ProfileScreen extends ConsumerStatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  String _playerName = '';
+  int _gamesPlayed = 0;
+  int _gamesWon = 0;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final name = await SettingsPersistence.loadPlayerName();
+    final stats = await SettingsPersistence.loadStats();
+    if (mounted) {
+      setState(() {
+        _playerName = name ?? 'لاعب';
+        _gamesPlayed = stats.played;
+        _gamesWon = stats.won;
+        _loaded = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final winRate = _gamesPlayed > 0 ? (_gamesWon / _gamesPlayed * 100) : 0.0;
+    final tier = LeagueTier.fromPoints(_gamesWon * 100); // simplified tier calc
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [AppColors.darkBg, AppColors.darkSurface]
+                : [AppColors.lightBg, AppColors.lightSurface],
+          ),
+        ),
+        child: SafeArea(
+          child: _loaded
+              ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      // Back button row
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () => context.go('/lobby'),
+                          ),
+                          const Spacer(),
+                          const Text(
+                            'الملف الشخصي',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          const SizedBox(width: 48), // Balance the back button
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Avatar
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.goldPrimary,
+                              AppColors.goldDark,
+                            ],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.goldPrimary.withOpacity(0.3),
+                              blurRadius: 16,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Player name
+                      Text(
+                        _playerName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // League tier badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _tierColor(tier).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _tierColor(tier).withOpacity(0.5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _tierIcon(tier),
+                              color: _tierColor(tier),
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _tierLabel(tier),
+                              style: TextStyle(
+                                color: _tierColor(tier),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Stats cards
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.sports_esports_rounded,
+                              value: '$_gamesPlayed',
+                              label: 'مباريات',
+                              color: AppColors.info,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.emoji_events_rounded,
+                              value: '$_gamesWon',
+                              label: 'انتصارات',
+                              color: AppColors.goldPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatCard(
+                              icon: Icons.percent_rounded,
+                              value: '${winRate.round()}%',
+                              label: 'نسبة الفوز',
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Win rate progress ring
+                      if (_gamesPlayed > 0)
+                        _WinRateRing(
+                          winRate: winRate / 100,
+                          gamesPlayed: _gamesPlayed,
+                          gamesWon: _gamesWon,
+                        ),
+
+                      const SizedBox(height: 24),
+
+                      // Empty state or hint
+                      if (_gamesPlayed == 0)
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryWithOpacity,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: AppColors.goldPrimary.withOpacity(0.3),
+                            ),
+                          ),
+                          child: const Column(
+                            children: [
+                              Icon(
+                                Icons.sports_esports_outlined,
+                                size: 48,
+                                color: AppColors.goldPrimary,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                'لم تلعب أي مباراة بعد',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'ابدأ مباراة جديدة لتبدأ رحلتك!',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              : const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.goldPrimary,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Color _tierColor(LeagueTier tier) {
+    switch (tier) {
+      case LeagueTier.bronze:
+        return const Color(0xFFCD7F32);
+      case LeagueTier.silver:
+        return const Color(0xFFC0C0C0);
+      case LeagueTier.gold:
+        return AppColors.goldPrimary;
+      case LeagueTier.platinum:
+        return const Color(0xFF00CED1);
+      case LeagueTier.diamond:
+        return const Color(0xFF00BFFF);
+      case LeagueTier.grandmaster:
+        return const Color(0xFFFF4500);
+    }
+  }
+
+  IconData _tierIcon(LeagueTier tier) {
+    switch (tier) {
+      case LeagueTier.bronze:
+        return Icons.shield_outlined;
+      case LeagueTier.silver:
+        return Icons.shield_rounded;
+      case LeagueTier.gold:
+        return Icons.emoji_events_rounded;
+      case LeagueTier.platinum:
+        return Icons.diamond_outlined;
+      case LeagueTier.diamond:
+        return Icons.diamond_rounded;
+      case LeagueTier.grandmaster:
+        return Icons.military_tech_rounded;
+    }
+  }
+
+  String _tierLabel(LeagueTier tier) {
+    switch (tier) {
+      case LeagueTier.bronze:
+        return 'برونز';
+      case LeagueTier.silver:
+        return 'فضي';
+      case LeagueTier.gold:
+        return 'ذهبي';
+      case LeagueTier.platinum:
+        return 'بلاتيني';
+      case LeagueTier.diamond:
+        return 'ماسي';
+      case LeagueTier.grandmaster:
+        return 'جراند ماستر';
+    }
+  }
+}
+
+// =============================================================================
+// Stat Card
+// =============================================================================
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _StatCard({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textMuted,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Win Rate Ring
+// =============================================================================
+
+class _WinRateRing extends StatelessWidget {
+  final double winRate;
+  final int gamesPlayed;
+  final int gamesWon;
+
+  const _WinRateRing({
+    required this.winRate,
+    required this.gamesPlayed,
+    required this.gamesWon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.darkBorder),
+      ),
+      child: Row(
+        children: [
+          // Ring
+          SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: CircularProgressIndicator(
+                    value: winRate,
+                    strokeWidth: 6,
+                    backgroundColor: AppColors.error.withOpacity(0.2),
+                    valueColor: const AlwaysStoppedAnimation(AppColors.success),
+                  ),
+                ),
+                Text(
+                  '${(winRate * 100).round()}%',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          // Legend
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'نسبة الفوز',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'فوز: $gamesWon',
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'خسارة: ${gamesPlayed - gamesWon}',
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

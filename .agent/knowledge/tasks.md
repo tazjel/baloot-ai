@@ -1,53 +1,67 @@
-# Active Task Distribution — 2026-02-18
+# Active Task Distribution — 2026-02-18 (Updated)
 
-> **M-F7**: ✅ Tests pass (130/130) | **M-F8**: 🔄 Claude building | **Protocol**: multi-agent.md active
-
----
-
-## Claude MAX — M-F8: Online Multiplayer
-| Task | Status | Details |
-|------|--------|---------|
-| WebSocket service rewrite | 🔄 In Progress | Socket.IO client, connect/disconnect, reconnect |
-| Room management | ⏳ Next | Create/join/leave room, room state sync |
-| State sync layer | ⏳ Next | Server→client state rotation + merge |
-| Reconnection handler | ⏳ Next | Auto-reconnect with state recovery |
+> **M-F8**: ✅ | **M-F9**: ✅ | **QA 6-8**: ✅ Antigravity done | **QA 10+**: 🔲 Antigravity next
 
 ---
 
-## Jules — Waiting for Next Task
-| Task | Status | Session ID | Details |
-|------|--------|------------|---------|
-| M-F7 Tests | ✅ Done | `15951593649281280163` | 4 files, 28 tests, merged |
-| M-F8: Connection Status Widget | ⏳ Assigned below | — | New widget file |
+## Claude MAX — Building M-F10
+
+### ✅ Completed This Session
+- M-F8: Online multiplayer (`294a1fd`)
+- M-F9: Game over, persistence, haptics, theme, overlays (`b65d9f3` → `7cd5ba9`)
+- RTL toast fix (from Antigravity QA finding)
+
+### 🔄 Current: M-F10 + Workflow Enhancement
 
 ---
 
-## Antigravity — Tasks 6-9 (Visual QA + Housekeeping)
+## Jules — New Tasks Assigned
 
-| # | Task | Status | Details |
-|---|------|--------|---------|
-| 6 | Visual QA — Qayd wizard | 🔲 Do Now | Launch app, trigger Qayd (⚖ button), walk through all 6 steps. Verify: menu renders 3 options, card selector shows trick browser, verdict panel shows penalty, footer has timer circle |
-| 7 | Visual QA — Edge buttons | 🔲 Do Now | Verify in PlayingDock: Akka (⭐ medal icon, HOKUM+leading only), Fast-forward (⏩/⏸ toggle). In BiddingDock: Kawesh (🔄 refresh icon, only when hand has no court cards) |
-| 8 | RTL verification | 🔲 Do Now | Check Arabic text alignment in: Qayd menu labels, verdict messages, toast "بلوت! لديك الملك والملكة", Kawesh "كوش" button, system messages |
-| 9 | Update MEMORY.md | 🔲 Do Now | Set Flutter tests to **130 passing**. Add M-F7 to completed missions. Add Jules CLI info: `npm i -g @google/jules`, owner=`tazjel` |
+| Task | Status | Session ID |
+|------|--------|------------|
+| M-F7 Tests | ✅ Done | `15951593649281280163` |
+| Room Code Widget | ✅ Done | `14347506078552313448` |
+| **M-F9 Tests** | 🔄 Assigned | _(new session)_ |
 
-### Antigravity Commands
+**M-F9 Tests spec**: Game over dialog, settings persistence, theme toggle, round transition, progress bar
+
+---
+
+## Antigravity — Next Tasks
+
+> **IMPORTANT**: Tasks 6-8 are DONE (good work!). Now do these:
+
+### Priority 1: Analyze + Test (must do first)
+| # | Task | Command |
+|---|------|---------|
+| 10 | `flutter analyze` | `cd mobile && flutter analyze` |
+| 11 | `flutter test` | `cd mobile && flutter test` — expect 130+ pass |
+
+### Priority 2: Visual QA (after analyze passes)
+
+**Pull latest first**: `git pull origin main`
+
+| # | Task | What to check |
+|---|------|---------------|
+| 19 | Game Over dialog | Play solo vs bots, let match reach 152 GP. Verify full-screen overlay with scores + round history |
+| 20 | Round transition overlay | After each round ends, verify brief score summary popup |
+| 21 | Match progress bar | Look at top HUD — blue/red bars should grow toward 152 |
+| 22 | Lobby stats | After finishing 1+ games, return to lobby — verify games/won/% chips |
+| 23 | Theme toggle | Lobby: tap moon/sun icon top-left. Settings dialog: dark mode switch |
+| 24 | Settings persistence | Change difficulty to Easy, close app, reopen — should still be Easy |
+| 25 | Name persistence | In multiplayer, enter a name, leave, come back — name should be pre-filled |
+| 27 | Final full test run | `flutter test` — all pass |
+
+### Commands
 ```powershell
-# Visual QA — launch app
+git pull origin main
 cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
-"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" run -d chrome
-
-# Verify tests still green
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" analyze
 "C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" test
+"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" run -d chrome
 ```
-
-### Success Criteria
-- All 6 Qayd wizard steps visually correct
-- Akka/Kawesh/FF buttons appear at correct times
-- Arabic text reads right-to-left, no clipping
-- MEMORY.md updated with 130 test count + M-F7 completion
 
 ---
 
 ## File Locks
-None active. See `.agent/knowledge/file_locks.md`.
+None active.
