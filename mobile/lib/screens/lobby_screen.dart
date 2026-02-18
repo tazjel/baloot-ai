@@ -34,6 +34,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   bool _loaded = false;
   int _gamesPlayed = 0;
   int _gamesWon = 0;
+  int _winStreak = 0;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         _strictMode = settings.strictMode;
         _gamesPlayed = stats.played;
         _gamesWon = stats.won;
+        _winStreak = stats.streak;
         _loaded = true;
       });
     }
@@ -127,6 +129,15 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                         sublabel: 'نسبة الفوز',
                         color: AppColors.success,
                       ),
+                      if (_winStreak > 1) ...[
+                        const SizedBox(width: 16),
+                        _StatChip(
+                          icon: Icons.local_fire_department_rounded,
+                          label: '$_winStreak',
+                          sublabel: 'سلسلة',
+                          color: AppColors.warning,
+                        ),
+                      ],
                     ],
                   ),
                 ],

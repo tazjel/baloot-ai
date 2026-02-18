@@ -26,6 +26,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   String _playerName = '';
   int _gamesPlayed = 0;
   int _gamesWon = 0;
+  int _winStreak = 0;
+  int _bestStreak = 0;
   List<MatchSummary> _matchHistory = [];
   bool _loaded = false;
 
@@ -44,6 +46,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _playerName = name ?? 'لاعب';
         _gamesPlayed = stats.played;
         _gamesWon = stats.won;
+        _winStreak = stats.streak;
+        _bestStreak = stats.bestStreak;
         _matchHistory = history;
         _loaded = true;
       });
@@ -216,6 +220,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                         ],
                       ),
+
+                      // Streak row
+                      if (_bestStreak > 0 || _winStreak > 0) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            if (_winStreak > 0)
+                              Expanded(
+                                child: _StatCard(
+                                  icon: Icons.local_fire_department_rounded,
+                                  value: '$_winStreak',
+                                  label: 'سلسلة حالية',
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            if (_winStreak > 0 && _bestStreak > 0)
+                              const SizedBox(width: 12),
+                            if (_bestStreak > 0)
+                              Expanded(
+                                child: _StatCard(
+                                  icon: Icons.military_tech_rounded,
+                                  value: '$_bestStreak',
+                                  label: 'أفضل سلسلة',
+                                  color: AppColors.goldPrimary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
 
                       const SizedBox(height: 24),
 
@@ -402,6 +435,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 setState(() {
                   _gamesPlayed = 0;
                   _gamesWon = 0;
+                  _winStreak = 0;
+                  _bestStreak = 0;
                   _matchHistory = [];
                 });
               }

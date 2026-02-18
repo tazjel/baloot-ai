@@ -19,6 +19,8 @@ abstract class _Keys {
   static const String gamesWon = 'baloot_games_won';
   static const String matchHistory = 'baloot_match_history';
   static const String firstLaunch = 'baloot_first_launch';
+  static const String winStreak = 'baloot_win_streak';
+  static const String bestStreak = 'baloot_best_streak';
 }
 
 /// A lightweight match summary for history display.
@@ -126,20 +128,23 @@ class SettingsPersistence {
   // Player Stats
   // =========================================================================
 
-  /// Load games played and won counts.
-  static Future<({int played, int won})> loadStats() async {
+  /// Load games played, won counts, and streak info.
+  static Future<({int played, int won, int streak, int bestStreak})>
+      loadStats() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       return (
         played: prefs.getInt(_Keys.gamesPlayed) ?? 0,
         won: prefs.getInt(_Keys.gamesWon) ?? 0,
+        streak: prefs.getInt(_Keys.winStreak) ?? 0,
+        bestStreak: prefs.getInt(_Keys.bestStreak) ?? 0,
       );
     } catch (e) {
-      return (played: 0, won: 0);
+      return (played: 0, won: 0, streak: 0, bestStreak: 0);
     }
   }
 
-  /// Increment game stats after a match.
+  /// Increment game stats after a match. Tracks win streak.
   static Future<void> recordMatchResult({required bool won}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -147,6 +152,19 @@ class SettingsPersistence {
       final wonCount = (prefs.getInt(_Keys.gamesWon) ?? 0) + (won ? 1 : 0);
       await prefs.setInt(_Keys.gamesPlayed, played);
       await prefs.setInt(_Keys.gamesWon, wonCount);
+
+      // Track win streak
+      if (won) {
+        final streak = (prefs.getInt(_Keys.winStreak) ?? 0) + 1;
+        await prefs.setInt(_Keys.winStreak, streak);
+        final best = prefs.getInt(_Keys.bestStreak) ?? 0;
+        if (streak > best) {
+          await prefs.setInt(_Keys.bestStreak, streak);
+        }
+      } else {
+        await prefs.setInt(_Keys.winStreak, 0);
+      }
+
       dev.log('Stats: $played played, $wonCount won', name: 'SETTINGS');
     } catch (e) {
       dev.log('Failed to record match result: $e', name: 'SETTINGS');
@@ -159,6 +177,8 @@ class SettingsPersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_Keys.gamesPlayed);
       await prefs.remove(_Keys.gamesWon);
+      await prefs.remove(_Keys.winStreak);
+      await prefs.remove(_Keys.bestStreak);
       await prefs.remove(_Keys.matchHistory);
       dev.log('Stats and history reset', name: 'SETTINGS');
     } catch (e) {
