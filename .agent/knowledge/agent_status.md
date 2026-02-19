@@ -2,81 +2,87 @@
 > Shared status between Antigravity (Gemini), Claude MAX, and Jules.
 > Each agent updates their section when completing tasks or requesting work.
 
-## Last Updated: 2026-02-18T23:46+03:00
+## Last Updated: 2026-02-20T12:00+03:00
 
 ---
 
-## Antigravity (Gemini) — Status: ✅ ALL TASKS COMPLETE
+## Phase: Multiplayer Production (MP) — ACTIVE
 
-### Latest: M-F19 Verification ✅
-- `flutter analyze` → **0 errors** (137 info-level only)
-- `flutter test` → **138/138 pass**
-- M-F19 changes (timer fixes, error handler, font cleanup) verified clean
-
-### Store Assets Created ✅
-- `mobile/store/listing_ar.md` — Arabic title, descriptions, keywords
-- `mobile/store/privacy_policy.md` — Local-only data privacy policy
-- `mobile/store/release_signing.md` — Android keystore + iOS signing guide
-
-**Awaiting**: Next task assignment from Claude or user.
+Previous phase (Flutter M-F1→M-F20) is ✅ COMPLETE.
 
 ---
 
-## Claude MAX — Status: ✅ M-F20 In Progress
+## Claude MAX — Status: 🔄 M-MP3 BLOCKED (waiting on Jules M-MP2)
+
+### Current Session
+- Designed 11-mission multiplayer plan (3 phases)
+- Cleaned up 10 stale Jules PRs, cherry-picked widget tests (151 Flutter tests)
+- Created mission brief, task specs, and agent coordination files
+- **Next**: M-MP3 (Flutter Auth Flow) — starts after Jules delivers M-MP2
 
 ### Completed This Session
-- **M-F17**: Offline font bundling (Tajawal TTFs, removed google_fonts) — `4aaad8d`
-- **M-F19 Round 1**: Memory leak fix, ErrorBoundary init, font cleanup — `d7af95f`
-- **M-F19 Round 2**: Timer leaks, null safety, mounted checks — `7801a50`
-- **M-F20**: Internet permission, release signing config, .gitignore — `e84615d`
-
-### Jules Sessions (with PR instructions this time!)
-- Widget tests: `10744328001566808027` — IN_PROGRESS
-- Store assets: `9102467196684113667` — IN_PROGRESS
+- Cherry-picked PR #25 widget tests (confetti, toast, score badge) — `b698e7a`
+- Closed 10 stale PRs (#17-#26)
+- Deleted 7 stale local branches
+- Enhanced `/boot` slash command
+- Created multiplayer mission plan
 
 ---
 
-## Jules — Status: ⚠️ Fixed
+## Jules — Status: 🔄 TWO SESSIONS DISPATCHED
 
-PR creation now works. Key rule: **always include "create a PR" in the prompt text**.
-See `/jules` workflow for full instructions.
+### Active Sessions
+| Mission | Task | Session ID | Status |
+|---------|------|------------|--------|
+| M-MP1 | Server Dockerfile + docker-compose | TBD | 🔄 DISPATCHED |
+| M-MP2 | Player Stats REST API endpoints | TBD | 🔄 DISPATCHED |
+
+### Rules for Jules
+- **MUST** include "create a PR" in prompt text
+- **MUST NOT** modify existing files unless specified
+- **MUST** create PR with title format: `[M-MPXX] description`
+- Scope: 2-5 files per session max
+- Report back: Claude will cherry-pick results
 
 ---
 
-## Task Queue (for Antigravity)
-_Claude or user can add tasks here for Antigravity to pick up:_
+## Antigravity (Gemini) — Status: ⏳ STANDBY (QA role)
 
-### 🔴 Priority 1: Re-run Tests After M-F19 Fixes
-Claude made several code changes (timer fixes, error handler init, font changes). Verify nothing broke:
-```powershell
-git pull origin main
-cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
-"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" analyze
-"C:/Users/MiEXCITE/development/flutter/bin/flutter.bat" test
+### Assigned: QA for Phase A deliverables
+When Jules PRs arrive, Antigravity must:
+
+1. **M-MP1 QA**: Verify Dockerfile builds → `docker build -t baloot-server .`
+2. **M-MP2 QA**: Test stats endpoints with curl:
+   ```bash
+   curl http://localhost:3005/stats/test@example.com
+   curl http://localhost:3005/leaderboard
+   ```
+3. **Report results** in the section below
+
+### Antigravity Results (Post here)
 ```
-Report results in Antigravity section above.
+(pending Jules deliverables)
+```
 
-### 🟡 Priority 2: Store Listing Assets
-Prepare the Google Play / App Store listing text:
+---
 
-1. **Create `mobile/store/listing_ar.md`** with:
-   - App title: بلوت AI
-   - Short description (80 chars max, Arabic): لعبة بلوت سعودية مع ذكاء اصطناعي
-   - Full description (4000 chars max, Arabic): Features list, game modes, AI difficulty levels
-   - Keywords: بلوت, كرت, ورق, لعبة, سعودية, AI, ذكاء اصطناعي
+## Task Queue
 
-2. **Create `mobile/store/privacy_policy.md`** with:
-   - Standard mobile game privacy policy
-   - Data collected: player name (local only), game stats (local only)
-   - No ads, no analytics, no third-party SDKs collecting data
-   - No account creation required
-   - Data stored locally via SharedPreferences only
+### 🔴 For Jules (via MCP sessions)
+See `.agent/knowledge/tasks.md` for full specs.
+- M-MP1: Dockerfile + deploy config
+- M-MP2: Player Stats REST API
 
-### 🟢 Priority 3: Release Signing Guide
-Create `mobile/store/release_signing.md` with step-by-step instructions for:
-- Creating an Android release keystore (`keytool -genkey`)
-- Configuring `key.properties` in `android/`
-- Updating `build.gradle.kts` to use release signing config
-- Building release APK: `flutter build apk --release`
-- Building app bundle: `flutter build appbundle --release`
-- iOS: Xcode signing + Archive workflow
+### 🟡 For Antigravity (after Jules delivers)
+- QA M-MP1: Docker build test
+- QA M-MP2: Endpoint smoke test
+- Run `flutter test` + `flutter analyze` on any mobile changes
+
+### 🟢 For Claude (after Jules + Antigravity)
+- M-MP3: Flutter auth screens + JWT persistence
+- M-MP4: Session recovery
+
+---
+
+## File Locks
+None active.

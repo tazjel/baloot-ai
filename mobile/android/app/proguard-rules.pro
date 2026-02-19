@@ -33,3 +33,7 @@
     public static int d(...);
     public static int i(...);
 }
+
+# Play Core library (optional dependency for deferred components, not used here)
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.android.FlutterPlayStoreSplitApplication
