@@ -1,5 +1,19 @@
 
 services:
+  # ── Server: Python backend server ──
+  server:
+    build: .
+    ports:
+      - "3005:3005"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - BALOOT_ENV=production
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - baloot_net
+
   # ── Redis: Required for AI worker memory, rate limiting, session storage ──
   redis:
     image: redis:alpine
