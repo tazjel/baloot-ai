@@ -63,7 +63,7 @@ class ScoringEngine:
     def sun_card_gp(abnat: int) -> int:
         """SUN GP: floor-to-even rounding.
 
-        Validated 100% against 424+ Kammelna SUN rounds.
+        Validated 100% against 424+ benchmark SUN rounds.
         Formula: q, r = divmod(abnat, 5); q + (1 if q is odd and r > 0).
         """
         q, r = divmod(abnat, 5)
@@ -83,7 +83,7 @@ class ScoringEngine:
     def hokum_pair_gp(raw_a: int, raw_b: int) -> tuple[int, int]:
         """HOKUM pair-based GP with sum=16 constraint.
 
-        Validated 100% against 1095 Kammelna rounds.
+        Validated 100% against 1095 benchmark rounds.
         Individual rounding, then adjust if sum != 16:
         - sum=17: reduce side with larger mod-10 remainder;
           on tie, reduce the side with larger GP (higher raw)
@@ -207,7 +207,7 @@ class ScoringEngine:
         score_us = game_points_us
         score_them = game_points_them
             
-        # Khasara Check — validated against Kammelna rules:
+        # Khasara Check — validated against benchmark rules:
         # 1. bidder_gp < opp_gp → khasara
         # 2. GP tie: compare raw abnat totals
         #    - Normal: bid_total_raw <= opp_total_raw → bidder loses

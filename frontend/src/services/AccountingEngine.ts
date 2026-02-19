@@ -6,13 +6,13 @@ import { InventoryService } from './InventoryService';
 /**
  * ACCOUNTING ENGINE
  *
- * Validated 100% against 1,095 Kammelna pro rounds.
+ * Validated 100% against 1,095 benchmark rounds.
  *
  * KEY CONSTANTS:
  * - SUN Total: 130 Abnat (120 cards + 10 last trick) → 26 Game Points
  * - HOKUM Total: 162 Abnat (152 cards + 10 last trick) → 16 Game Points
  *
- * FORMULAS (Kammelna-validated):
+ * FORMULAS (Benchmark-validated):
  * - SUN: Floor-to-even → divmod(abnat, 5); q + (1 if q is odd and r > 0)
  * - HOKUM: Pair-based rounding with sum=16 constraint
  *   Individual: divmod(abnat, 10); q + (1 if r > 5)
@@ -78,7 +78,7 @@ export class AccountingEngine {
 
         // ═══════════════════════════════════════════════════════════
         // 3. CONVERSION FUNCTIONS (Abnat → Game Points)
-        //    Kammelna-validated formulas (100% accuracy, 1095 rounds)
+        //    Benchmark-validated formulas (100% accuracy, 1095 rounds)
         // ═══════════════════════════════════════════════════════════
 
         /**
@@ -152,7 +152,7 @@ export class AccountingEngine {
         }
 
         // ═══════════════════════════════════════════════════════════
-        // 5. KHASARA CHECK (Kammelna-validated tie-break rules)
+        // 5. KHASARA CHECK (Benchmark-validated tie-break rules)
         // ═══════════════════════════════════════════════════════════
         // 1. bidder_gp < opp_gp → khasara
         // 2. GP tie: compare raw abnat

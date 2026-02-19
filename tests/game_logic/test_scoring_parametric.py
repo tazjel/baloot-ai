@@ -1,4 +1,4 @@
-"""Parametric scoring tests — validate engine against 1,095 Kammelna pro rounds.
+"""Parametric scoring tests — validate engine against 1,095 benchmark pro rounds.
 
 Loads round_outcomes.json and verifies our ScoringEngine formulas produce
 identical GP values for every recorded round outcome.

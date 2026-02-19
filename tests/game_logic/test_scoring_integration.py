@@ -500,7 +500,7 @@ class TestRoundingRules(_ScoringIntegrationBase):
     """Additional tests for SUN vs HOKUM rounding edge cases."""
 
     def test_sun_floor_to_even(self):
-        """SUN: floor-to-even rounding (Kammelna validated)."""
+        """SUN: floor-to-even rounding (benchmark validated)."""
         se = self.game.scoring_engine
         # 33 → divmod(33,5)=(6,3) → q=6 (even), r>0 → stays 6
         self.assertEqual(se._calculate_score_for_team(33, 'SUN'), 6)

@@ -63,7 +63,7 @@ class TestCardAbnat(_ScoringTestBase):
 
 
 class TestScoreCalculation(_ScoringTestBase):
-    """Tests for rounding — validated against Kammelna formulas.
+    """Tests for rounding — validated against benchmark formulas.
 
     SUN: floor-to-even → divmod(abnat, 5); q + (1 if q%2==1 and r>0)
     HOKUM: individual → divmod(abnat, 10); q + (1 if r>5)
@@ -107,7 +107,7 @@ class TestScoreCalculation(_ScoringTestBase):
 
 
 class TestTiebreak(_ScoringTestBase):
-    """Tests for calculate_game_points_with_tiebreak — Kammelna pair rounding."""
+    """Tests for calculate_game_points_with_tiebreak — benchmark pair rounding."""
 
     def test_total_equals_16_hokum_valid_split(self):
         """HOKUM: pair-based rounding sums to 16 for valid 162-total."""
@@ -202,7 +202,7 @@ class TestDoublingMultiplier(_ScoringTestBase):
 
 
 class TestGPOverflow(_ScoringTestBase):
-    """Tests for GP pair-based rounding — Kammelna validated formulas."""
+    """Tests for GP pair-based rounding — benchmark validated formulas."""
 
     def test_hokum_pair_handles_sum_17(self):
         """HOKUM: when individual rounding sums to 17, reduce larger remainder."""

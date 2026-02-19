@@ -2,13 +2,13 @@
 ///
 /// Port of frontend/src/services/AccountingEngine.ts
 ///
-/// Validated 100% against 1,095 Kammelna pro rounds.
+/// Validated 100% against 1,095 benchmark rounds.
 ///
 /// ## Key Constants
 /// - **SUN Total**: 130 Abnat (120 cards + 10 last trick) → 26 Game Points
 /// - **HOKUM Total**: 162 Abnat (152 cards + 10 last trick) → 16 Game Points
 ///
-/// ## Scoring Formulas (Kammelna-validated)
+/// ## Scoring Formulas (Benchmark-validated)
 /// - **SUN**: Floor-to-even → `divmod(abnat, 5); q + (1 if q is odd and r > 0)`
 /// - **HOKUM**: Pair-based rounding with sum=16 constraint
 ///   - Individual: `divmod(abnat, 10); q + (1 if r > 5)`
@@ -91,7 +91,7 @@ class RoundScoreResult {
 /// Scoring engine for Baloot AI — the authoritative source for GP calculation.
 ///
 /// All methods are static. The scoring pipeline mirrors the validated
-/// Kammelna formulas exactly:
+/// benchmark formulas exactly:
 ///
 /// 1. Convert raw abnat → base GP using mode-specific rounding.
 /// 2. Check for kaboot (capot — all 8 tricks won).
@@ -168,7 +168,7 @@ class AccountingEngine {
 
   /// Calculates the final Game Points for a round.
   ///
-  /// This is the **truth source** for scoring — matches Kammelna rules exactly.
+  /// This is the **truth source** for scoring — matches benchmark rules exactly.
   ///
   /// Parameters:
   /// - [usRaw], [themRaw]: Raw abnat from card tricks (includes last trick bonus).
@@ -248,7 +248,7 @@ class AccountingEngine {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 5. KHASARA CHECK (Kammelna-validated tie-break rules)
+  // 5. KHASARA CHECK (Benchmark-validated tie-break rules)
     // ═══════════════════════════════════════════════════════════
     if (!isUsKaboot && !isThemKaboot && bidderTeam != null) {
       final bidderScore = bidderTeam == 'us' ? usBase : themBase;
