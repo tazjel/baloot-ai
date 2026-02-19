@@ -2,7 +2,7 @@
 > Shared status between Antigravity (Gemini), Claude MAX, and Jules.
 > Each agent updates their section when completing tasks or requesting work.
 
-## Last Updated: 2026-02-20T12:00+03:00
+## Last Updated: 2026-02-20T14:00+03:00
 
 ---
 
@@ -34,8 +34,12 @@ Previous phase (Flutter M-F1→M-F20) is ✅ COMPLETE.
 ### Active Sessions
 | Mission | Task | Session ID | Status |
 |---------|------|------------|--------|
-| M-MP1 | Server Dockerfile + docker-compose | TBD | 🔄 DISPATCHED |
-| M-MP2 | Player Stats REST API endpoints | TBD | 🔄 DISPATCHED |
+| M-MP1 | Server Dockerfile + docker-compose | `18072275693063091343` | 🔄 DISPATCHED |
+| M-MP2 | Player Stats REST API endpoints | `4458439251499299643` | 🔄 DISPATCHED |
+
+### Session URLs
+- M-MP1: https://jules.google.com/session/18072275693063091343
+- M-MP2: https://jules.google.com/session/4458439251499299643
 
 ### Rules for Jules
 - **MUST** include "create a PR" in prompt text
@@ -85,4 +89,20 @@ See `.agent/knowledge/tasks.md` for full specs.
 ---
 
 ## File Locks
-None active.
+- `Dockerfile` — LOCKED by Jules (M-MP1, session `18072275693063091343`)
+- `docker-compose.yml` — LOCKED by Jules (M-MP1)
+- `server/routes/stats.py` — LOCKED by Jules (M-MP2, session `4458439251499299643`)
+
+## Monitor Commands
+```bash
+# Check Jules session status
+jules remote list --session
+
+# Pull results when done
+jules teleport 18072275693063091343  # M-MP1
+jules teleport 4458439251499299643   # M-MP2
+
+# Or pull as patch
+jules remote pull --session 18072275693063091343 --apply
+jules remote pull --session 4458439251499299643 --apply
+```
