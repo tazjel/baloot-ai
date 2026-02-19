@@ -9,7 +9,6 @@ from __future__ import annotations
 from ai_worker.strategies.constants import (
     ORDER_SUN, ORDER_HOKUM, ALL_SUITS, PTS_SUN as _PTS_SUN, PTS_HOKUM as _PTS_HOKUM,
 )
-from ai_worker.strategies.components.pro_data import DISCARD_SHORTEST_SUIT_RELIABILITY
 
 
 def _rv(rank: str, mode: str) -> int:
@@ -148,41 +147,9 @@ def get_cooperative_follow(
                     "confidence": 0.7,
                     "reasoning": f"Support partner trump draw: play low {hand[pick].rank}{trump_suit}"}
 
-    # SMART_DISCARD & SIGNAL_SHAPE: void in led suit → discard smartly
+    # SMART_DISCARD: void in led suit → discard smartly
     following_suit = any(hand[i].suit == led_suit for i in legal_indices)
     if not following_suit and legal_indices:
-        # Filter for actual discards (non-trump in HOKUM)
-        discard_indices = [i for i in legal_indices
-                           if not (mode == "HOKUM" and trump_suit and hand[i].suit == trump_suit)]
-
-        # SIGNAL_SHAPE: Discard from shortest suit to signal (High Reliability)
-        if discard_indices:
-            suit_counts = {}
-            for card in hand:
-                suit_counts[card.suit] = suit_counts.get(card.suit, 0) + 1
-
-            best_idx = None
-            min_len = 100
-
-            for idx in discard_indices:
-                s = hand[idx].suit
-                slen = suit_counts.get(s, 0)
-                if slen < min_len:
-                    min_len = slen
-                    best_idx = idx
-                elif slen == min_len:
-                    # Tie-break: discard lower rank (save high cards)
-                    if pv.get(hand[idx].rank, 0) < pv.get(hand[best_idx].rank, 0):
-                        best_idx = idx
-
-            if best_idx is not None:
-                return {
-                    "card_index": best_idx,
-                    "tactic": "SIGNAL_SHAPE",
-                    "confidence": DISCARD_SHORTEST_SUIT_RELIABILITY,
-                    "reasoning": f"Signal shape: Discard from shortest suit ({hand[best_idx].suit}, len={min_len})"
-                }
-
         # Prefer discarding from partner's void suits (no loss to partnership)
         from_p_void = [i for i in legal_indices if hand[i].suit in p_voids]
         if from_p_void:
