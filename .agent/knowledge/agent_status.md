@@ -94,9 +94,20 @@ cd mobile && flutter test && flutter analyze
 - Flutter analyze: X errors
 ```
 
-### Antigravity Results (Post here)
+### Antigravity Results (2026-02-20)
 ```
-(awaiting QA)
+### QA-MP1: Docker Build
+- Build: ✅
+- Server start: ✅
+- Errors: None
+
+### QA-MP2: Stats API Tests
+- pytest result: 10 passed
+
+### QA-Baseline
+- Python tests: 550 passing
+- Flutter tests: 151 passing
+- Flutter analyze: 137 issues (informational)
 ```
 
 ---

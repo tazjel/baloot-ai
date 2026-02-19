@@ -27,9 +27,9 @@ docker compose down
 ```
 
 **Report format**:
-- Build: ✅/❌
-- Server start: ✅/❌
-- Errors: (paste any)
+- Build: ✅
+- Server start: ✅
+- Errors: None
 
 ---
 
@@ -43,8 +43,8 @@ python -m pytest tests/server/test_stats_api.py --tb=short -q
 
 **Expected**: 10 passed
 **Report format**:
-- Result: X passed / Y failed
-- Errors: (paste any)
+- Result: 10 passed / 0 failed ✅
+- Errors: None
 
 ---
 
@@ -59,9 +59,9 @@ cd mobile && flutter test && flutter analyze
 
 **Expected**: 550 Python + 151 Flutter passing, 0 analyze errors
 **Report format**:
-- Python tests: X passing
-- Flutter tests: X passing
-- Flutter analyze: X errors
+- Python tests: 550 passing ✅
+- Flutter tests: 151 passing ✅
+- Flutter analyze: 137 issues (Info level, non-blocking as per handoff) ⚠️
 
 ---
 
