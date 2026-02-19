@@ -21,14 +21,10 @@ db.define_table('app_user',
                 Field('email', unique=True, required=True),
                 Field('password', 'password', readable=False, required=True),
                 Field('league_points', 'integer', default=1000),
-                Field('is_active', 'boolean', default=True),
-                Field('created_on', 'datetime', default=lambda: datetime.datetime.now()),
-                Field('updated_on', 'datetime', default=lambda: datetime.datetime.now(), update=lambda: datetime.datetime.now()),
                 )
 
 # Define game results table
 db.define_table('game_result',
-                Field('user_id', 'reference app_user'),
                 Field('user_email'), # Simple linkage for now
                 Field('score_us', 'integer'),
                 Field('score_them', 'integer'),
@@ -50,7 +46,6 @@ db.define_table('bot_training_data',
 # Define match archive for Replay Studio
 db.define_table('match_archive',
                 Field('game_id', unique=True, required=True),
-                Field('user_id', 'reference app_user'),
                 Field('user_email'), # Optional linkage
                 Field('history_json', 'text'), # Full JSON blob
                 Field('final_score_us', 'integer'),

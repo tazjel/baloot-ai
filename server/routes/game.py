@@ -25,7 +25,6 @@ def save_score():
         return {"error": "User not found"}
 
     db.game_result.insert(
-        user_id=user.id,
         user_email=user.email,
         score_us=score_us,
         score_them=score_them,
