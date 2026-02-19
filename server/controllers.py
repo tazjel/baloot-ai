@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # --- Re-export all endpoint functions for backward compatibility ---
-from server.routes.auth import user, signup, signin, token_required
+from server.routes.auth import user, signup, signin, token_required, update_profile, change_password
 from server.routes.game import save_score, leaderboard, health_check, catch_all_v2
 from server.routes.brain import (
     get_training_data, submit_training,

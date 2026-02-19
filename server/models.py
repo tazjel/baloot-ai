@@ -21,6 +21,7 @@ db.define_table('app_user',
                 Field('email', unique=True, required=True),
                 Field('password', 'password', readable=False, required=True),
                 Field('league_points', 'integer', default=1000),
+                Field('updated_on', 'datetime', default=lambda: datetime.datetime.now(), update=lambda: datetime.datetime.now()),
                 )
 
 # Define game results table
