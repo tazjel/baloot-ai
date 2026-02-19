@@ -84,7 +84,12 @@
       "Bash(\"C:/Users/MiEXCITE/development/flutter/bin/dart.bat\" run flutter_launcher_icons)",
       "Bash(curl:*)",
       "Bash(unzip:*)",
-      "Bash(xxd:*)"
+      "Bash(xxd:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr close:*)"
     ]
   }
 }
