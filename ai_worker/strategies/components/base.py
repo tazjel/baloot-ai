@@ -175,38 +175,14 @@ class StrategyComponent(ABC):
     def _try_endgame(self, ctx: BotContext) -> dict | None:
         """Attempt minimax solve using ML or heuristic hand reconstruction.
 
-        Shared by both HokumStrategy and SunStrategy for endgame positions (<=4 cards).
+        Shared by both HokumStrategy and SunStrategy for endgame positions (<=3 cards).
         """
         try:
             from ai_worker.strategies.components.endgame_solver import solve_endgame
-            from game_engine.models.card import Card
-
-            # Get known hands (from ML or heuristic)
-            known = ctx.guess_hands() or {}
-
-            # Prepare current trick
-            current_trick = []
-            if ctx.table_cards:
-                for tc in ctx.table_cards:
-                    current_trick.append((tc['playedBy'], tc['card']))
-
-            leader = ctx.position
-            if current_trick:
-                leader = current_trick[0][0]
-
-            # Get data for Monte Carlo
-            unseen_cards = []
-            voids = {}
-            if hasattr(ctx, 'tracker') and ctx.tracker:
-                remaining = ctx.tracker.get_remaining_cards()
-                unseen_cards = [Card(c.suit, c.rank) for c in remaining]
-
-                for s in ['♠', '♥', '♦', '♣']:
-                    for p in ctx.tracker.get_void_players(s):
-                        if p not in voids:
-                            voids[p] = set()
-                        voids[p].add(s)
-
+            known = ctx.guess_hands()
+            if not known:
+                return None
+            leader = ctx.position if not ctx.table_cards else ctx.table_cards[0]['playedBy']
             result = solve_endgame(
                 my_hand=ctx.hand,
                 known_hands=known,
@@ -214,14 +190,8 @@ class StrategyComponent(ABC):
                 leader_position=leader,
                 mode=ctx.mode or 'SUN',
                 trump_suit=ctx.trump,
-                unseen_cards=unseen_cards,
-                voids=voids,
-                current_trick=current_trick,
             )
-
-            # Accept if reasoning is Minimax OR Monte Carlo
-            if result and (result.get('reasoning', '').startswith('Minimax') or
-                           result.get('reasoning', '').startswith('Monte Carlo')):
+            if result and result.get('reasoning', '').startswith('Minimax'):
                 return {"action": "PLAY", "cardIndex": result['cardIndex'],
                         "reasoning": f"Endgame Solver: {result['reasoning']}"}
         except Exception as e:

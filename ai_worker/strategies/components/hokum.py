@@ -27,8 +27,8 @@ class HokumStrategy(StrategyComponent):
     """Handles all Hokum mode playing logic (lead and follow)."""
 
     def get_decision(self, ctx: BotContext) -> dict | None:
-        # ENDGAME SOLVER: Perfect play when ≤4 cards remain
-        if len(ctx.hand) <= 4:
+        # ENDGAME SOLVER: Perfect play when ≤3 cards remain
+        if len(ctx.hand) <= 3:
             endgame = self._try_endgame(ctx)
             if endgame:
                 return endgame

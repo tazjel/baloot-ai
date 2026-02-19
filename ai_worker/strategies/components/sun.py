@@ -29,8 +29,8 @@ class SunStrategy(StrategyComponent):
     def get_decision(self, ctx: BotContext) -> dict | None:
         partner_pos = self.get_partner_pos(ctx.player_index)
 
-        # ENDGAME SOLVER: Perfect play when ≤4 cards remain
-        if len(ctx.hand) <= 4:
+        # ENDGAME SOLVER: Perfect play when ≤3 cards remain
+        if len(ctx.hand) <= 3:
             endgame = self._try_endgame(ctx)
             if endgame:
                 return endgame
