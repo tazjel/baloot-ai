@@ -15,12 +15,10 @@ import server.bot_orchestrator as bot_orchestrator
 
 logger.debug(f"Loading socket_handler.py as {__name__} | ID: {id(bot_orchestrator)}")
 
-# CORS configuration: restrict in production, allow all in dev
-_cors_origins = os.environ.get('CORS_ORIGINS', '*')
-if _cors_origins != '*':
-    _cors_origins = [o.strip() for o in _cors_origins.split(',')]
-elif os.environ.get('NODE_ENV') == 'production':
-    logger.warning("⚠️  CORS_ORIGINS not set in production — defaulting to '*'. Set CORS_ORIGINS env var.")
+# CORS configuration — use centralized config (M-MP11)
+from server.cors_config import get_socketio_cors
+
+_cors_origins = get_socketio_cors()
 
 # Create a Socket.IO server
 sio = socketio.Server(async_mode='gevent', cors_allowed_origins=_cors_origins)
@@ -29,11 +27,12 @@ sio = socketio.Server(async_mode='gevent', cors_allowed_origins=_cors_origins)
 connected_users = {}  # sid -> {user_id, email, username, ...}
 
 # --- Register Handlers from Sub-Modules ---
-from server.handlers import telemetry, room_lifecycle, game_actions
+from server.handlers import telemetry, room_lifecycle, game_actions, matchmaking_handler
 
 telemetry.register(sio)
 room_lifecycle.register(sio, connected_users)
 game_actions.register(sio)
+matchmaking_handler.register(sio, connected_users)
 
 # --- Minimal re-exports for application.py ---
 from server.handlers.timer import timer_background_task as _timer_bg

@@ -1,3 +1,11 @@
+"""
+Rate limiting for the Baloot AI server.
+
+Provides Redis-based rate limiting with in-memory fallback.
+M-MP11: Added get_rate_limiter() factory for named limiter instances.
+"""
+from __future__ import annotations
+
 import time
 import logging
 from server.common import redis_client
@@ -86,3 +94,28 @@ class RateLimiter:
 
 # Global Instances for convenience
 limiter = RateLimiter()
+
+# Named limiter registry — shared across the process
+_named_limiters: dict[str, RateLimiter] = {}
+
+
+def get_rate_limiter(name: str) -> RateLimiter:
+    """Get or create a named RateLimiter instance.
+
+    Named limiters share the same Redis/memory backend but use distinct
+    key prefixes so their counters are independent.
+
+    Common names:
+        - ``"default"`` — 60 req / 60s (general API)
+        - ``"auth"`` — 10 req / 60s (login/signup/refresh)
+        - ``"matchmaking"`` — 5 req / 60s (queue operations)
+
+    Args:
+        name: Unique name for this limiter category.
+
+    Returns:
+        A RateLimiter with ``key_prefix=rl:{name}``.
+    """
+    if name not in _named_limiters:
+        _named_limiters[name] = RateLimiter(key_prefix=f"rl:{name}")
+    return _named_limiters[name]
