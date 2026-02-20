@@ -21,7 +21,7 @@
 
 | Mission | Session ID | Spec File | Status |
 |---------|-----------|-----------|--------|
-| M-MP5: ELO Rating Engine | `9718717534070678345` | `M-MP5-elo-rating.md` | 🔄 IN PROGRESS |
+| M-MP5: ELO Rating Engine | `9718717534070678345` | `M-MP5-elo-rating.md` | ✅ COMPLETED — needs pull + review |
 
 ## Queued
 

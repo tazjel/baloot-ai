@@ -1,13 +1,11 @@
 # Next Session Brief — Multiplayer Phase
 
-> **Updated**: 2026-02-20 (late night) | **Lead**: Claude MAX | **Phase**: Multiplayer (MP)
+> **Updated**: 2026-02-20 (night) | **Lead**: Claude MAX | **Phase**: Multiplayer (MP)
 >
 > ### ⚡ Session Note
-> All QA tasks (MP1 Docker, MP2 Stats API, Baseline) are **VERIFIED GREEN**.
-> Claude Desktop MCP config debugged — corrected Playwright (`@playwright/mcp`),
-> SQLite (`uvx mcp-server-sqlite`), removed unsupported Dart MCP.
-> Guide saved in Antigravity brain artifacts.
-> Next: proceed to **M-MP3** (Flutter Auth Flow).
+> **M-MP3 code complete** (not yet tested). **M-MP5 Jules COMPLETED** (needs pull + review).
+> Jules CLI working — dispatched via `jules new` (session `9718717534070678345`).
+> Next session: run `flutter analyze`, pull Jules M-MP5, run all tests, then commit.
 
 ---
 
@@ -24,17 +22,6 @@ All Flutter missions (M-F1→M-F20) are done. App is store-ready.
 ### Goal
 Transform Baloot AI from "friends with room codes" → **public multiplayer with accounts, matchmaking, and ranking**.
 
-### Architecture
-```
-Backend (existing):  server/routes/auth.py (signup/signin/JWT)
-                     server/socket_handler.py (Socket.IO rooms)
-                     server/room_manager.py (Redis game state)
-                     server/models.py (app_user, game_result, match_archive)
-
-Missing:             Matchmaking queue, ELO rating,
-                     session recovery, Flutter auth UI
-```
-
 ---
 
 ## Mission Plan
@@ -45,17 +32,17 @@ Missing:             Matchmaking queue, ELO rating,
 |---------|-------|--------|-------------|
 | **M-MP1**: Server Dockerfile | Jules | ✅ Done + QA Verified | Docker build & compose |
 | **M-MP2**: Player Stats API | Jules | ✅ Done + QA Verified | 10/10 tests passing |
-| **M-MP3**: Auth Flow (Flutter) | Claude | 🔜 Next | Login/signup/guest + JWT persistence |
+| **M-MP3**: Auth Flow (Flutter) | Claude | 🔧 Code Complete — needs test | Login/signup/guest + JWT persistence |
 | **M-MP4**: Session Recovery | Claude | Pending | Reconnect after app restart |
 
 ### Phase B — Matchmaking & Ranking (Claude + Jules)
 
-| Mission | Owner | Description | Depends On |
-|---------|-------|-------------|------------|
-| **M-MP5**: ELO Rating Engine | Jules | ELO calculation, K-factor, placement matches | M-MP2 |
-| **M-MP6**: Matchmaking Queue | Claude | Server-side queue with skill matching | M-MP5 |
-| **M-MP7**: Quick Match UI | Claude | Queue screen, finding opponent animation | M-MP6 |
-| **M-MP8**: Leaderboard UI | Jules | Flutter leaderboard + tier badges | M-MP5 |
+| Mission | Owner | Status | Description | Depends On |
+|---------|-------|--------|-------------|------------|
+| **M-MP5**: ELO Rating Engine | Jules | ✅ Completed — needs pull + review | ELO calculation, K-factor, tiers | M-MP2 |
+| **M-MP6**: Matchmaking Queue | Claude | Pending | Server-side queue with skill matching | M-MP5 |
+| **M-MP7**: Quick Match UI | Claude | Pending | Queue screen, finding opponent animation | M-MP6 |
+| **M-MP8**: Leaderboard UI | Jules | Pending — spec not written yet | Flutter leaderboard + tier badges | M-MP5 |
 
 ### Phase C — Polish & Testing
 
@@ -67,21 +54,58 @@ Missing:             Matchmaking queue, ELO rating,
 
 ---
 
-## Agent Assignments — Next Wave
+## Next Session Actions
 
-### Claude MAX: M-MP3
-- Flutter auth screens (Login/Signup/Guest)
-- JWT token persistence + auth state management
+### 1. Test M-MP3 (Flutter Auth Flow)
+```bash
+cd mobile && flutter analyze && flutter test
+```
+Fix any compilation errors in the new auth files.
 
-### Jules: M-MP5 (after M-MP3)
-- ELO rating engine module
+### 2. Pull & Review Jules M-MP5
+```bash
+jules teleport 9718717534070678345
+# Or: jules remote pull --session 9718717534070678345 --apply
+```
+Review: `server/elo_engine.py`, `server/routes/elo.py`, `tests/server/test_elo_engine.py`
+Run: `python -m pytest tests/server/test_elo_engine.py --tb=short -q`
 
-### Antigravity: QA standby
-- Ready to verify M-MP3 Flutter auth flow
+### 3. After Both Pass
+- Commit M-MP3 + M-MP5 together
+- Dispatch M-MP8 (Leaderboard UI) to Jules
+- Start M-MP4 (Session Recovery) or M-MP6 (Matchmaking Queue)
+
+---
+
+## M-MP3 Files Created This Session (commit 21e7231)
+- `mobile/lib/services/auth_service.dart` — HTTP client (signup/signin/validateToken)
+- `mobile/lib/state/auth_notifier.dart` — AuthState + AuthNotifier (Riverpod)
+- `mobile/lib/screens/login_screen.dart` — Email/password sign-in + guest mode
+- `mobile/lib/screens/signup_screen.dart` — Account registration
+- `mobile/lib/state/providers.dart` — Added `authProvider`
+- `mobile/lib/core/router/app_router.dart` — Added `/login`, `/signup` routes
+- `mobile/lib/screens/splash_screen.dart` — Auth check redirect
+- `mobile/lib/screens/multiplayer_screen.dart` — Auto-fill name from auth
+
+---
+
+## Agent Status
+
+### Claude MAX — 🔧 M-MP3 Code Complete
+- All 8 files created/modified (see above)
+- NOT yet tested (`flutter analyze` / `flutter test` pending)
+
+### Jules — ✅ M-MP5 Completed
+- Session: `9718717534070678345`
+- Status: Completed (not yet pulled/reviewed)
+- Next: M-MP8 (Leaderboard UI) — spec not written yet
+
+### Antigravity — QA Standby
+- Ready to verify M-MP3 auth flow + M-MP5 ELO engine
 
 ---
 
 ## Codebase Stats
-- **Python tests**: 550 passing | **Flutter tests**: 151 passing | **TypeScript**: 0 errors
-- **Flutter analyze**: 137 info-level issues (non-blocking)
+- **Python tests**: 550 passing | **Flutter tests**: 151 passing (pre-M-MP3)
+- **Flutter analyze**: 137 info-level issues (pre-M-MP3)
 - **11 multiplayer missions planned** across 3 phases
