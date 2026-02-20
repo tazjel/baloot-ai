@@ -9,6 +9,7 @@ import '../../screens/lobby_screen.dart';
 import '../../screens/login_screen.dart';
 import '../../screens/multiplayer_screen.dart';
 import '../../screens/game_screen.dart';
+import '../../screens/leaderboard_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/signup_screen.dart';
 import '../../screens/splash_screen.dart';
@@ -26,6 +27,10 @@ final GoRouter appRouter = GoRouter(
             FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 300),
       ),
+    ),
+    GoRoute(
+      path: '/leaderboard',
+      builder: (context, state) => const LeaderboardScreen(),
     ),
     GoRoute(
       path: '/login',
