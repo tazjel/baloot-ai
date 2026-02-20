@@ -1,13 +1,22 @@
 """
 Authentication routes: signup, signin, user profile, token_required decorator.
 """
+from __future__ import annotations
 import bcrypt
 import logging
 from py4web import action, request, response, abort
 from server.common import db
 import server.auth_utils as auth_utils
+from server.rate_limiter import get_rate_limiter
 
 logger = logging.getLogger(__name__)
+
+auth_limiter = get_rate_limiter("auth")
+
+def check_auth_rate_limit():
+    """Check if the request exceeds the auth rate limit."""
+    if not auth_limiter.check_rate_limit(request.remote_addr):
+        abort(429, "Too Many Requests")
 
 
 def token_required(f):
@@ -32,6 +41,7 @@ def token_required(f):
 @token_required
 def user():
     """Protected endpoint returning user profile with league tier."""
+    check_auth_rate_limit()
     response.status = 200
     user_record = db.app_user(request.user.get('user_id'))
     points = user_record.league_points if user_record else 1000
@@ -49,6 +59,7 @@ def user():
 @action('signup', method=['POST', 'OPTIONS'])
 @action.uses(db)
 def signup():
+    check_auth_rate_limit()
     data = request.json
     first_name = data.get('firstName')
     last_name = data.get('lastName')
@@ -79,6 +90,7 @@ def signup():
 
 @action('signin', method=['POST'])
 def signin():
+    check_auth_rate_limit()
     data = request.json
     email = data.get('email')
     password = data.get('password')
@@ -103,9 +115,28 @@ def signin():
     return {"error": "Invalid credentials"}
 
 
+@action('refresh', method=['POST'])
+@token_required
+def refresh():
+    """
+    Refresh the JWT token.
+    Requires a valid existing token.
+    """
+    check_auth_rate_limit()
+    user_data = request.user
+    token = auth_utils.generate_token(
+        user_data['user_id'],
+        user_data['email'],
+        user_data['first_name'],
+        user_data['last_name']
+    )
+    return {"token": token}
+
+
 def bind_auth(safe_mount):
     """Bind auth routes to the app."""
     safe_mount('/user', 'GET', user)
     safe_mount('/signup', 'POST', signup)
     safe_mount('/signup', 'OPTIONS', signup)
     safe_mount('/signin', 'POST', signin)
+    safe_mount('/auth/refresh', 'POST', refresh)
