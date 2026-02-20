@@ -1,88 +1,70 @@
+from __future__ import annotations
 import time
-import logging
-from server.common import redis_client
-
-logger = logging.getLogger(__name__)
-
+from collections import defaultdict
 
 class RateLimiter:
     """
-    Redis-based Rate Limiter using Fixed Window Counter.
-    Falls back to in-memory counter when Redis is unavailable.
+    In-memory Rate Limiter using Sliding Window Log.
     """
-    def __init__(self, key_prefix="rl"):
-        self.redis = redis_client
-        self.prefix = key_prefix
-        # In-memory fallback: {full_key: (count, window_id)}
-        self._memory: dict[str, tuple[int, int]] = {}
-        self._last_cleanup = time.time()
+    def __init__(self, max_requests: int = 60, window_seconds: int = 60, cleanup_interval: int = 60):
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self.cleanup_interval = cleanup_interval
+        # Dictionary storing list of timestamps for each client IP
+        self.requests: dict[str, list[float]] = defaultdict(list)
+        self.last_cleanup = time.time()
 
-    def _cleanup_memory(self):
-        """Purge expired in-memory entries periodically (every 60s)."""
+    def _cleanup(self):
+        """Remove stale entries to prevent memory leaks."""
         now = time.time()
-        if now - self._last_cleanup < 60:
+        if now - self.last_cleanup < self.cleanup_interval:
             return
-        self._last_cleanup = now
-        # Remove entries older than 2 minutes
-        cutoff = int(now) - 120
-        stale = [k for k, (_, w) in self._memory.items() if w < cutoff]
-        for k in stale:
-            del self._memory[k]
 
-    def _check_memory(self, key: str, limit: int, window: int) -> bool:
-        """In-memory rate limiter fallback."""
-        self._cleanup_memory()
-        current_window = int(time.time() // window)
-        full_key = f"{self.prefix}:{key}:{current_window}"
+        self.last_cleanup = now
+        stale_ips = []
+        for ip, timestamps in self.requests.items():
+            # If the newest timestamp is older than window, the whole list is stale.
+            # We assume timestamps are sorted because we append 'now'.
+            if not timestamps or (now - timestamps[-1] > self.window_seconds):
+                stale_ips.append(ip)
 
-        entry = self._memory.get(full_key)
-        if entry and entry[1] == current_window:
-            count = entry[0] + 1
-        else:
-            count = 1
+        for ip in stale_ips:
+            del self.requests[ip]
 
-        self._memory[full_key] = (count, current_window)
+    def check_rate_limit(self, client_ip: str) -> bool:
+        """
+        Check if the client IP is allowed to make a request.
+        :param client_ip: The IP address of the client.
+        :return: True if allowed, False if limit exceeded.
+        """
+        self._cleanup()
 
-        if count > limit:
-            logger.warning(f"Rate Limit Exceeded (memory): {key} ({count}/{limit})")
+        now = time.time()
+        # Clean up old timestamps for this IP
+        # We keep only timestamps within the current window
+        self.requests[client_ip] = [t for t in self.requests[client_ip] if now - t < self.window_seconds]
+
+        # Check limit
+        if len(self.requests[client_ip]) >= self.max_requests:
             return False
+
+        # Record new request
+        self.requests[client_ip].append(now)
         return True
 
-    def check_limit(self, key: str, limit: int, window: int) -> bool:
-        """
-        Check if an action is allowed.
-        :param key: Unique identifier (e.g., user_id or remote_addr)
-        :param limit: Max requests allowed in the window
-        :param window: Time window in seconds
-        :return: True if allowed, False if limit exceeded
-        """
-        if not self.redis:
-            return self._check_memory(key, limit, window)
+_limiters: dict[str, RateLimiter] = {}
 
-        # Key specific to the current time window
-        # e.g. rl:create_room:127.0.0.1:17000000
-        current_window = int(time.time() // window)
-        full_key = f"{self.prefix}:{key}:{current_window}"
-
-        try:
-            # Atomic INCR
-            count = self.redis.incr(full_key)
-
-            # Set expiry on first access
-            if count == 1:
-                self.redis.expire(full_key, window + 5)  # +5 buffer
-
-            if count > limit:
-                logger.warning(f"Rate Limit Exceeded: {key} ({count}/{limit})")
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.error(f"RateLimiter Redis Error: {e}")
-            # Fallback to in-memory instead of failing open
-            return self._check_memory(key, limit, window)
-
-
-# Global Instances for convenience
-limiter = RateLimiter()
+def get_rate_limiter(name: str = "default") -> RateLimiter:
+    """
+    Factory function to get or create a named RateLimiter.
+    Configures 'auth' limiter with stricter rules (10 req/60s).
+    Default limiter is 60 req/60s.
+    """
+    if name not in _limiters:
+        if name == "auth":
+            # Stricter limit for auth endpoints
+            _limiters[name] = RateLimiter(max_requests=10, window_seconds=60)
+        else:
+            # Default limit
+            _limiters[name] = RateLimiter(max_requests=60, window_seconds=60)
+    return _limiters[name]
