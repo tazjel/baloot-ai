@@ -60,8 +60,20 @@ def register(sio, connected_users):
             return False  # Reject connection
 
         # Success! Store in memory for instant access
+        # Enrich with league_points (ELO) from DB for matchmaking
+        try:
+            from server.common import db
+            user_record = db.app_user(user_data.get('user_id'))
+            if user_record:
+                user_data['elo'] = user_record.league_points or 1000
+            else:
+                user_data['elo'] = 1000
+        except Exception as e:
+            logger.warning(f"Could not fetch ELO for {user_data.get('email')}: {e}")
+            user_data['elo'] = 1000
+
         connected_users[sid] = user_data
-        logger.info(f"Authorized {user_data.get('email')} (SID: {sid})")
+        logger.info(f"Authorized {user_data.get('email')} ELO={user_data['elo']} (SID: {sid})")
         return True
 
     @sio.event

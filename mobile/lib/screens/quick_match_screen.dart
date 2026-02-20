@@ -54,7 +54,14 @@ class _QuickMatchScreenState extends ConsumerState<QuickMatchScreen>
 
   void _startSearch() {
     final socket = SocketService.instance;
+
+    // Pass JWT token for server-side auth (ELO lookup, matchmaking)
+    final authState = ref.read(authProvider);
+    socket.setAuthToken(authState.token);
     socket.connect();
+
+    // Use authenticated player name (falls back to 'ضيف' for guests)
+    final playerName = authState.displayName;
 
     setState(() {
       _searching = true;
@@ -85,7 +92,7 @@ class _QuickMatchScreenState extends ConsumerState<QuickMatchScreen>
         final socketNotifier = ref.read(gameSocketProvider.notifier);
         socketNotifier.joinGame(
           roomId: roomId,
-          playerName: 'Player',
+          playerName: playerName,
           myIndex: myIndex,
           onSuccess: () {
             if (mounted) context.go('/game');
@@ -99,7 +106,7 @@ class _QuickMatchScreenState extends ConsumerState<QuickMatchScreen>
 
     // Join the queue
     rawSocket?.emit('queue_join', [
-      {'playerName': 'Player'},
+      {'playerName': playerName},
       (dynamic res) {
         final response = Map<String, dynamic>.from(
             res is Map ? res : (res is List && res.isNotEmpty ? res[0] as Map : {}));

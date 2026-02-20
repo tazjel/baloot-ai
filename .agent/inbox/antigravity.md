@@ -84,38 +84,6 @@ class MatchmakingUser(User):
 
 ---
 
-### PENDING — QA-Security: Verify M-MP11 Security Hardening
-**Priority**: MEDIUM | **Added by**: Claude MAX | **Date**: 2026-02-21
-
-After pulling latest main (`d7c1496`), verify security hardening:
-
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai"
-git pull origin main
-
-# Run security tests
-python -m pytest tests/server/test_security.py -v --tb=short
-
-# Run all server tests
-python -m pytest tests/server/ --tb=short -q --ignore=tests/server/test_stress_game.py
-
-# Run Flutter tests
-cd mobile
-flutter test
-```
-
-**Expected**: 25 security tests + 128 total server tests + 174 Flutter tests
-
-**Report format:**
-```
-### QA-Security: M-MP11 Verification
-- Security tests: X/25 passed
-- All server tests: X/128 passed
-- Flutter tests: X/174 passed
-- Issues found: (list any)
-```
-
----
 
 ## Completed Tasks
 
@@ -132,6 +100,12 @@ flutter test
 - Backend deployed to Cloud Run: `23320c6`
 - Fastlane authenticated for Google Play Console
 - Session handoff doc: `f018416`
+
+### DONE — QA-Security: M-MP11 Verification (2026-02-21)
+- Security tests: 25/25 passed
+- All server tests: 128/128 passed 
+- Flutter tests: 174/174 passed
+- Issues found: None. Security hardening fully verified.
 
 ### SUPERSEDED — QA-MP3, QA-MP5, QA Jules PRs
 - These tasks are no longer needed — Claude MAX built all MP missions directly.

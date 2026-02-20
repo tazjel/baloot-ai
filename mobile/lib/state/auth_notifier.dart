@@ -204,6 +204,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return false;
   }
 
+  /// Refresh the current JWT token before it expires.
+  ///
+  /// Call this proactively (e.g., on app resume, before matchmaking)
+  /// or reactively when the server returns 401.
+  /// Returns true if a new token was obtained and persisted.
+  Future<bool> refreshToken() async {
+    final currentToken = state.token;
+    if (currentToken == null) {
+      dev.log('Cannot refresh: no token', name: 'AUTH');
+      return false;
+    }
+
+    final result = await AuthService.refreshToken(currentToken);
+
+    if (result.success && result.token != null) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kTokenKey, result.token!);
+      state = state.copyWith(token: result.token);
+      dev.log('Token refreshed', name: 'AUTH');
+      return true;
+    }
+
+    // If refresh fails because token is expired, sign out
+    if (!result.success) {
+      dev.log('Token refresh failed: ${result.error}', name: 'AUTH');
+    }
+    return false;
+  }
+
   /// Continue as guest (no account, local-only stats).
   void continueAsGuest() {
     state = state.copyWith(

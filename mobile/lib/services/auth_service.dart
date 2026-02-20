@@ -128,6 +128,49 @@ class AuthService {
     }
   }
 
+  /// Refresh a JWT token before it expires.
+  ///
+  /// Calls POST /auth/refresh with the current token. Returns a new token
+  /// with fresh 24h expiry, or an error if the token is already expired.
+  static Future<AuthResult> refreshToken(String token) async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/auth/refresh');
+      final resp = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body) as Map<String, dynamic>;
+        final newToken = data['token'] as String?;
+        if (newToken != null) {
+          dev.log('Token refreshed successfully', name: _log);
+          return AuthResult(success: true, token: newToken);
+        }
+      }
+
+      if (resp.statusCode == 429) {
+        dev.log('Refresh rate limited', name: _log);
+        return const AuthResult(
+          success: false,
+          error: 'طلبات كثيرة، حاول لاحقاً',
+        );
+      }
+
+      dev.log('Refresh failed: ${resp.statusCode}', name: _log);
+      return const AuthResult(success: false, error: 'فشل تجديد الجلسة');
+    } catch (e) {
+      dev.log('Refresh error: $e', name: _log);
+      return const AuthResult(
+        success: false,
+        error: 'خطأ في الاتصال بالخادم',
+      );
+    }
+  }
+
   /// Validate a stored token by calling GET /user.
   /// Returns AuthResult with user profile if token is valid.
   static Future<AuthResult> validateToken(String token) async {

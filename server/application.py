@@ -42,7 +42,14 @@ def create_app():
 
     # 4. Create WSGI App
     wsgi_app = bottle.default_app()
-    
+
+    # 4.5 Apply CORS headers to HTTP routes (M-MP11)
+    try:
+        from server.cors_config import configure_cors
+        configure_cors(wsgi_app)
+    except Exception as e:
+        logger.warning(f"Failed to configure CORS: {e}")
+
     # 5. Explicit Binding (Idempotent)
     server.controllers.bind(wsgi_app)
     

@@ -67,29 +67,50 @@ class SocketService {
   String? _activePlayerName;
   String? activeBotDifficulty;
 
+  // Auth token for authenticated socket connections
+  String? _authToken;
+
   /// The underlying socket instance (for advanced usage).
   io.Socket? get socket => _socket;
 
   /// Whether the socket is currently connected.
   bool get isConnected => _socket?.connected ?? false;
 
+  /// Set the JWT auth token for socket connections.
+  ///
+  /// Call this before [connect] to authenticate the socket. The server
+  /// uses the token to identify the user and look up their ELO rating.
+  /// If null, the connection proceeds as Guest.
+  void setAuthToken(String? token) {
+    _authToken = token;
+    // If already connected, the token takes effect on next reconnect.
+    // For immediate effect, disconnect and reconnect.
+  }
+
   /// Connects to the backend Socket.IO server.
   ///
   /// If already connected, returns the existing socket. If disconnected,
   /// reconnects. Uses WebSocket transport with polling fallback,
   /// exponential backoff reconnection (1s → 16s max, 5 attempts).
+  ///
+  /// If [setAuthToken] was called, the token is sent via the Socket.IO
+  /// `auth` parameter for server-side authentication.
   io.Socket connect() {
     if (_socket == null) {
-      _socket = io.io(
-        ApiConfig.socketUrl,
-        io.OptionBuilder()
-            .setTransports(['websocket', 'polling'])
-            .enableReconnection()
-            .setReconnectionAttempts(_maxReconnectAttempts)
-            .setReconnectionDelay(1000)
-            .setReconnectionDelayMax(16000)
-            .build(),
-      );
+      final optionsBuilder = io.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .enableReconnection()
+          .setReconnectionAttempts(_maxReconnectAttempts)
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(16000);
+
+      // Send JWT token via Socket.IO auth parameter
+      if (_authToken != null) {
+        optionsBuilder.setAuth({'token': _authToken!});
+        dev.log('Connecting with auth token', name: 'SOCKET');
+      }
+
+      _socket = io.io(ApiConfig.socketUrl, optionsBuilder.build());
 
       _socket!.onConnect((_) {
         _reconnectAttempt = 0;
