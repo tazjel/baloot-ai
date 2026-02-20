@@ -1,0 +1,13 @@
+# Cloud Build ignore file (used by gcloud run deploy --source)
+.git
+.agent
+.claude
+mobile/
+frontend/node_modules
+__pycache__
+*.pyc
+.env
+*.log
+logs/
+tests/
+gbaloot/

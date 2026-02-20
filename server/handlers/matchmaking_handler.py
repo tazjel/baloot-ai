@@ -86,13 +86,15 @@ def register(sio, connected_users):
         player_name = data.get("playerName", "Guest")
 
         # Get ELO from authenticated user or use default
-        email = "guest"
         elo = DEFAULT_ELO
         if sid in connected_users:
             user = connected_users[sid]
-            email = user.get("email", "guest")
+            email = user.get("email", f"guest_{sid}")
             # Try to get ELO from user data (set during connect if available)
             elo = user.get("elo", DEFAULT_ELO)
+        else:
+            # Guest users: use SID as unique identifier to avoid dedup collision
+            email = f"guest_{sid}"
 
         success = matchmaking_queue.enqueue(
             email=email,
@@ -122,10 +124,11 @@ def register(sio, connected_users):
 
         Returns: {success: bool}
         """
-        # Find player email from connected_users
-        email = "guest"
+        # Find player email from connected_users (must match enqueue key)
         if sid in connected_users:
-            email = connected_users[sid].get("email", "guest")
+            email = connected_users[sid].get("email", f"guest_{sid}")
+        else:
+            email = f"guest_{sid}"
 
         removed = matchmaking_queue.dequeue(email)
         return {"success": removed}
