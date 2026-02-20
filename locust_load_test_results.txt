@@ -1,0 +1,478 @@
+[2026-02-21 01:02:37,065] tazjel-desktop/INFO/locust.main: Starting Locust 2.43.1
+[2026-02-21 01:02:37,066] tazjel-desktop/INFO/locust.main: Run time limit set to 15 seconds
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:37,067] tazjel-desktop/INFO/locust.runners: Ramping to 50 users at a rate of 10.00 per second
+[2026-02-21 01:02:37,067] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,077] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,077] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,078] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,078] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,078] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,078] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,079] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,080] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,080] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:37,425] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,425] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,426] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,426] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,430] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,431] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,432] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,432] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,442] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,442] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,448] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,448] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,463] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,464] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,478] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,478] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,509] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,509] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:37,528] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:37,528] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,082] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,083] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,084] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,085] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,086] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,087] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,087] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,088] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,088] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,089] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:38,307] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,307] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,315] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,315] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,332] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,332] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,348] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,348] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,349] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,349] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,370] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,370] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,391] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,391] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,392] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,392] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,406] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,406] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,419] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:38,419] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,551] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,727] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:38,881] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:39,092] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,092] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,093] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,093] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,094] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,094] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,094] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,094] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,095] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,095] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:39,107] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,312] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,313] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,325] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,325] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,337] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,337] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,342] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,363] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,363] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,367] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,368] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,368] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,369] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,370] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,385] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,385] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,409] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,409] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,409] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,410] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,425] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:39,425] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,745] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:39,864] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,010] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,072] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,096] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,096] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,097] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,098] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,099] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,100] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,102] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,103] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,103] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,104] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:40,255] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,309] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,322] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,323] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,342] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,342] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,343] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,346] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,346] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,352] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,353] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,358] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,359] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,359] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,382] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,382] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,393] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,394] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,405] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,405] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,413] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,423] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,423] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,432] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,434] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:40,434] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,447] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,464] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,540] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,667] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,697] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,748] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,854] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:40,854] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,018] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,068] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:41,099] tazjel-desktop/INFO/locust.runners: All users spawned: {"MatchmakingUser": 50} (50 total users)
+[2026-02-21 01:02:41,099] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,100] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,100] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,101] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,102] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,102] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,102] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,103] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,103] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,103] tazjel-desktop/INFO/root: Attempting to connect to server...
+[2026-02-21 01:02:41,140] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,140] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,259] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,263] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,327] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,327] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,332] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,332] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,352] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,352] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,361] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,361] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,374] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,375] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,387] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,387] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,398] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,398] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,416] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,416] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,428] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,428] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,447] tazjel-desktop/INFO/root: Connection successful!
+[2026-02-21 01:02:41,447] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,463] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,481] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,527] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,596] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,629] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,795] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,814] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,832] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:41,980] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,012] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,123] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,211] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,227] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,346] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,363] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,414] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,430] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,445] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,446] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,496] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,497] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,497] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,630] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,662] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,680] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,730] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,730] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,731] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,796] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,812] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,858] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,928] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:42,980] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,011] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,012] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,059] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,059] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,090] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:43,091] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,114] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,180] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,196] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,213] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,245] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,262] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,445] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,446] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,558] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,610] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,647] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,648] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,696] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,729] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,745] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,745] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,780] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,780] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,874] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,889] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:43,921] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,082] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,116] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,196] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,212] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,228] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,262] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,279] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,379] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,442] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,495] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,662] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,731] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,780] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,795] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,829] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,831] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,861] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:44,926] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,008] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:45,112] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,296] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,311] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,363] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,412] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,413] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,514] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,547] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,614] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,630] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,646] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,646] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,663] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,680] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,696] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,730] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,731] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,763] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,763] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,779] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,780] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,926] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:45,986] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,001] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,029] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,076] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,146] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,161] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,196] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,214] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,247] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,280] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,313] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,329] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,362] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,364] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,364] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,379] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,430] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,513] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,679] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,727] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,758] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,795] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,795] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,847] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,847] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,897] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,930] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,946] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,946] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,961] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,979] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:46,995] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,012] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,058] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:47,120] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,216] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,230] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,246] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,261] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,379] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,429] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,446] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,479] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,531] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,596] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,596] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,630] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,646] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,693] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,812] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,860] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,896] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,929] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:47,963] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,011] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,030] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,030] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,031] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,113] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,182] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,197] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,213] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,246] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,295] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,447] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,447] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,547] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,596] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,612] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,679] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,679] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,712] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,797] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,848] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,864] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,881] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,912] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:48,978] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,011] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,028] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,028] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,028] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,043] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,097] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,097] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:49,363] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,396] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,479] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,528] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,581] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,597] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,613] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,711] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,712] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,795] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,845] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,845] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,846] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,879] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,895] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,895] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,929] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,994] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:49,994] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,047] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,078] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,114] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,145] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,179] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,195] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,245] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,295] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,423] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,423] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,501] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,531] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,546] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,623] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,669] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,669] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,700] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,777] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,839] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,900] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:50,977] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,007] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,023] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,038] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,099] tazjel-desktop/INFO/root: join_queue emitting queue_join
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+[2026-02-21 01:02:51,145] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,176] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,222] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,222] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,283] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,283] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,390] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,406] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,422] tazjel-desktop/INFO/locust.main: --run-time limit reached, shutting down
+[2026-02-21 01:02:51,510] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,511] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,511] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,511] tazjel-desktop/INFO/root: join_queue emitting queue_join
+[2026-02-21 01:02:51,623] tazjel-desktop/INFO/locust.main: Shutting down (exit code 0)
+Type     Name                                                                          # reqs      # fails |    Avg     Min     Max    Med |   req/s  failures/s
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+--------|----------------------------------------------------------------------------|-------|-------------|-------|-------|-------|-------|--------|-----------
+         Aggregated                                                                         0     0(0.00%) |      0       0       0      0 |    0.00        0.00
+
+Response time percentiles (approximated)
+Type     Name                                                                                  50%    66%    75%    80%    90%    95%    98%    99%  99.9% 99.99%   100% # reqs
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+--------|--------------------------------------------------------------------------------|--------|------|------|------|------|------|------|------|------|------|------|------
+

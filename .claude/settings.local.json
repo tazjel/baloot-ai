@@ -65,7 +65,8 @@
       "mcp__Claude_in_Chrome__*",
       "WebFetch(domain:developers.google.com)",
       "WebFetch(domain:developers.googleblog.com)",
-      "WebFetch(domain:jules.google)"
+      "WebFetch(domain:jules.google)",
+      "Bash(gcloud:*)"
     ]
   }
 }
