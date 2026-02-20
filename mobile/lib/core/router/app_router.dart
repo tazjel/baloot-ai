@@ -1,10 +1,11 @@
 /// Baloot AI — Navigation router with custom page transitions.
 ///
-/// 9 routes: /, /login, /signup, /lobby, /multiplayer, /game, /profile, /about
+/// 10 routes: /, /login, /signup, /lobby, /multiplayer, /game, /profile, /about, /leaderboard
 library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../screens/about_screen.dart';
+import '../../screens/leaderboard_screen.dart';
 import '../../screens/lobby_screen.dart';
 import '../../screens/login_screen.dart';
 import '../../screens/multiplayer_screen.dart';
@@ -105,6 +106,16 @@ final GoRouter appRouter = GoRouter(
         key: state.pageKey,
         child: const AboutScreen(),
         transitionsBuilder: _slideFromBottom,
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    ),
+    GoRoute(
+      path: '/leaderboard',
+      name: 'leaderboard',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const LeaderboardScreen(),
+        transitionsBuilder: _slideFromRight,
         transitionDuration: const Duration(milliseconds: 300),
       ),
     ),
