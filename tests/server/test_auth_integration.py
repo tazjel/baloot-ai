@@ -28,6 +28,9 @@ _mock_db = MagicMock()
 if 'py4web' not in sys.modules:
     sys.modules['py4web'] = MagicMock()
 
+# Assign our custom action mock to the py4web module mock
+sys.modules['py4web'].action = _mock_action
+
 # Mock bcrypt
 _mock_bcrypt = MagicMock()
 _mock_bcrypt.hashpw.return_value = b'$2b$12$hashedpassword'
@@ -78,7 +81,7 @@ class TestSignup(unittest.TestCase):
         from server.routes.auth import signup
         self.mock_request.json = {
             'firstName': 'Ali', 'lastName': 'M',
-            'email': 'ali@test.com', 'password': 'pass123',
+            'email': 'ali@test.com', 'password': 'password123',
         }
         self.mock_db.return_value.select.return_value.first.return_value = None
         self.mock_db.app_user.insert.return_value = 42
@@ -93,7 +96,7 @@ class TestSignup(unittest.TestCase):
         from server.routes.auth import signup
         self.mock_request.json = {
             'firstName': 'Ali', 'lastName': 'M',
-            'email': 'dup@test.com', 'password': 'pass123',
+            'email': 'dup@test.com', 'password': 'password123',
         }
         self.mock_db.return_value.select.return_value.first.return_value = MagicMock()
 
@@ -106,7 +109,7 @@ class TestSignup(unittest.TestCase):
         from server.routes.auth import signup
         self.mock_request.json = {
             'firstName': 'Sara', 'lastName': 'A',
-            'email': 'sara@test.com', 'password': 'pass123',
+            'email': 'sara@test.com', 'password': 'password123',
         }
         self.mock_db.return_value.select.return_value.first.return_value = None
         self.mock_db.app_user.insert.return_value = 10
@@ -114,6 +117,18 @@ class TestSignup(unittest.TestCase):
         result = signup()
         for key in ('email', 'firstName', 'lastName', 'user_id'):
             self.assertIn(key, result)
+
+    def test_signup_short_password(self):
+        """Signup with short password returns error."""
+        from server.routes.auth import signup
+        self.mock_request.json = {
+            'firstName': 'Bad', 'lastName': 'Pass',
+            'email': 'badpass@test.com', 'password': 'short',
+        }
+        result = signup()
+        self.assertEqual(self.mock_response.status, 400)
+        self.assertIn('error', result)
+        self.assertIn('8 characters', result['error'])
 
 
 class TestSignin(unittest.TestCase):
@@ -236,11 +251,16 @@ class TestUserEndpoint(unittest.TestCase):
         self.mock_request.user = {'user_id': 1, 'email': 'test@example.com'}
         user_record = MagicMock()
         user_record.league_points = 1500
+        # Check membership_tier (mocking field access on MagicMock)
+        user_record.membership_tier = 'premium'
+        # Mock __contains__ to allow "if 'membership_tier' in user_record"
+        user_record.__contains__.side_effect = lambda k: k == 'membership_tier'
         self.mock_db.app_user.return_value = user_record
 
         result = user()
         self.assertIn('leaguePoints', result)
         self.assertIn('tier', result)
+        self.assertEqual(result.get('membershipTier'), 'premium')
 
     def test_user_tier_grandmaster(self):
         """2000+ points = Grandmaster tier."""
