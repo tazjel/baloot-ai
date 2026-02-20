@@ -40,6 +40,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'auth_notifier.dart';
 import 'game_state_notifier.dart';
 import 'game_socket_notifier.dart';
 import 'round_manager.dart';
@@ -49,6 +50,19 @@ import 'playing_logic.dart';
 
 // Re-export computed providers declared in their own files
 export 'game_rules_provider.dart' show gameRulesProvider;
+
+// =============================================================================
+// Authentication
+// =============================================================================
+
+/// Authentication state provider.
+///
+/// Manages JWT token persistence, user profile, and auth lifecycle.
+/// Orthogonal to game state — no dependency on gameStateProvider.
+final authProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier();
+});
 
 // =============================================================================
 // Core Game State

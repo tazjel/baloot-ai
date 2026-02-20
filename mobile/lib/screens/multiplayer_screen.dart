@@ -28,6 +28,12 @@ class _MultiplayerScreenState extends ConsumerState<MultiplayerScreen> {
   }
 
   Future<void> _loadSavedName() async {
+    // Prefer authenticated user's name, fall back to locally saved name
+    final auth = ref.read(authProvider);
+    if (auth.isAuthenticated && auth.firstName != null && auth.firstName!.isNotEmpty) {
+      _nameController.text = auth.firstName!;
+      return;
+    }
     final name = await SettingsPersistence.loadPlayerName();
     if (name != null && name.isNotEmpty && mounted) {
       _nameController.text = name;

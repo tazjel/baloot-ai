@@ -1,14 +1,16 @@
 /// Baloot AI — Navigation router with custom page transitions.
 ///
-/// 7 routes: /, /lobby, /multiplayer, /game, /profile, /about
+/// 9 routes: /, /login, /signup, /lobby, /multiplayer, /game, /profile, /about
 library;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../screens/about_screen.dart';
 import '../../screens/lobby_screen.dart';
+import '../../screens/login_screen.dart';
 import '../../screens/multiplayer_screen.dart';
 import '../../screens/game_screen.dart';
 import '../../screens/profile_screen.dart';
+import '../../screens/signup_screen.dart';
 import '../../screens/splash_screen.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -23,6 +25,28 @@ final GoRouter appRouter = GoRouter(
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
             FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 300),
+      ),
+    ),
+    GoRoute(
+      path: '/login',
+      name: 'login',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const LoginScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    ),
+    GoRoute(
+      path: '/signup',
+      name: 'signup',
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const SignupScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     ),
     GoRoute(

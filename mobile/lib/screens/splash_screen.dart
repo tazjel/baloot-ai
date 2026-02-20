@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/colors.dart';
+import '../state/providers.dart';
 
 /// Animated splash screen shown on app launch.
 class SplashScreen extends ConsumerStatefulWidget {
@@ -52,12 +53,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _controller.forward();
 
-    // Navigate to lobby after animation
-    Future.delayed(const Duration(milliseconds: 2400), () {
-      if (mounted) {
-        context.go('/lobby');
-      }
-    });
+    // Initialize auth and navigate after animation completes
+    _initAndNavigate();
+  }
+
+  Future<void> _initAndNavigate() async {
+    // Start auth initialization in parallel with animation
+    final authInit = ref.read(authProvider.notifier).initialize();
+
+    // Wait for both animation delay and auth init
+    await Future.wait([
+      authInit,
+      Future.delayed(const Duration(milliseconds: 2400)),
+    ]);
+
+    if (!mounted) return;
+
+    final auth = ref.read(authProvider);
+    if (auth.isAuthenticated) {
+      context.go('/lobby');
+    } else {
+      context.go('/login');
+    }
   }
 
   @override
