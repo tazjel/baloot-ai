@@ -349,4 +349,50 @@ class SocketService {
     _activePlayerName = null;
     activeBotDifficulty = null;
   }
+
+  // ── M-MP4: Session Recovery ──────────────────────────────────────────
+
+  /// Checks if the server has an active game session for the current user.
+  ///
+  /// Requires the socket to be connected with an authenticated token.
+  /// Returns `{active: true, roomId, seatIndex}` or `{active: false}`.
+  void checkActiveSession(ApiCallback callback) {
+    if (_socket == null) {
+      callback({'active': false, 'reason': 'no_socket'});
+      return;
+    }
+    _socket!.emit('check_active_session', [
+      {},
+      (dynamic res) => callback(_parseAck(res)),
+    ]);
+  }
+
+  /// Rejoins an active game after app restart or reconnection.
+  ///
+  /// Unlike [joinRoom], this uses roomId + seatIndex (not playerName)
+  /// to reclaim an existing seat rather than creating a new player.
+  void rejoinRoom(
+      String roomId, int seatIndex, ApiCallback callback) {
+    if (_socket == null) {
+      callback({'success': false, 'error': 'Socket not connected'});
+      return;
+    }
+    _activeRoomId = roomId;
+
+    _socket!.emit('rejoin_room', [
+      {'roomId': roomId, 'seatIndex': seatIndex},
+      (dynamic res) {
+        final response = _parseAck(res);
+        if (response['success'] == true) {
+          dev.log('Rejoin successful: room=$roomId seat=$seatIndex',
+              name: 'SOCKET');
+        } else {
+          dev.log('Rejoin failed: ${response['error']}',
+              name: 'SOCKET', level: 900);
+          _activeRoomId = null;
+        }
+        callback(response);
+      },
+    ]);
+  }
 }

@@ -140,6 +140,12 @@ def register(sio, connected_users):
         sio.enter_room(sid, room_id)
         room_manager.track_player(sid, room_id)
 
+        # Track authenticated user for session recovery (M-MP4)
+        if sid in connected_users:
+            user_email = connected_users[sid].get('email')
+            if user_email:
+                room_manager.track_player_email(user_email, room_id, player.index)
+
         # For testing: Auto-add 3 bots when first player joins
         if len(game.players) == 1:
             bot_personas = [BALANCED, AGGRESSIVE, CONSERVATIVE]
@@ -238,3 +244,89 @@ def register(sio, connected_users):
                 room_manager.save_game(game)
                 sio.emit('game_start', {'gameState': game.get_game_state()}, room=room_id)
                 handle_bot_turn(sio, game, room_id)
+
+    # ── M-MP4: Session Recovery ──────────────────────────────────────────
+
+    @sio.event
+    def check_active_session(sid, data):
+        """Check if authenticated user has an active game session.
+
+        Returns {active: True, roomId, seatIndex} if game exists,
+        or {active: False} otherwise.
+        """
+        if sid not in connected_users:
+            return {'active': False, 'reason': 'not_authenticated'}
+
+        email = connected_users[sid].get('email')
+        if not email:
+            return {'active': False, 'reason': 'no_email'}
+
+        session = room_manager.get_active_session(email)
+        if not session:
+            return {'active': False}
+
+        return {
+            'active': True,
+            'roomId': session['room_id'],
+            'seatIndex': session['seat_index'],
+        }
+
+    @sio.event
+    def rejoin_room(sid, data):
+        """Rejoin an active game after app restart / reconnection.
+
+        Reassigns the player's SID to their original seat, re-subscribes
+        to the room, and returns the current game state.
+        """
+        if not isinstance(data, dict):
+            return {'success': False, 'error': 'Invalid request format'}
+
+        from server.handlers.game_lifecycle import handle_bot_turn
+
+        room_id = data.get('roomId')
+        seat_index = data.get('seatIndex')
+
+        if not _validate_room_id(room_id):
+            return {'success': False, 'error': 'Invalid roomId'}
+        if not isinstance(seat_index, int) or not (0 <= seat_index <= 3):
+            return {'success': False, 'error': 'Invalid seatIndex'}
+
+        game = room_manager.get_game(room_id)
+        if not game:
+            # Game expired — clean up stale session
+            if sid in connected_users:
+                email = connected_users[sid].get('email')
+                if email:
+                    room_manager.untrack_player_email(email)
+            return {'success': False, 'error': 'Game not found (expired)'}
+
+        if seat_index >= len(game.players):
+            return {'success': False, 'error': 'Invalid seat'}
+
+        player = game.players[seat_index]
+
+        # Reassign the SID to this seat (old SID is stale)
+        old_sid = player.id
+        player.id = sid
+        player.is_bot = False
+        logger.info(f"Session recovery: {sid} reclaiming seat {seat_index} "
+                     f"in room {room_id} (was {old_sid})")
+
+        sio.enter_room(sid, room_id)
+        room_manager.track_player(sid, room_id)
+        room_manager.save_game(game)
+
+        # If it's this player's turn and bots need nudging, trigger bot loop
+        game_state = game.get_game_state()
+        current_turn = game_state.get('currentTurnIndex', -1)
+        if current_turn >= 0 and current_turn != seat_index:
+            # Check if current turn is a bot (they may have been waiting)
+            turn_player = game.players[current_turn] if current_turn < len(game.players) else None
+            if turn_player and turn_player.is_bot:
+                handle_bot_turn(sio, game, room_id)
+
+        return {
+            'success': True,
+            'gameState': game_state,
+            'yourIndex': seat_index,
+        }

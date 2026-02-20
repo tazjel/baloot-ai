@@ -26,6 +26,7 @@ class RoomManager:
             cls._instance = super(RoomManager, cls).__new__(cls)
             cls._instance._local_cache = {}
             cls._instance._sid_to_room: dict[str, str] = {}  # SID → room_id
+            cls._instance._email_to_room: dict[str, dict] = {}  # email → {room_id, seat_index, timestamp}
         return cls._instance
 
     def create_room(self):
@@ -45,6 +46,38 @@ class RoomManager:
     def track_player(self, sid: str, room_id: str):
         """Track which room a player (SID) belongs to for disconnect cleanup."""
         self._sid_to_room[sid] = room_id
+
+    def track_player_email(self, email: str, room_id: str, seat_index: int):
+        """Track authenticated player's active game for session recovery."""
+        import time as _time
+        self._email_to_room[email] = {
+            'room_id': room_id,
+            'seat_index': seat_index,
+            'timestamp': _time.time(),
+        }
+        logger.info(f"Session tracked: {email} → room {room_id} seat {seat_index}")
+
+    def untrack_player_email(self, email: str):
+        """Remove email-to-room mapping (on game end or explicit leave)."""
+        removed = self._email_to_room.pop(email, None)
+        if removed:
+            logger.info(f"Session untracked: {email}")
+
+    def get_active_session(self, email: str):
+        """Return active game session for an email, or None.
+
+        Returns dict with room_id, seat_index, timestamp if the game still
+        exists in Redis/cache and hasn't expired.
+        """
+        session = self._email_to_room.get(email)
+        if not session:
+            return None
+        # Verify the game still exists
+        game = self.get_game(session['room_id'])
+        if not game:
+            self._email_to_room.pop(email, None)
+            return None
+        return session
 
     def untrack_player(self, sid: str):
         """Remove player tracking on disconnect."""
@@ -161,7 +194,10 @@ class RoomManager:
              logger.error(f"Error listing Redis games (connection): {e}")
              return self._local_cache
         except Exception as e:
-             logger.exception(f"Error listing Redis games: {e}")
+             if "111 connecting to" in str(e) or "Connection refused" in str(e):
+                 logger.error(f"Redis unavailable for listing games: {e}")
+             else:
+                 logger.error(f"Error listing Redis games: {e}")
              return self._local_cache
 
 # Global instance

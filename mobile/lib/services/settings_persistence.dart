@@ -21,6 +21,9 @@ abstract class _Keys {
   static const String firstLaunch = 'baloot_first_launch';
   static const String winStreak = 'baloot_win_streak';
   static const String bestStreak = 'baloot_best_streak';
+  // M-MP4: Session Recovery
+  static const String activeRoomId = 'baloot_active_room_id';
+  static const String activeSeatIndex = 'baloot_active_seat_index';
 }
 
 /// A lightweight match summary for history display.
@@ -268,5 +271,51 @@ class SettingsPersistence {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_Keys.firstLaunch, false);
     } catch (_) {}
+  }
+
+  // =========================================================================
+  // M-MP4: Active Game Session Recovery
+  // =========================================================================
+
+  /// Save active multiplayer game session for recovery after app restart.
+  static Future<void> saveActiveSession({
+    required String roomId,
+    required int seatIndex,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_Keys.activeRoomId, roomId);
+      await prefs.setInt(_Keys.activeSeatIndex, seatIndex);
+      dev.log('Active session saved: room=$roomId seat=$seatIndex',
+          name: 'SETTINGS');
+    } catch (e) {
+      dev.log('Failed to save active session: $e', name: 'SETTINGS');
+    }
+  }
+
+  /// Load saved active game session, or null if none.
+  static Future<({String roomId, int seatIndex})?> loadActiveSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final roomId = prefs.getString(_Keys.activeRoomId);
+      final seatIndex = prefs.getInt(_Keys.activeSeatIndex);
+      if (roomId == null || seatIndex == null) return null;
+      return (roomId: roomId, seatIndex: seatIndex);
+    } catch (e) {
+      dev.log('Failed to load active session: $e', name: 'SETTINGS');
+      return null;
+    }
+  }
+
+  /// Clear saved active session (on game end, leave, or logout).
+  static Future<void> clearActiveSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_Keys.activeRoomId);
+      await prefs.remove(_Keys.activeSeatIndex);
+      dev.log('Active session cleared', name: 'SETTINGS');
+    } catch (e) {
+      dev.log('Failed to clear active session: $e', name: 'SETTINGS');
+    }
   }
 }

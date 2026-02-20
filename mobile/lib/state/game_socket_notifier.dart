@@ -285,6 +285,66 @@ class GameSocketNotifier extends StateNotifier<SocketState> {
   }
 
   // =========================================================================
+  // M-MP4: Session Recovery
+  // =========================================================================
+
+  /// Rejoin an active game by room ID and seat index.
+  ///
+  /// Used after app restart when a saved session is found. Unlike [joinGame],
+  /// this reclaims an existing seat rather than adding a new player.
+  void rejoinGame({
+    required String roomId,
+    required int seatIndex,
+    void Function()? onSuccess,
+    void Function(String error)? onError,
+  }) {
+    ensureConnected();
+
+    _socketService.rejoinRoom(roomId, seatIndex, (res) {
+      if (res['success'] == true) {
+        final idx = res['yourIndex'] as int? ?? seatIndex;
+        state = state.copyWith(roomId: roomId, myIndex: idx);
+        dev.log('Rejoined Room: $roomId as player $idx',
+            name: 'SOCKET_NOTIFIER');
+
+        // Subscribe to game events
+        _subscribeToGameEvents();
+
+        // Apply the current game state
+        if (res.containsKey('gameState') && res['gameState'] is Map) {
+          final serverState = GameState.fromJson(
+            Map<String, dynamic>.from(res['gameState'] as Map),
+          );
+          _applyServerState(serverState);
+        }
+
+        onSuccess?.call();
+      } else {
+        final error = res['error'] as String? ?? 'Session expired';
+        dev.log('Rejoin Failed: $error', name: 'SOCKET_NOTIFIER');
+        onError?.call(error);
+      }
+    });
+  }
+
+  /// Ask the server if the authenticated user has an active game.
+  ///
+  /// Returns session info via callback: `{active, roomId, seatIndex}`.
+  void checkActiveSession({
+    required void Function(bool active, String? roomId, int? seatIndex) onResult,
+  }) {
+    ensureConnected();
+    _socketService.checkActiveSession((res) {
+      final active = res['active'] == true;
+      onResult(
+        active,
+        active ? res['roomId'] as String? : null,
+        active ? res['seatIndex'] as int? : null,
+      );
+    });
+  }
+
+  // =========================================================================
   // Lifecycle
   // =========================================================================
 
