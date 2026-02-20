@@ -63,7 +63,9 @@
       "mcp__redis__*",
       "mcp__playwright__*",
       "mcp__Claude_in_Chrome__*",
-      "WebFetch(domain:developers.google.com)"
+      "WebFetch(domain:developers.google.com)",
+      "WebFetch(domain:developers.googleblog.com)",
+      "WebFetch(domain:jules.google)"
     ]
   }
 }
