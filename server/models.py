@@ -21,6 +21,8 @@ db.define_table('app_user',
                 Field('email', unique=True, required=True),
                 Field('password', 'password', readable=False, required=True),
                 Field('league_points', 'integer', default=1000),
+                Field('created_on', 'datetime', default=lambda: datetime.datetime.now()),
+                Field('membership_tier', 'string', default='free'),
                 )
 
 # Define game results table

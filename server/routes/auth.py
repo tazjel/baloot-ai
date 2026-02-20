@@ -36,6 +36,13 @@ def token_required(f):
     return decorated
 
 
+def validate_password(password):
+    """Enforce password complexity rules."""
+    if not password or len(password) < 8:
+        return False, "Password must be at least 8 characters long."
+    return True, None
+
+
 @action('user', method=['GET'])
 @token_required
 def user():
@@ -43,6 +50,7 @@ def user():
     response.status = 200
     user_record = db.app_user(request.user.get('user_id'))
     points = user_record.league_points if user_record else 1000
+    membership_tier = user_record.membership_tier if user_record and 'membership_tier' in user_record else 'free'
 
     tier = "Bronze"
     if points >= 2000: tier = "Grandmaster"
@@ -51,7 +59,12 @@ def user():
     elif points >= 1400: tier = "Gold"
     elif points >= 1200: tier = "Silver"
 
-    return {"user": request.user, "leaguePoints": points, "tier": tier}
+    return {
+        "user": request.user,
+        "leaguePoints": points,
+        "tier": tier,
+        "membershipTier": membership_tier
+    }
 
 
 @action('signup', method=['POST', 'OPTIONS'])
@@ -68,6 +81,12 @@ def signup():
     last_name = data.get('lastName')
     password = data.get('password')
     email = data.get('email')
+
+    # Validation
+    is_valid, error_msg = validate_password(password)
+    if not is_valid:
+        response.status = 400
+        return {"error": error_msg}
 
     logger.info(f"{email} is signing up!")
 
