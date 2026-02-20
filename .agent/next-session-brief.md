@@ -1,6 +1,13 @@
 # Next Session Brief — Multiplayer Phase
 
-> **Updated**: 2026-02-20 | **Lead**: Claude MAX | **Phase**: Multiplayer (MP)
+> **Updated**: 2026-02-20 (late night) | **Lead**: Claude MAX | **Phase**: Multiplayer (MP)
+>
+> ### ⚡ Session Note
+> All QA tasks (MP1 Docker, MP2 Stats API, Baseline) are **VERIFIED GREEN**.
+> Claude Desktop MCP config debugged — corrected Playwright (`@playwright/mcp`),
+> SQLite (`uvx mcp-server-sqlite`), removed unsupported Dart MCP.
+> Guide saved in Antigravity brain artifacts.
+> Next: proceed to **M-MP3** (Flutter Auth Flow).
 
 ---
 
@@ -24,8 +31,8 @@ Backend (existing):  server/routes/auth.py (signup/signin/JWT)
                      server/room_manager.py (Redis game state)
                      server/models.py (app_user, game_result, match_archive)
 
-Missing:             Matchmaking queue, player stats API, ELO rating,
-                     Dockerfile, session recovery, Flutter auth UI
+Missing:             Matchmaking queue, ELO rating,
+                     session recovery, Flutter auth UI
 ```
 
 ---
@@ -34,48 +41,47 @@ Missing:             Matchmaking queue, player stats API, ELO rating,
 
 ### Phase A — Identity & Server (Claude + Jules)
 
-| Mission | Owner | Description | Depends On |
-|---------|-------|-------------|------------|
-| **M-MP1**: Server Dockerfile + deploy config | Jules | Dockerfile for Python server, docker-compose update, env config | — |
-| **M-MP2**: Player Stats API | Jules | REST endpoints: GET /stats/:email, GET /leaderboard, POST /game-result | — |
-| **M-MP3**: Auth Flow (Flutter) | Claude | Login/signup/guest screens, JWT token persistence, auth state management | M-MP2 |
-| **M-MP4**: Session Recovery | Claude | Reconnect to ongoing game after app restart, pending action queue | M-MP3 |
+| Mission | Owner | Status | Description |
+|---------|-------|--------|-------------|
+| **M-MP1**: Server Dockerfile | Jules | ✅ Done + QA Verified | Docker build & compose |
+| **M-MP2**: Player Stats API | Jules | ✅ Done + QA Verified | 10/10 tests passing |
+| **M-MP3**: Auth Flow (Flutter) | Claude | 🔜 Next | Login/signup/guest + JWT persistence |
+| **M-MP4**: Session Recovery | Claude | Pending | Reconnect after app restart |
 
 ### Phase B — Matchmaking & Ranking (Claude + Jules)
 
 | Mission | Owner | Description | Depends On |
 |---------|-------|-------------|------------|
-| **M-MP5**: ELO Rating Engine | Jules | Python module: ELO calculation, K-factor, placement matches | M-MP2 |
-| **M-MP6**: Matchmaking Queue | Claude | Server-side queue with skill matching, timeout→bot fill, Redis pub/sub | M-MP5 |
-| **M-MP7**: Quick Match UI (Flutter) | Claude | Queue screen, finding opponent animation, cancel, estimated wait | M-MP6 |
-| **M-MP8**: Leaderboard + Ranking UI | Jules | Flutter screens: leaderboard list, player rank card, tier badges | M-MP5 |
+| **M-MP5**: ELO Rating Engine | Jules | ELO calculation, K-factor, placement matches | M-MP2 |
+| **M-MP6**: Matchmaking Queue | Claude | Server-side queue with skill matching | M-MP5 |
+| **M-MP7**: Quick Match UI | Claude | Queue screen, finding opponent animation | M-MP6 |
+| **M-MP8**: Leaderboard UI | Jules | Flutter leaderboard + tier badges | M-MP5 |
 
-### Phase C — Polish & Testing (Claude + Antigravity)
+### Phase C — Polish & Testing
 
 | Mission | Owner | Description | Depends On |
 |---------|-------|-------------|------------|
-| **M-MP9**: Integration Tests | Jules | Server multiplayer test suite: room lifecycle, reconnect, matchmaking | M-MP6 |
-| **M-MP10**: Load Testing | Antigravity | Concurrent player stress test, network failure simulation | M-MP9 |
-| **M-MP11**: Security Hardening | Claude | JWT secret rotation, CORS production config, rate limit tuning | M-MP1 |
+| **M-MP9**: Integration Tests | Jules | Server multiplayer test suite | M-MP6 |
+| **M-MP10**: Load Testing | Antigravity | Concurrent player stress test | M-MP9 |
+| **M-MP11**: Security Hardening | Claude | JWT rotation, CORS production, rate limits | M-MP1 |
 
 ---
 
-## Agent Assignments — Current Wave (Phase A)
+## Agent Assignments — Next Wave
 
-### Jules: M-MP1 + M-MP2 (parallel)
-- **M-MP1**: Dockerfile + docker-compose for server
-- **M-MP2**: Player stats REST endpoints
+### Claude MAX: M-MP3
+- Flutter auth screens (Login/Signup/Guest)
+- JWT token persistence + auth state management
+
+### Jules: M-MP5 (after M-MP3)
+- ELO rating engine module
 
 ### Antigravity: QA standby
-- Verify M-MP1 Docker builds and runs
-- Test M-MP2 endpoints with curl
-
-### Claude MAX: M-MP3 (after Jules delivers M-MP2)
-- Flutter auth screens + JWT persistence
+- Ready to verify M-MP3 Flutter auth flow
 
 ---
 
 ## Codebase Stats
-- **~100 lib/ files**, **20 test files**, **~18,500+ lines of Dart**
 - **Python tests**: 550 passing | **Flutter tests**: 151 passing | **TypeScript**: 0 errors
+- **Flutter analyze**: 137 info-level issues (non-blocking)
 - **11 multiplayer missions planned** across 3 phases

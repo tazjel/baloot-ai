@@ -17,7 +17,6 @@ def verify_time_lord():
     # Let's import server code? No, let's look for a game in DB.
     
     print("1. Fetching recent games...")
-    print("1. Fetching recent games...")
     try:
         res = requests.get(f"{SERVER_URL}/react-py4web/replay/list")
         if res.status_code != 200:

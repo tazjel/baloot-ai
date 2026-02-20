@@ -12,9 +12,16 @@ Previous phase (Flutter M-F1→M-F20) is ✅ COMPLETE.
 
 ---
 
-## Claude MAX — Status: ✅ M-MP1 + M-MP2 MERGED → Next: M-MP3
+## Claude MAX — Status: 🔧 MCP Setup Complete → Next: M-MP3
 
-### Completed This Session
+### Completed This Session (2026-02-20 evening)
+- Audited all MCP server configurations
+- Updated `.mcp.json`: added 4 new servers (filesystem, sqlite, redis, playwright), replaced GitHub HTTP→official MCP, fixed Desktop Commander path
+- Simplified `settings.local.json`: consolidated permissions with wildcard patterns
+- Configured Desktop Commander: scoped `allowedDirectories`, bumped `fileWriteLineLimit` to 200
+- **Restart required** for new MCP servers to load
+
+### Previous Session
 - Cherry-picked PR #25 widget tests (confetti, toast, score badge) — `b698e7a`
 - Closed 10 stale PRs, deleted 7 stale branches
 - Enhanced `/boot` slash command
