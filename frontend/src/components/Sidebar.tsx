@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Settings, HelpCircle, LogOut, Volume2, MessageSquare, Signal, Users, User, Trophy, History, Crown, Coins, Star } from 'lucide-react';
+import { Settings, HelpCircle, LogOut, Volume2, Signal, Users, User, Trophy, History, Crown, Coins, Star } from 'lucide-react';
 import ScoreSheet from './ScoreSheet';
 import { UserProfile, RoundResult, Player } from '../types';
 
@@ -71,7 +71,14 @@ const Sidebar: React.FC<SidebarProps> = ({ scores, matchScores, roundHistory, us
 
       {/* --- Bot Insights REMOVED (Moved to dedicated Left Panel) --- */}
 
-      {/* --- Chat Area --- */}
+      {/* --- Chat Area (system messages only) --- */}
+      {/*
+       * CUSTOM TEXT CHAT DISABLED — Google Play compliance.
+       * Free-form text input removed pending implementation of user
+       * reporting/blocking features (UGC policy). Only system messages
+       * and canned emotes (EmoteMenu) are permitted.
+       * See: EmoteMenu.tsx for the preserved quick-chat & throwable system.
+       */}
       <div className="flex-1 flex flex-col min-h-0 bg-white/30">
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {messages.length === 0 && (
@@ -84,17 +91,6 @@ const Sidebar: React.FC<SidebarProps> = ({ scores, matchScores, roundHistory, us
             </div>
           ))}
           <div ref={chatEndRef} />
-        </div>
-
-        <div className="p-3 bg-white/50 border-t border-gray-200/50 flex items-center gap-2">
-          <input
-            type="text"
-            placeholder="رسالتك..."
-            className="flex-1 bg-white/70 border border-gray-200 rounded-full px-4 py-2 text-gray-800 text-right text-sm placeholder-gray-400 focus:outline-none focus:border-amber-400 transition-colors"
-          />
-          <button className="p-2 bg-amber-500 hover:bg-amber-400 rounded-full text-white transition-colors shadow-md" aria-label="Send message">
-            <MessageSquare size={16} />
-          </button>
         </div>
       </div>
 

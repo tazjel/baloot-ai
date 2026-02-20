@@ -2,132 +2,79 @@
 > Shared status between Antigravity (Gemini), Claude MAX, and Jules.
 > Each agent updates their section when completing tasks or requesting work.
 
-## Last Updated: 2026-02-20T14:30+03:00
+## Last Updated: 2026-02-20T23:00+03:00
 
 ---
 
 ## Phase: Multiplayer Production (MP) — ACTIVE
 
-Previous phase (Flutter M-F1→M-F20) is ✅ COMPLETE.
+Previous phase (Flutter M-F1→M-F20) is COMPLETE.
 
 ---
 
-## Claude MAX — Status: 🔧 MCP Setup Complete → Next: M-MP3
+## Claude MAX — Status: Roadmap Created, Coordinating Agents
 
-### Completed This Session (2026-02-20 evening)
-- Audited all MCP server configurations
-- Updated `.mcp.json`: added 4 new servers (filesystem, sqlite, redis, playwright), replaced GitHub HTTP→official MCP, fixed Desktop Commander path
-- Simplified `settings.local.json`: consolidated permissions with wildcard patterns
-- Configured Desktop Commander: scoped `allowedDirectories`, bumped `fileWriteLineLimit` to 200
-- **Restart required** for new MCP servers to load
+### This Session (2026-02-20 night)
+- Created full multiplayer roadmap with timeline estimates
+- Wrote delegation specs: M-MP8 (Leaderboard UI), M-MP9 (Integration Tests)
+- Dispatched Jules on M-MP8 (`13581679709388677131`) and M-MP9 (`3626643731020681379`)
+- Updated Antigravity inbox with 5 QA tasks
+- M-MP3 code complete (needs test), M-MP5 needs pull from Jules
 
-### Previous Session
-- Cherry-picked PR #25 widget tests (confetti, toast, score badge) — `b698e7a`
-- Closed 10 stale PRs, deleted 7 stale branches
-- Enhanced `/boot` slash command
-- Created 11-mission multiplayer plan
-- **M-MP1**: Reviewed + merged Jules Dockerfile delivery — `f40901d`
-- **M-MP2**: Reviewed + tested Jules Stats API (10/10 tests pass) — `f40901d`
-
-### Next: M-MP3 (Flutter Auth Flow)
-- Login/signup/guest screens, JWT token persistence, auth state provider
-- Starts now — no blockers remaining
+### Next Actions (Claude)
+1. Pull + review M-MP5 ELO engine code (Jules completed, no PR)
+2. Test M-MP3 Flutter auth (flutter analyze + flutter test)
+3. Start M-MP4 (Session Recovery) or M-MP6 (Matchmaking Queue)
 
 ---
 
-## Jules — Status: ✅ M-MP1 + M-MP2 COMPLETED & MERGED
+## Jules — Status: 2 Sessions RUNNING + 1 Completed
 
-### Completed Sessions
-| Mission | Task | Session ID | Status |
-|---------|------|------------|--------|
-| M-MP1 | Server Dockerfile + docker-compose | `18072275693063091343` | ✅ MERGED |
-| M-MP2 | Player Stats REST API endpoints | `4458439251499299643` | ✅ MERGED |
+### Active Sessions
+| Mission | Session ID | Status |
+|---------|-----------|--------|
+| M-MP8: Leaderboard UI | `13581679709388677131` | RUNNING |
+| M-MP9: Integration Tests | `3626643731020681379` | RUNNING |
 
-### Deliverables on main
-- `Dockerfile`, `.dockerignore`, `server/.env.example`, `docker-compose.yml` (updated)
-- `server/routes/stats.py` — 3 endpoints + bind function
-- `tests/server/test_stats_api.py` — 10 tests passing
+### Completed (not yet pulled)
+| Mission | Session ID | Status |
+|---------|-----------|--------|
+| M-MP5: ELO Rating Engine | `9718717534070678345` | COMPLETED — needs code review |
 
-### Next Jules Tasks (Phase B — after M-MP3)
-- M-MP5: ELO Rating Engine
-- M-MP8: Leaderboard + Ranking UI (Flutter)
+### Merged
+| Mission | Session ID | Commit |
+|---------|-----------|--------|
+| M-MP1 | `18072275693063091343` | `f40901d` |
+| M-MP2 | `4458439251499299643` | `f40901d` |
 
 ---
 
-## Antigravity (Gemini) — Status: 🔴 QA REQUIRED NOW
+## Antigravity (Gemini) — Status: QA Tasks Queued
 
-### ⚡ Jules delivered. Pull latest and run QA:
+### Pending Tasks (in `.agent/inbox/antigravity.md`)
+1. QA-MP3: Flutter Auth Flow verification (HIGH)
+2. QA-MP5: ELO Engine test run (HIGH)
+3. QA-Baseline: Full regression check (MEDIUM)
+4. QA Jules PRs: M-MP8 + M-MP9 when delivered (MEDIUM)
+5. M-MP10: Load Testing (FUTURE — after M-MP6)
 
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai"
-git pull origin main
-```
-
-#### QA-MP1: Docker Build Verification
-```powershell
-docker build -t baloot-server .
-docker compose up -d
-# Wait 10s for startup
-docker compose logs server
-docker compose down
-```
-
-#### QA-MP2: Stats API Tests
-```powershell
-python -m pytest tests/server/test_stats_api.py --tb=short -q
-```
-**Expected**: 10 passed
-
-#### QA-Baseline: Regression Check
-```powershell
-python -m pytest tests/bot/ tests/game_logic/ --tb=short -q
-cd mobile && flutter test && flutter analyze
-```
-**Expected**: 550 Python + 151 Flutter passing, 0 errors in analyze
-
-### Report Template
-```
-### QA-MP1: Docker Build
-- Build: ✅/❌
-- Server start: ✅/❌
-- Errors: (paste any)
-
-### QA-MP2: Stats API Tests
-- pytest result: X passed
-
-### QA-Baseline
-- Python tests: X passing
-- Flutter tests: X passing
-- Flutter analyze: X errors
-```
-
-### Antigravity Results (2026-02-20)
-```
-### QA-MP1: Docker Build
-- Build: ✅
-- Server start: ✅
-- Errors: None
-
-### QA-MP2: Stats API Tests
-- pytest result: 10 passed
-
-### QA-Baseline
-- Python tests: 550 passing
-- Flutter tests: 151 passing
-- Flutter analyze: 137 issues (informational)
-```
+### Previous Results (2026-02-20)
+- QA-MP1: Docker Build OK
+- QA-MP2: Stats API 10/10 tests
+- QA-Baseline: 550 Python + 151 Flutter + 137 info-level analyze
 
 ---
 
 ## Test Counts
 | Suite | Count | Status |
 |-------|-------|--------|
-| Python (bot + game_logic) | 550 | ✅ |
-| Python (server stats) | 10 | ✅ |
-| Flutter | 151 | ✅ |
-| TypeScript | 0 errors | ✅ |
+| Python (bot + game_logic) | 550 | OK |
+| Python (server stats) | 10 | OK |
+| Python (ELO engine) | ~15 | Pending pull |
+| Flutter | 151 | OK (pre-MP3) |
+| TypeScript | 0 errors | OK |
 
 ---
 
 ## File Locks
-None — M-MP1/MP2 merged. All files unlocked.
+None — all files unlocked.

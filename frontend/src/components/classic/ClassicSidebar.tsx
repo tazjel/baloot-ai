@@ -83,13 +83,19 @@ export default function ClassicSidebar({ gameState, matchScores }: ClassicSideba
                 )}
             </div>
 
-            {/* Chat Panel */}
+            {/* Chat Panel — system announcements only */}
+            {/*
+             * CUSTOM TEXT CHAT DISABLED — Google Play compliance.
+             * Free-form text input removed pending implementation of user
+             * reporting/blocking features (UGC policy). Only system
+             * announcements are shown. Canned emotes are in EmoteMenu.tsx.
+             */}
             <div className="km-glass km-chat-panel" style={{ flex: 1, minHeight: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--km-text-secondary)', padding: '10px 14px 6px' }}>
                     💬 المحادثة
                 </div>
                 <div className="km-chat-messages">
-                    {/* Static placeholder messages */}
+                    {/* System announcements only — no player-to-player text */}
                     <div className="km-chat-bubble">
                         <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--km-gold-dim)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🤖</div>
                         <span>مرحباً بكم في البلوت! 🎴</span>
@@ -100,21 +106,6 @@ export default function ClassicSidebar({ gameState, matchScores }: ClassicSideba
                             <span>الجولة بدأت — بالتوفيق!</span>
                         </div>
                     )}
-                </div>
-                <div className="km-chat-input">
-                    <input type="text" placeholder="اكتب رسالة..." readOnly />
-                    <button style={{
-                        background: 'var(--km-gold-dim)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 32,
-                        height: 32,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        fontSize: 14
-                    }}>📤</button>
                 </div>
             </div>
         </div>
