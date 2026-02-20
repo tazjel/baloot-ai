@@ -1,5 +1,5 @@
 # Antigravity Task Inbox
-> **Updated**: 2026-02-20 (night) | **From**: Claude MAX
+> **Updated**: 2026-02-21 | **From**: Claude MAX
 > **Protocol**: Read this file at the START of every session. Execute all PENDING tasks. Mark DONE when finished. Push results.
 
 ## How This Works
@@ -14,116 +14,106 @@
 
 ## Active Tasks
 
-### PENDING — QA-MP3: Flutter Auth Flow Verification
-**Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-20
+### 🔴 PENDING — M-MP10: Load Test Matchmaking Queue
+**Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-21
+**Depends on**: GCP Cloud Run deployment (✅ done by Antigravity)
 
-M-MP3 auth code is written but NOT tested. Verify compilation and existing tests.
+The matchmaking queue (M-MP6) is built and the backend is deployed to Cloud Run.
+Now we need to stress test it under concurrent load.
 
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
-flutter analyze
-flutter test
+**Backend URL**: `https://baloot-server-1076165534376.me-central1.run.app`
+
+**What to test:**
+1. **Concurrent WebSocket connections** — Simulate 20-50 players connecting simultaneously
+2. **Queue join/leave throughput** — Players joining and leaving the `queue_join` / `queue_leave` events
+3. **Match formation latency** — How fast does the server form a 4-player match?
+4. **Reconnection under stress** — Disconnect/reconnect during queue
+5. **Rate limiting** — Verify server rejects >5 queue joins/min per SID
+
+**Socket.IO Events to test:**
+```
+# Join queue
+emit('queue_join', {playerName: 'TestPlayer1'})
+# → callback: {success: true, queueSize: N, avgWait: N}
+
+# Leave queue
+emit('queue_leave', {})
+# → callback: {success: true}
+
+# Match found (server → client)
+on('match_found', {roomId: '...', yourIndex: 0-3})
+
+# Queue status
+emit('queue_status', {})
+# → callback: {queueSize: N, avgWait: N}
 ```
 
-**What to check:**
-- Does `flutter analyze` pass with 0 errors? (warnings/info OK)
-- Do all existing 151 tests still pass?
-- Any compilation errors in the new auth files?
+**Suggested tools**: `locust` (Python, already installed), `k6`, or `artillery`
 
-New files to verify:
-- `lib/services/auth_service.dart`
-- `lib/state/auth_notifier.dart`
-- `lib/screens/login_screen.dart`
-- `lib/screens/signup_screen.dart`
-- `lib/screens/splash_screen.dart`
+**Locust example** (save as `tests/load/locustfile.py`):
+```python
+"""Load test for matchmaking queue using Locust + socketio."""
+import socketio
+from locust import User, task, between
 
-**Report format**:
+class MatchmakingUser(User):
+    wait_time = between(1, 3)
+
+    def on_start(self):
+        self.sio = socketio.Client()
+        self.sio.connect('https://baloot-server-1076165534376.me-central1.run.app')
+
+    def on_stop(self):
+        self.sio.disconnect()
+
+    @task
+    def join_queue(self):
+        self.sio.emit('queue_join', {'playerName': f'LoadTest-{self.environment.runner.user_count}'})
 ```
-### QA-MP3: Flutter Auth
-- flutter analyze: X errors
-- flutter test: X/151 passing
-- New file compilation: OK/FAIL
+
+**Report format:**
+```
+### M-MP10: Load Test Results
+- Max concurrent connections: X
+- Queue join latency P50/P95/P99: Xms/Xms/Xms
+- Match formation time (4 players): Xms
+- Error rate under load: X%
+- Rate limiting working: ✅/❌
 - Issues found: (list any)
 ```
 
 ---
 
-### PENDING — QA-MP5: ELO Engine Tests
-**Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-20
+### PENDING — QA-Security: Verify M-MP11 Security Hardening
+**Priority**: MEDIUM | **Added by**: Claude MAX | **Date**: 2026-02-21
 
-Once M-MP5 code is pulled to main, verify ELO engine tests:
-
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai"
-python -m pytest tests/server/test_elo_engine.py --tb=short -q
-python -m pytest tests/server/ --tb=short -q
-```
-
-**Report format**:
-```
-### QA-MP5: ELO Engine
-- ELO tests: X passed
-- All server tests: X passed
-- Issues found: (list any)
-```
-
----
-
-### PENDING — QA-Baseline: Full Regression Check
-**Priority**: MEDIUM | **Added by**: Claude MAX | **Date**: 2026-02-20
+After pulling latest main (`d7c1496`), verify security hardening:
 
 ```powershell
 cd "C:/Users/MiEXCITE/Projects/baloot-ai"
-python -m pytest tests/bot/ tests/game_logic/ --tb=short -q
+git pull origin main
 
+# Run security tests
+python -m pytest tests/server/test_security.py -v --tb=short
+
+# Run all server tests
+python -m pytest tests/server/ --tb=short -q --ignore=tests/server/test_stress_game.py
+
+# Run Flutter tests
 cd mobile
 flutter test
-
-cd ../frontend
-npx tsc --noEmit
 ```
 
-**Expected**: 550 Python + 151 Flutter + 0 TS errors
-**Report format**:
+**Expected**: 25 security tests + 128 total server tests + 174 Flutter tests
+
+**Report format:**
 ```
-### Baseline Regression
-- Python bot+game_logic: X/550
-- Flutter: X/151
-- TypeScript: X errors
+### QA-Security: M-MP11 Verification
+- Security tests: X/25 passed
+- All server tests: X/128 passed
+- Flutter tests: X/174 passed
+- Issues found: (list any)
 ```
-
----
-
-### PENDING — QA Jules PRs: M-MP8 + M-MP9 (when they arrive)
-**Priority**: MEDIUM | **Added by**: Claude MAX | **Date**: 2026-02-20
-
-Jules is being dispatched on M-MP8 (Leaderboard UI) and M-MP9 (Integration Tests).
-When PRs appear on GitHub, checkout and verify:
-
-**For M-MP8:**
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai/mobile"
-flutter analyze
-flutter test
-```
-
-**For M-MP9:**
-```powershell
-cd "C:/Users/MiEXCITE/Projects/baloot-ai"
-python -m pytest tests/server/ --tb=short -q
-```
-
----
-
-### FUTURE — M-MP10: Load Testing (after M-MP6 matchmaking is done)
-**Priority**: LOW (not ready yet) | **Added by**: Claude MAX | **Date**: 2026-02-20
-
-When matchmaking queue (M-MP6) is deployed:
-- Simulate 50 concurrent WebSocket connections
-- Measure matchmaking queue response times under load
-- Test reconnection handling under stress
-- Report latency P50/P95/P99
-- Tool suggestion: use `locust` or `k6` for load testing
 
 ---
 
@@ -138,9 +128,19 @@ When matchmaking queue (M-MP6) is deployed:
 ### DONE — QA-Baseline (2026-02-20)
 - Python: 550 passing | Flutter: 151 passing | Analyze: 137 info-level
 
+### DONE — GCP Deployment + Fastlane (2026-02-21)
+- Backend deployed to Cloud Run: `23320c6`
+- Fastlane authenticated for Google Play Console
+- Session handoff doc: `f018416`
+
+### SUPERSEDED — QA-MP3, QA-MP5, QA Jules PRs
+- These tasks are no longer needed — Claude MAX built all MP missions directly.
+- M-MP3 through M-MP9 all verified and committed to main.
+
 ---
 
 ## Notes
 - Always `git pull origin main` before starting any task
 - If a command fails, report the error — don't try to fix code
 - Post results in this file AND in `.agent/knowledge/agent_status.md`
+- Current main: `254a3be` (after session brief update)
