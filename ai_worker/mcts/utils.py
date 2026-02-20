@@ -65,30 +65,23 @@ def generate_random_distribution(ctx: BotContext) -> List[List[Card]]:
     # Fill Bottom (Self)
     hands[0] = [c for c in sanitized_hand] # Copy
     
-    # Fill Others
-    # This naive distribution assumes equal counts. 
-    # In endgame, counts MUST be precise.
-    # TODO: Implement precise counting in BotContext/Memory.
-    
-    # Temporary: Just distribute remaining equally to 1, 2, 3
-    # This will FAIL if counts are uneven (someone played out of turn or different trick counts?)
-    # Valid assumption: In Baloot, everyone plays 1 card per trick.
-    # So everyone has equal cards unless trick is in progress.
-    
-    # Who has played in current trick?
-    played_in_current = [p['playedBy'] for p in ctx.raw_state.get('tableCards', [])]
-    
-    target_counts = {}
-    total_tricks = len(tricks_history)
-    start_count = 8
-    
+    # Fill Others — use precise card counts from Memory (Bayesian tracking)
     positions = ['Bottom', 'Right', 'Top', 'Left']
-    
-    for i, pos in enumerate(positions):
-        cards_left = start_count - total_tricks
-        if pos in played_in_current:
-             cards_left -= 1
-        target_counts[i] = cards_left
+    target_counts = {}
+
+    if ctx.memory.cards_remaining:
+        # Memory already tracks precise counts (accounts for tricks + current table)
+        for i, pos in enumerate(positions):
+            target_counts[i] = ctx.memory.cards_remaining.get(pos, 0)
+    else:
+        # Fallback: compute manually if memory wasn't populated
+        played_in_current = [p['playedBy'] for p in ctx.raw_state.get('tableCards', [])]
+        total_tricks = len(tricks_history)
+        for i, pos in enumerate(positions):
+            cards_left = 8 - total_tricks
+            if pos in played_in_current:
+                cards_left -= 1
+            target_counts[i] = cards_left
         
     # --- CONSTRAINT-BASED DISTRIBUTION ---
     # We have 'remaining' cards and 'target_counts' per player.

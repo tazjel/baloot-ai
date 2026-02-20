@@ -1,0 +1,42 @@
+The ultimate Saudi Baloot card game on mobile! Challenge smart AI opponents that think and plan like real players.
+
+FEATURES:
+
+🃏 Complete Professional Play
+- Full Sun and Hokm game modes with official Baloot rules
+- Complete Projects system (Sira, Khamsin, Miya, 400)
+- Qayd (Sa'a) system with challenge and doubling
+- Akla and Sawa systems
+- Baloot declaration
+
+🤖 Advanced AI
+- Three difficulty levels: Easy, Medium, Hard
+- AI thinks and plans like a professional player
+- AI reads your cards and cooperates with its partner
+- Adapts to your playing style
+
+🎨 Modern Design
+- Elegant Arabic-first interface
+- Dark and light themes
+- Smooth animations
+- Tajawal Arabic font for comfortable reading
+
+📊 Stats & Tracking
+- Player profile with game statistics
+- Recent match history
+- Win rate and player level
+- Ranking system with 6 tiers
+
+🎯 Extra Features
+- Smart hints system for beginners
+- Tutorial for new players
+- Daily tips to improve your skills
+- Screen reader accessibility support
+
+🔒 Complete Privacy
+- No ads
+- No tracking or analytics
+- Your data stays on your device only
+- No account creation required
+
+Play Baloot like the pros! Download now and challenge the AI.

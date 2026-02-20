@@ -1,0 +1,2 @@
+json_key_file("../baloot-play-console.json")
+package_name("com.balootai.baloot_ai")

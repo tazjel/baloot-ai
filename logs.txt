@@ -1,0 +1,1779 @@
+2026-02-20 20:35:09 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:09 2026-02-20 20:35:09,945 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:09 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:09 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:09 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,048 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,150 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,253 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,355 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,458 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,560 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,662 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,765 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,869 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 2026-02-20 20:35:10,972 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:10 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:10 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,079 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,186 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,289 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,391 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,496 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,599 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,702 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,806 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 2026-02-20 20:35:11,911 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:11 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:11 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,014 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,117 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,220 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,323 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,428 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,530 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,633 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,735 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,837 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 2026-02-20 20:35:12,940 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:12 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:12 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,043 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,145 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,249 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,358 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,461 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,564 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,667 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,777 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,880 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 2026-02-20 20:35:13,983 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:13 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:13 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,087 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,190 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,292 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,395 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,497 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,600 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,702 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,805 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 2026-02-20 20:35:14,907 - server.room_manager - ERROR - Error listing Redis games: Error 111 connecting to 127.0.0.1:6379. Connection refused.
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 264, in connect
+    sock = self.retry.call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/retry.py", line 46, in call_with_retry
+    return do()
+           ^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 265, in <lambda>
+    lambda: self._connect(), lambda error: self.disconnect(error)
+            ^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 627, in _connect
+    raise err
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 615, in _connect
+    sock.connect(socket_address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 590, in connect
+    self._internal_connect(address)
+  File "/usr/local/lib/python3.12/site-packages/gevent/_socketcommon.py", line 634, in _internal_connect
+    raise _SocketError(err, strerror(err))
+ConnectionRefusedError: [Errno 111] Connection refused
+2026-02-20 20:35:14 During handling of the above exception, another exception occurred:
+2026-02-20 20:35:14 Traceback (most recent call last):
+  File "/app/server/room_manager.py", line 152, in games
+    cursor, keys = redis_store.scan(cursor=cursor, match="game:*", count=100)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/commands/core.py", line 3025, in scan
+    return self.execute_command("SCAN", *pieces, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/client.py", line 533, in execute_command
+    conn = self.connection or pool.get_connection(command_name, **options)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 1086, in get_connection
+    connection.connect()
+  File "/usr/local/lib/python3.12/site-packages/redis/connection.py", line 270, in connect
+    raise ConnectionError(self._error_message(e))
+redis.exceptions.ConnectionError: Error 111 connecting to 127.0.0.1:6379. Connection refused.

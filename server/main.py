@@ -21,7 +21,8 @@ def run():
     
     try:
         app = create_app()
-        server = pywsgi.WSGIServer(('0.0.0.0', 3005), app, handler_class=WebSocketHandler)
+        port = int(os.environ.get("PORT", 3005))
+        server = pywsgi.WSGIServer(('0.0.0.0', port), app, handler_class=WebSocketHandler)
         
         # Start Heartbeat
         from server.common import redis_client

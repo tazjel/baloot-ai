@@ -1,0 +1,10 @@
+default_platform(:android)
+
+platform :android do
+  desc "Fetch existing metadata from Google Play"
+  lane :init_supply do
+    supply(
+      init: true
+    )
+  end
+end
