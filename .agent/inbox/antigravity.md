@@ -14,6 +14,59 @@
 
 ## Active Tasks
 
+### 🔴 PENDING — Task 1: Flutter Health Check (Game Screen Freeze Debug)
+**Priority**: CRITICAL | **Added by**: Claude MAX | **Date**: 2026-02-21
+**Context**: The game screen freezes/crashes when navigating from lobby. We've stripped the GameScreen to a minimal diagnostic UI to isolate the issue.
+
+**Steps:**
+1. `git pull origin main`
+2. `cd mobile && flutter analyze` — report all errors/warnings
+3. `cd mobile && flutter test` — report pass/fail count
+4. Check `mobile/lib/screens/game_screen.dart` — it's currently a minimal diagnostic UI (just text + buttons, no complex widgets). Confirm the build method looks sane.
+5. Check `mobile/lib/state/bot_turn_handler.dart` — new file, verify no obvious issues
+6. Check `mobile/lib/state/action_dispatcher.dart` — verify print() logging is in place
+
+**Report format:**
+```
+### Flutter Health Check Results
+- flutter analyze: X issues (list errors if any)
+- flutter test: X/Y passing
+- game_screen.dart: OK/ISSUE (describe)
+- bot_turn_handler.dart: OK/ISSUE (describe)
+- action_dispatcher.dart: OK/ISSUE (describe)
+```
+
+### 🔴 PENDING — Task 2: Chrome QA of Diagnostic Game Screen
+**Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-21
+**Context**: GameScreen is stripped to diagnostic UI. Test on Chrome web to check console output.
+
+**Steps:**
+1. `cd mobile && flutter run -d chrome`
+2. Open Chrome DevTools Console (F12)
+3. App should go directly to game screen (initialLocation is '/game')
+4. Look for these print messages in console:
+   - `[GAME] GameScreen.initState called`
+   - `[GAME] PostFrame: phase=...`
+   - `[GAME] Dispatching START_GAME`
+   - `[GAME] START_GAME done, phase=...`
+   - `[GAME] PostFrame2: phase=..., turn=..., isBot=...`
+   - `[BOT] phase=..., turn=...`
+   - `[BOT] executing turn for player...`
+   - `[DISPATCHER] Player Action: ...`
+5. Report: Does the game screen render? Does bidding happen? Do bots play?
+6. Screenshot the Chrome page and console output
+
+**Report format:**
+```
+### Chrome QA Results
+- Game screen renders: YES/NO
+- Console prints visible: YES/NO (list key messages seen)
+- Bidding phase works: YES/NO
+- Bots take turns: YES/NO
+- Any errors in console: (list)
+- Screenshot: (attach or describe)
+```
+
 ### 🔴 PENDING — M-MP10: Load Test Matchmaking Queue
 **Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-21
 **Depends on**: GCP Cloud Run deployment (✅ done by Antigravity)
@@ -50,27 +103,6 @@ emit('queue_status', {})
 
 **Suggested tools**: `locust` (Python, already installed), `k6`, or `artillery`
 
-**Locust example** (save as `tests/load/locustfile.py`):
-```python
-"""Load test for matchmaking queue using Locust + socketio."""
-import socketio
-from locust import User, task, between
-
-class MatchmakingUser(User):
-    wait_time = between(1, 3)
-
-    def on_start(self):
-        self.sio = socketio.Client()
-        self.sio.connect('https://baloot-server-1076165534376.me-central1.run.app')
-
-    def on_stop(self):
-        self.sio.disconnect()
-
-    @task
-    def join_queue(self):
-        self.sio.emit('queue_join', {'playerName': f'LoadTest-{self.environment.runner.user_count}'})
-```
-
 **Report format:**
 ```
 ### M-MP10: Load Test Results
@@ -103,7 +135,7 @@ class MatchmakingUser(User):
 
 ### DONE — QA-Security: M-MP11 Verification (2026-02-21)
 - Security tests: 25/25 passed
-- All server tests: 128/128 passed 
+- All server tests: 128/128 passed
 - Flutter tests: 174/174 passed
 - Issues found: None. Security hardening fully verified.
 
@@ -117,4 +149,4 @@ class MatchmakingUser(User):
 - Always `git pull origin main` before starting any task
 - If a command fails, report the error — don't try to fix code
 - Post results in this file AND in `.agent/knowledge/agent_status.md`
-- Current main: `254a3be` (after session brief update)
+- **IMPORTANT**: app_router.dart `initialLocation` is currently set to `/game` (skip splash/login/lobby) for debugging. This is intentional.

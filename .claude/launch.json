@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "process.chdir('frontend'); import('file:///' + process.cwd().replace(/\\\\/g,'/') + '/node_modules/vite/bin/vite.js')"],
+      "port": 5173
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "server.main"],
+      "port": 3005
+    }
+  ]
+}

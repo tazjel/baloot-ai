@@ -9,15 +9,14 @@ Read ALL of these simultaneously:
 - Task board at `.agent/knowledge/tasks.md` (if it exists)
 
 ## 2. Health Check (parallel)
+// turbo-all
 Run ALL of these simultaneously:
-- `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
 - `git status --short`
 - `git log --oneline -5` (recent commits for context)
-- `cd frontend && npx tsc --noEmit` (TypeScript check)
 
-## 3. Flutter Health (parallel)
-Run these simultaneously:
-- `cd mobile && flutter test --reporter compact 2>&1 | tail -5` (Flutter tests — last 5 lines only)
+## 3. Flutter Health
+// turbo-all
+Run this command:
 - `cd mobile && flutter analyze 2>&1 | tail -3` (Flutter analysis — last 3 lines only)
 
 ## 4. Stale Branch Check

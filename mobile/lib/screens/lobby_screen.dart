@@ -363,11 +363,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           strictMode: _strictMode,
         );
 
-    // Navigate to game
+    // Navigate to game — GameScreen handles START_GAME on mount
     context.go('/game');
-
-    // Start game via action dispatcher (create room + add bots)
-    ref.read(actionDispatcherProvider.notifier).handlePlayerAction('START_GAME');
   }
 }
 

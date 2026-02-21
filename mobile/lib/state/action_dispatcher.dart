@@ -19,8 +19,6 @@
 /// - Settings: UPDATE_SETTINGS
 /// - Special: NEXT_ROUND, DECLARE_PROJECT, SAWA_CLAIM, SAWA_RESPONSE
 import 'dart:async';
-import 'dart:developer' as dev;
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/enums.dart';
@@ -71,7 +69,7 @@ class ActionDispatcher extends StateNotifier<ActionDispatcherState> {
     // Block duplicate actions (except Qayd escape hatch)
     if (socketState.isSendingAction && !action.startsWith('QAYD')) return;
 
-    dev.log('Player Action: $action', name: 'DISPATCHER');
+    print('[DISPATCHER] Player Action: $action');
 
     // If connected to server, forward via socket
     if (socketState.roomId != null) {
@@ -90,6 +88,15 @@ class ActionDispatcher extends StateNotifier<ActionDispatcherState> {
     }
 
     // --- OFFLINE LOCAL LOGIC ---
+
+    // START_GAME: deal cards and begin first round
+    if (action == 'START_GAME') {
+      _ref.read(roundManagerProvider.notifier).startNewRound(
+            nextDealerIndex: gameState.dealerIndex,
+          );
+      return;
+    }
+
     // Only allow human player actions (index 0)
     if (gameState.currentTurnIndex != 0) return;
 

@@ -53,8 +53,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     _controller.forward();
 
-    // Initialize auth and navigate after animation completes
-    _initAndNavigate();
+    // Defer auth init to avoid modifying providers during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initAndNavigate();
+    });
   }
 
   Future<void> _initAndNavigate() async {

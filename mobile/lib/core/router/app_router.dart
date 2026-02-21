@@ -16,7 +16,7 @@ import '../../screens/signup_screen.dart';
 import '../../screens/splash_screen.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/game', // TEMP: skip to game for debugging
   routes: [
     GoRoute(
       path: '/',

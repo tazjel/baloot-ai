@@ -7,7 +7,7 @@
 /// Default: `http://localhost:3005` (local development server).
 class ApiConfig {
   /// Default API URL for local development.
-  static const String defaultUrl = 'http://localhost:3005';
+  static const String defaultUrl = 'https://baloot-server-1076165534376.me-central1.run.app';
 
   /// Returns the API base URL, reading from the `API_URL` environment
   /// variable set via `--dart-define`. Falls back to [defaultUrl].
