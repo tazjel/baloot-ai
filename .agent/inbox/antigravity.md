@@ -1,5 +1,5 @@
 # Antigravity Task Inbox
-> **Updated**: 2026-02-21 | **From**: Claude MAX
+> **Updated**: 2026-02-21 (v2) | **From**: Claude MAX
 > **Protocol**: Read this file at the START of every session. Execute all PENDING tasks. Mark DONE when finished. Push results.
 
 ## How This Works
@@ -13,6 +13,44 @@
 ---
 
 ## Active Tasks
+
+### 🔲 PENDING — Task 3: Device Test Game Screen Freeze Fix on Android
+**Priority**: CRITICAL | **Added by**: Claude MAX | **Date**: 2026-02-21
+**Commit**: `011bfec` — "fix: remove duplicate PlayerAvatarWidgets causing GPU overload on Android"
+
+**Context**: The game screen was freezing on Samsung Galaxy A24 after lobby → game navigation. Root cause found: `game_arena.dart` was rendering 3 duplicate `PlayerAvatarWidget` instances (top/left/right) that were ALSO rendered by `game_screen.dart` (4 avatars). Total = 7 avatar instances, each watching `botSpeechProvider` and running `TurnIndicatorPulse` animations. On a mid-range device this caused "Skipped 85 frames" and a frozen UI.
+
+**Fixes applied (commit 011bfec):**
+1. Removed 3 duplicate `PlayerAvatarWidget` blocks from `game_arena.dart` (now only in `game_screen.dart`)
+2. Added `RepaintBoundary` around `GameArena` and `HandFanWidget` in `game_screen.dart`
+3. Added `try/catch` around `audioNotifierProvider` watch (SoundService constructor safety)
+4. Added diagnostic `print()` logging: `[GAME_SCREEN] build() called` and `[GAME_SCREEN] phase=..., players=..., turn=...`
+
+**Steps:**
+1. `git pull origin main` — get commit `011bfec`
+2. Connect to Samsung Galaxy A24 via wireless ADB: `adb connect 192.168.100.8:36749`
+3. `cd mobile && flutter run -d 192.168.100.8:36749`
+4. Navigate: **Splash → Lobby → tap "ابدأ اللعب" (Start Game)**
+5. **CHECK**: Does the game screen render? (green table, avatars, cards dealt)
+6. **CHECK**: Are bidding buttons visible and tappable? (Pass / Sun / Hokum)
+7. **CHECK**: Do bots take their turns after human bids?
+8. **CHECK**: `adb logcat | grep GAME_SCREEN` — look for `[GAME_SCREEN]` diagnostic output
+9. **CHECK**: `adb logcat | grep "Skipped"` — are frames still being skipped? (should be < 10 now)
+10. If still freezing: `adb logcat | grep -E "flutter|GAME_SCREEN|Exception"` — capture full error output
+
+**Report format:**
+```
+### Task 3: Device Test Results (Galaxy A24)
+- Game screen renders: YES/NO
+- Bidding buttons visible: YES/NO
+- Bots take turns: YES/NO
+- Frame skips: [count or "none observed"]
+- Diagnostic logs: [paste key lines]
+- Errors: [none / describe]
+- Overall: PASS/FAIL
+```
+
+---
 
 ### ✅ DONE — Task 1: Flutter Analyze + Test After Game Screen Fix
 **Priority**: CRITICAL | **Added by**: Claude MAX | **Date**: 2026-02-21
