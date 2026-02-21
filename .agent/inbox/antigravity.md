@@ -14,60 +14,29 @@
 
 ## Active Tasks
 
-### 🔴 PENDING — Task 1: Flutter Health Check (Game Screen Freeze Debug)
+### ✅ DONE — Task 1: Flutter Analyze + Test After Game Screen Fix
 **Priority**: CRITICAL | **Added by**: Claude MAX | **Date**: 2026-02-21
-**Context**: The game screen freezes/crashes when navigating from lobby. We've stripped the GameScreen to a minimal diagnostic UI to isolate the issue.
+**Context**: Claude MAX fixed the game screen freeze bug. Root cause: the original GameScreen was a stateless ConsumerWidget with no game start mechanism and no bot turn handler. Fix restores the full 7-layer Stack UI as a ConsumerStatefulWidget with START_GAME dispatch in initState and bot turn scheduling via ref.listenManual. Also reverted app_router.dart initialLocation back to '/'.
 
 **Steps:**
 1. `git pull origin main`
 2. `cd mobile && flutter analyze` — report all errors/warnings
 3. `cd mobile && flutter test` — report pass/fail count
-4. Check `mobile/lib/screens/game_screen.dart` — it's currently a minimal diagnostic UI (just text + buttons, no complex widgets). Confirm the build method looks sane.
-5. Check `mobile/lib/state/bot_turn_handler.dart` — new file, verify no obvious issues
-6. Check `mobile/lib/state/action_dispatcher.dart` — verify print() logging is in place
+4. Review `mobile/lib/screens/game_screen.dart` — full Stack UI restored with ConsumerStatefulWidget + bot handler wiring
+5. Review `mobile/lib/state/bot_turn_handler.dart` — bot auto-play for offline mode
+6. If possible, `flutter run -d chrome` and navigate: Splash → Lobby → Start Game → verify game screen renders, bidding works, bots take turns
 
 **Report format:**
 ```
-### Flutter Health Check Results
-- flutter analyze: X issues (list errors if any)
-- flutter test: X/Y passing
-- game_screen.dart: OK/ISSUE (describe)
-- bot_turn_handler.dart: OK/ISSUE (describe)
-- action_dispatcher.dart: OK/ISSUE (describe)
+### Flutter Health + QA Results
+- flutter analyze: 147 issues (info/warnings, mainly deprecation and unused imports)
+- flutter test: 174/174 passing
+- game_screen.dart: OK (Properly dispatches START_GAME and listens for bot turns)
+- bot_turn_handler.dart: OK (Handles trick/project transitions and plays first valid card)
+- Chrome QA (if tested): renders YES, bots play NOT TESTED FULLY, errors: None on load
 ```
 
-### 🔴 PENDING — Task 2: Chrome QA of Diagnostic Game Screen
-**Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-21
-**Context**: GameScreen is stripped to diagnostic UI. Test on Chrome web to check console output.
-
-**Steps:**
-1. `cd mobile && flutter run -d chrome`
-2. Open Chrome DevTools Console (F12)
-3. App should go directly to game screen (initialLocation is '/game')
-4. Look for these print messages in console:
-   - `[GAME] GameScreen.initState called`
-   - `[GAME] PostFrame: phase=...`
-   - `[GAME] Dispatching START_GAME`
-   - `[GAME] START_GAME done, phase=...`
-   - `[GAME] PostFrame2: phase=..., turn=..., isBot=...`
-   - `[BOT] phase=..., turn=...`
-   - `[BOT] executing turn for player...`
-   - `[DISPATCHER] Player Action: ...`
-5. Report: Does the game screen render? Does bidding happen? Do bots play?
-6. Screenshot the Chrome page and console output
-
-**Report format:**
-```
-### Chrome QA Results
-- Game screen renders: YES/NO
-- Console prints visible: YES/NO (list key messages seen)
-- Bidding phase works: YES/NO
-- Bots take turns: YES/NO
-- Any errors in console: (list)
-- Screenshot: (attach or describe)
-```
-
-### 🔴 PENDING — M-MP10: Load Test Matchmaking Queue
+### ✅ DONE — M-MP10: Load Test Matchmaking Queue
 **Priority**: HIGH | **Added by**: Claude MAX | **Date**: 2026-02-21
 **Depends on**: GCP Cloud Run deployment (✅ done by Antigravity)
 
@@ -106,12 +75,12 @@ emit('queue_status', {})
 **Report format:**
 ```
 ### M-MP10: Load Test Results
-- Max concurrent connections: X
-- Queue join latency P50/P95/P99: Xms/Xms/Xms
-- Match formation time (4 players): Xms
-- Error rate under load: X%
-- Rate limiting working: ✅/❌
-- Issues found: (list any)
+- Max concurrent connections: 40
+- Queue join latency P50/P95/P99: ~54ms average
+- Match formation time (4 players): TIMEOUT (no matches formed in 30s)
+- Error rate under load: 100% experienced Timeout waiting for match
+- Rate limiting working: ❌ (Did not reject multiple joins on first client)
+- Issues found: Cloud Run backend failed to form any matches despite 40 clients in queue.
 ```
 
 ---
@@ -149,4 +118,4 @@ emit('queue_status', {})
 - Always `git pull origin main` before starting any task
 - If a command fails, report the error — don't try to fix code
 - Post results in this file AND in `.agent/knowledge/agent_status.md`
-- **IMPORTANT**: app_router.dart `initialLocation` is currently set to `/game` (skip splash/login/lobby) for debugging. This is intentional.
+- app_router.dart `initialLocation` has been reverted back to `'/'` (normal splash → lobby → game flow).
