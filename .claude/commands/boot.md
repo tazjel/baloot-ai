@@ -1,71 +1,45 @@
 Session kickstart for Baloot AI. Run these steps in order:
 
-## 1. Context Load (parallel)
-Read ALL of these simultaneously:
-- `CLAUDE.md` — project rules
-- Your memory file at `C:\Users\MiEXCITE\.claude\projects\C--Users-MiEXCITE-Projects-baloot-ai\memory\MEMORY.md`
-- Agent status board at `.agent/knowledge/agent_status.md`
-- Mission brief at `.agent/next-session-brief.md`
-- Task board at `.agent/knowledge/tasks.md` (if it exists)
+## 1. Context Load
+Read these files (in parallel):
+- `.agent/next-session-brief.md`
+- `.agent/knowledge/agent_status.md`
 
-## 2. Health Check (parallel)
-// turbo-all
+## 2. Quick Health (parallel)
 Run ALL of these simultaneously:
+- `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q 2>&1 | tail -3`
 - `git status --short`
-- `git log --oneline -5` (recent commits for context)
+- `git log --oneline -5`
 
-## 3. Flutter Health
-// turbo-all
-Run this command:
-- `cd mobile && flutter analyze 2>&1 | tail -3` (Flutter analysis — last 3 lines only)
-
-## 4. Stale Branch Check
-- `git branch --list` — flag any non-main branches that might be leftover
-
-## 5. Status Report
+## 3. Report
 Present a concise dashboard:
 
 ```
 ## Boot Report — [date]
 
-### Health
-| Check          | Status                           |
-|----------------|----------------------------------|
-| Python Tests   | X passing / Y failing            |
-| Flutter Tests  | X passing / Y failing            |
-| Flutter Analyze| X errors / clean                 |
-| TypeScript     | X errors / clean                 |
-| Git            | clean / N uncommitted changes    |
-| Branches       | main only / [list extras]        |
+| Check | Status |
+|-------|--------|
+| Python Tests | X passing |
+| Git | clean / N uncommitted |
 
-### Recent Commits (last 5)
-[one-liner list from git log]
-
-### Agent Status
-| Agent       | Status        | Last Action                |
-|-------------|---------------|----------------------------|
-| Claude MAX  | [status]      | [what was last done]       |
-| Antigravity | [status]      | [what was last done]       |
-| Jules       | [status]      | [any pending PRs?]         |
+### Recent Commits
+[list from git log]
 
 ### Mission Status
-- **Completed**: [count] / 20 Flutter missions
-- **What's left**: [manual steps or next work items]
-- **Blockers**: [any blockers from brief or agent board]
+[from next-session-brief.md]
+
+### Agent Status
+[from agent_status.md — one line per agent]
 ```
 
-## 6. Alerts
-Flag anything that needs attention:
-- Failing tests (with names)
-- Uncommitted changes (with file list)
-- Stale branches
-- Pending Jules PRs to cherry-pick
-- Outdated agent status (>48h since last update)
-- Any discrepancies between memory and actual state (test counts, etc.)
+## 4. Alerts
+Flag if:
+- Tests are failing
+- Uncommitted changes exist
+- Agent tasks are stale (>48h)
 
 ## Rules
-- Do NOT start any work automatically. Just report and wait for instructions.
-- Do NOT fix failing tests — just report them.
-- Be concise. The dashboard should fit on one screen.
-- If a health check command fails to run (missing tool, network issue), report it as "SKIPPED" with reason.
-- After the report, ask: "Ready to start? What would you like to work on?"
+- Do NOT start any work. Just report and wait.
+- Do NOT fix anything. Report only.
+- Be concise — dashboard should fit on one screen.
+- Ask: "What would you like to work on?"

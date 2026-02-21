@@ -102,8 +102,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('[GAME_SCREEN] build() called');
+
     // Initialize audio notifier (watches game state internally)
-    ref.watch(audioNotifierProvider);
+    try {
+      ref.watch(audioNotifierProvider);
+    } catch (e) {
+      print('[GAME_SCREEN] ERROR in audioNotifierProvider: $e');
+    }
 
     // Baloot detection — show toast when K+Q of trump detected
     ref.listen<BalootDetectionState>(
@@ -123,6 +129,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final gameState = appState.gameState;
     final players = gameState.players;
     final phase = gameState.phase;
+
+    print('[GAME_SCREEN] phase=$phase, players=${players.length}, turn=${gameState.currentTurnIndex}');
 
     return Scaffold(
       body: Container(
@@ -216,7 +224,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     left: w * 0.15,
                     right: w * 0.15,
                     bottom: h * 0.38,
-                    child: const GameArena(),
+                    child: const RepaintBoundary(
+                      child: GameArena(),
+                    ),
                   ),
 
                   // === Layer 3: Table HUD (scores + contract) ===
@@ -232,7 +242,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     bottom: phase == GamePhase.waiting ? 16 : 56,
                     left: 8,
                     right: 8,
-                    child: const HandFanWidget(),
+                    child: const RepaintBoundary(
+                      child: HandFanWidget(),
+                    ),
                   ),
 
                   // === Layer 5: Action dock (bidding/playing controls) ===

@@ -1,13 +1,16 @@
-/// game_arena.dart — Center play area with table cards and player avatars.
+/// game_arena.dart — Center play area with table cards and floor card.
 ///
 /// Port of frontend/src/components/GameArena.tsx
 ///
 /// The center of the game board showing:
 /// - Table felt background (wood + felt texture)
-/// - Player avatars at 3 positions (top, left, right)
 /// - Floor card during dealing
 /// - Played cards in cross formation
 /// - Waiting state with "Add Bot" button
+///
+/// NOTE: Player avatars are rendered by game_screen.dart at absolute
+/// screen positions — NOT here. Previously avatars were duplicated in
+/// both game_arena and game_screen, causing 7 instances and GPU overload.
 library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,12 +21,10 @@ import '../models/card_model.dart';
 import '../models/enums.dart';
 import '../state/providers.dart';
 import 'card_widget.dart';
-import 'player_avatar_widget.dart';
 
 /// The center play area of the game board.
 ///
-/// Contains the table felt, 3 player avatars (top, left, right),
-/// played cards in cross formation, and the floor card.
+/// Contains the table felt, floor card, and played cards in cross formation.
 class GameArena extends ConsumerWidget {
   const GameArena({super.key});
 
@@ -31,7 +32,6 @@ class GameArena extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appState = ref.watch(gameStateProvider);
     final gameState = appState.gameState;
-    final players = gameState.players;
     final tableCards = gameState.tableCards;
     final floorCard = gameState.floorCard;
     final isWaiting = gameState.phase == GamePhase.waiting;
@@ -108,48 +108,6 @@ class GameArena extends ConsumerWidget {
                         ),
                       ),
                     ],
-                  ),
-                ),
-
-              // Top player (partner, index 2)
-              if (players.length > 2)
-                Positioned(
-                  top: 8,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: PlayerAvatarWidget(
-                      player: players[2],
-                      index: 2,
-                      isCurrentTurn: gameState.currentTurnIndex == 2,
-                      scale: 0.85,
-                    ),
-                  ),
-                ),
-
-              // Left player (opponent, index 3)
-              if (players.length > 3)
-                Positioned(
-                  top: h * 0.3,
-                  left: 8,
-                  child: PlayerAvatarWidget(
-                    player: players[3],
-                    index: 3,
-                    isCurrentTurn: gameState.currentTurnIndex == 3,
-                    scale: 0.8,
-                  ),
-                ),
-
-              // Right player (opponent, index 1)
-              if (players.length > 1)
-                Positioned(
-                  top: h * 0.3,
-                  right: 8,
-                  child: PlayerAvatarWidget(
-                    player: players[1],
-                    index: 1,
-                    isCurrentTurn: gameState.currentTurnIndex == 1,
-                    scale: 0.8,
                   ),
                 ),
 

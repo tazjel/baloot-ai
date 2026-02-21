@@ -1,57 +1,48 @@
 End-of-session wrap-up for Baloot AI. Run ALL steps in order:
 
 ## 1. Health Check
-Run these in parallel:
-- `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q`
-- `cd frontend && npx tsc --noEmit`
+Run in parallel:
+- `python -m pytest tests/bot/ tests/game_logic/ --tb=short -q 2>&1 | tail -3`
 - `git status --short`
 
 ## 2. Uncommitted Work
-If there are ANY uncommitted changes:
-- Review what changed (git diff --stat)
-- Stage and commit with a clear message describing what was done this session
-- Push to remote
-
+If there are uncommitted changes:
+- `git diff --stat` to review
+- Stage, commit with clear message, push to remote
 If git is clean, skip this step.
 
-## 3. Update Mission Brief
-Read `.agent/next-session-brief.md` and update it:
-- Mark any missions completed this session as ✅ with a summary of what was built
-- Update the test count if it changed
-- Update the TypeScript error count
-- Make sure the "Active Missions" section reflects current state
+## 3. Update Session Brief
+Read `.agent/next-session-brief.md` and update it with:
+- What was done this session
+- Current state and next steps
+- Updated test counts and git hash
 
 ## 4. Update Memory
-Read your memory file and update it:
-- Add any new completed missions to the Completed Missions list
-- Update test count if changed
-- Add any new patterns, conventions, or lessons learned this session
-- Remove or correct any outdated information
-- Keep MEMORY.md under 200 lines
+Read your MEMORY.md and update if needed:
+- New patterns or lessons learned
+- Updated test counts
+- Remove outdated info
+- Keep under 200 lines
 
 ## 5. Session Summary
-Present a final report:
-
 ```
 ## Session Summary
 
 ### What was done
-- [Bullet list of accomplishments]
+- [Bullet list]
 
 ### Final health
 | Check | Status |
 |-------|--------|
 | Tests | X passing |
-| TypeScript | X errors |
-| Git | clean ✅ / pushed to [commit hash] |
+| Git | pushed to [hash] |
 
 ### Next session should
-- [What to work on next, based on priority matrix]
-- [Any blockers or warnings for next session]
+- [Priority items]
 ```
 
 ## Rules
-- Do NOT skip the health check. If tests fail, fix them before ending.
-- Do NOT leave uncommitted work. Commit and push everything.
-- Do NOT start new work. This command is for wrapping up only.
-- Be concise. The summary should fit on one screen.
+- Do NOT skip the health check.
+- Do NOT leave uncommitted work.
+- Do NOT start new work.
+- Be concise.
