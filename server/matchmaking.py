@@ -231,5 +231,49 @@ class MatchmakingQueue:
             }
 
 
+# Sweep interval for background matchmaking task (seconds)
+SWEEP_INTERVAL = 3
+
+
 # Global instance
 matchmaking_queue = MatchmakingQueue()
+
+
+def matchmaking_sweep_task(sio, on_match_formed):
+    """Background task that periodically sweeps the queue for matches.
+
+    Runs every SWEEP_INTERVAL seconds. This ensures matches are formed
+    even if players join at slightly different times and their individual
+    ``queue_join`` calls don't see enough players yet.
+
+    Also cleans up expired entries (players who waited too long).
+
+    Args:
+        sio: Socket.IO server instance (for ``sio.sleep``).
+        on_match_formed: Callback ``(match: MatchResult) -> None`` called
+            for each match found during the sweep.
+    """
+    logger.info("Matchmaking sweep task started (interval=%ss)", SWEEP_INTERVAL)
+    while True:
+        sio.sleep(SWEEP_INTERVAL)
+        try:
+            # Try to form any pending matches
+            matches = matchmaking_queue.try_match()
+            for match in matches:
+                logger.info(
+                    "Sweep matched: room=%s, players=%s",
+                    match.room_id,
+                    [p.email for p in match.players],
+                )
+                try:
+                    on_match_formed(match)
+                except Exception as exc:
+                    logger.exception("Error in on_match_formed callback: %s", exc)
+
+            # Clean up players who have been waiting far too long
+            expired = matchmaking_queue.cleanup_expired()
+            for entry in expired:
+                logger.info("Expired queue entry: %s (waited %.0fs)", entry.email, entry.wait_seconds)
+        except Exception as exc:
+            logger.exception("Error in matchmaking sweep: %s", exc)
+            sio.sleep(5)  # back off on error

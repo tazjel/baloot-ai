@@ -11,7 +11,6 @@
 /// 6. Action dock (bidding/playing controls) — above hand
 /// 7. Overlays (toasts, speech, modals)
 library;
-import 'dart:developer' as dev;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,6 +46,10 @@ import '../widgets/toast_overlay.dart';
 /// Uses a Stack architecture with positioned layers for each
 /// game board element. All player positions are relative to
 /// the screen (bottom = human, top = partner, left/right = opponents).
+///
+/// Converted from ConsumerWidget to ConsumerStatefulWidget to support:
+/// - Auto-starting the game when navigating from lobby (START_GAME dispatch)
+/// - Bot turn scheduling via [BotTurnHandler]
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
 
@@ -60,142 +63,259 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
-    print('[GAME] GameScreen.initState called');
-    // After first frame: start game if in waiting phase, then kick off bot handler
+    // After first frame: start game if in waiting phase, then wire bot handler.
+    // Using postFrameCallback ensures providers are fully initialized.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final gs = ref.read(gameStateProvider).gameState;
-      print('[GAME] PostFrame: phase=${gs.phase}, _gameStarted=$_gameStarted, players=${gs.players.length}');
-      if (gs.phase == GamePhase.waiting && !_gameStarted) {
-        _gameStarted = true;
-        print('[GAME] Dispatching START_GAME');
-        ref.read(actionDispatcherProvider.notifier).handlePlayerAction('START_GAME');
-        print('[GAME] START_GAME done, phase=${ref.read(gameStateProvider).gameState.phase}');
-      }
-      // Initial bot check for any state after game start
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final gs2 = ref.read(gameStateProvider).gameState;
-        print('[GAME] PostFrame2: phase=${gs2.phase}, turn=${gs2.currentTurnIndex}, isBot=${gs2.players.isNotEmpty ? gs2.players[gs2.currentTurnIndex].isBot : "?"}');
-        ref.read(botTurnHandlerProvider).checkAndScheduleBotTurn();
-      });
+      _maybeStartGame();
+      _wireBotListener();
     });
+  }
+
+  /// Start the game if still in waiting phase (offline mode).
+  void _maybeStartGame() {
+    final gs = ref.read(gameStateProvider).gameState;
+    if (gs.phase == GamePhase.waiting && !_gameStarted) {
+      _gameStarted = true;
+      ref.read(actionDispatcherProvider.notifier).handlePlayerAction('START_GAME');
+    }
+  }
+
+  /// Wire up a one-time listener that triggers bot turns on every state change.
+  /// Done in initState (via postFrameCallback) rather than build() to avoid
+  /// re-registering the listener on every rebuild.
+  void _wireBotListener() {
+    // Initial bot check after game start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(botTurnHandlerProvider).checkAndScheduleBotTurn();
+    });
+
+    // Ongoing: check for bot turns whenever game state changes
+    ref.listenManual<AppGameState>(
+      gameStateProvider,
+      (previous, next) {
+        ref.read(botTurnHandlerProvider).checkAndScheduleBotTurn();
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    print('[GAME] GameScreen.build called');
+    // Initialize audio notifier (watches game state internally)
+    ref.watch(audioNotifierProvider);
 
-    final appState = ref.watch(gameStateProvider);
-    final gameState = appState.gameState;
-    final phase = gameState.phase;
-    final players = gameState.players;
-    final turn = gameState.currentTurnIndex;
-
-    print('[GAME] build: phase=$phase, turn=$turn, players=${players.length}');
-
-    // Bot turn handler — auto-play for bot players in offline mode
-    final botHandler = ref.watch(botTurnHandlerProvider);
-    ref.listen<AppGameState>(
-      gameStateProvider,
+    // Baloot detection — show toast when K+Q of trump detected
+    ref.listen<BalootDetectionState>(
+      balootDetectionProvider,
       (previous, next) {
-        botHandler.checkAndScheduleBotTurn();
+        if (next.hasBaloot && !(previous?.hasBaloot ?? false)) {
+          ref.read(toastProvider.notifier).show(
+            'بلوت! لديك الملك والملكة ${next.trumpSuit?.symbol ?? ''}',
+            type: ToastType.baloot,
+            duration: const Duration(seconds: 4),
+          );
+        }
       },
     );
 
-    // DIAGNOSTIC: Minimal UI to isolate freeze
+    final appState = ref.watch(gameStateProvider);
+    final gameState = appState.gameState;
+    final players = gameState.players;
+    final phase = gameState.phase;
+
     return Scaffold(
-      backgroundColor: AppColors.tableGreen,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Back button
-            Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white70),
-                onPressed: () => context.go('/lobby'),
-              ),
-            ),
-            const SizedBox(height: 20),
-            // Diagnostic info
-            Text(
-              'Game Screen OK',
-              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Phase: ${phase.value}',
-              style: const TextStyle(color: Colors.white70, fontSize: 18),
-            ),
-            Text(
-              'Turn: $turn (${players.length > turn ? players[turn].name : "?"})',
-              style: const TextStyle(color: Colors.white70, fontSize: 18),
-            ),
-            Text(
-              'Players: ${players.length}',
-              style: const TextStyle(color: Colors.white70, fontSize: 18),
-            ),
-            if (players.isNotEmpty)
-              Text(
-                'Hand: ${players[0].hand.length} cards',
-                style: const TextStyle(color: Colors.white70, fontSize: 18),
-              ),
-            const SizedBox(height: 20),
-            // Floor card
-            if (gameState.floorCard != null)
-              Text(
-                'Floor: ${gameState.floorCard!.rank}${gameState.floorCard!.suit.symbol}',
-                style: const TextStyle(color: Colors.amber, fontSize: 22),
-              ),
-            const SizedBox(height: 20),
-            // Simple card list for hand
-            if (players.isNotEmpty)
-              Wrap(
-                spacing: 8,
-                children: players[0].hand.map((c) => Chip(
-                  label: Text('${c.rank}${c.suit.symbol}'),
-                )).toList(),
-              ),
-            const SizedBox(height: 20),
-            // Action dock placeholder
-            if (phase == GamePhase.bidding) ...[
-              const Text('Bidding Phase', style: TextStyle(color: Colors.amber, fontSize: 18)),
-              if (turn == 0) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => ref.read(actionDispatcherProvider.notifier)
-                          .handlePlayerAction('SUN'),
-                      child: const Text('صن'),
+      body: Container(
+        decoration: const BoxDecoration(color: AppColors.tableGreen),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final h = constraints.maxHeight;
+
+              return Stack(
+                children: [
+                  // === Layer 0: Table felt background ===
+                  const Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment.center,
+                          radius: 1.2,
+                          colors: [
+                            AppColors.tableGreenLight,
+                            AppColors.tableGreen,
+                            AppColors.tableGreenDark,
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => ref.read(actionDispatcherProvider.notifier)
-                          .handlePlayerAction('HOKUM'),
-                      child: const Text('حكم'),
+                  ),
+
+                  // === Layer 1: Top player avatar (partner, index 2) ===
+                  if (players.length > 2)
+                    Positioned(
+                      top: 44,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: PlayerAvatarWidget(
+                          player: players[2],
+                          index: 2,
+                          isCurrentTurn: gameState.currentTurnIndex == 2,
+                          scale: 0.85,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => ref.read(actionDispatcherProvider.notifier)
-                          .handlePlayerAction('PASS'),
-                      child: const Text('بس'),
+
+                  // === Layer 1: Left player avatar (opponent, index 3) ===
+                  if (players.length > 3)
+                    Positioned(
+                      top: h * 0.35,
+                      left: 8,
+                      child: PlayerAvatarWidget(
+                        player: players[3],
+                        index: 3,
+                        isCurrentTurn: gameState.currentTurnIndex == 3,
+                        scale: 0.8,
+                      ),
                     ),
-                  ],
-                ),
-              ],
-            ],
-            if (phase == GamePhase.playing)
-              const Text('Playing Phase', style: TextStyle(color: Colors.green, fontSize: 18)),
-          ],
+
+                  // === Layer 1: Right player avatar (opponent, index 1) ===
+                  if (players.length > 1)
+                    Positioned(
+                      top: h * 0.35,
+                      right: 8,
+                      child: PlayerAvatarWidget(
+                        player: players[1],
+                        index: 1,
+                        isCurrentTurn: gameState.currentTurnIndex == 1,
+                        scale: 0.8,
+                      ),
+                    ),
+
+                  // === Layer 1: Bottom player avatar (human, index 0) ===
+                  if (players.isNotEmpty)
+                    Positioned(
+                      bottom: h * 0.26,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: PlayerAvatarWidget(
+                          player: players[0],
+                          index: 0,
+                          isCurrentTurn: gameState.currentTurnIndex == 0,
+                          scale: 0.85,
+                        ),
+                      ),
+                    ),
+
+                  // === Layer 2: Game arena (center play area) ===
+                  Positioned(
+                    top: h * 0.18,
+                    left: w * 0.15,
+                    right: w * 0.15,
+                    bottom: h * 0.38,
+                    child: const GameArena(),
+                  ),
+
+                  // === Layer 3: Table HUD (scores + contract) ===
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: TableHudWidget(),
+                  ),
+
+                  // === Layer 4: Hand fan (bottom card fan) ===
+                  Positioned(
+                    bottom: phase == GamePhase.waiting ? 16 : 56,
+                    left: 8,
+                    right: 8,
+                    child: const HandFanWidget(),
+                  ),
+
+                  // === Layer 5: Action dock (bidding/playing controls) ===
+                  const Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: ActionDock(),
+                  ),
+
+                  // === Layer 6: Overlays ===
+                  const HeartbeatLayer(),
+                  const HintOverlayWidget(),
+                  const ToastOverlay(),
+                  const RoundTransitionOverlay(),
+
+                  // === Layer 7: Modal overlays (Qayd + Sawa) ===
+                  const Positioned.fill(child: SawaModal()),
+                  const Positioned.fill(child: DisputeModal()),
+
+                  // === Layer 8: Connection banner (top) ===
+                  const Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: ConnectionBanner(),
+                  ),
+
+                  // === Layer 9: Game Over overlay ===
+                  if (phase == GamePhase.gameOver)
+                    Positioned.fill(
+                      child: GameOverDialog(
+                        matchScores: gameState.matchScores,
+                        roundHistory: gameState.roundHistory,
+                        onPlayAgain: () {
+                          _recordMatch(gameState);
+                          ref.read(gameStateProvider.notifier).reset();
+                          _gameStarted = false;
+                          // Re-start after reset
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            _maybeStartGame();
+                          });
+                        },
+                        onReturnToLobby: () {
+                          _recordMatch(gameState);
+                          ref.read(gameStateProvider.notifier).reset();
+                          context.go('/lobby');
+                        },
+                      ),
+                    ),
+
+                  // === Back button ===
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white70, size: 20),
+                      onPressed: () => _showExitConfirmation(context),
+                      tooltip: 'العودة',
+                    ),
+                  ),
+
+                  // === Settings button ===
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(
+                      icon: const Icon(Icons.settings, color: Colors.white70, size: 20),
+                      onPressed: () => _showSettings(context),
+                      tooltip: 'الإعدادات',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  void _recordMatch(GameState gameState, WidgetRef ref) {
+  void _recordMatch(GameState gameState) {
     final won = gameState.matchScores.us >= 152;
     SettingsPersistence.recordMatchResult(won: won);
     SettingsPersistence.addMatchToHistory(MatchSummary(

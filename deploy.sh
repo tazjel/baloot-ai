@@ -29,7 +29,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --allow-unauthenticated \
   --session-affinity \
   --min-instances 0 \
-  --max-instances 20 \
+  --max-instances 1 \
   --memory 512Mi \
   --cpu 1 \
   --timeout 300 \
